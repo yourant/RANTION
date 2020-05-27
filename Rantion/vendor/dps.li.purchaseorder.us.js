@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-27 20:17:43
+ * @LastEditTime   : 2020-05-27 21:16:14
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -29,6 +29,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
 
         var price_type = newRecord.getValue('custbody_vendor_price_type');
 
+        log.audit('price_type', price_type);
 
         try {
 

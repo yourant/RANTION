@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-27 19:38:51
+ * @LastEditTime   : 2020-05-27 19:43:33
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -142,7 +142,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
 
 
 
-                var resultArr = getVpmd(supplier, currency, partNo, date);
+                // var resultArr = getVpmd(supplier, currency, partNo, date);
                 // log.debug('resultArr' + k, resultArr);
                 for (j = 0; j < resultArr.length; j++) {
                     log.debug(1)

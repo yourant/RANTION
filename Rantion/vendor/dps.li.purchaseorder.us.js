@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-27 20:14:27
+ * @LastEditTime   : 2020-05-27 20:17:43
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -50,6 +50,8 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                 log.debug('trandate', trandate);
                 var date = moment(trandate).format(dateFormat);
                 log.debug('date', date);
+
+                var subsidiary = newRecord.getValue('subsidiary');
 
                 var arr2 = [];
                 for (var i = 0; i < numLines; i++) {
@@ -126,7 +128,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                             log.debug('effectiveDate', effectiveDate);
                             log.debug("get_arr", get_arr);
                             // effectiveDate = moment(effectiveDate).format(dateFormat);
-                            sum = getPriceByTotal(supplier, subs, currency, partNo, effectiveDate);
+                            sum = getPriceByTotal(supplier, subsidiary, currency, partNo, effectiveDate);
                         }
 
                         if (!sum) {

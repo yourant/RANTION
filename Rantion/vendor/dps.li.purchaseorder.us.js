@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-27 19:31:54
+ * @LastEditTime   : 2020-05-27 19:38:51
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -250,74 +250,264 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
     }
 
     function afterSubmit(scriptContext) {
-        log.debug('afterSubmit', 'afterSubmit')
 
-        var newRecord = scriptContext.newRecord;
-        var type = scriptContext.type;
-        log.debug('type', type);
-        var ui = runtime.executionContext;
-        log.debug('ui', ui);
-
-        // if (type == 'create' && ui == 'USEREVENT') {
-
-
-        // try {
-        //     var id = newRecord.save();
-        //     log.debug('id',id);
-        // } catch (error) {
-        //     log.debug('save error',error);
-        // }
-        // }
     }
 
 
-    function getVpmd(supplier, currency, partNo, today) {
-        var filters = [{
-                join: 'custrecord_vpmd_link',
-                name: 'custrecord_vpmh_supplier',
-                operator: 'anyof',
-                values: supplier
-            },
-            {
-                name: "custrecord_vpmd_part_no",
-                operator: 'anyof',
-                values: partNo
-            },
-            {
-                name: "custrecord_vmpd_currency",
-                operator: 'anyof',
-                values: currency
-            },
-            {
-                name: 'custrecord_vmpd_effective_date',
-                operator: 'onorbefore',
-                values: today
-            },
-            {
-                name: 'custrecord_vmpd_expiration_date',
-                operator: 'onorafter',
-                values: today
-            }
-        ];
-        var columns = [{
+    /**
+     * 查询阶梯价格
+     * @param {*} supplier  供应商
+     * @param {*} currency  币种
+     * @param {*} partNo    货品
+     * @param {*} today     当前日期
+     * @param {*} sta       价格类型
+     * @param {*} sum       已采购总数/或采购的数量
+     */
+    function getVpmd(supplier, currency, partNo, today, sta, sum) {
+
+
+        log.debug('getVpmd sum', sum);
+        log.error('sum', sum);
+
+        var limit = 3999;
+
+        // log.debug('getVpmd', supplier, currency, partNo, today, sta, sum);
+        var filters = [];
+        var flag = false;
+        filters.push({
+            join: 'custrecord_vpmd_link',
+            name: 'custrecord_vpmh_supplier',
+            operator: 'anyof',
+            values: supplier
+        }, {
+            name: "custrecord_vpmd_part_no",
+            operator: 'anyof',
+            values: partNo
+        }, {
+            name: "custrecord_vmpd_currency",
+            operator: 'anyof',
+            values: currency
+        }, {
+            name: 'custrecord_vmpd_effective_date',
+            operator: 'onorbefore',
+            values: today
+        }, {
+            name: 'custrecord_vmpd_expiration_date',
+            operator: 'onorafter',
+            values: today
+        }, {
+            name: 'custrecord_dps_vpmh_price_type',
+            join: 'custrecord_vpmd_link',
+            operator: 'anyof',
+            values: sta
+        });
+        var columns = [];
+        columns.push({
+            name: 'custrecord_vmpd_unit_price'
+        });
+
+        if (sta == 1) {
+            columns.push({
                 name: 'custrecord_vmpd_quantity',
                 sort: 'ASC'
-            },
-            {
-                name: 'custrecord_vmpd_unit_price'
+            });
+            flag = true;
+        }
+        if (sta == 2) {
+
+            // filters.push({
+            //     name: 'custrecord_dps_vmph_cumulative_total',
+            //     operator: "lessthanorequalto",
+            //     values: sum
+            // });
+
+            if (sum > 0) {
+                log.debug('sum > 0');
+                filters.push({
+                    name: 'custrecord_dps_vmph_cumulative_total',
+                    operator: "lessthanorequalto",
+                    values: sum
+                });
+            } else {
+                log.debug('sum = 0');
+                filters.push({
+                    name: 'custrecord_dps_vmph_cumulative_total',
+                    operator: "equalto",
+                    values: sum
+                });
             }
-        ];
-        var mySearch = search.create({
+
+            columns.push({
+                name: 'custrecord_dps_vmph_cumulative_total',
+                sort: 'ASC'
+            });
+            flag = true;
+        }
+        log.error('filters', filters);
+        var resultArr = [];
+        var add = 0;
+
+        search.create({
             type: 'customrecord_vemdor_price_manage_d',
             filters: filters,
             columns: columns
-        });
-        var resultArr = [];
-        mySearch.run().each(function (result) {
+        }).run().each(function (result) {
             resultArr.push(result);
-            return true;
+
+            log.error('price', result.getValue('custrecord_vmpd_unit_price'));
+            add++;
+
+            return flag;
+            return --limit > 0;
         });
-        return resultArr;
+
+        log.debug('getVpmd resultArr', resultArr);
+        // log.debug('add', add);
+        return resultArr || false;
+
+    }
+
+
+    /**
+     * 获取当前货品 供应商价格管理的数据
+     * @param {*} supplier  供应商
+     * @param {*} currency  货币
+     * @param {*} partNo    货品
+     * @param {*} today     当前日期
+     */
+    function getEffectiveDateByItem(supplier, currency, partNo, today) {
+
+        var filters = [];
+        filters.push({
+            join: 'custrecord_vpmd_link',
+            name: 'custrecord_vpmh_supplier',
+            operator: 'anyof',
+            values: supplier
+        }, {
+            name: "custrecord_vpmd_part_no",
+            operator: 'anyof',
+            values: partNo
+        }, {
+            name: "custrecord_vmpd_currency",
+            operator: 'anyof',
+            values: currency
+        }, {
+            name: 'custrecord_vmpd_effective_date',
+            operator: 'onorbefore',
+            values: today
+        }, {
+            name: 'custrecord_vmpd_expiration_date',
+            operator: 'onorafter',
+            values: today
+        }, {
+            name: 'custrecord_dps_vpmh_price_type',
+            join: 'custrecord_vpmd_link',
+            operator: 'anyof',
+            values: 2
+        });
+
+        var columns = [{
+                name: 'custrecord_dps_vmph_cumulative_total',
+                sort: 'ASC'
+            },
+            {
+                // 累计开始时间
+                name: 'custrecord_dps_vmph_cumulative_time'
+            },
+            {
+                // 生效时间
+                name: 'custrecord_vmpd_effective_date'
+            },
+            {
+                // 失效时间
+                name: 'custrecord_vmpd_expiration_date'
+            }
+        ];
+
+        var resultArr = [];
+        var add = 0;
+
+        search.create({
+            type: 'customrecord_vemdor_price_manage_d',
+            filters: filters,
+            columns: columns
+        }).run().each(function (result) {
+            resultArr.push(result);
+            ++add;
+            // 只取符合条件的第一个价格
+            // return true;
+        });
+        log.debug('add', add);
+        return resultArr || false;
+    }
+
+
+    /**
+     * 查询历史采购订单的
+     * @param {*} vendor 
+     * @param {*} subsidiary 
+     * @returns 
+     */
+    function getPriceByTotal(vendor, subsidiary, currency, itemId, effectiveDate) {
+        var total = 0,
+            limit = 3999,
+            add = 0;
+        log.debug('getPriceByTotal', vendor, subsidiary, currency, itemId, effectiveDate);
+        search.create({
+            type: 'purchaseorder',
+            filters: [{
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: "trandate",
+                    operator: "onorafter",
+                    values: effectiveDate
+                },
+                {
+                    name: "subsidiary",
+                    operator: 'anyof',
+                    values: subsidiary
+                },
+                {
+                    name: 'currency',
+                    operator: 'anyof',
+                    values: currency
+                },
+                {
+                    name: "internalid",
+                    join: "vendor",
+                    operator: 'anyof',
+                    values: vendor
+                },
+                {
+                    name: "item",
+                    operator: 'anyof',
+                    values: itemId
+                }
+            ],
+            columns: [{
+                name: "quantity",
+                summary: "SUM"
+            }]
+        }).run().each(function (rec) {
+            total = rec.getValue({
+                name: "quantity",
+                summary: "SUM"
+            });
+            ++add;
+            return --limit > 0;
+        });
+
+        log.debug('total', total, 'add', add);
+        return total ? total : 0;
+
     }
 
 

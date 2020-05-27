@@ -262,7 +262,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                     check_post_date, m_postdate_obj = {},
                     adjObj = {},
                     orderItemTax = [],
-                    adjusItemCode
+                    adjusItemCode;
                 var fils = [
                     ["custrecord_aio_sett_order_id", "is", "" + orderid],
                     "and",

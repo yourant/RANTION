@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 20:32:05
- * @LastEditTime   : 2020-05-27 16:35:41
+ * @LastEditTime   : 2020-05-27 21:19:46
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.cs.js
@@ -35,7 +35,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
     }
 
     function validateField(context) {
-        // console.log('validateField', context.fieldId);
+
         var rec = context.currentRecord;
 
         var price_type = rec.getValue('custbody_vendor_price_type');
@@ -43,7 +43,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
         var curUnitPrice = 0;
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
         var today = moment(new Date().getTime()).format(dateFormat);
-        // console.log('today', today);
+
 
         var quantity = rec.getCurrentSublistValue({
             sublistId: 'item',
@@ -52,22 +52,19 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
 
         if (context.fieldId == 'matchbilltoreceipt' || context.fieldId == 'quantity') {
             var supplier = rec.getValue('entity');
-            // console.log('supplier', supplier);
+
             var subs = rec.getValue('subsidiary');
             var currency = rec.getValue('currency');
-            // console.log('currency', currency);
+
             var partNo = rec.getCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'item'
             });
-            // console.log('partNo', partNo);
+
             if (!supplier || !partNo || !currency) {
                 return true;
             }
-            // var quantity = rec.getCurrentSublistValue({
-            //     sublistId: 'item',
-            //     fieldId: 'quantity'
-            // });
+
             if (!quantity) {
                 quantity = 1;
             }
@@ -176,7 +173,6 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
      * @param {*} sum       已采购总数/或采购的数量
      */
     function getVpmd(supplier, currency, partNo, today, sta, sum) {
-
 
         console.log('getVpmd sum', sum);
         log.error('sum', sum);

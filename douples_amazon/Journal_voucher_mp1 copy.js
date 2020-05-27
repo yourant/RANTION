@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-20 19:55:27
- * @LastEditTime   : 2020-05-20 23:18:11
+ * @LastEditTime   : 2020-05-27 21:51:06
  * @LastEditors    : Li
  * @Description    : 冲销凭证, 修改版 2020-05-20 23:09:42  尚睿
  * @FilePath       : \douples_amazon\Journal_voucher_mp1 copy.js
@@ -30,7 +30,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
     function getInputData() {
         var limit = 10,
-            orders = []
+            orders = [];
         search.create({
             type: "customrecord_aio_amazon_settlement",
             filters: [{

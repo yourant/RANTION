@@ -146,10 +146,15 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
                     body: body,
                     headers: header
                 })
-                dialog.alert({
-                    title: JSON.parse(response.body).status,
-                    message: JSON.parse(response.body).data
-                }).then(success2).catch(failure);
+                if(JSON.parse(response.body).status == 'success'){
+                    // window.location.href = 'https://6188472-sb1.app.netsuite.com/app/common/custom/custrecordentrylist.nl?rectype=305';
+                    window.open('https://6188472-sb1.app.netsuite.com/app/common/custom/custrecordentrylist.nl?rectype=305');
+                }else{
+                    dialog.alert({
+                        title: JSON.parse(response.body).status,
+                        message: JSON.parse(response.body).data
+                    }).then(success2).catch(failure);
+                }
             }
         }
 

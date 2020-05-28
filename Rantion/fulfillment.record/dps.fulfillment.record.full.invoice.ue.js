@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-05-23 14:23:55
+ * @LastEditTime   : 2020-05-28 16:14:25
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -196,7 +196,12 @@ define(['N/record', 'N/search', 'N/log',
                     message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
                 }
                 var flag;
-                var temp = JSON.parse(message);
+                var temp;
+                try {
+                    temp = JSON.parse(message);
+                } catch (error) {
+                    temp = message;
+                }
                 if (temp.data.code != 0) {
                     flag = 8
                 } else {

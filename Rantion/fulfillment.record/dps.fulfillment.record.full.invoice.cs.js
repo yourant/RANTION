@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:43:21
- * @LastEditTime   : 2020-05-11 16:41:28
+ * @LastEditTime   : 2020-05-28 16:27:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.cs.js
@@ -232,8 +232,8 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
             // return;
 
             var url1 = url.resolveScript({
-                scriptId: 'customscript_dps_wms_logistics_samll_ite',
-                deploymentId: 'customdeploy_dps_wms_logistics_samll_ite',
+                scriptId: 'customscript_dps_wms_create_outmaster_rl',
+                deploymentId: 'customdeploy_dps_wms_create_outmaster_rl',
                 returnExternalUrl: false
             });
 
@@ -243,7 +243,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
             };
 
             var body1 = {
-                action: 'WMS',
+                sourceType: 10,
                 recordID: rec_id
             };
             log.debug('body1', body1);

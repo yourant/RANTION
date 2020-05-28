@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-28 16:00:28
+ * @LastEditTime   : 2020-05-28 18:00:16
  * @LastEditors    : Li
  * @Description    :  应用于采购订单,增加按钮
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -120,6 +120,12 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
 
                 for (var i = 0; i < len; i++) {
 
+
+                    var deQty = bf_rec.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'custcol_dps_delivery_quantity',
+                        line: i
+                    });
                     var qty = bf_rec.getSublistValue({
                         sublistId: 'item',
                         fieldId: 'quantity',
@@ -140,6 +146,9 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                         value: qty
                     });
 
+                    if (deQty) {
+                        qty = deQty;
+                    }
                     bf_rec.setSublistValue({
                         sublistId: 'item',
                         fieldId: 'custcol_dps_delivery_quantity',
@@ -163,23 +172,27 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                         line: i
                     });
 
-                    var outstanding_quantity = bf_rec.getSublistValue({
-                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                        fieldId: 'custrecord_item_quantity',
-                        line: i
-                    });
+                    if (stock_quantity) {
 
-                    var outstanding_quantity = bf_rec.getSublistValue({
-                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                        fieldId: 'custrecord_outstanding_quantity',
-                        line: i,
-                    });
-                    bf_rec.setSublistValue({
-                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                        fieldId: 'custrecord_outstanding_quantity',
-                        line: i,
-                        value: Number(outstanding_quantity) + Number(outstanding_quantity) - Number(stock_quantity)
-                    });
+                        var item_quantity = bf_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_item_quantity',
+                            line: i
+                        });
+
+                        var outstanding_quantity = bf_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_dps_dev_undelivered_quantity',
+                            line: i,
+                        });
+                        bf_rec.setSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_dps_dev_undelivered_quantity',
+                            line: i,
+                            value: Number(item_quantity) + Number(outstanding_quantity) - Number(stock_quantity)
+                        });
+                    }
+
 
                 }
             }

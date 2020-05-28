@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-28 15:43:21
+ * @LastEditTime   : 2020-05-28 17:48:23
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_query_purchase_order_rl.js
@@ -244,9 +244,17 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
                         fieldId: 'custrecord_purchase_quantity',
                         value: li.quantity
                     });
+
+                    log.debug('li.quantity', li.quantity);
+                    log.debug('li.quantity_delivered', li.quantity_delivered);
+                    log.debug('li.delivery_quantity', li.delivery_quantity);
+
+                    var outQty = li.quantity - li.quantity_delivered - li.delivery_quantity;
+                    log.debug('outQty', outQty);
+
                     delivery_ord.setCurrentSublistValue({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                        fieldId: 'custrecord_outstanding_quantity',
+                        fieldId: 'custrecord_dps_dev_undelivered_quantity',
                         value: li.quantity - li.quantity_delivered - li.delivery_quantity
                     });
 
@@ -255,6 +263,9 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
                         fieldId: 'custrecord_item_quantity',
                         value: li.delivery_quantity
                     });
+
+                    // custrecord_dps_dev_undelivered_quantity
+
                     delivery_ord.setCurrentSublistValue({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id',
                         fieldId: 'custrecord_unit_price',

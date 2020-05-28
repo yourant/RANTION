@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-28 18:00:16
+ * @LastEditTime   : 2020-05-28 19:06:13
  * @LastEditors    : Li
  * @Description    :  应用于采购订单,增加按钮
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -17,64 +17,37 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
     var roleId = runtime.getCurrentUser().role;
 
     function beforeLoad(context) {
-
-
         log.debug('roleId', roleId);
         var newRecord = context.newRecord;
-
         var flag = true;
         var add = 0;
         if (newRecord.type == "purchaseorder") {
             try {
                 search.create({
                     type: newRecord.type,
-                    filters: [{
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: newRecord.id
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: false
-                        },
-                        {
-                            name: 'taxline',
-                            operator: 'is',
-                            values: false
-                        }
+                    filters: [
+                        { name: 'internalid', operator: 'anyof', values: newRecord.id },
+                        { name: 'mainline', operator: 'is', values: false },
+                        { name: 'taxline', operator: 'is', values: false }
                     ],
-                    columns: [{
-                        name: "formulanumeric",
-                        formula: "{quantity}-{custcol_dps_quantity_delivered}"
-                    }]
-
+                    columns: [{ name: 'formulanumeric', formula: '{quantity}-{custcol_dps_quantity_delivered}' }]
                 }).run().each(function (rec) {
-
-                    var it = rec.getValue({
-                        name: "formulanumeric",
-                        formula: "{quantity}-{custcol_dps_quantity_delivered}"
-                    });
-
+                    var it = rec.getValue({ name: 'formulanumeric', formula: '{quantity}-{custcol_dps_quantity_delivered}' });
                     log.debug('it', it);
                     if (it && it > 0) {
                         flag = false;
                     }
                     ++add;
-
                     return flag;
                 });
-
             } catch (error) {
                 log.debug('搜索出错了', error);
             }
-
             log.debug('flag', flag);
             log.debug('add', add);
         }
 
-
-        if (context.type == 'view' && newRecord.type == 'purchaseorder' && !flag) {
+        if (context.type == 'view' && newRecord.type == 'purchaseorder' && !flag && roleId != 16) {
             var form = context.form
             form.clientScriptModulePath = './dps_purchase_order_cs.js';
             form.addButton({
@@ -106,21 +79,14 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
     }
 
     function beforeSubmit(context) {
-
         var bf_rec = context.newRecord;
-
         var type = context.type;
-
         try {
             if (type == 'create' && bf_rec.type == "purchaseorder") {
-
                 var len = bf_rec.getLineCount({
                     sublistId: 'item'
                 });
-
                 for (var i = 0; i < len; i++) {
-
-
                     var deQty = bf_rec.getSublistValue({
                         sublistId: 'item',
                         fieldId: 'custcol_dps_delivery_quantity',
@@ -131,21 +97,18 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                         fieldId: 'quantity',
                         line: i
                     });
-
                     bf_rec.setSublistValue({
                         sublistId: 'item',
                         fieldId: 'custcol_dps_quantity_delivered',
                         line: i,
                         value: 0
                     });
-
                     bf_rec.setSublistValue({
                         sublistId: 'item',
                         fieldId: 'custcol_dps_undelivered_quantity',
                         line: i,
                         value: qty
                     });
-
                     if (deQty) {
                         qty = deQty;
                     }
@@ -156,35 +119,34 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                         value: qty
                     });
                 }
-
             }
 
             if (bf_rec.type == "customrecord_dps_delivery_order") {
-
                 var len = bf_rec.getLineCount({
                     sublistId: 'recmachcustrecord_dps_delivery_order_id'
                 });
-
                 for (var i = 0; i < len; i++) {
                     var stock_quantity = bf_rec.getSublistValue({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id',
                         fieldId: 'custrecord_stock_quantity',
                         line: i
                     });
-
                     if (stock_quantity) {
-
+                        // 交货的数量
                         var item_quantity = bf_rec.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_item_quantity',
                             line: i
                         });
-
+                        // 未交货的数量
                         var outstanding_quantity = bf_rec.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_dps_dev_undelivered_quantity',
                             line: i,
                         });
+                        log.debug('Number(item_quantity)', Number(item_quantity));
+                        log.debug('Number(outstanding_quantity)', Number(outstanding_quantity));
+                        log.debug('Number(stock_quantity)', Number(stock_quantity));
                         bf_rec.setSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_dps_dev_undelivered_quantity',
@@ -192,25 +154,18 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                             value: Number(item_quantity) + Number(outstanding_quantity) - Number(stock_quantity)
                         });
                     }
-
-
                 }
             }
         } catch (error) {
             log.error('beforeSubmit 设置交货单的值, 出错了', error);
         }
-
     }
 
     function afterSubmit(context) {
         try {
             var newRecord = context.newRecord;
-
-
             if (newRecord.type == 'customrecord_dps_delivery_order') {
-
                 var purchase_order_no = newRecord.getValue('custrecord_purchase_order_no');
-
                 // var setArr = [],
                 //     limit = 3999;
                 // search.create({
@@ -232,41 +187,30 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                 //     setArr.push(it);
                 //     return --limit > 0;
                 // });
-
-
                 var len = newRecord.getLineCount({
                     sublistId: 'recmachcustrecord_dps_delivery_order_id'
                 });
-
                 if (purchase_order_no) {
-
                     var l_po = record.load({
                         type: 'purchaseorder',
                         id: purchase_order_no
                     });
-
-
                     for (var i = 0; i < len; i++) {
-
                         var item_sku = newRecord.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_item_sku',
                             line: i
                         });
-
                         var stock_quantity = newRecord.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_stock_quantity',
                             line: i
                         });
-
                         var item_quantity = newRecord.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_item_quantity',
                             line: i
                         });
-
-
                         log.debug('afterSubmit stock_quantity', stock_quantity);
                         if (stock_quantity) {
 
@@ -318,11 +262,9 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
 
                         }
                     }
-
                     var l_po_id = l_po.save();
                     log.audit('l_po_id', l_po_id);
                 }
-
             }
 
             /*

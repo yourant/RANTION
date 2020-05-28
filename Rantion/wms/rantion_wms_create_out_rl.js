@@ -127,6 +127,15 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     columns: [
 
                         'custrecord_dps_ship_samll_location', // 发运仓库	
+                        {
+                            name: 'custrecord_dps_wms_location',
+                            join: 'custrecord_dps_ship_samll_location'
+                        },
+                        {
+                            name: 'custrecord_dps_wms_location_name',
+                            join: 'custrecord_dps_ship_samll_location'
+                        },
+
                         'custrecord_dps_ship_order_number', //订单号	
                         'custrecord_dps_ship_platform_order_numbe', //平台订单号
                         'custrecord_dps_ship_small_logistics_orde', //物流运单号
@@ -171,37 +180,64 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         join: 'custrecord_dps_recipient_country'
                     }); //   '国家简码';
                     // data["detailCreateRequestDtos"] = '出库单明细';
-                    data["email"] = '邮箱地址';
-                    data["logisticsChannelCode"] = '物流渠道服务编号';
-                    data["logisticsChannelName"] = '物流渠道服务名称';
+                    // data["email"] = '邮箱地址';
+                    data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice'); //  '物流渠道服务编号';
+                    data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
                     data["logisticsLabelPath"] = '物流面单文件路径';
-                    data["logisticsProviderCode"] = '物流渠道商编号';
-                    data["logisticsProviderName"] = '物流渠道商名称';
-                    data["mobilePhone"] = '移动电话';
+                    data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';
+                    data["logisticsProviderName"] = rec.getText('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商名称';
+                    data["mobilePhone"] = rec.getValue('custrecord_dps_ship_small_phone'); //'移动电话';
 
 
-                    data["platformCode"] = '平台编号';
-                    data["platformName"] = '平台名称';
-                    data["postcode"] = '邮编';
-                    data["province"] = '省份';
-                    data["qty"] = '数量';
-                    data["recipient"] = '收件人';
-                    data["remark"] = '备注';
-                    data["shopCode"] = '平台编号';
+                    // data["platformCode"] = '平台编号';
+                    data["platformName"] = rec.getText('custrecord_dps_ship_small_sales_platform'); // '平台名称';
+                    data["postcode"] = rec.getValue('custrecord_dps_recipien_code'); //'邮编';
+                    data["province"] = rec.getValue('custrecord_dps_s_state'); //'省份';
+                    // data["qty"] = '数量';
+                    data["recipient"] = rec.getValue('custrecord_dps_s_state'); //'收件人';
+                    // data["remark"] = '备注';
+                    // data["shopCode"] = '平台编号';
 
-                    data["shopName"] = '店铺名称';
-                    data["sourceNo"] = '来源单号';
-                    data["sourceType"] = '来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整';
-                    data["telephone"] = '固定电话';
-                    data["trackingNo"] = '最终跟踪号';
+                    data["shopName"] = rec.getValue('custrecord_dps_ship_small_account'); //'店铺名称';
+                    data["sourceNo"] = rec.type + '_' + rec.id; //'来源单号';
+                    data["sourceType"] = 10; //'来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整';
+                    // data["telephone"] = '固定电话';
+                    // data["trackingNo"] = '最终跟踪号';
 
-                    data["warehouseCode"] = '仓库编号';
-                    data["warehouseName"] = '仓库名称';
-                    data["waybillNo"] = '运单号';
-
-
+                    data["warehouseCode"] = rec.getValue({
+                        name: 'custrecord_dps_wms_location',
+                        join: 'custrecord_dps_ship_samll_location'
+                    }); //'仓库编号';
+                    data["warehouseName"] = rec.getValue({
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'custrecord_dps_ship_samll_location'
+                    }); //'仓库名称';
+                    data["waybillNo"] = rec.id;
 
                 });
+
+
+                var limit = 3999,
+                    itemInfo = [];
+                search.create({
+                    type: 'customrecord_dps_ship_samll_sku',
+                    filters: [{
+                        name: 'custrecord_dps_ship_small_links',
+                        operator: 'anyof',
+                        values: context.recordID
+                    }],
+                    columns: [
+
+                    ]
+                }).run().each(function (rec) {
+
+                    var it = {};
+
+                    return --limit > 0;
+
+                });
+
+                // data["detailCreateRequestDtos"] = '出库单明细';
 
                 data['logisticsChannelCode'] = af_rec.getValue('custrecord_dps_ship_small_channel_dealer');
                 data['logisticsChannelName'] = af_rec.getText('custrecord_dps_ship_small_channel_dealer');

@@ -1,117 +1,135 @@
 /*
  * @Author         : Li
- * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-05-28 09:44:38
+ * @Version        : 1.0
+ * @Date           : 2020-05-28 09:45:01
+ * @LastEditTime   : 2020-05-28 10:18:31
  * @LastEditors    : Li
- * @Description    : 应用于库存转移订单, 库存转移订单生成之后, 直接生成大货发运记录,报关资料等记录
- * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
+ * @Description    : 
+ * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.map.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
 /**
  *@NApiVersion 2.x
- *@NScriptType UserEventScript
+ *@NScriptType MapReduceScript
  */
-define(['N/record', 'N/search', 'N/log'], function (record, search, log, costCal) {
+define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
-    function beforeLoad(context) {
+    function getInputData() {
 
-    }
-
-    function beforeSubmit(context) {
-
-    }
-
-    function afterSubmit(context) {
-
-        var af_rec = context.newRecord;
-
-        var orderstatus = af_rec.getValue('orderstatus');
-        log.debug('orderstatus', orderstatus);
-
-        // 若订单状态为 等待发货  / 部分发货
-        // if (orderstatus == "B" || orderstatus == 'E') {
-        if (orderstatus == "B") {
-
-            try {
-                var rec_id = createFulRecord(af_rec);
-                log.debug('rec_id', rec_id);
-                if (rec_id) {
-                    var otherId = record.submitFields({
-                        type: af_rec.type,
-                        id: af_rec.id,
-                        values: {
-                            'custbody_dps_fu_rec_link': rec_id
-                        }
-                    });
-
-                    if (context.type == 'create' /*|| context.type == 'edit' */ ) {
-                        var info = searchItemInfo(af_rec.id);
-                        var subsidiary = af_rec.getValue('subsidiary');
-                        log.debug('info', info);
-                        if (info && info.length) {
-                            // 创建报关发票
-                            var invId = createCusInv(info);
-                            log.debug('invId', invId);
-
-                            var id = record.submitFields({
-                                type: 'customrecord_dps_shipping_record',
-                                id: rec_id,
-                                values: {
-                                    custrecord_dps_ship_rec_c_inv_link: invId
-                                }
-                            });
-                            var id = record.submitFields({
-                                type: 'transferorder',
-                                id: af_rec.id,
-                                values: {
-                                    custbody_dps_invoice_links: invId
-                                }
-                            });
-
-
-
-
-
-                            if (invId) {
-                                // 创建报关装箱
-                                var boxId = createBoxRec(info, invId);
-                                log.debug('boxId', boxId);
-
-                                // 创建报关合同
-                                var conId = createContract(info, invId, subsidiary);
-                                log.debug('conId', conId);
-
-                                // 创建报关单
-                                var decId = createDeclaration(info, invId);
-                                log.debug('decId', decId);
-
-                                // 创建报关要素
-                                var eleArr = CreateElementsOfDeclaration(info, invId);
-                                log.debug('eleArr', eleArr);
-
-                                // 创建 US 开票资料
-                                var usbArr = createUSBillInformation(info, invId);
-                                log.debug('usbArr', usbArr);
-                            }
-                        }
-                    }
+        var recArr = [],
+            limit = 3999;
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                },
+                {
+                    name: 'custbody_dps_fu_rec_link',
+                    operator: 'noneof',
+                    values: '@NONE@'
                 }
-            } catch (error) {
-                log.error('error', error);
-            }
+            ]
+        }).run().each(function (rec) {
 
-        } else {
-            log.debug('else status', orderstatus);
+            recArr.push(rec.id);
+
+            return --limit > 0;
+        });
+
+
+        log.audit('recArr length', recArr.length);
+
+        return recArr;
+    }
+
+    function map(context) {
+
+
+        var val = context.value;
+
+        var rec_id = createFulRecord(val);
+        log.debug('rec_id', rec_id);
+        if (rec_id) {
+            var otherId = record.submitFields({
+                type: af_rec.type,
+                id: af_rec.id,
+                values: {
+                    'custbody_dps_fu_rec_link': rec_id
+                }
+            });
+
+            var info = searchItemInfo(af_rec.id);
+            var subsidiary = af_rec.getValue('subsidiary');
+            log.debug('info', info);
+            if (info && info.length) {
+                // 创建报关发票
+                var invId = createCusInv(info);
+                log.debug('invId', invId);
+
+                var id = record.submitFields({
+                    type: 'customrecord_dps_shipping_record',
+                    id: rec_id,
+                    values: {
+                        custrecord_dps_ship_rec_c_inv_link: invId
+                    }
+                });
+                var id = record.submitFields({
+                    type: 'transferorder',
+                    id: af_rec.id,
+                    values: {
+                        custbody_dps_invoice_links: invId
+                    }
+                });
+
+                if (invId) {
+                    // 创建报关装箱
+                    var boxId = createBoxRec(info, invId);
+                    log.debug('boxId', boxId);
+
+                    // 创建报关合同
+                    var conId = createContract(info, invId, subsidiary);
+                    log.debug('conId', conId);
+
+                    // 创建报关单
+                    var decId = createDeclaration(info, invId);
+                    log.debug('decId', decId);
+
+                    // 创建报关要素
+                    var eleArr = CreateElementsOfDeclaration(info, invId);
+                    log.debug('eleArr', eleArr);
+
+                    // 创建 US 开票资料
+                    var usbArr = createUSBillInformation(info, invId);
+                    log.debug('usbArr', usbArr);
+                }
+
+            }
         }
+    }
+
+    function reduce(context) {
 
     }
+
+    function summarize(summary) {
+
+    }
+
+
 
     /**
      * 创建大货发运记录
      * @param {*} rec 
      */
-    function createFulRecord(rec) {
+    function createFulRecord(val) {
+
+        var rec = record.load({
+            type: 'transferorder',
+            id: val
+        });
         var objRecord;
 
         var link = rec.getValue('custbody_dps_fu_rec_link');
@@ -774,8 +792,9 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log, costCal
     }
 
     return {
-        beforeLoad: beforeLoad,
-        beforeSubmit: beforeSubmit,
-        afterSubmit: afterSubmit
+        getInputData: getInputData,
+        map: map,
+        reduce: reduce,
+        summarize: summarize
     }
 });

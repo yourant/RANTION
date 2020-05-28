@@ -1,9 +1,9 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-24 13:52:51
- * @LastEditTime   : 2020-05-25 10:20:23
+ * @LastEditTime   : 2020-05-28 09:39:55
  * @LastEditors    : Li
- * @Description    : 应用于 大货发运记录, 大货发运记录生成之后, 直接生成报关发票, 等相关记录
+ * @Description    : 应用于 大货发运记录, 大货发运记录生成之后, 直接生成报关发票等相关记录
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.create.customs.invoice.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -27,53 +27,53 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
             var af_rec = context.newRecord;
             var type = context.type;
             log.debug('type', type);
-            // if (type == 'create') {
-            // 限制于大货的创建
-            var order_link = af_rec.getValue('custrecord_dps_trans_order_link'); // 库存转移订单
-            var inv_link = af_rec.getValue('custrecord_dps_ship_rec_c_inv_link'); // 报关发票
+            if (type == 'create') {
+                // 限制于大货的创建
+                var order_link = af_rec.getValue('custrecord_dps_trans_order_link'); // 库存转移订单
+                var inv_link = af_rec.getValue('custrecord_dps_ship_rec_c_inv_link'); // 报关发票
 
-            var t_o_id = af_rec.getValue('custrecord_dps_trans_order_link');
-            if (order_link && !inv_link) {
-                var info = searchItemInfo(t_o_id);
-                log.debug('info', info);
-                if (info && info.length) {
-                    // 创建报关发票
-                    var invId = createCusInv(info);
-                    log.debug('invId', invId);
+                var t_o_id = af_rec.getValue('custrecord_dps_trans_order_link');
+                if (order_link && !inv_link) {
+                    var info = searchItemInfo(t_o_id);
+                    log.debug('info', info);
+                    if (info && info.length) {
+                        // 创建报关发票
+                        var invId = createCusInv(info);
+                        log.debug('invId', invId);
 
-                    var id = record.submitFields({
-                        type: af_rec.type,
-                        id: af_rec.id,
-                        values: {
-                            custrecord_dps_ship_rec_c_inv_link: invId
+                        var id = record.submitFields({
+                            type: af_rec.type,
+                            id: af_rec.id,
+                            values: {
+                                custrecord_dps_ship_rec_c_inv_link: invId
+                            }
+                        });
+
+                        if (invId) {
+                            // 创建报关装箱
+                            var boxId = createBoxRec(info, invId);
+                            log.debug('boxId', boxId);
+
+                            // 创建报关合同
+                            var conId = createContract(info, invId);
+                            log.debug('conId', conId);
+
+                            // 创建报关单
+                            var decId = createDeclaration(info, invId);
+                            log.debug('decId', decId);
+
+                            // 创建报关要素
+                            var eleArr = CreateElementsOfDeclaration(info, invId);
+                            log.debug('eleArr', eleArr);
+
+                            // 创建 US 开票资料
+                            var usbArr = createUSBillInformation(info, invId);
+                            log.debug('usbArr', usbArr);
+
                         }
-                    });
-
-                    if (invId) {
-                        // 创建报关装箱
-                        var boxId = createBoxRec(info, invId);
-                        log.debug('boxId', boxId);
-
-                        // 创建报关合同
-                        var conId = createContract(info, invId);
-                        log.debug('conId', conId);
-
-                        // 创建报关单
-                        var decId = createDeclaration(info, invId);
-                        log.debug('decId', decId);
-
-                        // 创建报关要素
-                        var eleArr = CreateElementsOfDeclaration(info, invId);
-                        log.debug('eleArr', eleArr);
-
-                        // 创建 US 开票资料
-                        var usbArr = createUSBillInformation(info, invId);
-                        log.debug('usbArr', usbArr);
-
                     }
                 }
             }
-            // }
 
         } catch (error) {
             log.error('error', error);

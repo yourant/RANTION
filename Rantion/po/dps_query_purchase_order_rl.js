@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-28 17:48:23
+ * @LastEditTime   : 2020-05-28 23:57:56
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_query_purchase_order_rl.js
@@ -229,7 +229,7 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
             //产品
             line.item.map(function (li) {
 
-                if (li.delivery_quantity > 0 && li.undelivered_quantity > 0) {
+                if (li.delivery_quantity > 0 || (li.quantity - li.quantity_delivered) > 0) {
 
                     delivery_ord.selectNewLine({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id'
@@ -255,13 +255,14 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
                     delivery_ord.setCurrentSublistValue({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id',
                         fieldId: 'custrecord_dps_dev_undelivered_quantity',
-                        value: li.quantity - li.quantity_delivered - li.delivery_quantity
+                        value: 0
                     });
+
 
                     delivery_ord.setCurrentSublistValue({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id',
                         fieldId: 'custrecord_item_quantity',
-                        value: li.delivery_quantity
+                        value: li.delivery_quantity > 0 ? li.delivery_quantity : outQty
                     });
 
                     // custrecord_dps_dev_undelivered_quantity
@@ -271,7 +272,9 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
                         fieldId: 'custrecord_unit_price',
                         value: li.rate
                     });
-                    totalAmount += Number(li.delivery_quantity) * Number(li.rate);
+
+                    var qu = li.delivery_quantity > 0 ? li.delivery_quantity : outQty;
+                    totalAmount += Number(qu) * Number(li.rate);
                     try {
                         delivery_ord.commitLine({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id'
@@ -290,6 +293,7 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
                 value: totalAmount
             });
 
+            // flag = true;
             var res_id;
             if (flag) {
                 // 交货单存在货品行信息, 则保存
@@ -352,7 +356,7 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
 
                 });
 
-                purchase_data.save();
+                // purchase_data.save();
                 res_arr.push(res_id);
             }
         });

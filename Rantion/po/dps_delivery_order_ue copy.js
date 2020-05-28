@@ -2,10 +2,10 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-28 23:35:54
+ * @LastEditTime   : 2020-05-28 22:56:45
  * @LastEditors    : Li
  * @Description    :  应用于采购订单,增加按钮
- * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
+ * @FilePath       : \Rantion\po\dps_delivery_order_ue copy.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 /**
@@ -239,7 +239,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
             var newRecord = context.newRecord;
 
 
-            if (newRecord.type == 'customrecord_dps_delivery_order' && context.type != 'delete') {
+            if (newRecord.type == 'customrecord_dps_delivery_order') {
 
                 var delivery_order_status = newRecord.getValue('custrecord_delivery_order_status');
 
@@ -273,7 +273,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                             line: i
                         });
 
-                        log.debug('afterSubmit item_quantity', item_quantity);
+                        log.debug('afterSubmit stock_quantity', item_quantity);
                         if (item_quantity) {
 
                             var lineNumber = l_po.findSublistLineWithValue({
@@ -290,33 +290,14 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                                 line: lineNumber
                             });
 
-                            var quantity = l_po.getSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'quantity',
-                                line: lineNumber
-                            });
-
-                            log.debug('quantity', quantity);
-
                             log.debug('quantity_delivered', quantity_delivered);
 
-                            var y_qty = Number(quantity_delivered) + Number(item_quantity);
-
-                            log.error('y_qty', y_qty);
                             // 已交货数量
                             l_po.setSublistValue({
                                 sublistId: 'item',
                                 fieldId: 'custcol_dps_quantity_delivered',
                                 line: lineNumber,
-                                value: y_qty
-                            });
-
-                            // 本次提交数量
-                            l_po.setSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'custcol_dps_delivery_quantity',
-                                line: lineNumber,
-                                value: quantity - y_qty
+                                value: quantity_delivered
                             });
 
                             flag = true;

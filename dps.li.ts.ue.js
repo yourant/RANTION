@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 22:34:25
- * @LastEditTime   : 2020-05-27 22:53:12
+ * @LastEditTime   : 2020-05-28 09:35:21
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.ts.ue.js
@@ -15,7 +15,7 @@
 define(['N/redirect', 'N/util', 'N/log'], function (redirect, util, log) {
 
     function beforeLoad(context) {
-
+        
         try {
             var id = context.newRecord.id;
 

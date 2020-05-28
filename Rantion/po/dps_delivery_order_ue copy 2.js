@@ -2,10 +2,10 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-28 22:49:51
+ * @LastEditTime   : 2020-05-29 00:09:39
  * @LastEditors    : Li
  * @Description    :  应用于采购订单,增加按钮
- * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
+ * @FilePath       : \Rantion\po\dps_delivery_order_ue copy 2.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 /**
@@ -239,7 +239,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
             var newRecord = context.newRecord;
 
 
-            if (newRecord.type == 'customrecord_dps_delivery_order') {
+            if (newRecord.type == 'customrecord_dps_delivery_order' && context.type != 'delete') {
 
                 var delivery_order_status = newRecord.getValue('custrecord_delivery_order_status');
 
@@ -273,8 +273,99 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                             line: i
                         });
 
-                        log.debug('afterSubmit stock_quantity', item_quantity);
+                        log.debug('afterSubmit item_quantity', item_quantity);
                         if (item_quantity) {
+
+                            var lineNumber = l_po.findSublistLineWithValue({
+                                sublistId: 'item',
+                                fieldId: 'item',
+                                value: item_sku
+                            });
+
+                            log.audit('lineNumber', lineNumber);
+
+                            var quantity_delivered = l_po.getSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_quantity_delivered',
+                                line: lineNumber
+                            });
+
+                            var quantity = l_po.getSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'quantity',
+                                line: lineNumber
+                            });
+
+                            log.debug('quantity', quantity);
+
+                            log.debug('quantity_delivered', quantity_delivered);
+
+                            var y_qty = Number(quantity_delivered) + Number(item_quantity);
+
+                            log.error('y_qty', y_qty);
+                            // 已交货数量
+                            l_po.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_quantity_delivered',
+                                line: lineNumber,
+                                value: y_qty
+                            });
+
+                            // 本次提交数量
+                            l_po.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_delivery_quantity',
+                                line: lineNumber,
+                                value: quantity - y_qty
+                            });
+
+                            flag = true;
+                        }
+                    }
+
+                    log.debug('flag', flag);
+                    if (flag) {
+                        var l_po_id = l_po.save();
+                        log.audit('l_po_id', l_po_id);
+                    } else {
+                        log.debug('flag');
+                    }
+
+                } else if (delivery_order_status == 4 && purchase_order_no) {
+
+                    var l_po = record.load({
+                        type: 'purchaseorder',
+                        id: purchase_order_no
+                    });
+
+                    for (var i = 0; i < len; i++) {
+
+                        var item_sku = newRecord.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_item_sku',
+                            line: i
+                        });
+
+                        // 交货单 交货数量
+                        var item_quantity = newRecord.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_item_quantity',
+                            line: i
+                        });
+
+                        // 交货单 入库数量
+                        var stock_quantity = newRecord.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_stock_quantity',
+                            line: i
+                        });
+
+
+                        var diff = item_quantity - stock_quantity;
+                        log.debug('item_quantity - stock_quantity', diff);
+
+                        log.debug('afterSubmit stock_quantity', item_quantity);
+                        if (diff > 0) {
 
                             var lineNumber = l_po.findSublistLineWithValue({
                                 sublistId: 'item',
@@ -297,7 +388,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                                 sublistId: 'item',
                                 fieldId: 'custcol_dps_quantity_delivered',
                                 line: lineNumber,
-                                value: quantity_delivered
+                                value: quantity_delivered - diff
                             });
 
                             flag = true;
@@ -311,62 +402,11 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                     } else {
                         log.debug('flag');
                     }
-
-                } else if (delivery_order_status == 4 && purchase_order_no) {
-
                 }
 
 
             }
 
-            /*
-            if (newRecord.type == 'customrecord_dps_delivery_order') {
-                var data = record.load({
-                    type: 'customrecord_dps_delivery_order',
-                    id: newRecord.id,
-                    isDynamic: true
-                });
-                var count = data.getLineCount({
-                    sublistId: 'recmachcustrecord_dps_delivery_order_id'
-                });
-                var total_itemQuantity = 0,
-                    total_packingQuantity = 0,
-                    total_boxesNumber = 0;
-                for (var i = 0; i < count; i++) {
-                    var item_quantity = data.getSublistValue({
-                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                        line: i,
-                        fieldId: 'custrecord_item_quantity'
-                    }); //交货数量
-                    total_itemQuantity += Number(item_quantity);
-                    var packing_quantity = data.getSublistValue({
-                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                        line: i,
-                        fieldId: 'custrecord_line_packing_quantity'
-                    }); //装箱数量
-                    total_packingQuantity += Number(packing_quantity);
-                    var boxes_number = data.getSublistValue({
-                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                        line: i,
-                        fieldId: 'custrecord_line_boxes_number'
-                    }); //箱数
-                    total_boxesNumber += Number(boxes_number);
-                }
-                data.setValue({
-                    fieldId: 'custrecord_delivery_item_quantity',
-                    value: total_itemQuantity
-                });
-                data.setValue({
-                    fieldId: 'custrecord_packing_quantity',
-                    value: total_packingQuantity
-                });
-                data.setValue({
-                    fieldId: 'custrecord_boxes_number',
-                    value: total_boxesNumber
-                });
-                data.save();
-            }
-            */
 
         } catch (e) {
             log.debug('e', e);

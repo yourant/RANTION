@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 22:34:25
- * @LastEditTime   : 2020-05-28 09:35:21
+ * @LastEditTime   : 2020-05-29 15:04:02
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.ts.ue.js
@@ -15,28 +15,10 @@
 define(['N/redirect', 'N/util', 'N/log'], function (redirect, util, log) {
 
     function beforeLoad(context) {
-        
+
         try {
-            var id = context.newRecord.id;
 
-            var startTime = util.nanoTime();
-            log.debug("startTime", startTime);
-            if (id != 4948) {
-                // redirect.toRecord({
-                //     type: 'salesorder',
-                //     id: 4948,
-                //     parameters: {
-                //         'custparam_test': 'helloWorld'
-                //     }
-                // });
-            }
-
-            // var startTime = util.nanoTime();
-
-            // log.debug("startTime", startTime);
-            var elapsedTime = util.nanoTime() - startTime;
-
-            log.debug('elapsedTime', elapsedTime);
+            log.audit('beforeLoad', context.type);
 
         } catch (error) {
             log.error('出错了', error);
@@ -45,11 +27,11 @@ define(['N/redirect', 'N/util', 'N/log'], function (redirect, util, log) {
     }
 
     function beforeSubmit(context) {
-
+        log.audit('beforeSubmit', context.type);
     }
 
     function afterSubmit(context) {
-
+        log.audit('afterSubmit', context.type);
     }
 
     return {

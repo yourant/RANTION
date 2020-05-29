@@ -46,8 +46,8 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
     exports.getInputData = function () {
         var lines = [];
         var is_request = runtime.getCurrentScript().getParameter({
-                name: 'custscript_aio_obt_report_is_request'
-            }),
+            name: 'custscript_aio_obt_report_is_request'
+        }),
             report_type = runtime.getCurrentScript().getParameter({
                 name: 'custscript_aio_obt_report_type'
             }),
@@ -255,60 +255,60 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                     search.create({
                         type: 'customrecord_amazon_sales_report',
                         filters: [{
-                                name: "custrecord_shipment_item_id",
-                                operator: "is",
-                                values: line['shipment-item-id']
-                            }, // SHIPMENT-ITEM-ID
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_shipment_item_id}, '" + line['shipment-item-id'] + "')"
-                            },
-                            {
-                                name: "custrecord_amazon_order_item_id",
-                                operator: "is",
-                                values: line['amazon-order-item-id']
-                            }, // AMAZON-ORDER-ITEM-ID
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_amazon_order_item_id}, '" + line['amazon-order-item-id'] + "')"
-                            },
-                            {
-                                name: "custrecord_amazon_order_id",
-                                operator: "is",
-                                values: line['amazon-order-id']
-                            }, // Order ID 
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_amazon_order_id}, '" + line['amazon-order-id'] + "')"
-                            },
-                            {
-                                name: "custrecord_shipment_account",
-                                operator: "anyof",
-                                values: [line['account']]
-                            }, // account 
-                            {
-                                name: "custrecord_sku",
-                                operator: "is",
-                                values: line['sku']
-                            }, // sku
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_sku}, '" + line['sku'] + "')"
-                            },
-                            // { name: "custrecord_item_price", operator: "is", values: line['item-price'] },                         // ITEM-PRICE
-                            {
-                                name: "custrecord_quantity_shipped",
-                                operator: "is",
-                                values: line['quantity-shipped']
-                            }, // QUANTITY-SHIPPED
+                            name: "custrecord_shipment_item_id",
+                            operator: "is",
+                            values: line['shipment-item-id']
+                        }, // SHIPMENT-ITEM-ID
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_shipment_item_id}, '" + line['shipment-item-id'] + "')"
+                        },
+                        {
+                            name: "custrecord_amazon_order_item_id",
+                            operator: "is",
+                            values: line['amazon-order-item-id']
+                        }, // AMAZON-ORDER-ITEM-ID
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_amazon_order_item_id}, '" + line['amazon-order-item-id'] + "')"
+                        },
+                        {
+                            name: "custrecord_amazon_order_id",
+                            operator: "is",
+                            values: line['amazon-order-id']
+                        }, // Order ID 
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_amazon_order_id}, '" + line['amazon-order-id'] + "')"
+                        },
+                        {
+                            name: "custrecord_shipment_account",
+                            operator: "anyof",
+                            values: [line['account']]
+                        }, // account 
+                        {
+                            name: "custrecord_sku",
+                            operator: "is",
+                            values: line['sku']
+                        }, // sku
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_sku}, '" + line['sku'] + "')"
+                        },
+                        // { name: "custrecord_item_price", operator: "is", values: line['item-price'] },                         // ITEM-PRICE
+                        {
+                            name: "custrecord_quantity_shipped",
+                            operator: "is",
+                            values: line['quantity-shipped']
+                        }, // QUANTITY-SHIPPED
                         ]
                     }).run().each(function (e) {
                         check_rec_id = e.id
@@ -337,64 +337,64 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                     search.create({
                         type: 'customrecord_aio_amazon_customer_return',
                         filters: [{
-                                name: "custrecord_aio_b2c_return_lcn",
-                                operator: "is",
-                                values: line["license-plate-number"]
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2c_return_lcn}, '" + line['license-plate-number'] + "')"
-                            },
-                            {
-                                name: "custrecord_aio_b2c_return_order_id",
-                                operator: "is",
-                                values: line["order-id"]
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2c_return_order_id}, '" + line["order-id"] + "')"
-                            },
-                            {
-                                name: "custrecord_amazon_returndate_text",
-                                operator: "is",
-                                values: line["return-date"]
-                            },
-                            {
-                                name: "custrecord_aio_b2_creturn_sku",
-                                operator: "is",
-                                values: line["sku"]
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2_creturn_sku}, '" + line['sku'] + "')"
-                            },
-                            {
-                                name: "custrecord_aio_b2c_return_reason",
-                                operator: "is",
-                                values: line["reason"]
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2c_return_reason}, '" + line['reason'] + "')"
-                            },
-                            {
-                                name: "custrecord_aio_b2c_return_aio_account",
-                                operator: "anyof",
-                                values: line["account"]
-                            },
-                            {
-                                name: "custrecord_aio_b2c_return_quantity",
-                                operator: "is",
-                                values: line["quantity"]
-                            },
+                            name: "custrecord_aio_b2c_return_lcn",
+                            operator: "is",
+                            values: line["license-plate-number"]
+                        },
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_aio_b2c_return_lcn}, '" + line['license-plate-number'] + "')"
+                        },
+                        {
+                            name: "custrecord_aio_b2c_return_order_id",
+                            operator: "is",
+                            values: line["order-id"]
+                        },
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_aio_b2c_return_order_id}, '" + line["order-id"] + "')"
+                        },
+                        {
+                            name: "custrecord_amazon_returndate_text",
+                            operator: "is",
+                            values: line["return-date"]
+                        },
+                        {
+                            name: "custrecord_aio_b2_creturn_sku",
+                            operator: "is",
+                            values: line["sku"]
+                        },
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_aio_b2_creturn_sku}, '" + line['sku'] + "')"
+                        },
+                        {
+                            name: "custrecord_aio_b2c_return_reason",
+                            operator: "is",
+                            values: line["reason"]
+                        },
+                        {
+                            name: 'formulanumeric',
+                            operator: 'equalto',
+                            values: '1',
+                            formula: "INSTR({custrecord_aio_b2c_return_reason}, '" + line['reason'] + "')"
+                        },
+                        {
+                            name: "custrecord_aio_b2c_return_aio_account",
+                            operator: "anyof",
+                            values: line["account"]
+                        },
+                        {
+                            name: "custrecord_aio_b2c_return_quantity",
+                            operator: "is",
+                            values: line["quantity"]
+                        },
 
                         ]
                     }).run().each(function (e) {
@@ -405,41 +405,41 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                     search.create({
                         type: mapping.record_type_id,
                         filters: [{
-                                name: 'custrecord_dps_fba_received_inven_fnsku',
-                                operator: 'is',
-                                values: line["fnsku"]
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_inve_account',
-                                operator: 'is',
-                                values: line["account"]
-                            },
-                            // { name: 'custrecord_dps_fba_received_inv_req_id',operator: 'is',values: line["report-id"]},
-                            {
-                                name: 'custrecord_dps_fba_received_receiveddate',
-                                operator: 'is',
-                                values: line["received-date"]
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_inven_sku',
-                                operator: 'is',
-                                values: line["sku"]
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_inv_quantity',
-                                operator: 'is',
-                                values: line["quantity"]
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_shipment_id',
-                                operator: 'is',
-                                values: line["fba-shipment-id"]
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_ful_centerid',
-                                operator: 'is',
-                                values: line["fulfillment-center-id"]
-                            },
+                            name: 'custrecord_dps_fba_received_inven_fnsku',
+                            operator: 'is',
+                            values: line["fnsku"]
+                        },
+                        {
+                            name: 'custrecord_dps_fba_received_inve_account',
+                            operator: 'is',
+                            values: line["account"]
+                        },
+                        // { name: 'custrecord_dps_fba_received_inv_req_id',operator: 'is',values: line["report-id"]},
+                        {
+                            name: 'custrecord_dps_fba_received_receiveddate',
+                            operator: 'is',
+                            values: line["received-date"]
+                        },
+                        {
+                            name: 'custrecord_dps_fba_received_inven_sku',
+                            operator: 'is',
+                            values: line["sku"]
+                        },
+                        {
+                            name: 'custrecord_dps_fba_received_inv_quantity',
+                            operator: 'is',
+                            values: line["quantity"]
+                        },
+                        {
+                            name: 'custrecord_dps_fba_received_shipment_id',
+                            operator: 'is',
+                            values: line["fba-shipment-id"]
+                        },
+                        {
+                            name: 'custrecord_dps_fba_received_ful_centerid',
+                            operator: 'is',
+                            values: line["fulfillment-center-id"]
+                        },
                         ]
                     }).run().each(function (e) {
                         check_rec_id = e.id;
@@ -521,6 +521,13 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         value: returndateTextutc
                     });
                 }
+
+                if (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
+                    rec.setValue({
+                        fieldId: "custrecord_fba_account",
+                        value: acc_id
+                    });
+                }
                 if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
                     var s_date = format.format({
                         value: moment.utc(dateDeal(line['settlement-start-date'])).toDate(),
@@ -565,6 +572,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
         }
         return s_d
     }
-    exports.reduce = function (ctx) {};
+    exports.reduce = function (ctx) { };
     exports.summarize = core.utils.summarize;
 });

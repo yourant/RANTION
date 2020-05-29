@@ -1,3 +1,13 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-05-27 17:29:27
+ * @LastEditTime   : 2020-05-29 14:34:03
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\po\dps_query_purchase_order_cs.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType ClientScript
@@ -24,25 +34,55 @@ define(['N/ui/dialog', 'N/runtime'], function (dialog, runtime) {
     function validateField(context) {
         var sblId = 'recmachcustrecord_dps_delivery_order_id';
         var rec = context.currentRecord;
-        if (context.fieldId == 'custrecord_ddoi_long' || context.fieldId == 'custrecord_ddoi_width' 
-            || context.fieldId == 'custrecord_ddoi_high' || context.fieldId == 'custrecord_item_quantity') {
-            var long = Number(rec.getCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_ddoi_long' })) / 100;
-            var width = Number(rec.getCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_ddoi_width' })) / 100;
-            var high = Number(rec.getCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_ddoi_high' })) / 100;
+        if (context.fieldId == 'custrecord_ddoi_long' || context.fieldId == 'custrecord_ddoi_width' ||
+            context.fieldId == 'custrecord_ddoi_high' || context.fieldId == 'custrecord_item_quantity') {
+            var long = Number(rec.getCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_ddoi_long'
+            })) / 100;
+            var width = Number(rec.getCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_ddoi_width'
+            })) / 100;
+            var high = Number(rec.getCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_ddoi_high'
+            })) / 100;
             var volume = long * high * width;
-            rec.setCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_ddoi_single_box_volume', value: volume.toFixed(2) });
-            var packqty = Number(rec.getCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_line_boxes_number' }))
-            rec.setCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_ddoi_dps_total_volume', value: volume * packqty });
+            rec.setCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_ddoi_single_box_volume',
+                value: volume.toFixed(2)
+            });
+            var packqty = Number(rec.getCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_line_boxes_number'
+            }))
+            rec.setCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_ddoi_dps_total_volume',
+                value: volume * packqty
+            });
         }
         if (context.fieldId == 'custrecord_item_quantity') {
-            var qty = Number(rec.getCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_item_quantity' }));
-            var packingqty = Number(rec.getCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_line_packing_quantity' }));
+            var qty = Number(rec.getCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_item_quantity'
+            }));
+            var packingqty = Number(rec.getCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_line_packing_quantity'
+            }));
             var num = 0;
             if (qty > 0 && packingqty > 0) {
                 num = qty / packingqty;
                 num = Math.ceil(num);
             }
-            rec.setCurrentSublistValue({ sublistId: sblId, fieldId: 'custrecord_line_boxes_number', value: num });
+            rec.setCurrentSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_line_boxes_number',
+                value: num
+            });
         }
         return true;
     }
@@ -50,19 +90,21 @@ define(['N/ui/dialog', 'N/runtime'], function (dialog, runtime) {
     function fieldChanged(context) {
         if (roleId != 16 && roleId != 3) {
             var fieldId = context.fieldId;
-            if (fieldId != 'custrecord_item_quantity' && fieldId != 'custrecord_delivery_date' 
-                && fieldId != 'custrecord_outstanding_quantity') {
+            if (fieldId != 'custrecord_item_quantity' && fieldId != 'custrecord_delivery_date' &&
+                fieldId != 'custrecord_outstanding_quantity') {
                 dialog.alert({
                     title: '不允许进行修改',
                     message: '不允许进行修改！！'
                 }).then(success).catch(failure);
-                function success(result) { 
-                    window.location.reload(true); 
+
+                function success(result) {
+                    window.location.reload(true);
                 }
-                function failure(reason) { 
-                    console.log('Failure: ' + reason) 
+
+                function failure(reason) {
+                    console.log('Failure: ' + reason)
                 }
-                return;	
+                return;
             }
         }
     }
@@ -75,13 +117,26 @@ define(['N/ui/dialog', 'N/runtime'], function (dialog, runtime) {
         var sblId = 'recmachcustrecord_dps_delivery_order_id';
         var rec = context.currentRecord;
         var deliveryAmount = 0;
-        var lineNum = rec.getLineCount({ sublistId: sblId });
+        var lineNum = rec.getLineCount({
+            sublistId: sblId
+        });
         for (var i = 0; i < lineNum; i++) {
-            var qty = Number(rec.getSublistValue({ sublistId: sblId, fieldId: 'custrecord_item_quantity', line: i }));
-            var rate = Number(rec.getSublistValue({ sublistId: sblId, fieldId: 'custrecord_unit_price', line: i }));
+            var qty = Number(rec.getSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_item_quantity',
+                line: i
+            }));
+            var rate = Number(rec.getSublistValue({
+                sublistId: sblId,
+                fieldId: 'custrecord_unit_price',
+                line: i
+            }));
             deliveryAmount = deliveryAmount + (qty * rate);
         }
-        rec.setValue({ fieldId: 'custrecord_delivery_amount', value: deliveryAmount });
+        rec.setValue({
+            fieldId: 'custrecord_delivery_amount',
+            value: deliveryAmount
+        });
         return true;
     }
 
@@ -124,20 +179,32 @@ define(['N/ui/dialog', 'N/runtime'], function (dialog, runtime) {
         });
 
         if (purchaseNumber < supplyQuantity) {
-            dialog.alert({ title: '提示', message: '供应数量应小于采购数量' });
+            dialog.alert({
+                title: '提示',
+                message: '供应数量应小于采购数量'
+            });
             return false;
         }
 
         if (purchaseNumber < packingQuantity) {
-            dialog.alert({ title: '提示', message: '装箱数量应小于采购数量' });
+            dialog.alert({
+                title: '提示',
+                message: '装箱数量应小于采购数量'
+            });
             return false;
         }
 
         if (purchaseNumber < itemNumber) {
-            dialog.alert({ title: '提示', message: '交货数量应小于采购数量！' });
+            dialog.alert({
+                title: '提示',
+                message: '交货数量应小于采购数量！'
+            });
             return false;
         } else if (supplyQuantity < itemNumber) {
-            dialog.alert({ title: '提示', message: '交货数量应小于供应数量' });
+            dialog.alert({
+                title: '提示',
+                message: '交货数量应小于供应数量'
+            });
             return false;
         } else {
             var outstandingQuantity = purchaseNumber - itemNumber;

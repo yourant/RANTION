@@ -1,9 +1,9 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-05-28 09:44:38
+ * @LastEditTime   : 2020-05-27 09:43:51
  * @LastEditors    : Li
- * @Description    : 应用于库存转移订单, 库存转移订单生成之后, 直接生成大货发运记录,报关资料等记录
+ * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
  * @可以输入预定的版权声明、个性签名、空行等
  */

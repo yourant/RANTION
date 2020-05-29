@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-05-25 21:11:47
+ * @LastEditTime   : 2020-05-29 15:20:22
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -12,57 +12,70 @@
  *@NApiVersion 2.x
  *@NScriptType Suitelet
  */
-define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file'], function (task, log, search, record, file) {
+define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency'], function (task, log, search, record, file, currency) {
 
     function onRequest(context) {
 
         try {
 
 
-            var fileObj = file.load({
-                id: 4058
+            var load_test_id;
+            // var load_test = record.load({
+            //     type: 'customrecord_dps_li_test',
+            //     id: 1
+            // });
+
+            // load_test.setValue({
+            //     fieldId: 'name',
+            //     value: 202005291513
+            // });
+
+            // load_test_id = load_test.save();
+
+            load_test_id = record.submitFields({
+                type: "customrecord_dps_li_test",
+                id: 1,
+                values: {
+                    name: 4
+                }
             });
 
-            var fileContents;
-            var showStr;
-            if (fileObj.size < 10485760) {
-                fileContents = fileObj.getContents();
+            log.debug('load_test_id', load_test_id);
+            var fau;
+            // search.create({
+            //     type: 'customrecord_dps_li_test',
+            //     filters: [],
+            //     columns: ['custrecord_dps_li_test_formula']
+            // }).run().each(function (rec) {
+            //     fau = rec.getValue('custrecord_dps_li_test_formula');
+            // });
 
-                log.audit('fileContents', fileContents);
+            // log.debug('fau  type: ' + typeof (fau), fau);
 
-                var as = '';
-                var str = '<Row ss:AutoFitHeight="0" ss:Height="20.25" ss:StyleID="s67"><Cell ss:MergeAcross="3" ss:StyleID="m595796356"><Data ss:Type="String">品名</Data></Cell><Cell ss:MergeAcross="1" ss:StyleID="m595796376"><Data ss:Type="String">     数量</Data></Cell><Cell ss:StyleID="s120"><ss:Data ss:Type="String" xmlns="http://www.w3.org/TR/REC-html40"><Font html:Face="宋体" x:CharSet="134">单价</Font></ss:Data></Cell><Cell ss:StyleID="s121"><Data ss:Type="String">金额</Data></Cell></Row>';
+            // var a = 9,
+            //     b = 3,
+            //     c = 2;
+            // var am = 1;
+            // fau = eval(fau);
+            // log.debug('fau', fau);
+            // var sum = fau;
+            // log.debug('sum', sum);
+            // var rate = currency.exchangeRate({
+            //     source: 'USD',
+            //     target: 'CNY',
+            //     // date: new Date('7/28/2015')
+            // });
 
-                var str = '   <Row ss:AutoFitHeight="0" ss:Height="20.25" ss:StyleID="s67">' +
-                    '<Cell ss:MergeAcross="3" ss:StyleID="m595796356"><Data ss:Type="String">品名</Data></Cell>' +
-                    '<Cell ss:MergeAcross="1" ss:StyleID="m595796376"><Data ss:Type="String">     数量</Data></Cell>' +
-                    '<Cell ss:StyleID="s120"><ss:Data ss:Type="String"' +
-                    ' xmlns="http://www.w3.org/TR/REC-html40"><Font html:Face="宋体" x:CharSet="134">单价</Font></ss:Data></Cell>' +
-                    '<Cell ss:StyleID="s121"><Data ss:Type="String">金额</Data></Cell>' +
-                    '</Row>';
+            // log.debug('rate', rate);
 
+            // log.debug('am * rate', am * rate);
 
-                for (var i = 0; i < 3; i++) {
-                    as += str;
-                }
-                log.debug('as', as);
-                showStr = fileContents.replace(str, '');
+            // if (rate) {
+            //     // context.response.write(rate);
+            // } else {
+            //     context.response.write('无');
+            // }
 
-                if (showStr == fileContents) {
-                    log.debug('数据没有替换');
-                }
-            }
-
-            if (showStr) {
-                context.response.write(showStr);
-            } else {
-                context.response.write('无文件内容');
-            }
-
-            // createFulfillmentRecord(36113, 'sku')
-            // var c_id = searchCountryByCode('ES');
-            // var rep = util.calculation(search, 3, 'US', '', 100, 100, 100);
-            // context.response.writee('c_id: ' + c_id);
         } catch (error) {
             // context.response.write('error: ' + JSON.stringify(error));
             log.error('error', error);

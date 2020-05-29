@@ -227,18 +227,62 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         values: context.recordID
                     }],
                     columns: [
+                        'custrecord_dps_ship_small_item_quantity', // 数量
+                        'custrecord_dps_ship_small_sku_line', // SKU
+                        'custrecord_dps_ship_small_item_item', // 货品
+                        {
+                            name: 'itemid',
+                            join: 'custrecord_dps_ship_small_item_item'
+                        }, // 货品名称/编号
+                        {
+                            name: 'custitem_dps_declaration_cn',
+                            join: 'custrecord_dps_ship_small_item_item'
+                        }, // 报关中文名称
+                        {
+                            name: 'custitem_dps_picture',
+                            join: 'custrecord_dps_ship_small_item_item'
+                        }, // 货品图片
 
                     ]
                 }).run().each(function (rec) {
 
-                    var it = {};
+                    // OutDetailCreateRequestDto：{
+                    //     productCode(string, optional): 产品编号,
+                    //     productImageUrl(string): 图片路径,
+                    //     productTitle(string): 产品标题,
+                    //     productType(integer, optional): 产品类型10: 成品20: 半成品30: 组合产品40: 包装材料,
+                    //     qty(integer): 出库数量,
+                    //     sku(string): sku,
+                    //     variants(string,optional): 变体规格
+                    //   }
+
+                    var it = {
+                        productCode: rec.getValue({
+                            name: 'itemid',
+                            join: 'custrecord_dps_ship_small_item_item'
+                        }),
+                        productImageUrl: rec.getValue({
+                            name: 'custitem_dps_picture',
+                            join: 'custrecord_dps_ship_small_item_item'
+                        }),
+                        productTitle: rec.getValue({
+                            name: 'custitem_dps_declaration_cn',
+                            join: 'custrecord_dps_ship_small_item_item'
+                        }),
+                        // productType: '',
+                        qty: rec.getValue('custrecord_dps_ship_small_item_quantity'),
+                        sku: rec.getValue('custrecord_dps_ship_small_sku_line')
+                    };
+
+                    itemInfo.push(it);
 
                     return --limit > 0;
 
                 });
 
-                // data["detailCreateRequestDtos"] = '出库单明细';
+                data["detailCreateRequestDtos"] = itemInfo; //'出库单明细';
 
+                /*
                 data['logisticsChannelCode'] = af_rec.getValue('custrecord_dps_ship_small_channel_dealer');
                 data['logisticsChannelName'] = af_rec.getText('custrecord_dps_ship_small_channel_dealer');
                 data['logisticsProviderCode'] = af_rec.getValue('custrecord_dps_ship_small_channelservice');
@@ -276,6 +320,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 }
 
                 data["detailCreateRequestDtos"] = item_info;
+
+                */
 
             }
             // 采购退货单

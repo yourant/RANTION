@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-01 10:04:17
+ * @LastEditTime   : 2020-06-01 10:08:14
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -84,8 +84,6 @@ define(['N/record', 'N/search', 'N/log',
         if (rec_status == 1) {
             // 发运记录创建完成之后, 直接推送物流供应商
 
-
-
             var l_af_rec = record.load({
                 type: af_rec.type,
                 id: af_rec.id
@@ -93,7 +91,7 @@ define(['N/record', 'N/search', 'N/log',
 
             // 获取渠道商
             var channel_dealer = l_af_rec.getValue('custrecord_dps_ship_small_channel_dealer');
-
+            // 获取渠道服务
             var small_channelservice = l_af_rec.getValue('custrecord_dps_ship_small_channelservice');
 
             // TODO 根据渠道商来判断推送哪一个物流接口
@@ -319,6 +317,8 @@ define(['N/record', 'N/search', 'N/log',
                 message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
             }
             var flag, temp;
+
+            log.debug('typeof(message)', typeof (message))
             try {
                 temp = JSON.parse(message);
             } catch (error) {

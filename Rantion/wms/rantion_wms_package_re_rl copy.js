@@ -1,8 +1,18 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-05-22 17:01:38
+ * @LastEditTime   : 2020-06-01 17:30:50
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
+define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record, log, runtime) {
 
     function _get(context) {
 
@@ -56,190 +66,184 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         var item_box = [];
         var aono, ord = [];
 
+
+        var scriptObj = runtime.getCurrentScript();
+
         try {
+
+
+            log.debug('data length', data.length);
+
 
             // 用于标记当前发运记录是否发运完成, 默认 为 false
             var flag = false;
             for (var i = 0, len = data.length; i < len; i++) {
                 var temp = data[i];
                 var detailModels = temp.detailModels;
-
+                aono = temp.aono;
                 var bigRec = searchTranRec(aono);
 
-                var load_big_rec = record.load({
-                    type: 'customrecord_dps_shipping_record',
-                    id: bigRec
-                });
-
-                // 若存在分箱明细
-                if (detailModels) {
-
-                    
-
-
-                    /*
-                    if (temp.aono != aono) {
-                        // 若调拨单号不一样, 搜索对应的发运记录
-                        aono = temp.aono;
-                        ord = searchRecord(aono);
-                    }
-                    for (var j = 0, l = detailModels.length; j < l; j++) {
-                        var det_temp = detailModels[i];
-                        for (var a = 0, t_l = ord.length; a < t_l; a++) {
-                            var a_temp = ord[a];
-                            if (det_temp.sku == a_temp.sku) {
-                                item_box.push({
-                                    itemid: a_temp[a].itemId,
-                                    quantity: det_temp[j].qty,
-                                    boxNo: det_temp[j].boxNo,
-                                    height: temp.height,
-                                    length: temp.length,
-                                    weight: temp.weight,
-                                    width: temp.width
-                                });
-                                if (a_temp.quantity != det_temp[j].qty) {
-                                    flag = false;
-                                }
-                            }
-                        }
-
-                    }
-
-                    var rec_id = ord[0].recId;
+                var objRecord;
+                if (bigRec) {
                     var objRecord = record.load({
                         type: 'customrecord_dps_shipping_record',
-                        id: rec_id
+                        id: bigRec
                     });
 
                     var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
-                    // 获取当前记录的装箱信息
+
                     var numLines = objRecord.getLineCount({
                         sublistId: sub_id
                     });
 
-                    for (var z = 0, z_len = item_box.length; z < z_len; z++) {
-                        var new_line = z;
-                        if (numLines == -1) {
-                            new_line = z;
-                        } else {
-                            new_line = z + numLines;
+                    var add = 0;
+
+                    log.debug('numLines', numLines);
+                    // 若存在分箱明细
+                    if (detailModels) {
+
+                        log.debug('detailModels.length', detailModels.length)
+                        for (var j = 0, j_len = detailModels.length; j < j_len; j++) {
+
+
+                            add++;
+
+                            if (add > 10) {
+                                break;
+                            }
+                            var a = j;
+                            var arrTemp = detailModels[j];
+                            // var itemID = searchItem(arrTemp.sku);
+
+                            if (numLines > -1) {
+                                a += numLines;
+                            }
+
+                            objRecord.setSublistText({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_item',
+                                line: a,
+                                text: arrTemp.sku
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_box_number',
+                                line: a,
+                                value: arrTemp.boxNo
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_box_length',
+                                line: a,
+                                value: temp.length
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_weight',
+                                line: a,
+                                value: temp.weight
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                                line: a,
+                                value: temp.width
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                                line: a,
+                                value: temp.height
+                            });
+
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_quantity',
+                                line: a,
+                                value: arrTemp.qty
+                            });
+
+                            log.debug("Remaining governance units: " + scriptObj.getRemainingUsage());
                         }
 
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ship_box_item',
-                            line: new_line,
-                            value: item_box.itemid
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ship_box_box_number',
-                            line: new_line,
-                            value: item_box.boxNo
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ful_rec_box_length',
-                            line: new_line,
-                            value: item_box.length
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ship_box_weight',
-                            line: new_line,
-                            value: item_box.weight
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_width',
-                            line: new_line,
-                            value: item_box.width
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_hight',
-                            line: new_line,
-                            value: item_box.height
-                        });
-                    }
-
-                    if (flag == false) {
-
-                        objRecord.setValue({
-                            fieldId: 'custrecord_dps_shipping_rec_status',
-                            value: 13
-                        });
-                    } else {
                         objRecord.setValue({
                             fieldId: 'custrecord_dps_shipping_rec_status',
                             value: 12
                         });
+                        var objRecord_id = objRecord.save();
+                        log.audit('objRecord_id', objRecord_id);
+
+                        ord.push({
+                            aono: aono,
+                            msg: 'NS 处理成功'
+                        });
+
+                        retjson.code = 0;
+                        retjson.data = ord;
+                        retjson.msg = 'success';
+
+                    } else {
+
+                        var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
+
+                        objRecord.setSublistValue({
+                            sublistId: sub_id,
+                            fieldId: 'custrecord_dps_ship_box_box_number',
+                            line: 0,
+                            value: temp.boxNo
+                        });
+                        objRecord.setSublistValue({
+                            sublistId: sub_id,
+                            fieldId: 'custrecord_dps_ful_rec_box_length',
+                            line: 0,
+                            value: temp.length
+                        });
+                        objRecord.setSublistValue({
+                            sublistId: sub_id,
+                            fieldId: 'custrecord_dps_ship_box_weight',
+                            line: 0,
+                            value: temp.weight
+                        });
+                        objRecord.setSublistValue({
+                            sublistId: sub_id,
+                            fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                            line: 0,
+                            value: temp.width
+                        });
+                        objRecord.setSublistValue({
+                            sublistId: sub_id,
+                            fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                            line: 0,
+                            value: temp.height
+                        });
+
+                        objRecord.setValue({
+                            fieldId: 'custrecord_dps_shipping_rec_status',
+                            value: 12
+                        });
+
+                        var objRecord_id = objRecord.save();
+                        log.audit('objRecord_id', objRecord_id);
+
+                        retjson.code = 0;
+                        retjson.data = {
+                            msg: 'NS 处理成功'
+                        };
+                        retjson.msg = 'success';
                     }
 
-                    */
-
-                    var objRecord_id = objRecord.save();
-                    log.audit('objRecord_id', objRecord_id);
-
                 } else {
-                    ord = searchRecord(aono);
-                    // ord = JSON.parse(ord);
-                    var rec_id = ord[0].recId;
-                    var objRecord = record.load({
-                        type: 'customrecord_dps_shipping_record',
-                        id: rec_id
+                    ord.push({
+                        aono: aono,
+                        msg: 'NS 找不到对应的调拨单'
                     });
-
-                    var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
-
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ship_box_box_number',
-                        line: 0,
-                        value: temp.boxNo
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_box_length',
-                        line: 0,
-                        value: temp.length
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ship_box_weight',
-                        line: 0,
-                        value: temp.weight
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_big_box_width',
-                        line: 0,
-                        value: temp.width
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_big_box_hight',
-                        line: 0,
-                        value: temp.height
-                    });
-
-                    objRecord.setValue({
-                        fieldId: 'custrecord_dps_shipping_rec_status',
-                        value: 12
-                    });
-
-                    var objRecord_id = objRecord.save();
-
-                    log.audit('objRecord_id', objRecord_id);
+                    retjson.code = 5;
+                    retjson.data = ord;
+                    retjson.msg = 'unknown';
                 }
 
             }
 
-            retjson.code = 0;
-            retjson.data = {
-                msg: 'NS 处理成功'
-            };
-            retjson.msg = 'success';
         } catch (error) {
 
             log.error('error', error);
@@ -324,11 +328,62 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 values: aono
             }]
         }).run().each(function (rec) {
-
             bigRec = rec.id;
         });
 
         return bigRec || false;
+
+    }
+
+
+    /**
+     * 搜索货品
+     * @param {*} itemId 
+     */
+    function searchItem(itemId) {
+
+        var item;
+        search.create({
+            type: 'item',
+            filters: [{
+                name: 'itemid',
+                operator: 'is',
+                values: itemId
+            }]
+        }).run().each(function (rec) {
+            item = rec.id;
+        });
+
+        return item || false;
+    }
+
+
+    function Deduplication(arr) {
+        var newArr = [],
+            newData = [];
+        var len = arr.length;
+        for (var i = 0; i < len; i++) {
+            var temp = arr[i];
+
+            var aono_i = temp.aono;
+            for (var j = i + 1; j < len; j++) {
+                var aono_j = arr[j].aono;
+                if (aono_i == aono_j) {
+                    newData.push(arr[j]);
+                }
+            }
+
+            newData.push(arr[i]);
+            var it = {
+                aono: arr[i].aono,
+                data: newData
+            }
+
+            newArr.push(it);
+
+        }
+
+        return newArr || false;
 
     }
 
@@ -340,6 +395,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
     }
 
+
     return {
         get: _get,
         post: _post,
@@ -347,3 +403,48 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         delete: _delete
     }
 });
+
+
+/**
+ * aono  作为KEY，其他作为数组返回一个obj
+ * @param {*} data 
+ */
+function getDataObj(data) {
+    var data_obj = {},
+        data_arrays = [],
+        newArr = [],
+        f = true
+    data.map(function (ob) {
+        f = true
+        for (var key in data_obj) {
+            if (key == ob.aono) {
+                f = false
+                delete ob.aono;
+                data_obj[key].push(ob)
+            }
+        }
+        if (f) {
+            data_arrays = []
+            var ao = ob.aono
+            delete ob.aono;
+            data_arrays.push(ob)
+            data_obj[ao] = data_arrays
+        }
+    });
+
+    var keys1 = [];
+    for (var p1 in data_obj) {
+        if (data_obj.hasOwnProperty(p1))
+            keys1.push(p1);
+    }
+
+    for (var ki = 0, len = keys1.length; ki < len; ki++) {
+        var it = {
+            key: keys1[ki],
+            data: data_obj[keys1[ki]]
+        };
+        newArr.push(it);
+    }
+    return newArr;
+    return data_obj
+}

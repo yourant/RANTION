@@ -270,6 +270,113 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         dialog.confirm(options).then(success).catch(failure);
     }
 
+    /**
+         * 重新获取物流渠道
+         * @param {*} rec_id 
+         */
+    function reacquireLogistics(rec_id) {
+
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_fulfillment_big_btn_rl',
+            deploymentId: 'customdeploy_dps_fulfillment_big_btn_rl',
+            returnExternalUrl: false
+        });
+
+        var header = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
+
+        var body1 = {
+            action: 'Logistics',
+            recordID: rec_id
+        };
+        var response;
+
+        var options = {
+            title: "重新获取物流运单号",
+            message: "Press OK or Cancel"
+        };
+
+        function success(result) {
+            if (result) {
+                response = https.post({
+                    url: url1,
+                    body: body1,
+                    headers: header
+                });
+                log.audit('respone', response.body);
+                var body = JSON.parse(response.body)
+                if (body.code == 500) {
+                    alert('重新获取物流运单号失败：' + body.msg)
+                } else {
+                    alert('重新获取物流运单号成功');
+                    window.location.reload(true);
+                }
+            }
+        }
+
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+
+    }
+
+
+    /**
+         * 重新获取物流跟踪号
+         * @param {*} rec_id 
+         */
+        function getTrackingNumber(rec_id) {
+
+            var url1 = url.resolveScript({
+                scriptId: 'customscript_dps_fulfillment_big_btn_rl',
+                deploymentId: 'customdeploy_dps_fulfillment_big_btn_rl',
+                returnExternalUrl: false
+            });
+
+            var header = {
+                "Content-Type": "application/json;charset=utf-8",
+                "Accept": "application/json"
+            };
+
+            var body1 = {
+                action: 'TrackingNumber',
+                recordID: rec_id
+            };
+            var response;
+
+            var options = {
+                title: "重新获取物流运单号",
+                message: "Press OK or Cancel"
+            };
+
+            function success(result) {
+                if (result) {
+                    response = https.post({
+                        url: url1,
+                        body: body1,
+                        headers: header
+                    });
+                    log.audit('respone', response.body);
+                    var body = JSON.parse(response.body)
+                    if (body.code == 500) {
+                        alert('重新获取物流跟踪号失败：' + body.msg)
+                    } else {
+                        alert('重新获取物流跟踪号成功');
+                        window.location.reload(true);
+                    }
+                }
+            }
+
+            function failure(reason) {
+                log.debug('reason', reason)
+            }
+            dialog.confirm(options).then(success).catch(failure);
+
+        }
+
 
     return {
         pageInit: pageInit,
@@ -283,6 +390,8 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         validateLine: validateLine,
         sublistChanged: sublistChanged,
         WMSShipping: WMSShipping,
-        amazonShipment: amazonShipment
+        amazonShipment: amazonShipment,
+        reacquireLogistics: reacquireLogistics,
+        getTrackingNumber: getTrackingNumber
     }
 });

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-05-31 11:23:36
+ * @LastEditTime   : 2020-06-01 17:31:42
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -70,7 +70,6 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
         var scriptObj = runtime.getCurrentScript();
 
         try {
-
 
             log.debug('data length', data.length);
 
@@ -395,6 +394,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
 
     }
 
+
     return {
         get: _get,
         post: _post,
@@ -402,3 +402,48 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
         delete: _delete
     }
 });
+
+
+/**
+ * aono  作为KEY，其他作为数组返回一个obj
+ * @param {*} data 
+ */
+function getDataObj(data) {
+    var data_obj = {},
+        data_arrays = [],
+        newArr = [],
+        f = true
+    data.map(function (ob) {
+        f = true
+        for (var key in data_obj) {
+            if (key == ob.aono) {
+                f = false
+                delete ob.aono;
+                data_obj[key].push(ob)
+            }
+        }
+        if (f) {
+            data_arrays = []
+            var ao = ob.aono
+            delete ob.aono;
+            data_arrays.push(ob)
+            data_obj[ao] = data_arrays
+        }
+    });
+
+    var keys1 = [];
+    for (var p1 in data_obj) {
+        if (data_obj.hasOwnProperty(p1))
+            keys1.push(p1);
+    }
+
+    for (var ki = 0, len = keys1.length; ki < len; ki++) {
+        var it = {
+            key: keys1[ki],
+            data: data_obj[keys1[ki]]
+        };
+        newArr.push(it);
+    }
+    return newArr;
+    return data_obj
+}

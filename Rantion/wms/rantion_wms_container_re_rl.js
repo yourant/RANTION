@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-05-23 13:48:19
+ * @LastEditTime   : 2020-06-01 19:00:28
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_container_re_rl.js
@@ -39,13 +39,18 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
         //         updateTime(string): 更新时间
         // }
 
-        var data = context.data;
+        var data = context;
+
+        log.audit('data', data);
         var code = 1,
             re_data = {};
         var re_info = [];
+        var retjson = {};
 
-        for (var i = 0, len = data.length; i < len; i++) {
-            var temp = data[i],
+        try {
+            //             for (var i = 0, len = data.length; i < len; i++) {
+
+            var temp = data,
                 containerNo = temp.containerNo,
                 containerVolume = temp.containerVolume,
                 createTime = temp.createTime,
@@ -71,10 +76,12 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
                         value: containerVolume
                     });
 
-                    c_con.setValue({
-                        fieldId: 'custrecord_dps_c_cabinet_type',
-                        value: Number(containerType / 10)
-                    });
+                    if (containerType) {
+                        c_con.setValue({
+                            fieldId: 'custrecord_dps_c_cabinet_type',
+                            value: Number(containerType / 10)
+                        });
+                    }
 
                     c_con.setValue({
                         fieldId: 'custrecord_dps_cabinet_rec_owner',
@@ -86,12 +93,14 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
                         value: createTime
                     });
 
-                    var location_id = searchLocationByNo(targetWarehouseCode);
-                    if (location_id) {
-                        c_con.setValue({
-                            fieldId: 'custrecord_dps_cabinet_rec_to_location',
-                            value: location_id
-                        });
+                    if (targetWarehouseCode) {
+                        var location_id = searchLocationByNo(targetWarehouseCode);
+                        if (location_id) {
+                            c_con.setValue({
+                                fieldId: 'custrecord_dps_cabinet_rec_to_location',
+                                value: location_id
+                            });
+                        }
                     }
 
                     var c_con_id = c_con.save();
@@ -111,15 +120,23 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
                     "msg": "创建装柜信息失败(NS)"
                 });
             }
+            // }
+
+            retjson.code = 0;
+            retjson.data = {
+                re_info: re_info
+            };
+            retjson.msg = 'succeed';
+
+        } catch (error) {
+
+            log.error('error', error)
+            retjson.code = 3;
+            retjson.data = {
+                msg: "NS 处理失败, 请稍后重试"
+            };
+            retjson.msg = 'error';
         }
-
-
-        var retjson = {};
-        retjson.code = 0;
-        retjson.data = {
-            re_info:re_info
-        };
-        retjson.msg = 'string';
         return JSON.stringify(retjson);
     }
 

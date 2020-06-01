@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-05-31 10:44:07
+ * @LastEditTime   : 2020-06-01 10:04:17
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -84,14 +84,22 @@ define(['N/record', 'N/search', 'N/log',
         if (rec_status == 1) {
             // 发运记录创建完成之后, 直接推送物流供应商
 
-            // 获取渠道商
-            var channel_dealer = af_rec.getValue('custrecord_dps_ship_small_channel_dealer');
+
+
             var l_af_rec = record.load({
                 type: af_rec.type,
                 id: af_rec.id
             });
+
+            // 获取渠道商
+            var channel_dealer = l_af_rec.getValue('custrecord_dps_ship_small_channel_dealer');
+
+            var small_channelservice = l_af_rec.getValue('custrecord_dps_ship_small_channelservice');
+
             // TODO 根据渠道商来判断推送哪一个物流接口
-            pushOrder(l_af_rec);
+            if (channel_dealer && small_channelservice) {
+                pushOrder(l_af_rec);
+            }
         }
 
         if (rec_status == 6 || rec_status == 7) {

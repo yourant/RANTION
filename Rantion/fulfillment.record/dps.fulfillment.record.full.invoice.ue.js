@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-01 10:08:14
+ * @LastEditTime   : 2020-06-01 11:38:58
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -47,7 +47,14 @@ define(['N/record', 'N/search', 'N/log',
                     label: '获取物流跟踪号',
                     functionName: "getTrackingNumber(" + bf_cur.id + ")"
                 });
-
+            var img = bf_cur.getValue("custrecord_dps_fulfill_record_xh_img")
+            if (img) {
+                form.addButton({
+                    id: 'custpage_dps_li_showimg_button',
+                    label: '查看标签',
+                    functionName: "showImg(" + bf_cur.id + ")"
+                });
+            }
             form.clientScriptModulePath = './dps.fulfillment.record.full.invoice.cs.js';
         }
 
@@ -318,14 +325,17 @@ define(['N/record', 'N/search', 'N/log',
             }
             var flag, temp;
 
-            log.debug('typeof(message)', typeof (message))
+            log.debug('typeof(message): ' + typeof (message), message)
             try {
-                temp = JSON.parse(message);
+                temp = JSON.s(message.data);
             } catch (error) {
-                temp = message;
+                log.audit('转换对象出错了', error);
+                temp = message.data;
             }
-            log.audit('temp.data.code', temp.data.code);
-            if (temp.data.code == 0) {
+
+            log.audit('temp', temp);
+            log.audit('temp.code', temp.code);
+            if (temp.code == 0) {
                 flag = 14;
             } else {
                 flag = 8;
@@ -337,7 +347,7 @@ define(['N/record', 'N/search', 'N/log',
                 id: af_rec.id,
                 values: {
                     custrecord_dps_ship_small_status: flag,
-                    custrecord_dps_ship_small_wms_info: message
+                    custrecord_dps_ship_small_wms_info: JSON.stringify(temp)
                 }
             });
         }
@@ -387,7 +397,7 @@ define(['N/record', 'N/search', 'N/log',
 
         log.debug('data20:', data);
         log.debug('response', JSON.stringify(response));
-        retdata = JSON.stringify(response.body);
+        retdata = JSON.parse(response.body);
         if (response.code == 200) {
             // 调用成功
             code = retdata.code;
@@ -657,7 +667,7 @@ define(['N/record', 'N/search', 'N/log',
                 }
                 break
             case "Endicia":
-                endiciaApi.init(http, xml)
+                endiciaApi.init(http, xml, search)
                 var now
                 //发运时间  工具类不方便处理 所以在这里
                 var result = endiciaApi.GetPostageLabel(rec)
@@ -665,8 +675,9 @@ define(['N/record', 'N/search', 'N/log',
                 if (result.code == 200) {
                     var shipment_id = result.data.PIC
                     var TrackingNumber = result.data.TrackingNumber
-                    log.audit('shipment_id', shipment_id);
-                    submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber)
+                    var Base64LabelImage = result.data.Base64LabelImage
+                    log.audit('Base64LabelImage', Base64LabelImage);
+                    submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage)
                 } else {
                     record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',
@@ -682,7 +693,7 @@ define(['N/record', 'N/search', 'N/log',
         }
     }
 
-    function submitIdAndTackingNumber(id, shipment_id, trackingNumber) {
+    function submitIdAndTackingNumber(id, shipment_id, trackingNumber, image) {
         var values = {
             custrecord_dps_ship_small_status: 3,
             custrecord_dps_push_state_xh: "成功",
@@ -690,6 +701,7 @@ define(['N/record', 'N/search', 'N/log',
         }
         if (shipment_id) values.custrecord_dps_ship_small_logistics_orde = shipment_id
         if (trackingNumber) values.custrecord_dps_ship_small_trackingnumber = trackingNumber
+        if (image) values.custrecord_dps_fulfill_record_xh_img = image
         record.submitFields({
             type: 'customrecord_dps_shipping_small_record',
             id: id,

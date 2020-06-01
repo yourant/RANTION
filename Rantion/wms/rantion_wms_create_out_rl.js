@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-05-30 16:57:32
+ * @LastEditTime   : 2020-06-01 13:43:30
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -280,7 +280,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
             }
 
-
             // 发送请求
             message = sendRequest(token, [data]);
         } else {
@@ -290,18 +289,21 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
         if (sourceType == 10) {
             var flag;
-            if (message.data.code != 0) {
+
+            log.debug('message.data.code', message.data.code);
+            if (message.data.code != 0 || message.data.code != 8) {
                 flag = 8;
             } else {
                 flag = 14;
             }
 
+            log.debug('推送WMS flag', flag);
             var id = record.submitFields({
                 type: 'customrecord_dps_shipping_small_record',
                 id: context.recordID,
                 values: {
                     custrecord_dps_ship_small_status: flag,
-                    custrecord_dps_ship_small_wms_info: message
+                    custrecord_dps_ship_small_wms_info: message.data
                 }
             });
 
@@ -318,6 +320,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
     function _delete(context) {
 
     }
+
 
     /**
      * 获取token
@@ -344,9 +347,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
      * @param {*} data 
      */
     function sendRequest(token, data) {
-
-        log.debug('data', data);
-
         var message = {};
         var code = 0;
         var retdata;
@@ -358,10 +358,12 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         var response = http.post({
             url: 'http://47.107.254.110:18082/rantion-wms/outMaster',
             headers: headerInfo,
-            body: data
+            body: JSON.stringify(data)
         });
 
-        retdata = JSON.stringify(response.body);
+        log.debug('data20:', data);
+        log.debug('response', JSON.stringify(response));
+        retdata = JSON.parse(response.body);
         if (response.code == 200) {
             // 调用成功
             code = retdata.code;
@@ -373,6 +375,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         message.data = retdata;
         return message;
     }
+
 
     return {
         get: _get,

@@ -17,6 +17,14 @@
 define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "./Helper/Moment.min", "N/log", "N/search",
     "N/record", "N/transaction", "N/encode", "N/https", "N/xml", 'N/config', '../Rantion/Helper/location_preferred.js'
 ], function (format, runtime, core, cryptoJS, moment, log, search, record, transaction, encode, https, xml, config, loactionPre) {
+ 
+     const price_conf= {
+         "SKU售价":"item_price",
+         "收取运费":"shipping_price",
+         "促销折扣":"promotion_discount",
+         "运费折扣":"shipping_discount",
+         "giftwrap":"gift_wrap_price",
+     }
 
     function getInputData() {
         var acc = runtime.getCurrentScript().getParameter({
@@ -34,7 +42,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
         log.debug("idto", idto);
         var orders = [];
         core.amazon.getAccountList().map(function (account) {
-            var limit = 30// 999; //350
+            var limit = 1// 999; //350
                 var filters = [{
                         name: 'custrecord_aio_cache_resolved',
                         operator: search.Operator.IS,
@@ -44,7 +52,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                         name: "custrecord_aio_cache_status",
                         operator: "is",
                         values: "Shipped"
-                    }
+                    },
+                    // {
+                    //     name: "internalidnumber",
+                    //     operator: "equalto",
+                    //     values: 2
+                    // },
                 ];
             if (idform) {
                 filters.push({
@@ -155,7 +168,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
             line_items = '';
             log.error('error', error);
         }
-        var externalid = "aio" + amazon_account_id + "." + o.amazon_order_id;
+        var externalid = "aio" + amazon_account_id + ".ss" + o.amazon_order_id;
         log.debug('2', 1);
         var fulfillment_channel = o.fulfillment_channel;
         log.debug('1', 3);
@@ -735,21 +748,51 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
             }
             if (!line_items)
                 line_items = core.amazon.getOrderItems(a, o.amazon_order_id);
-            log.debug("11line_items", line_items);
-
+            log.debug("0000011line_items:"+obj.rec_id, line_items);
+ 
             var otherId = record.submitFields({
                 type: 'customrecord_aio_order_import_cache',
                 id: obj.rec_id,
                 values: {
-                    'custrecord_amazonorder_iteminfo': line_items
+                    'custrecord_amazonorder_iteminfo': JSON.stringify(line_items)
                 }
             });
-
+            log.debug("OKokokok:"+obj.rec_id, line_items)
             var itemAry = [],
                 tax_item_amount = 0,
                 num = 0;
 
             var amazon_sku;
+
+
+          
+            var formula,fla={}
+            search.create({
+                type: 'customrecord_amazon_order_configure',
+                columns: [
+                    'custrecord_calculation_formula'
+                ]
+            }).run().each(function (rec) {
+                formula = rec.getValue('custrecord_calculation_formula');
+              
+                var formula_str = formula.split(/[^+-]/g).join("").split("")
+                log.debug("1formula ",formula_str)
+                var formula_name = formula.split(/[{}+-]/g)
+                log.debug("2 formula ",formula_name)
+                var fsn=0
+                 for(var i =0;i<formula_name.length;i++){
+                    if(formula_name[i]){
+                        if(fsn==0){
+                            fla[price_conf[formula_name[i]]] = "start"
+                            fsn++
+                        }else{
+                            fla[price_conf[formula_name[i]]] = formula_str[fsn-1]
+                            fsn++
+                        }
+                    }
+                 }
+            });
+            log.debug("2 fla ",fla)
             line_items.map(function (line) {
                 log.debug("line", line);
                 log.debug("amazon_account_id", amazon_account_id);
@@ -799,31 +842,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     throw "找不到货品, 或者货品已经非活动了(SKU): " + line.seller_sku.trim();
                 }
 
-                //新增物流费用及关税费  2020-02-19  Elias
-                /*--------------------------------------
-                try {
-                    log.error({
-                        title: '获取到的id',
-                        details: skuid
-                    });
-                    var itemRecord = record.load({
-                        type: 'lotnumberedassemblyitem',
-                        id: skuid
-                    });
-                    log.error({
-                        title: '物流费用新增',
-                        details: JSON.stringify(itemRecord)
-                    });
-                    if (itemRecord) {
-                        caculateLogisticFee(itemRecord, ord, line.qty);
-                    }
-                } catch (e) {
-                    log.error({
-                        title: '报错信息',
-                        details: JSON.stringify(e)
-                    });
-                }
-                //------------------------------------- */
+             
 
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
@@ -856,23 +875,39 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     fieldId: 'quantity',
                     value: line.qty
                 });
-                log.debug('15rate', line.item_price / line.qty)
+       
+                //按照计算逻辑公式计算itemprice
+                var itemprice=0
+                for(key in fla){
+                    if(fla[key] == "start"){
+                        itemprice = Number(line[key])
+                    }else{
+                        if(fla[key] == "-"){
+                            itemprice = itemprice - Number(line[key])
+                        }
+                        else if(fla[key] == "+"){
+                            itemprice = itemprice + Number(line[key])
+                        }
+                    }
+                }
+                log.debug("0000000itemprice:"+itemprice,"原始的货品价格："+line.item_price)
+                log.debug('15rate', line.item_price / line.qty )
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'rate',
-                    value: line.item_price / line.qty
+                    value: itemprice / line.qty
                 });
                 log.debug('16amount', line.item_price)
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'amount',
-                    value: line.item_price
+                    value: itemprice
                 });
                 log.debug('17line.item_price', line.item_price)
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'custcol_aio_origianl_amount',
-                    value: line.item_price
+                    value: itemprice
                 });
                 ord.setCurrentSublistValue({
                     sublistId: 'item',

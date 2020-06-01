@@ -71,119 +71,176 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
 
         // core.amazon.getReportAccountList().map(function (account) {
         core.amazon.getAccountList().map(function (account) {
-
-            var marketplace = account.marketplace;
-            if (check_if_handle(account.extra_info, report_type)) {
-                log.audit("account:" + account.id, marketplace);
-                if (is_request) {
-                    /** Settlement Report 结算报告 Request */
-                    if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-                        sum++;
-                        core.amazon.requestReportFake(account, report_type);
-                        log.audit("requestReportFake", "requestReportFake");
-                    } else {
-
-                        log.audit("requestReportrequestReport", account.id);
-
-                        // 根据站点来设置时间
-                        if (account.enabled_sites == 'AmazonUS') {
-                            // 美国站点
-                            log.audit("account.id " + account.id, "美国站点");
-                            startDate = "2020-04-01T00:00:00.000Z";
-                            endate = "2020-04-19T23:59:59.999Z";
-
-                        } else if (account.enabled_sites == 'AmazonUK') {
-                            // 英国站点
-                            log.audit("account.id " + account.id, "英国站点");
-
-                            startDate = "2020-04-01T08:00:00.000Z";
-                            endate = "2020-03-20T08:00:00.000Z";
-
-                        } else if (account.enabled_sites == 'AmazonDE' || account.enabled_sites == 'AmazonES' || account.enabled_sites == 'AmazonFR' || account.enabled_sites == 'AmazonIT') {
-                            // 欧洲站点
-                            log.audit("account.id " + account.id, "欧洲站点");
-
-                            startDate = "2020-04-01T09:00:00.000Z";
-                            endate = "2020-03-20T09:00:00.000Z";
-
+            if (account.id == 5) {
+                var marketplace = account.marketplace;
+                if (check_if_handle(account.extra_info, report_type)) {
+                    log.audit("account:" + account.id, marketplace);
+                    if (is_request) {
+                        /** Settlement Report 结算报告 Request */
+                        if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
+                            sum++;
+                            core.amazon.requestReportFake(account, report_type);
+                            log.audit("requestReportFake", "requestReportFake");
                         } else {
-                            // 其他站点
-                            log.audit("account.id " + account.id, "其他站点");
-                            startDate = "2020-04-01T00:00:00.000Z";
-                            endate = "2020-03-19T23:59:59.999Z";
+
+                            log.audit("requestReportrequestReport", account.id);
+
+                            // 根据站点来设置时间
+                            if (account.enabled_sites == 'AmazonUS') {
+                                // 美国站点
+                                log.audit("account.id " + account.id, "美国站点");
+                                startDate = "2020-04-01T00:00:00.000Z";
+                                endate = "2020-04-19T23:59:59.999Z";
+
+                            } else if (account.enabled_sites == 'AmazonUK') {
+                                // 英国站点
+                                log.audit("account.id " + account.id, "英国站点");
+
+                                startDate = "2020-04-01T08:00:00.000Z";
+                                endate = "2020-03-20T08:00:00.000Z";
+
+                            } else if (account.enabled_sites == 'AmazonDE' || account.enabled_sites == 'AmazonES' || account.enabled_sites == 'AmazonFR' || account.enabled_sites == 'AmazonIT') {
+                                // 欧洲站点
+                                log.audit("account.id " + account.id, "欧洲站点");
+
+                                startDate = "2020-04-01T09:00:00.000Z";
+                                endate = "2020-03-20T09:00:00.000Z";
+
+                            } else {
+                                // 其他站点
+                                log.audit("account.id " + account.id, "其他站点");
+                                startDate = "2020-04-01T00:00:00.000Z";
+                                endate = "2020-03-19T23:59:59.999Z";
+                            }
+
+                            startDate = report_start_date;
+                            endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
+
+                            startDate = '2020-04-01T00:00:00.000Z';
+                            endate = '2020-04-31T23:59:59.000Z';
+                            log.debug(report_type, "startDate:" + startDate + "   endate:" + endate);
+
+                            core.amazon.requestReport(account, report_type, {
+                                'StartDate': startDate,
+                                'EndDate': endate,
+                                'MarketplaceIdList.Id.1': account.marketplace,
+                            });
+
+                            // core.amazon.requestReport(account, report_type, {
+                            //     'StartDate': report_start_date,
+                            //     'EndDate': moment.utc().subtract(1, 'days').endOf('day').toISOString(),
+                            //     'MarketplaceIdList.Id.1': account.marketplace,
+                            // });
+
                         }
-
-                        startDate = report_start_date;
-                        endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
-
-                        startDate = '2020-04-01T00:00:00.000Z';
-                        endate = '2020-04-31T23:59:59.000Z';
-                        log.debug(report_type, "startDate:" + startDate + "   endate:" + endate);
-
-                        core.amazon.requestReport(account, report_type, {
-                            'StartDate': startDate,
-                            'EndDate': endate,
-                            'MarketplaceIdList.Id.1': account.marketplace,
-                        });
-
-                        // core.amazon.requestReport(account, report_type, {
-                        //     'StartDate': report_start_date,
-                        //     'EndDate': moment.utc().subtract(1, 'days').endOf('day').toISOString(),
-                        //     'MarketplaceIdList.Id.1': account.marketplace,
-                        // });
-
-                    }
-                } else {
-
-                    // 结算报告量大, 先按店铺拉取
-                    if (account.id == 3 && report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-                        log.audit("getRequestingReportList", "getRequestingReportList");
-                        core.amazon.getRequestingReportList(account, report_type).map(function (r) {
-                            log.error('账号 ID', account.id)
-                            var rLines = r.lines;
-                            log.audit('rLines', rLines[0]);
-                            r.lines.map(function (l) {
-                                return lines.push({
-                                    acc_id: account.id,
-                                    id: r.id,
-                                    type: report_type,
-                                    line: l,
-                                    firstLine: rLines[0],
-                                });
-                            });
-
-                            record.submitFields({
-                                type: core.ns.amazon_report._name,
-                                id: r.id,
-                                values: {
-                                    'custrecord_aio_origin_report_is_download': true
-                                }
-                            });
-                        });
                     } else {
-                        log.audit("getRequestingReportList", "getRequestingReportList");
-                        core.amazon.getRequestingReportList(account, report_type).map(function (r) {
-                            log.error('账号 ID', account.id)
-                            var rLines = r.lines;
-                            log.audit('rLines', rLines[0]);
-                            r.lines.map(function (l) {
-                                return lines.push({
-                                    acc_id: account.id,
+
+                        // 结算报告量大, 先按店铺拉取
+                        if (account.id == 3 && report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
+                            log.audit("getRequestingReportList", "getRequestingReportList");
+                            core.amazon.getRequestingReportList(account, report_type).map(function (r) {
+                                log.error('账号 ID', account);
+                                var rLines = r.lines;
+                                log.audit('rLines', rLines[0]);
+                                r.lines.map(function (l) {
+                                    return lines.push({
+                                        acc_id: account.id,
+                                        salesorder_location: account.info.salesorder_location,
+                                        id: r.id,
+                                        type: report_type,
+                                        line: l,
+                                        firstLine: rLines[0],
+                                    });
+                                });
+
+                                record.submitFields({
+                                    type: core.ns.amazon_report._name,
                                     id: r.id,
-                                    type: report_type,
-                                    line: l,
-                                    firstLine: rLines[0],
+                                    values: {
+                                        'custrecord_aio_origin_report_is_download': true
+                                    }
                                 });
                             });
+                        } else if (account.id) {
+                            var rid = Date.now();
+                            log.audit("getRequestingReportList", "getRequestingReportList");
+                            core.amazon.getRequestingReportList(account, report_type).map(function (r) {
+                                log.error('账号 ID', account);
+                                var rLines = r.lines;
+                                log.audit('rLines', rLines[0]);
 
-                            record.submitFields({
-                                type: core.ns.amazon_report._name,
-                                id: r.id,
-                                values: {
-                                    'custrecord_aio_origin_report_is_download': true
-                                }
+                                r.lines.map(function (l) {
+                                    return lines.push({
+                                        acc_id: account.id,
+                                        salesorder_location: account.info.salesorder_location,
+                                        id: r.id,
+                                        rid: rid,
+                                        type: report_type,
+                                        line: l,
+                                        firstLine: rLines[0],
+                                    });
+                                });
+
+                                record.submitFields({
+                                    type: core.ns.amazon_report._name,
+                                    id: r.id,
+                                    values: {
+                                        'custrecord_aio_origin_report_is_download': true
+                                    }
+                                });
                             });
-                        });
+                            if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
+                                log.error("rid+店铺+FBA仓库", rid + "-" + account.id + "-" + account.info.salesorder_location);
+                                if (account.info.salesorder_location) {
+                                    reportFlag = true;
+                                    var filters = [];
+                                    filters.push({ name: 'custrecord_fba_update_inventory_account', operator: 'is', values: account.id });
+                                    filters.push({ name: 'custrecord_salesorder_location', operator: 'is', values: account.info.salesorder_location });
+                                    var updateId;
+                                    var fbaUpdateInventorySearch = search.create({
+                                        type: 'customrecord_fba_update_inventory',
+                                        filters: filters,
+                                        columns: [
+                                            'custrecord_fba_update_inventory_account',
+                                            'custrecord_salesorder_location',
+                                            'custrecord_fba_update_inventory_rid',
+                                            'custrecord_fba_update_status'
+                                        ]
+                                    }).run().each(function (e) {
+                                        updateId = e.id;
+                                    });
+                                    var updateInventoryRecord;
+                                    if (!updateId) {
+                                        updateInventoryRecord = record.create({
+                                            type: "customrecord_fba_update_inventory",
+                                            isDynamic: true
+                                        });
+                                    } else {
+                                        updateInventoryRecord = record.load({
+                                            type: "customrecord_fba_update_inventory",
+                                            id: updateId
+                                        });
+                                    }
+                                    updateInventoryRecord.setValue({
+                                        fieldId: "custrecord_fba_update_inventory_account",
+                                        value: account.id
+                                    });
+                                    updateInventoryRecord.setValue({
+                                        fieldId: "custrecord_salesorder_location",
+                                        value: account.info.salesorder_location
+                                    });
+                                    updateInventoryRecord.setValue({
+                                        fieldId: "custrecord_fba_update_inventory_rid",
+                                        value: rid
+                                    });
+                                    updateInventoryRecord.setValue({
+                                        fieldId: "custrecord_fba_update_status",
+                                        value: 2
+                                    });
+                                    updateInventoryRecord.save();
+                                }
+                            }
+                        }
                     }
                 }
             } else {
@@ -217,14 +274,17 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
         }
         log.audit('results length', results.length)
         return results;
+
     };
 
     exports.map = function (ctx) {
         try {
-
+            var rid = ctx.value.rid;
+            var reportFlag = false;
             var vArray = JSON.parse(ctx.value);
             log.error('vArray', vArray)
             vArray.map(function (v) {
+                log.error("v:", v)
                 // log.audit("JSON.parse(ctx.value)",JSON.stringify(v));
                 var acc_id = Number(v.acc_id),
                     id = Number(v.id),
@@ -523,9 +583,18 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 }
 
                 if (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
+                    log.error("_GET_FBA_MYI_ALL_INVENTORY_DATA_", v.rid + "-" + v.salesorder_location + "-" + acc_id)
+                    rec.setValue({
+                        fieldId: "custrecord_fba_inventory_rid",
+                        value: Number(v.rid)
+                    });
                     rec.setValue({
                         fieldId: "custrecord_fba_account",
                         value: acc_id
+                    });
+                    rec.setValue({
+                        fieldId: "custrecord_all_salesorder_location",
+                        value: Number(v.salesorder_location)
                     });
                 }
                 if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {

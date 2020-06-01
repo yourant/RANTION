@@ -13,347 +13,292 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
     }
 
     function _put(context) {
+
+
+        log.debug('context', context);
         var message = {};
         // 获取token
         var token = getToken();
         if (token) {
             var data = {};
-            // AllocationMasterCreateRequestDto {
-            //     address (string): 地址 ,
-            //     allocationDetailCreateRequestDtos (Array[AllocationDetailCreateRequestDto]): 调拨单明细 ,
-            //     aono (string): 调拨单号 ,
-            //     city (string): 城市 ,
-            //     country (string): 国家 ,
-            //     countryCode (string): 国家简码 ,
-            //     createBy (string): 创建人 ,
-            //     declareCurrency (string): 申报币种 ,
-            //     declarePrice (number): 申报价格 ,
-            //     email (string): 邮箱地址 ,
-            //     fbaAccount (string): FBA账号 ,
-            //     logisticsChannelCode (string): 物流渠道服务编号 ,
-            //     logisticsChannelName (string): 物流渠道服务名称 ,
-            //     logisticsLabelPath (string): 物流面单文件路径 ,
-            //     logisticsProviderCode (string): 物流渠道商编号 ,
-            //     logisticsProviderName (string): 物流渠道商名称 ,
-            //     mobilePhone (string): 移动电话 ,
-            //     postcode (string): 邮编 ,
-            //     province (string): 省份 ,
-            //     recipient (string): 收件人 ,
-            //     shipment (string): shipment ,
-            //     shippingType (integer): 运输方式：10 sea-普通，20 air-快递-红单，30 air-专线-红单 ,
-            //     sourceWarehouseCode (string): 来源仓库编号 ,
-            //     sourceWarehouseName (string): 来源仓库名称 ,
-            //     targetWarehouseCode (string): 目标仓库编号 ,
-            //     targetWarehouseName (string): 目标仓库名称 ,
-            //     taxFlag (integer): 是否含税 0:否1:是 ,
-            //     telephone (string): 固定电话 ,
-            //     tradeCompanyCode (string): 交易主体编号 ,
-            //     tradeCompanyName (string): 交易主体名称 ,
-            //     type (integer): 调拨类型：10 普通调拨，20 FBA调拨 ,
-            //     waybillNo (string): 运单号
-            // }
-            // AllocationDetailCreateRequestDto {
-            //     asin (string): ASIN ,
-            //     barcode (string): 条码 装箱条码/SKU ,
-            //     fnsku (string): FNSKU ,
-            //     msku (string): MSKU ,
-            //     positionCode (string): 库位编号 ,
-            //     productCode (string): 产品编号 ,
-            //     productImageUrl (string): 图片路径 ,
-            //     productTitle (string): 产品标题 ,
-            //     productType (integer): 产品类型 10:成品 20:半成品 30:组合产品 40:包装材料 ,
-            //     qty (integer): 数量 ,
-            //     sku (string): SKU ,
-            //     type (integer): 类型 1:已装箱 2:未装箱 ,
-            //     variants (string): 变体规格
-            // }
-
-            var recId = context.recordID;
-
-            var transport, order_num, estimatedfre, currency, channel_dealer, channel_dealer_id, channelservice, bubble_count,
-                service_code, f_wms_location, f_wms_location_name, t_wms_location, t_wms_location_name, f_b_purpose,
-                tranor_type, shipment, transa_subje, transa_subje_id, owner, account, tax_amount, tra_id;
-
-
-            var item_info = [];
 
             search.create({
                 type: 'customrecord_dps_shipping_record',
                 filters: [{
                     name: 'internalid',
                     operator: 'anyof',
-                    values: recId
+                    values: context.recordID
                 }],
                 columns: [
-                    'owner', // 拥有者
-                    'custrecord_dps_shipping_rec_transport', // 运输方式
-                    'custrecord_dps_shipping_rec_order_num', //调拨单号
-                    'custrecord_dps_shipping_rec_estimatedfre', // 预估运费
-
-                    'custrecord_dps_shipping_rec_currency', // 货币
-                    'custrecord_dps_shipping_r_channel_dealer', // 渠道商
-
-                    'custrecord_dps_shipping_r_channelservice', // 渠道服务
+                    'custrecord_dps_shipping_rec_order_num',
+                    'custrecord_dps_shipping_rec_currency',
+                    'custrecord_dps_declared_value_dh',
+                    'custrecord_dps_shipping_rec_account',
+                    'custrecord_dps_shipping_r_channelservice',
+                    'custrecord_dps_shipping_r_channel_dealer',
+                    'custrecord_dps_shipping_rec_shipments',
+                    'custrecord_dps_shipping_rec_location',
+                    'custrecord_dps_shipping_rec_to_location',
+                    'custrecord_dps_shipping_rec_transa_subje',
+                    'custrecord_dps_shipping_rec_logistics_no',
                     'custrecord_dps_f_b_purpose', // 用途
-                    'custrecord_dps_ship_record_tranor_type', // 调拨类型
-                    'custrecord_dps_shipping_rec_shipments', // shipment 
-                    'custrecord_dps_shipping_rec_transa_subje', // 交易主体
-                    'custrecord_dps_shipping_rec_account', // 账号
-                    // 计泡基数
+                    'custrecord_dps_declare_currency_dh', // 申报币种
+
                     {
-                        name: 'custrecord_ls_bubble_count',
-                        join: 'custrecord_dps_shipping_r_channelservice'
-                    },
-                    // 渠道编码
+                        name: 'custrecord_dps_warehouse_code',
+                        join: 'custrecord_dps_shipping_rec_location'
+                    }, // 仓库编号
+                    {
+                        name: 'custrecord_dps_warehouse_name',
+                        join: 'custrecord_dps_shipping_rec_location'
+                    }, // 仓库名称
+                    {
+                        name: 'custrecord_dps_warehouse_code',
+                        join: 'custrecord_dps_shipping_rec_to_location'
+                    }, // 目标仓库编号
+                    {
+                        name: 'custrecord_dps_warehouse_name',
+                        join: 'custrecord_dps_shipping_rec_to_location'
+                    }, // 目标仓库名称
                     {
                         name: 'custrecord_ls_service_code',
                         join: 'custrecord_dps_shipping_r_channelservice'
-                    },
-                    // 仓库编号
+                    }, // 渠道服务代码
+
                     {
-                        name: 'custrecord_dps_wms_location',
-                        join: 'custrecord_dps_shipping_rec_location'
-                    },
-                    // 仓库名称
+                        name: 'custrecord_ls_bubble_count',
+                        join: 'custrecord_dps_shipping_r_channelservice'
+                    }, // 计泡基数
                     {
-                        name: 'custrecord_dps_wms_location_name',
-                        join: 'custrecord_dps_shipping_rec_location'
-                    },
-                    // 目标仓库编号
+                        name: "entityid",
+                        join: "owner"
+                    }, // 拥有者
+
                     {
-                        name: 'custrecord_dps_wms_location',
-                        join: 'custrecord_dps_shipping_rec_to_location'
-                    },
-                    // 目标仓库名称
-                    {
-                        name: 'custrecord_dps_wms_location_name',
-                        join: 'custrecord_dps_shipping_rec_to_location'
-                    },
-                    {
-                        join: "CUSTRECORD_DPS_TRANS_ORDER_LINK",
-                        name: "taxamount"
-                    }
+                        name: 'custrecord_aio_marketplace',
+                        join: 'custrecord_dps_shipping_rec_account'
+                    }, // 站点 / 市场
                 ]
             }).run().each(function (rec) {
-                tra_id = rec.id;
-                tax_amount = rec.getValue({
-                    join: "CUSTRECORD_DPS_TRANS_ORDER_LINK",
-                    name: "taxamount"
-                });
-                account = rec.getText('custrecord_dps_shipping_rec_account');
-                owner = rec.getText('owner');
-                transa_subje = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
-                transa_subje_id = rec.getText('custrecord_dps_shipping_rec_transa_subje');
-                shipment = rec.getValue('custrecord_dps_shipping_rec_shipments');
-                transport = rec.getValue('custrecord_dps_shipping_rec_transport');
-                order_num = rec.getValue('custrecord_dps_shipping_rec_order_num');
-                estimatedfre = rec.getValue('custrecord_dps_shipping_rec_estimatedfre');
-                currency = rec.getValue('custrecord_dps_shipping_rec_currency');
 
-                channel_dealer_id = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
-                channel_dealer = rec.getText('custrecord_dps_shipping_r_channel_dealer');
-                channelservice = rec.getText('custrecord_dps_shipping_r_channelservice');
-                bubble_count = rec.getValue({
+                data["shippingType"] = shippingType;
+                data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                data["createBy"] = rec.getValue({
+                    name: "entityid",
+                    join: "owner"
+                });
+
+                data["marketplaces"] = rec.getText({
+                    name: 'custrecord_aio_marketplace',
+                    join: 'custrecord_dps_shipping_rec_account'
+                });
+                data["declareCurrency"] = rec.getText('custrecord_dps_declare_currency_dh');
+
+                data["declarePrice"] = rec.getValue('custrecord_dps_declared_value_dh');
+                data["fbaAccount"] = rec.getText('custrecord_dps_shipping_rec_account');
+
+                data["countBubbleBase"] = rec.getValue({
                     name: 'custrecord_ls_bubble_count',
                     join: 'custrecord_dps_shipping_r_channelservice'
                 });
-                service_code = rec.getValue({
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
+                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
+                data["logisticsLabelPath"] = 'logisticsLabelPath';
+
+                data["logisticsProviderCode"] = rec.getValue({
                     name: 'custrecord_ls_service_code',
                     join: 'custrecord_dps_shipping_r_channelservice'
                 });
-                f_wms_location = rec.getValue({
-                    name: 'custrecord_dps_wms_location',
+
+                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
+                data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
+                data["sourceWarehouseCode"] = rec.getValue({
+                    name: 'custrecord_dps_warehouse_code',
                     join: 'custrecord_dps_shipping_rec_location'
                 });
-                f_wms_location_name = rec.getValue({
-                    name: 'custrecord_dps_wms_location_name',
+                data["sourceWarehouseName"] = rec.getValue({
+                    name: 'custrecord_dps_warehouse_name',
                     join: 'custrecord_dps_shipping_rec_location'
                 });
-                t_wms_location = rec.getValue({
-                    name: 'custrecord_dps_wms_location',
+
+                data["targetWarehouseCode"] = rec.getValue({
+                    name: 'custrecord_dps_warehouse_code',
                     join: 'custrecord_dps_shipping_rec_to_location'
                 });
-                t_wms_location_name = rec.getValue({
-                    name: 'custrecord_dps_wms_location_name',
+                data["targetWarehouseName"] = rec.getValue({
+                    name: 'custrecord_dps_warehouse_code',
                     join: 'custrecord_dps_shipping_rec_to_location'
                 });
-                f_b_purpose = rec.getValue('custrecord_dps_f_b_purpose');
-                tranor_type = rec.getValue('custrecord_dps_ship_record_tranor_type');
+                data["taxFlag"] = 1;
+                data["tradeCompanyCode"] = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
+                data["tradeCompanyName"] = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+
+                data["type"] = type;
+                // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
+                data["waybillNo"] = rec.id; // 运单号
             });
 
-            var type = 10;
-            if (tranor_type == 1) {
-                type = 20;
-            }
+            var taxamount;
+            var item_info = [];
+            var subli_id = 'recmachcustrecord_dps_shipping_record_parentrec';
+            var numLines = af_rec.getLineCount({
+                sublistId: subli_id
+            });
 
-            var shippingType = 10;
-            if (transport == 1) {
-                shippingType = 10;
-            } else if (transport == 2) {
-                shippingType = 20;
-            } else {
-                shippingType = 30;
-            }
-
-            var taxFlag = 0;
-            if (Number(tax_amount) > 0) {
-                taxFlag = 1;
-            }
             search.create({
                 type: 'customrecord_dps_shipping_record_item',
                 filters: [{
                     name: 'custrecord_dps_shipping_record_parentrec',
                     operator: 'anyof',
-                    values: recId
+                    values: context.recordID
                 }],
-                columns: [
-                    'custrecord_dps_ship_record_sku_item', // sku
-                    'custrecord_dps_ship_record_item_quantity', // qty
+                columns: [{
+                        join: 'custrecord_dps_shipping_record_item',
+                        name: 'custitem_dps_msku'
+                    },
+                    {
+                        name: 'custrecord_dps_f_b_purpose',
+                        join: 'custrecord_dps_shipping_record_parentrec'
+                    },
+                    {
+                        join: 'custrecord_dps_shipping_record_item',
+                        name: 'custitem_dps_fnsku'
+                    },
                     {
                         name: 'custitem_aio_asin',
                         join: 'custrecord_dps_shipping_record_item'
                     },
                     {
-                        name: 'custitem_dps_msku',
+                        name: 'custitem_dps_skuchiense',
                         join: 'custrecord_dps_shipping_record_item'
                     },
-                    {
-                        name: 'custitem_dps_fnsku',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    {
-                        name: 'custitem_dps_brand',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    // 产品的英文标题
-                    {
-                        name: 'custitem_dps_skuenglish',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    // 产品的标题
-                    {
-                        name: 'custitem_dps_declaration_cn',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    // 高
-                    {
-                        name: 'custitem_dps_high',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    // 长
-                    {
-                        name: 'custitem_dps_long',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    // 宽
-                    {
-                        name: 'custitem_dps_wide',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    // 图片 URL
                     {
                         name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
                     },
-                    // 重量
                     {
-                        name: 'custitem_dps_heavy2',
+                        name: 'itemid',
                         join: 'custrecord_dps_shipping_record_item'
-                    }
+                    },
+                    {
+                        name: 'custrecord_dps_ship_record_sku_item'
+                    },
+                    {
+                        name: 'custrecord_dps_ship_record_item_quantity'
+                    },
+
+                    {
+                        name: 'custitem_dps_weight',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品重量(cm),
+                    {
+                        name: 'custitem_dps_high',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品高(cm),
+                    {
+                        name: 'custitem_dps_long',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品长(cm),
+                    {
+                        name: 'custitem_dps_wide',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品宽(cm),
+                    {
+                        name: 'custitem_dps_brand',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 品牌名称,
+                    {
+                        name: 'custitem_dps_declaration_us',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品英文标题,
+
+
+                    // {
+                    //     name: 'taxamount',
+                    //     join: 'custrecord_dps_trans_order_link'
+                    // }
                 ]
             }).run().each(function (rec) {
 
                 var it = {
-                    asin: rec.getValue({
-                        name: 'custitem_aio_asin',
-                        join: 'custrecord_dps_shipping_record_item'
+                    purpose: rec.getValue({
+                        name: 'custrecord_dps_f_b_purpose',
+                        join: 'custrecord_dps_shipping_record_parentrec'
                     }),
                     brandName: rec.getValue({
                         name: 'custitem_dps_brand',
                         join: 'custrecord_dps_shipping_record_item'
                     }),
-                    englishTitle: rec.getValue({
-                        name: 'custitem_dps_skuenglish',
+                    asin: rec.getValue({
+                        name: 'custitem_aio_asin',
                         join: 'custrecord_dps_shipping_record_item'
                     }),
                     fnsku: rec.getValue({
-                        name: 'custitem_dps_fnsku',
-                        join: 'custrecord_dps_shipping_record_item'
+                        join: 'custrecord_dps_shipping_record_item',
+                        name: 'custitem_dps_fnsku'
                     }),
                     msku: rec.getValue({
-                        name: 'custitem_dps_msku',
+                        join: 'custrecord_dps_shipping_record_item',
+                        name: 'custitem_dps_msku'
+                    }),
+                    englishTitle: rec.getValue({
+                        name: 'custitem_dps_declaration_us',
                         join: 'custrecord_dps_shipping_record_item'
                     }),
-                    productHeight: Number(rec.getValue({
-                        name: 'custitem_dps_high',
-                        join: 'custrecord_dps_shipping_record_item'
-                    })),
                     productImageUrl: rec.getValue({
                         name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
-                    }),
-                    productLength: Number(rec.getValue({
-                        name: 'custitem_dps_long',
+                    }) ? rec.getValue({
+                        name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
-                    })),
+                    }) : 'productImageUrl',
                     productTitle: rec.getValue({
-                        name: 'custitem_dps_declaration_cn',
+                        name: 'custitem_dps_skuchiense',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }) ? rec.getValue({
+                        name: 'custitem_dps_skuchiense',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }) : productTitle,
+                    productHeight: rec.getValue({
+                        name: 'custitem_dps_high',
                         join: 'custrecord_dps_shipping_record_item'
                     }),
-                    productWeight: Number(rec.getValue({
-                        name: 'custitem_dps_heavy2',
-                        join: 'custrecord_dps_shipping_record_item'
-                    })),
-                    productWidth: Number(rec.getValue({
-                        name: 'custitem_dps_wide',
-                        join: 'custrecord_dps_shipping_record_item'
-                    })),
-                    purpose: rec.getValue('custrecord_dps_f_b_purpose'),
-                    qty: rec.getValue('custrecord_dps_ship_record_item_quantity'),
-                    sku: rec.getValue({
-                        name: 'custitem_dps_msku',
-                        join: 'custrecord_dps_shipping_record_item'
-                    })
-                };
 
+                    productLength: rec.getValue({
+                        name: 'custitem_dps_weight',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+
+                    productWeight: rec.getValue({
+                        name: 'custitem_dps_weight',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    productWidth: rec.getValue({
+                        name: 'custitem_dps_weight',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+
+                    sku: rec.getValue({
+                        name: 'itemid',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    qty: Number(rec.getValue('custrecord_dps_ship_record_item_quantity'))
+                };
+                taxamount = rec.getValue({
+                    name: 'taxamount',
+                    join: 'custrecord_dps_trans_order_link'
+                });
                 item_info.push(it);
 
-                return true;
             });
 
-
-            data["countBubbleBase"] = bubble_count; // 计泡基数
-            data["shippingType"] = shippingType;
-            data["aono"] = order_num;
-            data["createBy"] = owner;
-
-            data["declareCurrency"] = currency;
-
-            data["declarePrice"] = estimatedfre;
-            data["fbaAccount"] = account;
-
-            data["logisticsChannelCode"] = channel_dealer_id;
-            data["logisticsChannelName"] = channel_dealer;
-            data["logisticsLabelPath"] = ' ';
-
-            data["logisticsProviderCode"] = service_code;
-            data["logisticsProviderName"] = channelservice;
-            data["shipment"] = shipment;
-            data["sourceWarehouseCode"] = f_wms_location;
-            data["sourceWarehouseName"] = f_wms_location_name;
-
-            data["targetWarehouseCode"] = t_wms_location;
-            data["targetWarehouseName"] = t_wms_location_name;
-            data["taxFlag"] = taxFlag;
-            data["tradeCompanyCode"] = transa_subje_id;
-            data["tradeCompanyName"] = transa_subje;
-
-            data["type"] = type;
-
-            data["waybillNo"] = tra_id;
-
+            if (Number(taxamount) > 0) {
+                data["taxFlag"] = 1;
+            } else {
+                data["taxFlag"] = 0;
+            }
+            // log.error('item_info', item_info);
             data['allocationDetailCreateRequestDtos'] = item_info
-
 
             // 发送请求
             message = sendRequest(token, data);
@@ -427,3 +372,63 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         delete: _delete
     }
 });
+
+
+/*
+
+AllocationMasterCreateRequestDto {
+    address(string, optional): 地址,
+        allocationDetailCreateRequestDtos(Array[AllocationDetailCreateRequestDto]): 调拨单明细,
+        aono(string): 调拨单号,
+        city(string, optional): 城市,
+        countBubbleBase(integer): 计泡基数,
+        country(string, optional): 国家,
+        countryCode(string, optional): 国家简码,
+        createBy(string): 创建人,
+        declareCurrency(string): 申报币种,
+        declarePrice(number): 申报价格,
+        email(string, optional): 邮箱地址,
+        fbaAccount(string): FBA账号,
+        logisticsChannelCode(string): 物流渠道服务编号,
+        logisticsChannelName(string): 物流渠道服务名称,
+        logisticsLabelPath(string): 物流面单文件路径,
+        logisticsProviderCode(string): 物流渠道商编号,
+        logisticsProviderName(string): 物流渠道商名称,
+        marketplaces(string): 站点 / 市场,
+        mobilePhone(string, optional): 移动电话,
+        postcode(string, optional): 邮编,
+        province(string, optional): 省份,
+        recipient(string, optional): 收件人,
+        shipment(string): shipment,
+        shippingType(integer): 运输方式： 10 空运， 20 海运， 30 快船,
+        sourceWarehouseCode(string): 来源仓库编号,
+        sourceWarehouseName(string): 来源仓库名称,
+        targetWarehouseCode(string): 目标仓库编号,
+        targetWarehouseName(string): 目标仓库名称,
+        taxFlag(integer): 是否含税 0: 否1: 是,
+        telephone(string, optional): 固定电话,
+        tradeCompanyCode(string): 交易主体编号,
+        tradeCompanyName(string): 交易主体名称,
+        type(integer): 调拨类型： 10 普通调拨， 20 FBA调拨,
+        waybillNo(string): 运单号
+}
+AllocationDetailCreateRequestDto {
+    asin(string): ASIN,
+        brandName(string): 品牌名称,
+        englishTitle(string): 产品英文标题,
+        fnsku(string): FNSKU,
+        msku(string): MSKU,
+        productCode(string, optional): 产品编号,
+        productHeight(number): 产品高(cm),
+        productImageUrl(string): 图片路径,
+        productLength(number): 产品长(cm),
+        productTitle(string): 产品标题,
+        productType(integer, optional): 产品类型 10: 成品 20: 半成品 30: 组合产品 40: 包装材料,
+        productWeight(number): 产品重量(g),
+        productWidth(number): 产品宽(cm),
+        purpose(string): 用途,
+        qty(integer): 数量,
+        sku(string): SKU,
+        variants(string, optional): 变体规格
+}
+*/

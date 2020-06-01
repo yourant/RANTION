@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-05-27 09:43:51
+ * @LastEditTime   : 2020-05-30 21:01:29
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -12,9 +12,42 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(['N/record', 'N/search', 'N/log'], function (record, search, log, costCal) {
+define(['N/record', 'N/search', 'N/log', 'N/redirect'], function (record, search, log, redirect) {
 
     function beforeLoad(context) {
+
+        var type = context.type;
+        var bl_rec = context.newRecord;
+
+        log.debug('type', type);
+
+        var link = bl_rec.getValue('custbody_dps_fu_rec_link');
+
+
+        log.debug('link', link);
+        var link_status;
+        if (link) {
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: link
+                }],
+                columns: ['custrecord_dps_shipping_rec_status']
+            }).run().each(function (rec) {
+                link_status = rec.getValue('custrecord_dps_shipping_rec_status');
+            });
+            log.debug('link_status', link_status);
+            if (type == 'edit' && (link_status == 14 || link_status == 10 || link_status == 3)) {
+
+                // 这些状态下,  不允许更改库存转移订单
+                redirect.toRecord({
+                    type: bl_rec.type,
+                    id: bl_rec.id
+                });
+            }
+        }
 
     }
 
@@ -116,7 +149,19 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log, costCal
 
         var link = rec.getValue('custbody_dps_fu_rec_link');
 
+        var link_status;
+
         if (link) {
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: link
+                }]
+            }).run().each(function (rec) {
+                link_status = rec.getValue('custrecord_dps_shipping_rec_status');
+            });
             objRecord = record.load({
                 type: 'customrecord_dps_shipping_record',
                 id: link
@@ -134,38 +179,49 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log, costCal
             });
         }
 
+
+        if (link_status == 1 || link_status == 4 || link_status == 9 || link_status == 11) {
+
+        }
+
         objRecord.setValue({
             fieldId: 'custrecord_dps_shipping_rec_location',
             value: rec.getValue('location')
         });
 
+
+        // 1 FBA调拨
+        // 2 自营仓调拨
+        // 3 跨仓调拨
+
         var tran_type = rec.getValue('custbody_dps_transferor_type');
         log.audit('tran_type', tran_type);
+
         // 调拨单类型
         objRecord.setValue({
             fieldId: 'custrecord_dps_ship_record_tranor_type',
-            value: tran_type
+            value: Number(tran_type)
         });
 
         var s;
 
-        if (!tran_type) {
-            if (tran_type == 1) { // 1	自营仓调拨
+        if (tran_type) {
+            if (tran_type == 2) { // 2	自营仓调拨
                 s = 1;
-                // 直接物流匹配
-                // TODO
 
-            } else if (tran_type == 2) { // 2	FBA调拨
+            } else if (tran_type == 1) { // 1	FBA调拨
                 s = 11;
 
             } else if (tran_type == 3) { // 3	跨仓调拨
                 s = 1;
             }
             log.debug('s', s);
-            objRecord.setValue({
-                fieldId: 'custrecord_dps_shipping_rec_status',
-                value: s
-            });
+            if (!link_status) {
+                objRecord.setValue({
+                    fieldId: 'custrecord_dps_shipping_rec_status',
+                    value: s
+                });
+            }
         }
 
         objRecord.setValue({
@@ -307,7 +363,12 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log, costCal
 
         }
 
-        var objRecord_id = objRecord.save();
+        var objRecord_id;
+        if (link && link_status == 1 || link_status == 4 || link_status == 9 || link_status == 11) {
+            objRecord_id = objRecord.save();
+        } else if (!link) {
+            objRecord_id = objRecord.save();
+        }
 
         return objRecord_id || false;
 

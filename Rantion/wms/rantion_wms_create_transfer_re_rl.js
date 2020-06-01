@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-05-23 15:40:45
+ * @LastEditTime   : 2020-05-30 20:28:32
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -58,6 +58,8 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         //         weight(number): 重量
         // }
 
+
+        log.audit('context', context);
         var data = context.data;
         for (var i = 0, len = date.length; i < len; i++) {
 

@@ -1,13 +1,3 @@
-/*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-05-15 13:42:44
- * @LastEditTime   : 2020-05-30 16:55:30
- * @LastEditors    : Li
- * @Description    : 
- * @FilePath       : \Rantion\wms\rantion_wms_create_out_re_rl.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
@@ -40,9 +30,7 @@ define(['N/log', 'N/record', 'N/search'], function (log, record, search) {
             search.create({
                 type: 'customrecord_dps_shipping_small_record',
                 filters: [{
-                    name: 'custrecord_dps_ship_platform_order_numbe',
-                    operator: 'startswith',
-                    values: sourceNo
+                    name: 'custrecord_dps_ship_platform_order_numbe'
                 }, ],
                 columns: [
                     'custrecord_dps_ship_small_salers_order'
@@ -52,46 +40,37 @@ define(['N/log', 'N/record', 'N/search'], function (log, record, search) {
                 redSo = rec.getValue('custrecord_dps_ship_small_salers_order');
             });
 
-            log.debug('recId', recId);
-            log.debug('redSo', redSo);
-
-
             if (redSo && recId) {
 
                 try {
 
-                    var recSub = record.submitFields({
+                    record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',
                         id: recId,
                         values: {
-                            custrecord_dps_ship_small_status: 6,
-                            custrecord_dps_ship_small_wms_info: JSON.stringify(context)
+                            custrecord_dps_ship_small_status: 6
                         }
                     });
-
-                    log.audit('recSub', recSub);
-
-                    var d = {
-                        message: 'NS 处理成功'
+                    var fil_id = createItemFulfillment(redSo);
+                    if (fil_id) {
+                        createInvoice(redSo);
                     }
+
                     retjson.code = 0;
-                    retjson.data = d;
+                    retjson.data = {};
                     retjson.msg = 'success';
 
                 } catch (error) {
                     log.error('履行出错了', error);
 
-                    var d = {
-                        message: 'NS 处理失败, 请稍后重试'
-                    }
-
-                    retjson.code = 3;
-                    retjson.data = d;
+                    retjson.code = 0;
+                    retjson.data = {};
                     retjson.msg = "error";
                 }
 
             }
 
+            // return retjson;
 
         }
 
@@ -336,6 +315,90 @@ define(['N/log', 'N/record', 'N/search'], function (log, record, search) {
     function _delete(context) {
 
     }
+
+
+    /**
+     * SO单生成 ITEM_FULFILLMENT
+     * @param {*} id 
+     * @param {*} shipment_number 
+     * @param {*} bill_id 
+     * @param {*} itemLNQt 
+     */
+    function createItemFulfillment(id, quantity, itemId, location) {
+        var f = record.transform({
+            fromType: record.Type.SALES_ORDER,
+            toType: record.Type.ITEM_FULFILLMENT,
+            fromId: Number(id)
+        });
+        f.setValue({
+            fieldId: 'shipstatus',
+            value: 'C'
+        });
+        /*
+        var numlines = f.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var z = 0; z < numlines; z++) {
+            var f_item = f.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'item',
+                line: z
+            })
+
+            if (f_item == itemId) {
+                //相同的货品  打勾
+                f.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'quantity',
+                    value: quantity,
+                    line: z
+                });
+
+                f.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'location',
+                    value: location,
+                    line: z
+                });
+
+                f.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'itemreceive',
+                    value: true,
+                    line: z
+                });
+            } else {
+                f.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'itemreceive',
+                    value: false,
+                    line: z
+                });
+            }
+        }
+        */
+
+        var f_id = save();
+        return f_id || false;
+    }
+
+    /**
+     * SO单生成INVOICE
+     * @param {*} id 
+     * @param {*} shipment_number 
+     */
+    function createInvoice(id) {
+        var inv = record.transform({
+            fromType: record.Type.SALES_ORDER,
+            toType: record.Type.INVOICE,
+            fromId: Number(id)
+        });
+        var invId = inv.save();
+        return invId || false;
+
+    }
+
 
     return {
         get: _get,

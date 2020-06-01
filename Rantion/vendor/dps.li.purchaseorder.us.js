@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-27 21:16:14
+ * @LastEditTime   : 2020-05-29 17:21:38
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -34,7 +34,6 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         try {
 
             if (type == 'create' && ui == 'USEREVENT' && price_type) {
-
 
                 var numLines = newRecord.getLineCount({
                     sublistId: 'item'
@@ -217,6 +216,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                 }
             }
 
+
             var sings = [];
             for (var m = 0; m < arr2.length; m++) {
                 if (sings.indexOf('true') == -1) {
@@ -245,6 +245,8 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                     }
                 }
             }
+
+
         } catch (error) {
             log.error('设置价格出错了', error);
         }
@@ -270,7 +272,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
 
 
         log.debug('getVpmd sum', sum);
-        log.error('sum', sum);
+        log.audit('sum', sum);
 
         var limit = 3999;
 
@@ -346,7 +348,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
             });
             flag = true;
         }
-        log.error('filters', filters);
+        log.audit('filters', filters);
         var resultArr = [];
         var add = 0;
 
@@ -357,7 +359,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         }).run().each(function (result) {
             resultArr.push(result);
 
-            log.error('price', result.getValue('custrecord_vmpd_unit_price'));
+            log.audit('price', result.getValue('custrecord_vmpd_unit_price'));
             add++;
 
             return flag;

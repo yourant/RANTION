@@ -102,6 +102,7 @@ define(['N/search', 'N/record'],
                 formula = formula + key;
                 log.debug("formula",formula)
                 curr.setValue({ fieldId: 'custrecord_calculation_formula', value: formula });  
+                curr.setValue({ fieldId: 'name', value: formula });  
             }
                   
             return true;

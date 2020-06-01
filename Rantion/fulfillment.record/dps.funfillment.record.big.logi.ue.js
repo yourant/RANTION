@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-05-30 20:17:35
+ * @LastEditTime   : 2020-06-01 13:51:15
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -185,7 +185,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 if (rec_status == 1) {
                     // 推送物流商, 获取追踪号
                     // TODO
-                    pushOrder(af_rec)
+                    pushOrder(af_rec);
                 } else if (rec_status == 6 || rec_status == 7) {
                     // recmachcustrecord_dps_ship_box_fa_record_link
 

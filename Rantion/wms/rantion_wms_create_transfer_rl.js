@@ -1,3 +1,11 @@
+/*
+ * @Author         : Li
+ * @Date           : 2020-06-01 09:38:43
+ * @LastEditTime   : 2020-06-01 15:50:05
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
@@ -30,7 +38,10 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     values: context.recordID
                 }],
                 columns: [
+                    'custrecord_dps_ship_record_tranor_type', // 调拨单类型
+                    'custrecord_dps_shipping_rec_transport',
                     'custrecord_dps_shipping_rec_order_num',
+                    // 'owner',
                     'custrecord_dps_shipping_rec_currency',
                     'custrecord_dps_declared_value_dh',
                     'custrecord_dps_shipping_rec_account',
@@ -45,19 +56,19 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     'custrecord_dps_declare_currency_dh', // 申报币种
 
                     {
-                        name: 'custrecord_dps_warehouse_code',
+                        name: 'custrecord_dps_wms_location',
                         join: 'custrecord_dps_shipping_rec_location'
                     }, // 仓库编号
                     {
-                        name: 'custrecord_dps_warehouse_name',
+                        name: 'custrecord_dps_wms_location_name',
                         join: 'custrecord_dps_shipping_rec_location'
                     }, // 仓库名称
                     {
-                        name: 'custrecord_dps_warehouse_code',
+                        name: 'custrecord_dps_wms_location',
                         join: 'custrecord_dps_shipping_rec_to_location'
                     }, // 目标仓库编号
                     {
-                        name: 'custrecord_dps_warehouse_name',
+                        name: 'custrecord_dps_wms_location_name',
                         join: 'custrecord_dps_shipping_rec_to_location'
                     }, // 目标仓库名称
                     {
@@ -80,6 +91,15 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     }, // 站点 / 市场
                 ]
             }).run().each(function (rec) {
+                var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
+
+                if (rec_transport == 1) {
+                    shippingType = 10;
+                } else if (rec_transport == 3) {
+                    shippingType = 30;
+                } else {
+                    shippingType = 20;
+                }
 
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
@@ -94,13 +114,13 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 });
                 data["declareCurrency"] = rec.getText('custrecord_dps_declare_currency_dh');
 
-                data["declarePrice"] = rec.getValue('custrecord_dps_declared_value_dh');
+                data["declarePrice"] = Number(rec.getValue('custrecord_dps_declared_value_dh'));
                 data["fbaAccount"] = rec.getText('custrecord_dps_shipping_rec_account');
 
-                data["countBubbleBase"] = rec.getValue({
+                data["countBubbleBase"] = Number(rec.getValue({
                     name: 'custrecord_ls_bubble_count',
                     join: 'custrecord_dps_shipping_r_channelservice'
-                });
+                }));
                 data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
                 data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
                 data["logisticsLabelPath"] = 'logisticsLabelPath';
@@ -113,37 +133,84 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
                 data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
                 data["sourceWarehouseCode"] = rec.getValue({
-                    name: 'custrecord_dps_warehouse_code',
+                    name: 'custrecord_dps_wms_location',
                     join: 'custrecord_dps_shipping_rec_location'
                 });
                 data["sourceWarehouseName"] = rec.getValue({
-                    name: 'custrecord_dps_warehouse_name',
+                    name: 'custrecord_dps_wms_location_name',
                     join: 'custrecord_dps_shipping_rec_location'
                 });
 
                 data["targetWarehouseCode"] = rec.getValue({
-                    name: 'custrecord_dps_warehouse_code',
+                    name: 'custrecord_dps_wms_location',
                     join: 'custrecord_dps_shipping_rec_to_location'
                 });
                 data["targetWarehouseName"] = rec.getValue({
-                    name: 'custrecord_dps_warehouse_code',
+                    name: 'custrecord_dps_wms_location',
                     join: 'custrecord_dps_shipping_rec_to_location'
                 });
                 data["taxFlag"] = 1;
                 data["tradeCompanyCode"] = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
-                data["tradeCompanyName"] = rec.getText('custrecord_dps_shipping_rec_transa_subje');
 
+                var a = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+                var b = a.split(':');
+                data["tradeCompanyName"] = b[b.length - 1];
+                // data["tradeCompanyName"] = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+
+                var type1 = rec.getValue('custrecord_dps_ship_record_tranor_type');
+
+                var type = 10;
+                // 1 FBA调拨
+                // 2 自营仓调拨
+                // 3 跨仓调拨
+                // 4 移库
+
+                if (type1 == 1) {
+                    type = 20
+                }
                 data["type"] = type;
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
                 data["waybillNo"] = rec.id; // 运单号
             });
+            /*
 
+            data["shippingType"] = shippingType;
+            data["aono"] = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
+            data["createBy"] = af_rec.getText('owner');
+
+            data["declareCurrency"] = af_rec.getText('custrecord_dps_shipping_rec_currency');
+            // data["declareCurrency"] = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
+
+            // data["declarePrice"] = 1;
+            data["declarePrice"] = af_rec.getValue('custrecord_dps_declared_value_dh');
+            data["fbaAccount"] = af_rec.getValue('custrecord_dps_shipping_rec_account');
+
+            data["logisticsChannelCode"] = af_rec.getValue('custrecord_dps_shipping_r_channelservice');
+            data["logisticsChannelName"] = af_rec.getText('custrecord_dps_shipping_r_channelservice');
+            // data["logisticsLabelPath"] = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
+
+            data["logisticsProviderCode"] = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer');
+            data["logisticsProviderName"] = af_rec.getText('custrecord_dps_shipping_r_channelservice');
+            data["shipment"] = af_rec.getValue('custrecord_dps_shipping_rec_shipments');
+            data["sourceWarehouseCode"] = af_rec.getValue('custrecord_dps_shipping_rec_location');
+            data["sourceWarehouseName"] = af_rec.getText('custrecord_dps_shipping_rec_location');
+
+            data["targetWarehouseCode"] = af_rec.getValue('custrecord_dps_shipping_rec_to_location');
+            data["targetWarehouseName"] = af_rec.getText('custrecord_dps_shipping_rec_to_location');
+            data["taxFlag"] = 1;
+            data["tradeCompanyCode"] = af_rec.getValue('custrecord_dps_shipping_rec_transa_subje');
+            data["tradeCompanyName"] = af_rec.getText('custrecord_dps_shipping_rec_transa_subje');
+
+            data["type"] = type;
+            // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
+            data["waybillNo"] = af_rec.getText('custrecord_dps_shipping_rec_logistics_no');
+            */
             var taxamount;
             var item_info = [];
             var subli_id = 'recmachcustrecord_dps_shipping_record_parentrec';
-            var numLines = af_rec.getLineCount({
-                sublistId: subli_id
-            });
+            // var numLines = af_rec.getLineCount({
+            //     sublistId: subli_id
+            // });
 
             search.create({
                 type: 'customrecord_dps_shipping_record_item',
@@ -220,12 +287,30 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 ]
             }).run().each(function (rec) {
 
+                // AllocationDetailCreateRequestDto{
+                //     asin(string): ASIN,
+                //     brandName(string): 品牌名称,
+                //     englishTitle(string): 产品英文标题,
+                //     fnsku(string): FNSKU,
+                //     msku(string): MSKU,
+                //     productCode(string, optional): 产品编号,
+                //     productHeight(number): 产品高(cm),
+                //     productImageUrl(string): 图片路径,
+                //     productLength(number): 产品长(cm),
+                //     productTitle(string): 产品标题,
+                //     productWeight(number): 产品重量(g),
+                //     productWidth(number): 产品宽(cm),
+                //     purpose(string): 用途,
+                //     qty(integer): 数量,
+                //     sku(string): SKU,
+                //   }
+
                 var it = {
                     purpose: rec.getValue({
                         name: 'custrecord_dps_f_b_purpose',
                         join: 'custrecord_dps_shipping_record_parentrec'
                     }),
-                    brandName: rec.getValue({
+                    brandName: rec.getText({
                         name: 'custitem_dps_brand',
                         join: 'custrecord_dps_shipping_record_item'
                     }),
@@ -259,24 +344,24 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         name: 'custitem_dps_skuchiense',
                         join: 'custrecord_dps_shipping_record_item'
                     }) : productTitle,
-                    productHeight: rec.getValue({
+                    productHeight: Number(rec.getValue({
                         name: 'custitem_dps_high',
                         join: 'custrecord_dps_shipping_record_item'
-                    }),
+                    })),
 
-                    productLength: rec.getValue({
+                    productLength: Number(rec.getValue({
                         name: 'custitem_dps_weight',
                         join: 'custrecord_dps_shipping_record_item'
-                    }),
+                    })),
 
-                    productWeight: rec.getValue({
+                    productWeight: Number(rec.getValue({
                         name: 'custitem_dps_weight',
                         join: 'custrecord_dps_shipping_record_item'
-                    }),
-                    productWidth: rec.getValue({
+                    })),
+                    productWidth: Number(rec.getValue({
                         name: 'custitem_dps_weight',
                         join: 'custrecord_dps_shipping_record_item'
-                    }),
+                    })),
 
                     sku: rec.getValue({
                         name: 'itemid',
@@ -306,6 +391,19 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             message.code = 1;
             message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
         }
+        if (message.data.code == 0) {
+            flag = 14;
+        } else {
+            flag = 8;
+        }
+        var id = record.submitFields({
+            type: 'customrecord_dps_shipping_record',
+            id: context.recordID,
+            values: {
+                custrecord_dps_shipping_rec_status: flag,
+                custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
+            }
+        });
         return message;
     }
 
@@ -338,6 +436,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
      * @param {*} data 
      */
     function sendRequest(token, data) {
+
+        log.debug('sendRequest data', data);
         var message = {};
         var code = 0;
         var retdata;
@@ -352,7 +452,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             body: JSON.stringify(data)
         });
         log.debug('response', JSON.stringify(response));
-        retdata = JSON.stringify(response.body);
+        retdata = JSON.parse(response.body);
         if (response.code == 200) {
             // 调用成功
             code = retdata.code;
@@ -362,6 +462,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         }
         message.code = code;
         message.data = retdata;
+
         return message;
     }
 

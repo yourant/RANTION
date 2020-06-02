@@ -21,6 +21,7 @@ define(['N/record'], function(record) {
                     poRec.setValue({ fieldId: 'entity', value: poData.to_subsidiary_vendor });
                     poRec.setValue({ fieldId: 'currency', value: poData.to_subsidiary_currency });
                     poRec.setValue({ fieldId: 'location', value: poData.to_subsidiary_location });
+                    poRec.setValue({ fieldId: 'custbody_dps_type', value: '6' });
                     var skus = poData.skus;
                     for (var index = 0; index < skus.length; index++) {
                         poRec.selectNewLine({ sublistId: 'item' });

@@ -77,12 +77,17 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         {name: "custrecord_supplier",join: "custrecord_dps_delivery_order_id"},//供应商
                         {name: "custrecord_tracking_number",join: "custrecord_dps_delivery_order_id"},//运单号
                         {name: "custrecord_delivery_date",join: "custrecord_dps_delivery_order_id"},//交期
+                        {name: "custrecord_dsp_delivery_order_location",join: "custrecord_dps_delivery_order_id"},//地点
                     ]
                 }).run().each(function (rec) {
                     order_po_no = rec.getValue({name: "custrecord_purchase_order_no",join: "custrecord_dps_delivery_order_id"});
                     boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
-                    var estimateTime = format.parse({ value:rec.getValue({name: 'custrecord_delivery_date',join: 'custrecord_dps_delivery_order_id'}), type: format.Type.DATE});
-                    data['estimateTime'] = (new Date(estimateTime)).getTime()/1000;
+                    if(rec.getValue({name: 'custrecord_delivery_date',join: 'custrecord_dps_delivery_order_id'})){
+                        var estimateTime = format.parse({ value:rec.getValue({name: 'custrecord_delivery_date',join: 'custrecord_dps_delivery_order_id'}), type: format.Type.DATE});
+                        data['estimateTime'] = (new Date(estimateTime)).getTime();///1000
+                    }else{
+                        data['estimateTime'] = '';
+                    }
                     planQty += Number(rec.getValue('custrecord_item_quantity'));
                     data['remark'] = rec.getValue({name: 'custrecord_delivery_remarks',join: 'custrecord_dps_delivery_order_id'});
                     data['sourceNo'] = rec.getValue({name: "name",join: "custrecord_dps_delivery_order_id"});
@@ -90,6 +95,8 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     data['supplierCode'] = rec.getValue({name: "custrecord_supplier_code",join: "custrecord_dps_delivery_order_id"});
                     data['supplierName'] = rec.getText({name: "custrecord_supplier",join: "custrecord_dps_delivery_order_id"});
                     data['waybillNo'] = rec.getValue({name: "custrecord_tracking_number",join: "custrecord_dps_delivery_order_id"});
+                    data['warehouseCode'] = rec.getValue({name: "custrecord_dsp_delivery_order_location",join: "custrecord_dps_delivery_order_id"});//rec.getValue({name: "custrecord_dps_wms_location",join: "location"});//仓库编号
+                    data['warehouseName'] = rec.getText({name: "custrecord_dsp_delivery_order_location",join: "custrecord_dps_delivery_order_id"});//rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                     //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
                     var variant_arr = [
                         {
@@ -127,7 +134,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         'tranid',
                         'entity',
                         'subsidiary',
-                        'location',
                         {name: "custrecord_tax_included",join: "subsidiary"},
                         // {name: "custrecord_dps_wms_location",join: "location"},
                         // {name: "custrecord_dps_wms_location_name",join: "location"},
@@ -139,8 +145,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     data['taxFlag'] = rec.getValue({name: "custrecord_tax_included",join: "subsidiary"}) == 1 ? 1 : 0;//是否含税 0:否1:是
                     data['tradeCompanyCode'] = rec.getValue('subsidiary');//交易主体编号
                     data['tradeCompanyName'] = rec.getText('subsidiary').substr(rec.getText('subsidiary').lastIndexOf(' ') + 1);//交易主体名称
-                    data['warehouseCode'] = rec.getValue('location');//rec.getValue({name: "custrecord_dps_wms_location",join: "location"});//仓库编号
-                    data['warehouseName'] = rec.getText('location');//rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                     return false;
                 });
                 var order_data = record.load({type: 'purchaseorder', id: order_po_no});

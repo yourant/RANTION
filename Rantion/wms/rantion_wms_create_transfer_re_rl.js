@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-05-30 20:28:32
+ * @LastEditTime   : 2020-06-02 10:12:44
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -59,11 +59,34 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         // }
 
 
-        log.audit('context', context);
-        var data = context.data;
-        for (var i = 0, len = date.length; i < len; i++) {
+        // {
+        //     "deliveryTime": "2020-06-01 19:01:44",
+        //     "abno": "AB200601000002",
+        //     "aono": "103411",
+        //     "containerNo": "123",
+        //     "boxQty": 1,
+        //     "volume": 1000.00,
+        //     "weight": 321.00,
+        //     "storageList": [{
+        //         "sku": "1101",
+        //         "type": 2,
+        //         "barcode": "1101",
+        //         "positionCode": "AAAD6610101",
+        //         "qty": 1
+        //     }],
+        //     "delivery": true
+        // }
 
-            var temp = data[i];
+
+        log.audit('context', context);
+        var data = context;
+        // for (var i = 0, len = date.length; i < len; i++) {
+
+        var retjson = {};
+
+        try {
+
+            var temp = data;
             var containerNo = temp.containerNo,
                 boxQty = temp.boxQty,
                 aono = temp.aono,
@@ -138,10 +161,13 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 }
 
                 // 设置调拨单的状态
-                l_rec.setValue({
-                    fieldId: 'custrecord_dps_ship_rec_transfer_status',
-                    value: status / 10
-                });
+
+                if (status) {
+                    l_rec.setValue({
+                        fieldId: 'custrecord_dps_ship_rec_transfer_status',
+                        value: status / 10
+                    });
+                }
 
                 l_rec.setValue({
                     fieldId: 'custrecord_dps_ship_rec_dono',
@@ -149,27 +175,55 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 });
 
                 l_rec.setValue({
-                    fieldId: 'custrecord_dps_shipping_rec_status',
-                    value: ''
-                });
-
-                l_rec.setValue({
                     fieldId: 'custrecord_dps_ship_rec_pickno',
                     value: pickno
+                });
+
+
+                // 1	未发运，等待获取物流单号
+                // 2	匹配物流失败，手动处理
+                // 3	已获取物流单号，等待发运
+                // 4	获取物流信息失败
+                // 6	WMS已发运
+                // 7	WMS已部分发运
+                // 8	WMS发运失败
+                // 9	未发运，等待获取Shipment
+                // 10	已获取Shipment号，等待装箱
+                // 11	申请Shipment失败
+                // 12	WMS已装箱
+                // 13	WMS已部分装箱
+                // 14	已推送WMS
+
+
+                l_rec.setValue({
+                    fieldId: 'custrecord_dps_shipping_rec_status',
+                    values: 6
                 });
 
                 var l_rec_id = l_rec.save();
 
                 log.audit('发运记录更新完成', l_rec_id);
-            }
 
+                retjson.code = 0;
+                retjson.data = {
+                    msg: 'NS 处理成功'
+                };
+                retjson.msg = 'success';
+            }
+        } catch (error) {
+
+            retjson.code = 3;
+            retjson.data = {
+                msg: 'NS error'
+            };
+            retjson.msg = 'error';
         }
 
+        // }
 
-        var retjson = {};
-        retjson.code = 0;
-        retjson.data = {};
-        retjson.msg = 'string';
+
+
+
         return JSON.stringify(retjson);
     }
 

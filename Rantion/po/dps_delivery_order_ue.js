@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-29 14:56:50
+ * @LastEditTime   : 2020-05-29 14:26:56
  * @LastEditors    : Li
  * @Description    :  应用于采购订单,增加按钮
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -19,7 +19,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
     function beforeLoad(context) {
 
 
-        // log.debug('beforeLoad roleId', roleId);
+        log.debug('beforeLoad roleId', roleId);
         var newRecord = context.newRecord;
 
         var flag = true;
@@ -175,7 +175,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
 
                 var purchase_order_no = bf_rec.getValue('custrecord_purchase_order_no');
 
-                log.audit('beforeSubmit purchase_order_no', purchase_order_no);
+                log.audit('purchase_order_no', purchase_order_no);
 
                 var len = bf_rec.getLineCount({
                     sublistId: 'recmachcustrecord_dps_delivery_order_id'
@@ -187,7 +187,7 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
                         sublistId: 'recmachcustrecord_dps_delivery_order_id',
                         fieldId: 'custrecord_item_sku',
                         line: i
-                    });
+                    })
                     var stock_quantity = bf_rec.getSublistValue({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id',
                         fieldId: 'custrecord_stock_quantity',
@@ -358,21 +358,21 @@ define(['N/log', 'N/record', 'N/runtime', 'N/search'], function (log, record, ru
 
                     for (var i = 0; i < len; i++) {
 
-                        var item_sku = load_rec.getSublistValue({
+                        var item_sku = newRecord.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_item_sku',
                             line: i
                         });
 
                         // 交货单 交货数量
-                        var item_quantity = load_rec.getSublistValue({
+                        var item_quantity = newRecord.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_item_quantity',
                             line: i
                         });
 
                         // 交货单 入库数量
-                        var stock_quantity = load_rec.getSublistValue({
+                        var stock_quantity = newRecord.getSublistValue({
                             sublistId: 'recmachcustrecord_dps_delivery_order_id',
                             fieldId: 'custrecord_stock_quantity',
                             line: i

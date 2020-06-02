@@ -57,6 +57,10 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         var nowPage = params.custpage_now_page ? params.custpage_now_page : 1;
         var pageSize = params.custpage_page_size ? params.custpage_page_size : 50; // 每页数量
         var item = params.custpage_item;
+        if (!params.custpage_date_from || !params.custpage_date_to) {// || (date_from_p > date_to_p)
+            throw "请先输入正确的时间范围";
+        }
+
         var date_from = format.parse({ value:params.custpage_date_from, type: format.Type.DATE});
         var date_to = format.parse({ value:params.custpage_date_to, type: format.Type.DATE});
         var site = params.custpage_site;
@@ -73,10 +77,80 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         var result = rsJson.result;
         var totalCount = rsJson.totalCount;
         var pageCount = rsJson.pageCount;
-        createLineData(form, result, date_from, date_to); //创建行数据
+        var need_result = createLineData(form, result, date_from, date_to); //创建行数据
+        log.debug('need_result ',need_result);
+        if(need_result){
+            try{
+                createOrUpdateData(need_result, date_from, date_to)
+            }catch(e){
+                log.debug('e',e);
+            }
+        }
         // 设置数据选择列表、当前页、总页数到界面
         setPageInfo(form, nowPage, totalCount, pageCount, pageSize, result);
         return form;
+    }
+
+    //保存或更新店铺净需求信息
+    function createOrUpdateData(need_result, date_from, date_to){
+        var week_start = weekofday(date_from);
+        var week_end = weekofday(date_to);
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+        var today = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
+        need_result.map(function(line){
+            var bill_id;
+            search.create({
+                type: 'customrecord_demand_forecast_child',
+                filters: [
+                    { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
+                    { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id },
+                    { name: 'custrecord_demand_forecast_l_date', operator: 'on', values: today},
+                    { name: 'custrecord_demand_forecast_l_data_type', operator: 'anyof', values: 3}
+                ]
+            }).run().each(function (rec) {
+                bill_id = rec.id;
+            });
+            log.debug('bill_id',bill_id);
+            var child_bill_data;
+            if(bill_id){
+                child_bill_data = record.load({type: 'customrecord_demand_forecast_child',id: bill_id});
+                for(var i = week_start; i < week_end+1; i++){
+                    line.item.map(function(li){
+                        if(i == li.week){
+                            var field_name = 'custrecord_quantity_week' + i;
+                            child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
+                        }
+                    })   
+                }
+                child_bill_data.save();
+            }else{
+                var need_today = new Date(+new Date()+8*3600*1000);
+                var forecast_id;
+                search.create({
+                    type: 'customrecord_demand_forecast',
+                    filters: [
+                        { name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
+                        { name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id }
+                    ]
+                }).run().each(function (rec) {
+                    forecast_id = rec.id;
+                });
+                log.debug('forecast_id',forecast_id);
+                child_bill_data = record.create({ type: 'customrecord_demand_forecast_child' });
+                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_date', value: need_today });
+                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_data_type', value: 3});
+                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_parent', value: forecast_id});
+                for(var i = week_start; i < week_end+1; i++){
+                    line.item.map(function(li){
+                        if(i == li.week){
+                            var field_name = 'custrecord_quantity_week' + i;
+                            child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
+                        }
+                    })   
+                }
+                child_bill_data.save();
+            }
+        })
     }
 
     /**
@@ -93,7 +167,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         log.debug('today',today);
 
         var rsJson = {} , SKUs = {} , limit = 4000;
-        var filters_sku = [];
+        var filters_sku = [],skuids = [],location = [], item_data = [];
         if (item) {
             // item = true;
             filters_sku = [{ name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: item }];
@@ -102,10 +176,36 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             type: 'customrecord_demand_forecast',
             filters: filters_sku,
             columns: [
-                { name: 'custrecord_demand_forecast_item_sku',sort: search.Sort.ASC}
+                { name: 'custrecord_demand_forecast_item_sku',sort: search.Sort.ASC},
+                { name: 'custrecord_demand_forecast_account'},
+                { name: 'custrecord_demand_forecast_item_name'},
+                { name: 'custrecord_demand_forecast_site'},
             ]
         }).run().each(function (rec) {
-            SKUIds.push(rec.getValue(rec.columns[0]))
+            //获取仓库
+            var need_location;
+            search.create({
+                type: 'customrecord_aio_account',
+                filters: [
+                    { name: 'internalId', operator: 'is', values: rec.getValue(rec.columns[1]) },
+                ],
+                columns: [
+                    { name: 'custrecord_aio_fbaorder_location'}
+                ]
+            }).run().each(function (r) {
+                need_location = r.getValue('custrecord_aio_fbaorder_location');
+                location.push(r.getValue('custrecord_aio_fbaorder_location'));
+            });
+            SKUIds.push({
+                item_sku : rec.getValue(rec.columns[0]),
+                forecast_account : rec.getValue(rec.columns[1]),
+                item_sku_name : rec.getText(rec.columns[0]),
+                forecast_account_name : rec.getText(rec.columns[1]),
+                item_name : rec.getValue(rec.columns[2]),
+                forecast_site : rec.getValue(rec.columns[3]),
+                location : need_location ? need_location : ''
+            });
+            skuids.push(rec.getValue(rec.columns[0]))
             return --limit > 0;
         });
         log.debug('SKUIds',SKUIds);
@@ -114,27 +214,11 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: 1 },
             { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
         ];
-        var filters_locationquantityavailable =[];
-        var location;
         if (account) {
             filters.push({ name: "custrecord_demand_forecast_account", operator: "anyof", values: account });
-            
-            search.create({
-                type: 'customrecord_aio_account',
-                filters: [
-                    { name: 'internalId', operator: 'is', values: account },
-                ],
-                columns: [
-                    { name: 'custrecord_aio_fbaorder_location'}
-                ]
-            }).run().each(function (rec) {
-                location = rec.getValue('custrecord_aio_fbaorder_location');
-            });
-            filters_locationquantityavailable.push({ name: 'inventorylocation', operator: 'is', values: location });
         }
 
-        filters.push({ name: "custrecord_demand_forecast_item_sku", operator: "anyof", values: SKUIds });
-        filters_locationquantityavailable.push({ name: 'internalid', operator: 'anyof', values: SKUIds });
+        filters.push({ name: "custrecord_demand_forecast_item_sku", operator: "anyof", values: skuids });
             
         if (site) {
             filters.push({ name: "custrecord_demand_forecast_site", operator: "anyof", values: site });
@@ -210,7 +294,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         });
         var totalCount = pageData_demand_forecast.count; //总数
         var pageCount = pageData_demand_forecast.pageRanges.length; //页数
-        var demand = [], quantity_week=[], purchaseorder = []; //结果
 
         if (totalCount == 0 && pageCount ==0) {
             rsJson.result = [];
@@ -220,188 +303,223 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             pageData_demand_forecast.fetch({
                 index: Number(nowPage-1)
             }).data.forEach(function (rs) {
-                var jsonstr = {};
-                jsonstr.df_id = rs.id;
-                var item_sku = rs.getValue(rs.columns[2]);
-                jsonstr.account= rs.getValue(rs.columns[0]),
-                jsonstr.account_text= rs.getText(rs.columns[0]),
-                jsonstr.site= rs.getValue(rs.columns[1]),
-                jsonstr.item_sku= rs.getValue(rs.columns[2]),
-                jsonstr.item_sku_text= rs.getText(rs.columns[2]),
-                jsonstr.item_name= rs.getValue(rs.columns[3]),
-                jsonstr.data_type= rs.getValue(rs.columns[4]),
-                jsonstr.data_type_text= rs.getText(rs.columns[4]),
-                jsonstr.skuid = item_sku;
-                jsonstr.locationquantityavailable = 0;
-                // jsonstr.totalTransportMake = 0;
-                jsonstr.inventory_id = 10;
-                jsonstr.inventory = '库存量';
-                jsonstr.in_transit = '在途量';
-                jsonstr.purchaseorder = purchaseorder;
-                SKUs[jsonstr.skuid] = jsonstr;
-                if (item_sku == SKUs[jsonstr.skuid].item_sku) {
-                    // log.debug('item_sku',item_sku+'----'+SKUs[jsonstr.skuid].item_sku);
-                    quantity_week.push({
-                        item_sku:item_sku,
-                        account: rs.getValue(rs.columns[0]),
-                        quantity_week1: rs.getValue(rs.columns[5]),
-                        quantity_week2: rs.getValue(rs.columns[6]),
-                        quantity_week3: rs.getValue(rs.columns[7]),
-                        quantity_week4: rs.getValue(rs.columns[8]),
-                        quantity_week5: rs.getValue(rs.columns[9]),
-                        quantity_week6: rs.getValue(rs.columns[10]),
-                        quantity_week7: rs.getValue(rs.columns[11]),
-                        quantity_week8: rs.getValue(rs.columns[12]),
-                        quantity_week9: rs.getValue(rs.columns[13]),
-                        quantity_week10: rs.getValue(rs.columns[14]),
-                        quantity_week11: rs.getValue(rs.columns[15]),
-                        quantity_week12: rs.getValue(rs.columns[16]),
-                        quantity_week13: rs.getValue(rs.columns[17]),
-                        quantity_week14: rs.getValue(rs.columns[18]),
-                        quantity_week15: rs.getValue(rs.columns[19]),
-                        quantity_week16: rs.getValue(rs.columns[20]),
-                        quantity_week17: rs.getValue(rs.columns[21]),
-                        quantity_week18: rs.getValue(rs.columns[22]),
-                        quantity_week19: rs.getValue(rs.columns[23]),
-                        quantity_week20: rs.getValue(rs.columns[24]),
-                        quantity_week21: rs.getValue(rs.columns[25]),
-                        quantity_week22: rs.getValue(rs.columns[26]),
-                        quantity_week23: rs.getValue(rs.columns[27]),
-                        quantity_week24: rs.getValue(rs.columns[28]),
-                        quantity_week25: rs.getValue(rs.columns[29]),
-                        quantity_week26: rs.getValue(rs.columns[30]),
-                        quantity_week27: rs.getValue(rs.columns[31]),
-                        quantity_week28: rs.getValue(rs.columns[32]),
-                        quantity_week29: rs.getValue(rs.columns[33]),
-                        quantity_week30: rs.getValue(rs.columns[34]),
-                        quantity_week31: rs.getValue(rs.columns[35]),
-                        quantity_week32: rs.getValue(rs.columns[36]),
-                        quantity_week33: rs.getValue(rs.columns[37]),
-                        quantity_week34: rs.getValue(rs.columns[38]),
-                        quantity_week35: rs.getValue(rs.columns[39]),
-                        quantity_week36: rs.getValue(rs.columns[40]),
-                        quantity_week37: rs.getValue(rs.columns[41]),
-                        quantity_week38: rs.getValue(rs.columns[42]),
-                        quantity_week39: rs.getValue(rs.columns[43]),
-                        quantity_week40: rs.getValue(rs.columns[44]),
-                        quantity_week41: rs.getValue(rs.columns[45]),
-                        quantity_week42: rs.getValue(rs.columns[46]),
-                        quantity_week43: rs.getValue(rs.columns[47]),
-                        quantity_week44: rs.getValue(rs.columns[48]),
-                        quantity_week45: rs.getValue(rs.columns[49]),
-                        quantity_week46: rs.getValue(rs.columns[50]),
-                        quantity_week47: rs.getValue(rs.columns[51]),
-                        quantity_week48: rs.getValue(rs.columns[52]),
-                        quantity_week49: rs.getValue(rs.columns[53]),
-                        quantity_week50: rs.getValue(rs.columns[54]),
-                        quantity_week51: rs.getValue(rs.columns[55]),
-                        quantity_week52: rs.getValue(rs.columns[56]),
-                    });
-                }
-                jsonstr.demand = quantity_week;
-
-                // demand.push({
-                //     // account: rs.getValue(rs.columns[0]),
-                //     // account_text: rs.getText(rs.columns[0]),
-                //     // site: rs.getValue(rs.columns[1]),
-                //     // item_sku: rs.getValue(rs.columns[2]),
-                //     // item_sku_text: rs.getText(rs.columns[2]),
-                //     // item_name: rs.getValue(rs.columns[3]),
-                //     // data_type: rs.getValue(rs.columns[4]),
-                //     // data_type_text: rs.getText(rs.columns[4]),
-                //     quantity_week: quantity_week,
-                // });
+                item_data.push({
+                    item_sku:rs.getValue(rs.columns[2]) ? rs.getValue(rs.columns[2]) : '',
+                    item_sku_text: rs.getText(rs.columns[2]) ? rs.getText(rs.columns[2]) : '',
+                    item_name: rs.getValue(rs.columns[3]) ? rs.getValue(rs.columns[3]) : '',
+                    account: rs.getValue(rs.columns[0]) ? rs.getValue(rs.columns[0]) : '',
+                    account_text: rs.getText(rs.columns[0]) ? rs.getText(rs.columns[0]) : '',
+                    site: rs.getValue(rs.columns[1]) ? rs.getValue(rs.columns[1]) : '',
+                    data_type: rs.getValue(rs.columns[4]) ? rs.getValue(rs.columns[4]) : '',
+                    data_type_text: rs.getText(rs.columns[4]) ? rs.getText(rs.columns[4]) : '',
+                    quantity_week1: rs.getValue(rs.columns[5]) ? rs.getValue(rs.columns[5]) : '',
+                    quantity_week2: rs.getValue(rs.columns[6]) ? rs.getValue(rs.columns[6]) : '',
+                    quantity_week3: rs.getValue(rs.columns[7]) ? rs.getValue(rs.columns[7]) : '',
+                    quantity_week4: rs.getValue(rs.columns[8]) ? rs.getValue(rs.columns[8]) : '',
+                    quantity_week5: rs.getValue(rs.columns[9]) ? rs.getValue(rs.columns[9]) : '',
+                    quantity_week6: rs.getValue(rs.columns[10]) ? rs.getValue(rs.columns[10]) : '',
+                    quantity_week7: rs.getValue(rs.columns[11]) ? rs.getValue(rs.columns[11]) : '',
+                    quantity_week8: rs.getValue(rs.columns[12]) ? rs.getValue(rs.columns[12]) : '',
+                    quantity_week9: rs.getValue(rs.columns[13]) ? rs.getValue(rs.columns[13]) : '',
+                    quantity_week10: rs.getValue(rs.columns[14]) ? rs.getValue(rs.columns[14]) : '',
+                    quantity_week11: rs.getValue(rs.columns[15]) ? rs.getValue(rs.columns[15]) : '',
+                    quantity_week12: rs.getValue(rs.columns[16]) ? rs.getValue(rs.columns[16]) : '',
+                    quantity_week13: rs.getValue(rs.columns[17]) ? rs.getValue(rs.columns[17]) : '',
+                    quantity_week14: rs.getValue(rs.columns[18]) ? rs.getValue(rs.columns[18]) : '',
+                    quantity_week15: rs.getValue(rs.columns[19]) ? rs.getValue(rs.columns[19]) : '',
+                    quantity_week16: rs.getValue(rs.columns[20]) ? rs.getValue(rs.columns[20]) : '',
+                    quantity_week17: rs.getValue(rs.columns[21]) ? rs.getValue(rs.columns[21]) : '',
+                    quantity_week18: rs.getValue(rs.columns[22]) ? rs.getValue(rs.columns[22]) : '',
+                    quantity_week19: rs.getValue(rs.columns[23]) ? rs.getValue(rs.columns[23]) : '',
+                    quantity_week20: rs.getValue(rs.columns[24]) ? rs.getValue(rs.columns[24]) : '',
+                    quantity_week21: rs.getValue(rs.columns[25]) ? rs.getValue(rs.columns[25]) : '',
+                    quantity_week22: rs.getValue(rs.columns[26]) ? rs.getValue(rs.columns[26]) : '',
+                    quantity_week23: rs.getValue(rs.columns[27]) ? rs.getValue(rs.columns[27]) : '',
+                    quantity_week24: rs.getValue(rs.columns[28]) ? rs.getValue(rs.columns[28]) : '',
+                    quantity_week25: rs.getValue(rs.columns[29]) ? rs.getValue(rs.columns[29]) : '',
+                    quantity_week26: rs.getValue(rs.columns[30]) ? rs.getValue(rs.columns[30]) : '',
+                    quantity_week27: rs.getValue(rs.columns[31]) ? rs.getValue(rs.columns[31]) : '',
+                    quantity_week28: rs.getValue(rs.columns[32]) ? rs.getValue(rs.columns[32]) : '',
+                    quantity_week29: rs.getValue(rs.columns[33]) ? rs.getValue(rs.columns[33]) : '',
+                    quantity_week30: rs.getValue(rs.columns[34]) ? rs.getValue(rs.columns[34]) : '',
+                    quantity_week31: rs.getValue(rs.columns[35]) ? rs.getValue(rs.columns[35]) : '',
+                    quantity_week32: rs.getValue(rs.columns[36]) ? rs.getValue(rs.columns[36]) : '',
+                    quantity_week33: rs.getValue(rs.columns[37]) ? rs.getValue(rs.columns[37]) : '',
+                    quantity_week34: rs.getValue(rs.columns[38]) ? rs.getValue(rs.columns[38]) : '',
+                    quantity_week35: rs.getValue(rs.columns[39]) ? rs.getValue(rs.columns[39]) : '',
+                    quantity_week36: rs.getValue(rs.columns[40]) ? rs.getValue(rs.columns[40]) : '',
+                    quantity_week37: rs.getValue(rs.columns[41]) ? rs.getValue(rs.columns[41]) : '',
+                    quantity_week38: rs.getValue(rs.columns[42]) ? rs.getValue(rs.columns[42]) : '',
+                    quantity_week39: rs.getValue(rs.columns[43]) ? rs.getValue(rs.columns[43]) : '',
+                    quantity_week40: rs.getValue(rs.columns[44]) ? rs.getValue(rs.columns[44]) : '',
+                    quantity_week41: rs.getValue(rs.columns[45]) ? rs.getValue(rs.columns[45]) : '',
+                    quantity_week42: rs.getValue(rs.columns[46]) ? rs.getValue(rs.columns[46]) : '',
+                    quantity_week43: rs.getValue(rs.columns[47]) ? rs.getValue(rs.columns[47]) : '',
+                    quantity_week44: rs.getValue(rs.columns[48]) ? rs.getValue(rs.columns[48]) : '',
+                    quantity_week45: rs.getValue(rs.columns[49]) ? rs.getValue(rs.columns[49]) : '',
+                    quantity_week46: rs.getValue(rs.columns[50]) ? rs.getValue(rs.columns[50]) : '',
+                    quantity_week47: rs.getValue(rs.columns[51]) ? rs.getValue(rs.columns[51]) : '',
+                    quantity_week48: rs.getValue(rs.columns[52]) ? rs.getValue(rs.columns[52]) : '',
+                    quantity_week49: rs.getValue(rs.columns[53]) ? rs.getValue(rs.columns[53]) : '',
+                    quantity_week50: rs.getValue(rs.columns[54]) ? rs.getValue(rs.columns[54]) : '',
+                    quantity_week51: rs.getValue(rs.columns[55]) ? rs.getValue(rs.columns[55]) : '',
+                    quantity_week52: rs.getValue(rs.columns[56]) ? rs.getValue(rs.columns[56]) : '',
+                });
             });
-            rsJson.result = SKUs;
-            rsJson.totalCount = totalCount;
-            rsJson.pageCount = pageCount;
         }
-
-        //库存量
-        // log.debug('filters_locationquantityavailable',filters_locationquantityavailable);
-        var mySearch_locationquantityavailable = search.create({
-            type: 'item',
-            filters: filters_locationquantityavailable,
-            columns : [
-                {name : 'internalid'},
-                {name : 'locationquantityavailable'},
-            ]
-        });
-        // log.debug('mySearch_locationquantityavailable',mySearch_locationquantityavailable);
-
-        var pageData_locationquantityavailable = mySearch_locationquantityavailable.runPaged({
-            pageSize: pageSize
-        });
-        var totalCount_locationquantityavailable = pageData_locationquantityavailable.count; //总数
-        var pageCount_locationquantityavailable = pageData_locationquantityavailable.pageRanges.length; //页数
-
-        if (totalCount_locationquantityavailable == 0 && pageCount_locationquantityavailable ==0) {
-            rsJson.result = result;
-            rsJson.totalCount = totalCount_locationquantityavailable;
-            rsJson.pageCount = pageCount_locationquantityavailable;
-        } else{
-            pageData_locationquantityavailable.fetch({
-                index: Number(nowPage-1)
-            }).data.forEach(function (rs) {
-                var skuid = Number(rs.getValue(rs.columns[0]));
-                // log.debug('skuid',skuid);
-                var json = SKUs[skuid];
-                // log.debug('json',json);
-                if (json) {
-                    var locationquantityavailable = Number(json.locationquantityavailable) + Number(rs.getValue(rs.columns[1]));
-                    if (locationquantityavailable > 0) {
-                        json.locationquantityavailable = locationquantityavailable;
-                    }
-                }
-                // log.debug('rs',rs);
-                return true;
-            });
-            rsJson.result = SKUs;
-            rsJson.totalCount = totalCount;
-            rsJson.pageCount = pageCount;
-            
-        }
-        log.debug('SKUs',SKUs);
-        
-        var week_ =[],quantity=0;
-        //在途量 查发运记录
+        log.debug('item_data',item_data);
+        log.debug('location',location);
+        //在途量 (数据源：to单)
+        var transit_num = [];
         search.create({
-            type: 'purchaseorder',
+            type: 'transferorder',
             filters: [
-                { join: 'item', name: 'internalid', operator: 'is', values: SKUIds },
-                { name: 'type', operator: 'anyof', values: ['PurchOrd'] },
+                { join: 'item', name: 'internalid', operator: 'is', values: skuids },
+                { name: 'transferlocation', operator: 'anyof', values: location },
                 { name: 'mainline', operator: 'is', values: ['F'] },
-                { name: 'taxline', operator: 'is', values: ['F'] }
+                { name: 'taxline', operator: 'is', values: ['F'] },
+                { name: 'shipping', operator: 'is', values: ['F'] }
             ],
             columns: [
-                { name: 'internalid', join: 'item' },
-                { name: 'quantity' },
-                { name: 'trandate' },
+                //'custbodyexpected_arrival_time',
+                'item',
+                'expectedreceiptdate',
+                'quantity',
+                'transferlocation'
+                // { name: 'internalid', join: 'item', summary: 'GROUP' },
+                // { name: 'formulanumeric', formula: 'quantity', summary: 'SUM' }
             ]
         }).run().each(function (result) {
-            var rsid = result.getValue(result.columns[0]);
-            var ttMake = Number(result.getValue(result.columns[1]));
-            var week = weekofday(format.parse({ value:result.getValue(result.columns[2]), type: format.Type.DATE}));
-            if(SKUs[rsid]){
-                if (rsid == SKUs[rsid].item_sku) {
-                    // log.debug('rsid',rsid+ '------' +SKUs[rsid].item_sku)
-                    purchaseorder.push({
-                        rsid: rsid,
-                        // account:in_transit_account,
-                        week : week,
-                        quantity : ttMake,
-                    });
+            log.debug('result',result.id);
+            log.debug('custbodyexpected_arrival_time',result.getValue('expectedreceiptdate'));
+            SKUIds.map(function(line){
+                if(line.item_sku == result.getValue('item') && line.location == result.getValue('transferlocation')){
+                    if(result.getValue('expectedreceiptdate')){
+                        var item_date = format.parse({ value:result.getValue('expectedreceiptdate'), type: format.Type.DATE});
+                        var item_time = weekofday(item_date);
+                        transit_num.push({
+                            item_id : result.getValue('item'),
+                            item_time : item_time,
+                            item_quantity: result.getValue('quantity')
+                        });
+                    }
                 }
-            }
+            });
             
-            var json = SKUs[rsid];
-            if (json) {
-                json.purchaseorder = purchaseorder;
-            }
             return true;
         });
+        log.debug('transit_num',transit_num);
+        var need_transit_num = [];
+        if(transit_num.length > 0){
+            var po_no = [];
+            for (var i = 0; i < transit_num.length; i++) {
+                if (po_no.indexOf(transit_num[i]['item_id']) === -1) {
+                    need_transit_num.push({
+                        item_id: transit_num[i]['item_id'],
+                        lineItems: [{
+                            item_time: transit_num[i].item_time,
+                            item_quantity: transit_num[i].item_quantity
+                        }]
+                    });
+                } else {
+                    for (var j = 0; j < need_transit_num.length; j++) {
+                        if (need_transit_num[j].item_id == transit_num[i].item_id) {
+                            need_transit_num[j].lineItems.push({
+                                item_time: transit_num[i].item_time,
+                                item_quantity: transit_num[i].item_quantity
+                            });
+                            break;
+                        }
+                    }
+                }
+                po_no.push(transit_num[i]['item_id']);
+            }
+        }
+        log.debug('need_transit_num',need_transit_num);
 
-        log.debug('rsJson.result',rsJson.result);
+        if(need_transit_num.length > 0){
+            for(var i = 0; i < SKUIds.length; i++){
+                for(var a = 0; a < need_transit_num.length; a++){
+                    if(SKUIds[i]['item_sku'] == need_transit_num[a]['item_id']){
+                        item_data.push({
+                            item_sku: SKUIds[i]['item_sku'],
+                            item_sku_text: SKUIds[i]['item_sku_name'],
+                            item_name: SKUIds[i]['item_name'],
+                            account: SKUIds[i]['forecast_account'],
+                            account_text: SKUIds[i]['forecast_account_name'],
+                            site: SKUIds[i]['forecast_site'],
+                            data_type: '2',
+                            data_type_text: '在途量',
+                            transit_no: need_transit_num[a]['lineItems']
+                        });
+                    }
+                }
+            }
+        }
+        
+        //库存量
+        var location_quantity = [];
+        search.create({
+            type: 'item', 
+            filters: [
+                { name: 'inventorylocation', operator: 'anyof', values: location },
+                { name: 'internalid', operator: 'anyof', values: skuids }
+            ],
+            columns : [
+                {name : 'inventorylocation'},
+                {name : 'locationquantityavailable'}
+            ]
+        }).run().each(function (rec) {
+            SKUIds.map(function(line){
+                if(line.item_sku == rec.id && line.location == rec.getValue('inventorylocation')){
+                    location_quantity.push({
+                        item_id : rec.id,
+                        difference_qt : rec.getValue('locationquantityavailable')*1,
+                    })
+                }
+            });
+            return true;
+        });
+        log.debug('location_quantity',location_quantity);
+
+        if(location_quantity.length > 0){
+            for(var i = 0; i < SKUIds.length; i++){
+                for(var a = 0; a < location_quantity.length; a++){
+                    if(SKUIds[i]['item_sku'] == location_quantity[a]['item_id']){
+                        item_data.push({
+                            item_sku: SKUIds[i]['item_sku'],
+                            item_sku_text: SKUIds[i]['item_sku_name'],
+                            item_name: SKUIds[i]['item_name'],
+                            account: SKUIds[i]['forecast_account'],
+                            account_text: SKUIds[i]['forecast_account_name'],
+                            site: SKUIds[i]['forecast_site'],
+                            data_type: '3',
+                            data_type_text: '库存量',
+                            location_no: location_quantity[a]['difference_qt']
+                        });
+                    }
+                }
+            }
+        }
+
+        //店铺净需求
+        SKUIds.map(function(line){
+            item_data.push({
+                item_sku: line.item_sku,
+                item_sku_text: line.item_sku_name,
+                item_name: line.item_name,
+                account: line.forecast_account,
+                account_text: line.forecast_account_name,
+                site: line.forecast_site,
+                data_type: '4',
+                data_type_text: '店铺净需求'
+            });
+        })
+
+        log.debug('item_data',item_data);
+        rsJson.result = item_data;
+        rsJson.totalCount = totalCount;
+        rsJson.pageCount = pageCount;
         return rsJson;
     }
 
@@ -454,172 +572,109 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         for (var index = 1; index <= 52; index++) {
             var sub_filed = 'custpage_quantity_week' + index;
             var Label = 'W' + index;
-            // quantity_week_ = 'quantity_week' + index;
             week_ = sublist.addField({ id: sub_filed, label: Label, type: ui.FieldType.INTEGER });
             week[index] = week_;
-            // quantity_week[index] = quantity_week_;
         }
-        // log.debug('week',week);
-        // log.debug('quantity_week',quantity_week);
-        // var week1 = sublist.addField({ id: 'custpage_quantity_week1', label: 'W1', type: ui.FieldType.INTEGER }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         log.debug('createLineData result',result);
+        var zl = 0, data_arr = [];
         for (var z = 0; z < SKUIds.length; z++) {
-            // log.debug('result[SKUIds[i]]',result[SKUIds[i]]);
-            log.debug('z1',z);
-            if (result[SKUIds[z]]) {
-                if (z != 0) {
-                    zl = Number(Number(z) + 3);
-                }else{
-                    zl = z;
-                }
-                log.debug('z2',zl);
-                var inventory_quantity;
-                log.debug('result[SKUIds[i]]',result[SKUIds[z]].skuid);
-                var df_id = result[SKUIds[z]].df_id;
-                var skuid = result[SKUIds[z]].skuid;
-                var locationquantityavailable = result[SKUIds[z]].locationquantityavailable;
-                var account = result[SKUIds[z]].account;
-                var account_text = result[SKUIds[z]].account_text;
-                var item_sku_text = result[SKUIds[z]].item_sku_text;
-                var item_name = result[SKUIds[z]].item_name;
-                var data_type_text = result[SKUIds[z]].data_type_text;
-                var inventory = result[SKUIds[z]].inventory;
-                var inventory_id = result[SKUIds[z]].inventory_id;
-                var demand = result[SKUIds[z]].demand;
-                var purchaseorder = result[SKUIds[z]].purchaseorder;
-                var in_transit = result[SKUIds[z]].in_transit;
-                log.debug('purchaseorder',purchaseorder);
-                sublist.setSublistValue({ id: 'custpage_store_name', value: account_text, line: zl });   //account_text
-                sublist.setSublistValue({ id: 'custpage_item_sku', value: item_sku_text, line: zl });    //item_sku_text
-                sublist.setSublistValue({ id: 'custpage_item_name', value: item_name, line: zl });
-                sublist.setSublistValue({ id: 'custpage_data_type', value: data_type_text, line: zl });  //data_type_text
-                log.debug('demand',demand);
+            var need1_zl = 0 , need2_zl = 0, need3_zl = 0,need4_zl = 0;
+            for(var a = 0; a < result.length; a++){
+                if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
+                    sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl }); 
+                    sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });  
+                    sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
+                    sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
 
-                var dfc_rec;
-                
-                for (var j = 0; j < demand.length; j++) {
-                    // var d_quantity_week = demand.quantity_week[0];
-                    if ((demand[j].item_sku == skuid) && (demand[j].account == account)) {
-                        log.debug('demand.sku',skuid+'---'+demand[j].item_sku);
+                    if(result[a]['data_type'] == 1){//需求量
                         for (var index = 1; index <= 52; index++) {
                             var sub_filed = 'custpage_quantity_week' + index;
-                            sublist.setSublistValue({ id: sub_filed, value: demand[j]['quantity_week'+index], line: zl});  //data_type_text
+                            if(result[a]['quantity_week'+index]){
+                                sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  //data_type_text  //净需求量
+                            }
                         }
+                        need1_zl = zl;
+                        zl++;
                     }
+                    
+                    
                     for (var i = 1; i < week_start; i++) {
                         week[i].updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
                     }
                     for (var i = 52; i > week_end; i--) {
                         week[i].updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
                     }
-                }
-                
-                for (var i = week_today; i <= week_end; i++) {
-                    var sub_filed = 'custpage_quantity_week' + i;
-                    var dfc_filed ='custrecord_quantity_week' + i;
-                    sublist.setSublistValue({ id: 'custpage_store_name', value: account_text, line: zl+1 });   //account_text
-                    sublist.setSublistValue({ id: 'custpage_item_sku', value: item_sku_text, line: zl+1 });    //item_sku_text
-                    sublist.setSublistValue({ id: 'custpage_item_name', value: item_name, line: zl+1 });
-                    sublist.setSublistValue({ id: 'custpage_data_type', value: inventory,  line: zl+1 });  //data_type_text
-
-                    inventory_quantity = locationquantityavailable - demand[0]['quantity_week'+i];
-                    locationquantityavailable = inventory_quantity;
-                    sublist.setSublistValue({ id: sub_filed, value: inventory_quantity.toString(), line: zl+1 });  //data_type_text
-                    // log.debug('p',{
-                    //     today_l:today_l,
-                    //     inventory_id:inventory_id,
-                    //     skuid:skuid,
-                    //     account:account,
-                    //     df_id:df_id,
-                    // });
-                    // var df_ch_id;
-                    // search.create({
-                    //     type: 'customrecord_demand_forecast_child',
-                    //     filters: [
-                    //         { name: 'custrecord_demand_forecast_l_date', operator: 'on', values: today_l },
-                    //         { name: 'custrecord_demand_forecast_l_data_type', operator: 'is', values: inventory_id },
-                    //         { name: 'custrecord_demand_forecast_item_sku', join:'custrecord_demand_forecast_parent',operator: 'is', values: skuid },
-                    //         { name: 'custrecord_demand_forecast_account', join:'custrecord_demand_forecast_parent',operator: 'is', values: account },
-                    //         { name: 'custrecord_demand_forecast_parent',operator: 'is', values: df_id },
-                    //     ],
-                    //     columns: [
-                    //         { name: 'internalId'}
-                    //     ]
-                    // }).run().each(function (rec) {
-                    //     df_ch_id = rec.getValue(rec.columns[0]);
-                    // });
-                    // log.debug('df_ch_id',df_ch_id);
-                    // if (df_ch_id) {
-                    //     dfc_rec = record.load({ type: 'customrecord_demand_forecast_child', id: df_ch_id, isDynamic: true });
-                    // }else{
-                    //     dfc_rec = record.create({ type: 'customrecord_demand_forecast_child', isDynamic: true });
-                    // }
-                    // log.debug('dfc_rec',dfc_rec);
-                    // dfc_rec.setText({ fieldId: 'custrecord_demand_forecast_l_date', text: today_l });
-                    // dfc_rec.setValue({ fieldId: 'custrecord_demand_forecast_l_data_type', value: inventory_id });
-                    // dfc_rec.setValue({ fieldId: 'custrecord_demand_forecast_parent', value: df_id });
-                    // dfc_rec.setValue({ fieldId: dfc_filed, value: inventory_quantity.toString() });
-                    // var dfc_rec_id = dfc_rec.save();
-                    // log.debug('dfc_rec_id',dfc_rec_id);
-                }
-                var result_1={} ;
-                for (var j = 0; j < purchaseorder.length; j++) {
-                    if ((purchaseorder[j].rsid == skuid) ) {    //&& (purchaseorder[j].account == account)  发运记录上需要用
-                        if(result_1[purchaseorder[j].week]){
-                            result_1[purchaseorder[j].week]+=purchaseorder[j].quantity;
-                        }else{
-                            result_1[purchaseorder[j].week] = purchaseorder[j].quantity;
-                        }
+                    for (var i = week_start; i <= week_end; i++) {
+                        week[i].updateDisplayType({displayType:ui.FieldDisplayType.ENTRY});
                     }
-                }
-                log.debug('result_1',result_1);
-                for (var index = 1; index <= 52; index++) {
-                    var sub_filed = 'custpage_quantity_week' + index;
-                    sublist.setSublistValue({ id: 'custpage_store_name', value: account_text, line: zl+2 });   //account_text
-                    sublist.setSublistValue({ id: 'custpage_item_sku', value: item_sku_text, line: zl+2 });    //item_sku_text
-                    sublist.setSublistValue({ id: 'custpage_item_name', value: item_name, line: zl+2 });
-                    sublist.setSublistValue({ id: 'custpage_data_type', value: in_transit,  line: zl+2 });  //data_type_text
-                    sublist.setSublistValue({ id: sub_filed, value: (result_1[index] || 0).toString(), line: zl+2 });  //data_type_text
-                }
-                for (var index = 1; index <= 52; index++) {
-                    var sub_filed = 'custpage_quantity_week' + index;
-                    sublist.setSublistValue({ id: 'custpage_store_name', value: account_text, line: zl+3 });   //account_text
-                    sublist.setSublistValue({ id: 'custpage_item_sku', value: item_sku_text, line: zl+3 });    //item_sku_text
-                    sublist.setSublistValue({ id: 'custpage_item_name', value: item_name, line: zl+3 });
-                    sublist.setSublistValue({ id: 'custpage_data_type', value: '店铺净需求量',  line: zl+3 });  //data_type_text
-                    
-                    var x1 = sublist.getSublistValue({ id : sub_filed, line: zl});
-                    var x2 = sublist.getSublistValue({ id : sub_filed, line: zl+1});
-                    var x3 = sublist.getSublistValue({ id : sub_filed, line: zl+2});
-                    sublist.setSublistValue({ id: sub_filed, value: ( Number(x3||0) + Number(x2||0) - Number(x1)).toString(),line: zl+3 });  //data_type_text
+
+                    if(result[a]['data_type'] == 2){//在途量
+                        var transit_no = result[a]['transit_no'];
+                        for (var i = week_start; i <= week_end; i++) { 
+                            if(transit_no.length > 0){
+                                transit_no.map(function(l){
+                                    if(l.item_time == i){
+                                        var sub_filed = 'custpage_quantity_week' + i;
+                                        sublist.setSublistValue({ id: sub_filed, value: l.item_quantity.toString(), line: zl});  
+                                    }
+                                })
+                            }
+                            
+                        }
+                        need2_zl = zl;
+                        zl++;
+                    }
+
+                    var need_no = 0;
+                    if(result[a]['data_type'] == 3){//库存量
+                        for (var i = week_start; i <= week_end; i++) {
+                            var sub_filed = 'custpage_quantity_week' + i;
+                            if(i == week_start){
+                                if(result[a]['location_no']){
+                                    sublist.setSublistValue({ id: sub_filed, value: result[a]['location_no'].toString(), line: zl});
+                                    need_no = result[a]['location_no'];
+                                }
+                            }else{
+                                if(result[a]['location_no']){
+                                    var need_sub_filed = 'custpage_quantity_week' + (i - 1);
+                                    var x1 = need_no;
+                                    var x2 = sublist.getSublistValue({ id : need_sub_filed, line: need2_zl});
+                                    var x3 = sublist.getSublistValue({ id : need_sub_filed, line: need1_zl});
+                                    need_no = Number(x1)+Number(x2)-x3;
+                                    sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
+                                }
+                            }
+                            
+                        }
+                        need3_zl = zl;
+                        zl++;
+                    }
+
+                    if(result[a]['data_type'] == 4){//店铺净需求
+                        var arr_list = [], data_josn = {};
+                        data_josn.item_sku = result[a]['item_sku'];
+                        data_josn.account_id = result[a]['account'];
+                        for (var i = week_start; i <= week_end; i++) { 
+                            var sub_filed = 'custpage_quantity_week' + i;
+                            var x1 = sublist.getSublistValue({ id : sub_filed, line: need1_zl});
+                            var x2 = sublist.getSublistValue({ id : sub_filed, line: need2_zl});
+                            var x3 = sublist.getSublistValue({ id : sub_filed, line: need3_zl});
+                            var x4 = Number(x3)+Number(x2)-x1;
+                            sublist.setSublistValue({ id: sub_filed, value: x4.toString(), line: zl});
+                            arr_list.push({
+                                week: i,
+                                item_quantity: x4
+                            });
+                        }
+                        data_josn.item = arr_list;
+                        data_arr.push(data_josn);
+                        need4_zl = zl;
+                        zl++;
+                    }
                 }
             }
         }
-
-        // result.map(function (d, line) {
-        //     log.debug('result_mp',d + '---'+ line)
-
-        //     sublist.setSublistValue({ id: 'custpage_store_name', value: d.account_text, line: line });   //account_text
-        //     sublist.setSublistValue({ id: 'custpage_item_sku', value: d.item_sku_text, line: line });    //item_sku_text
-        //     sublist.setSublistValue({ id: 'custpage_item_name', value: d.item_name, line: line });
-        //     sublist.setSublistValue({ id: 'custpage_data_type', value: d.data_type_text, line: line });  //data_type_text
-        //     var d_quantity_week = d.quantity_week[0];
-        //     for (var index = 1; index <= 52; index++) {
-        //         var sub_filed = 'custpage_quantity_week' + index;
-        //         sublist.setSublistValue({ id: sub_filed, value: d_quantity_week['quantity_week'+index], line: line });  //data_type_text
-        //     }
-            
-        //     for (var i = 1; i < week_start; i++) {
-        //         week[i].updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
-        //     }
-        //     for (var i = 52; i > week_end; i--) {
-        //         week[i].updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
-        //     }
-        //     for (var i = week_start; i <= week_end; i++) {
-
-        //     }
-        //     // week[week_start].updateDisplayType({displayType:ui.FieldDisplayType.NORMAL});
-        // });
+        return data_arr;
     }
 
     /**

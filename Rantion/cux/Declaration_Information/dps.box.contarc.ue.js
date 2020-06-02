@@ -30,9 +30,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
             var af_rec = context.newRecord;
 
-            var doc_inv_links = af_rec.getValue('custrecord_dps_packing_doc_inv_links');
-
-            log.debug('doc_inv_links', doc_inv_links);
+            var informa_id = af_rec.getValue('custrecord_dps_p_declaration_informa');
 
             var subId = "recmachcustrecord_dps_z_b_l_links";
             var numLine = af_rec.getLineCount({
@@ -73,9 +71,9 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
             log.debug('t_gross_eig: ' + t_gross_eig, 't_net_gross: ' + t_net_gross);
 
-            if (doc_inv_links) {
+            if (informa_id) {
 
-                var d_id = searchDec(doc_inv_links);
+                var d_id = searchDec(informa_id);
                 if (d_id) {
                     // 设置报关单的相关字段
                     var objRecord = record.load({
@@ -109,16 +107,16 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
     /**
      * 搜索同报关发票的报关单
-     * @param {*} invId 
+     * @param {*} informa_id 
      */
-    function searchDec(invId) {
+    function searchDec(informa_id) {
         var decId;
         search.create({
             type: 'customrecord_dps_customs_declaration',
             filters: [{
-                name: 'custrecord_dps_customs_decl_inv_links',
+                name: 'custrecord_dps_cu_decl_infomation_link',
                 operator: 'anyof',
-                values: invId
+                values: informa_id
             }]
         }).run().each(function (rec) {
             decId = rec.id;

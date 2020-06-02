@@ -24,43 +24,44 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             filters : filters,
             columns: [
                 'itemid', 'custitem_dps_ctype', 'custitem_dps_skuchiense', 'custitem_dps_division',
-                'custitem_dps_customs_code', 'custitem_dps_skureferred', 'custitem_dps_declaration_cn',
-                'custitem_dps_declaration_us', 'custitem_dps_high', 'custitem_dps_long',
-                'custitem_dps_wide', 'custitem_dps_weight', 'custitem_dps_mpq', 'custitem_dps_picture',
-                'custitem_dps_factory_inspe', 'custitem_dps_warehouse_check', 'custitem_dps_heavy1',
-                'custitem_dps_unit', 'custitem_dps_group'
+                'vendorname', 'custitem_dps_skuenglish', 'custitem_dps_skureferred',
+                'vendorname', 'custitem_dps_high', 'custitem_dps_long',
+                'custitem_dps_wide', 'custitem_dps_weight', 'custitem_dps_picture',
+                'custitem_dps_factory_inspe', 'custitem_dps_warehouse_check',
+                'custitem_dps_group', 'stockunit', 
+                // 'baseunit'
             ]
         });
         var pageData = mySearch.runPaged({
             pageSize: pageSize
         });
         var totalCount = pageData.count; // 总数
-        var pageCount = pageData.pageRanges.length; // 页数
-        pageData.fetch({
-            index: Number(nowPage - 1)
-        }).data.forEach(function (result) {
-            skus.push({
-                'sku': result.getValue('itemid'),
-                'productType': result.getText('custitem_dps_ctype'),
-                'productTitle': result.getValue('custitem_dps_skuchiense'),
-                'productUnit': result.getValue('custitem_dps_unit'),
-                'group': result.getText('custitem_dps_group'),
-                'division': result.getValue('custitem_dps_division'),
-                'customsCode': result.getValue('custitem_dps_customs_code'),
-                'skuReferred': result.getValue('custitem_dps_skureferred'),
-                'declarationCN': result.getValue('custitem_dps_declaration_cn'),
-                'declarationUS': result.getValue('custitem_dps_declaration_us'),
-                'long': result.getValue('custitem_dps_long'),
-                'wide': result.getValue('custitem_dps_wide'),
-                'high': result.getValue('custitem_dps_high'),
-                'weight': result.getValue('custitem_dps_weight'),
-                'MPQ': result.getValue('custitem_dps_mpq'),
-                'productImageUrl': result.getValue('custitem_dps_picture'),
-                'factoryInspe': result.getText('custitem_dps_factory_inspe'),
-                'warehouseCheck': result.getText('custitem_dps_warehouse_check'),
-                'heavy': result.getText('custitem_dps_heavy1')
+        if (totalCount > 0) {
+            var pageCount = pageData.pageRanges.length; // 页数
+            pageData.fetch({
+                index: Number(nowPage - 1)
+            }).data.forEach(function (result) {
+                skus.push({
+                    'sku': result.getValue('itemid'),
+                    'productType': result.getText('custitem_dps_ctype'),
+                    'productTitle': result.getValue('custitem_dps_skuchiense'),
+                    'productUnit': result.getText('stockunit'),
+                    'group': result.getText('custitem_dps_group'),
+                    'division': result.getText('custitem_dps_division'),
+                    'declarationCN': result.getValue('vendorname'),
+                    'declarationUS': result.getValue('custitem_dps_skuenglish'),
+                    'skureferred': result.getValue('custitem_dps_skureferred'),
+                    'long': result.getValue('custitem_dps_long'),
+                    'wide': result.getValue('custitem_dps_wide'),
+                    'high': result.getValue('custitem_dps_high'),
+                    'weight': result.getValue('custitem_dps_weight'),
+                    // 'baseunit': result.getText('baseunit'),
+                    'productImageUrl': result.getValue('custitem_dps_picture'),
+                    'factoryInspe': result.getText('custitem_dps_factory_inspe'),
+                    'warehouseCheck': result.getText('custitem_dps_warehouse_check')
+                });
             });
-        });
+        }
         retjson.code = 0;
         retjson.data = skus;
         retjson.msg = '查询成功';

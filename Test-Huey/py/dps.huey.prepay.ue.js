@@ -2,43 +2,18 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(['N/log', 'N/record', 'N/ui/serverWidget'], function(log, record, serverWidget) {
+define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function(log, record, serverWidget, search) {
+
+
 
     function beforeLoad(context) {
-        var bf_cur = context.newRecord;
-        var form = context.form;
-
-        //purchaseorder
-        //获取对应采购订单
-        var purchaseorder_id = bf_cur.getValue('purchaseorder');
-        var p_record = record.load({
-            type: 'purchaseorder',
-            id: purchaseorder_id
-        })
-
-        var payment = p_record.getValue('custbody_dps_prepaymentamount');
-
-        var field = form.addField({
-            id: 'custpage_payment_file',
-            label: '预付金额',
-            type: serverWidget.FieldType.TEXT
-        });
-
-        field.defaultValue = payment;
-
-        field.updateDisplayType({
-            displayType: serverWidget.FieldDisplayType.HIDDEN
-        });
 
     }
 
-    function beforeSubmit(context) {
-
-    }
+    function beforeSubmit(context) {}
 
     function afterSubmit(context) {
         var bf_cur = context.newRecord;
-        var form = context.form;
 
         var purchaseorder_id = bf_cur.getValue('purchaseorder');
         //purchaseorder
@@ -48,27 +23,39 @@ define(['N/log', 'N/record', 'N/ui/serverWidget'], function(log, record, serverW
             id: purchaseorder_id
         });
 
-        //获取原预付金额
-        var o_payment = p_record.getValue('custbody_dps_actualprepaidamount');
+        //获取原预付总金额
+        var o_payment = Number(p_record.getValue('custbody_dps_actualprepaidamount'));
 
         //获取现预付金额
-        var n_payment = bf_cur.getValue('payment');
+        var n_payment = Number(bf_cur.getValue('payment'));
 
+        //仅用于修改，原预付金额
+        var o_cur_payment = 0;
+        var new_payment;
         if (context.type == 'delete') {
-            n_payment = 0;
+            new_payment = o_payment - n_payment;
+        } else if (context.type == 'edit') {
+            //获取原预付金额
+            o_cur_payment = Number(context.oldRecord.getValue('payment'));
+            log.error('o_cur_payment', o_cur_payment);
+            log.error('o_payment', o_payment);
+            log.error('n_payment', n_payment);
+            new_payment = o_payment - o_cur_payment + n_payment;
+            log.error('new_payment', new_payment);
+        } else if (context.type == 'create') {
+            new_payment = o_payment + n_payment;
         }
 
-        if (o_payment != n_payment || n_payment == 0) {
-            p_record.setValue({
-                fieldId: 'custbody_dps_actualprepaidamount',
-                value: n_payment,
-            });
-            p_record.save();
-        }
+        p_record.setValue({
+            fieldId: 'custbody_dps_actualprepaidamount',
+            value: new_payment,
+        });
 
+        log.error('n_payment-befor-save', new_payment);
 
-
-
+        p_record.save({
+            ignoreMandatoryFields: true
+        });
     }
 
     return {

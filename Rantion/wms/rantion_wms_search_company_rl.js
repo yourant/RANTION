@@ -27,19 +27,21 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             pageSize: pageSize
         });
         var totalCount = pageData.count; // 总数
-        var pageCount = pageData.pageRanges.length; // 页数
-        pageData.fetch({
-            index: Number(nowPage - 1)
-        }).data.forEach(function (result) {
-            companys.push({
-                'id': result.getValue('internalid'),
-                'name': result.getValue('name'),
-                'city': result.getValue('city'),
-                'state': result.getValue('state'),
-                'country': result.getValue('country'),
-                'currency': result.getValue('currency')
+        if (totalCount > 0) {
+            var pageCount = pageData.pageRanges.length; // 页数
+            pageData.fetch({
+                index: Number(nowPage - 1)
+            }).data.forEach(function (result) {
+                companys.push({
+                    'id': result.getValue('internalid'),
+                    'name': result.getValue('name'),
+                    'city': result.getValue('city'),
+                    'state': result.getValue('state'),
+                    'country': result.getValue('country'),
+                    'currency': result.getValue('currency')
+                });
             });
-        });
+        }
         retjson.code = 0;
         retjson.data = companys;
         retjson.msg = '查询成功';

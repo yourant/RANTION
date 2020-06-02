@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-01 13:51:15
+ * @LastEditTime   : 2020-06-01 15:50:14
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -26,29 +26,31 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
             // throw 'error'
 
+            var type = context.type;
+
             var action_type = context.type;
             log.debug('action_type', action_type);
             // if (action_type == 'view') {
             var form = context.form;
             var bf_cur = context.newRecord;
 
-            var small_status = bf_cur.getValue('custrecord_dps_shipping_rec_status');
-            log.debug('small_status', small_status);
-            if (small_status == 4) {
+            var bigRec_status = bf_cur.getValue('custrecord_dps_shipping_rec_status');
+            log.debug('bigRec_status', bigRec_status);
+            if (type == 'view' && bigRec_status == 4) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '重新获取物流信息',
                     functionName: "reacquireLogistics(" + bf_cur.id + ")"
                 });
             }
-            if (small_status == 11) {
+            if (type == 'view' && bigRec_status == 11) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '重新获取Shipment',
                     functionName: "amazonShipment(" + bf_cur.id + ")"
                 });
             }
-            if (small_status == 8) {
+            if (type == 'view' && bigRec_status == 8) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '重新WMS发运',
@@ -56,7 +58,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 });
             }
             var tracking_number = bf_cur.getValue('custrecord_dps_ship_trackingnumber_dh');
-            if (!tracking_number && small_status == 3)
+            if (!tracking_number && bigRec_status == 3)
                 form.addButton({
                     id: 'custpage_dps_li_traking_button',
                     label: '获取物流跟踪号',
@@ -75,26 +77,28 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var af_rec = context.newRecord;
 
             // 1 未发运， 等待获取物流单号
-            // 3 匹配物流失败， 手动处理
-            // 5 已获取物流单号， 等待发运
-            // 6 获取物流信息失败
-            // 7 已获取物流跟踪单号
-            // 8 WMS已发运
-            // 9 WMS已部分发运
-            // 10 WMS发运失败
-            // 11 未发运， 等待获取Shipment
-            // 12 已获取Shipment号， 等待装箱
-            // 13 申请Shipment失败
-            // 14 WMS已装箱
-            // 15 WMS已部分装箱
+            // 2 匹配物流失败， 手动处理
+            // 3 已获取物流单号， 等待发运
+            // 4 获取物流信息失败
+            // 6 WMS已发运
+            // 7 WMS已部分发运
+            // 8 WMS发运失败
+            // 9 未发运， 等待获取Shipment
+            // 10 已获取Shipment号， 等待装箱
+            // 11 申请Shipment失败
+            // 12 WMS已装箱
+            // 13 WMS已部分装箱
+            // 14 已推送WMS
+
 
             var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status');
 
             log.audit('rec_status', rec_status);
 
-            // 1	自营仓调拨
-            // 2	FBA调拨
-            // 3	跨仓调拨
+            // 1 FBA调拨
+            // 2 自营仓调拨
+            // 3 跨仓调拨
+            // 4 移库
 
             var tranor_type = af_rec.getValue('custrecord_dps_ship_record_tranor_type');
 
@@ -205,10 +209,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                     if (rec_transport == 1) {
                         shippingType = 10;
-                    } else if (rec_transport == 2) {
-                        shippingType = 20;
-                    } else {
+                    } else if (rec_transport == 3) {
                         shippingType = 30;
+                    } else {
+                        shippingType = 20;
                     }
 
 
@@ -248,19 +252,19 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 'custrecord_dps_declare_currency_dh', // 申报币种
 
                                 {
-                                    name: 'custrecord_dps_warehouse_code',
+                                    name: 'custrecord_dps_wms_location',
                                     join: 'custrecord_dps_shipping_rec_location'
                                 }, // 仓库编号
                                 {
-                                    name: 'custrecord_dps_warehouse_name',
+                                    name: 'custrecord_dps_wms_location_name',
                                     join: 'custrecord_dps_shipping_rec_location'
                                 }, // 仓库名称
                                 {
-                                    name: 'custrecord_dps_warehouse_code',
+                                    name: 'custrecord_dps_wms_location',
                                     join: 'custrecord_dps_shipping_rec_to_location'
                                 }, // 目标仓库编号
                                 {
-                                    name: 'custrecord_dps_warehouse_name',
+                                    name: 'custrecord_dps_wms_location_name',
                                     join: 'custrecord_dps_shipping_rec_to_location'
                                 }, // 目标仓库名称
                                 {
@@ -297,13 +301,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             });
                             data["declareCurrency"] = rec.getText('custrecord_dps_declare_currency_dh');
 
-                            data["declarePrice"] = rec.getValue('custrecord_dps_declared_value_dh');
+                            data["declarePrice"] = Number(rec.getValue('custrecord_dps_declared_value_dh'));
+
+                            // data["declarePrice"] = rec.getValue('custrecord_dps_declared_value_dh');
                             data["fbaAccount"] = rec.getText('custrecord_dps_shipping_rec_account');
 
-                            data["countBubbleBase"] = rec.getValue({
+                            data["countBubbleBase"] = Number(rec.getValue({
                                 name: 'custrecord_ls_bubble_count',
                                 join: 'custrecord_dps_shipping_r_channelservice'
-                            });
+                            }));
                             data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
                             data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
                             data["logisticsLabelPath"] = 'logisticsLabelPath';
@@ -316,25 +322,28 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
                             data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
                             data["sourceWarehouseCode"] = rec.getValue({
-                                name: 'custrecord_dps_warehouse_code',
+                                name: 'custrecord_dps_wms_location',
                                 join: 'custrecord_dps_shipping_rec_location'
                             });
                             data["sourceWarehouseName"] = rec.getValue({
-                                name: 'custrecord_dps_warehouse_name',
+                                name: 'custrecord_dps_wms_location_name',
                                 join: 'custrecord_dps_shipping_rec_location'
                             });
 
                             data["targetWarehouseCode"] = rec.getValue({
-                                name: 'custrecord_dps_warehouse_code',
+                                name: 'custrecord_dps_wms_location',
                                 join: 'custrecord_dps_shipping_rec_to_location'
                             });
                             data["targetWarehouseName"] = rec.getValue({
-                                name: 'custrecord_dps_warehouse_code',
+                                name: 'custrecord_dps_wms_location',
                                 join: 'custrecord_dps_shipping_rec_to_location'
                             });
                             data["taxFlag"] = 1;
                             data["tradeCompanyCode"] = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
-                            data["tradeCompanyName"] = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+
+                            var a = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+                            var b = a.split(':');
+                            data["tradeCompanyName"] = b[b.length - 1];
 
                             data["type"] = type;
                             // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
@@ -473,14 +482,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             //     sku(string): SKU,
                             //   }
 
-                            // data["purpose"] = rec.getValue('custrecord_dps_f_b_purpose');
-
                             var it = {
                                 purpose: rec.getValue({
                                     name: 'custrecord_dps_f_b_purpose',
                                     join: 'custrecord_dps_shipping_record_parentrec'
                                 }),
-                                brandName: rec.getValue({
+                                brandName: rec.getText({
                                     name: 'custitem_dps_brand',
                                     join: 'custrecord_dps_shipping_record_item'
                                 }),
@@ -513,25 +520,25 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 }) ? rec.getValue({
                                     name: 'custitem_dps_skuchiense',
                                     join: 'custrecord_dps_shipping_record_item'
-                                }) : productTitle,
-                                productHeight: rec.getValue({
+                                }) : 'productTitle',
+                                productHeight: Number(rec.getValue({
                                     name: 'custitem_dps_high',
                                     join: 'custrecord_dps_shipping_record_item'
-                                }),
+                                })),
 
-                                productLength: rec.getValue({
+                                productLength: Number(rec.getValue({
                                     name: 'custitem_dps_weight',
                                     join: 'custrecord_dps_shipping_record_item'
-                                }),
+                                })),
 
-                                productWeight: rec.getValue({
+                                productWeight: Number(rec.getValue({
                                     name: 'custitem_dps_weight',
                                     join: 'custrecord_dps_shipping_record_item'
-                                }),
-                                productWidth: rec.getValue({
+                                })),
+                                productWidth: Number(rec.getValue({
                                     name: 'custitem_dps_weight',
                                     join: 'custrecord_dps_shipping_record_item'
-                                }),
+                                })),
 
                                 sku: rec.getValue({
                                     name: 'itemid',
@@ -575,7 +582,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         id: af_rec.id,
                         values: {
                             custrecord_dps_shipping_rec_status: flag,
-                            custrecord_dps_shipping_rec_wms_info: message
+                            custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
                         }
                     });
                 }
@@ -613,6 +620,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
          * @param {*} data 
          */
         function sendRequest(token, data) {
+
+            log.debug('sendRequest data', data);
             var message = {};
             var code = 0;
             var retdata;
@@ -627,7 +636,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 body: JSON.stringify(data)
             });
             log.debug('response', JSON.stringify(response));
-            retdata = JSON.stringify(response.body);
+            retdata = JSON.parse(response.body);
             if (response.code == 0) {
                 // 调用成功
                 code = retdata.code;
@@ -719,7 +728,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var itemreceipt_id;
 
             var tranor_type = rec.getValue('custrecord_dps_ship_record_tranor_type');
-            if (objRecord_id && tranor_type == 3) {
+            if (objRecord_id /* && tranor_type == 3 */ ) {
                 itemreceipt_id = itemreceipt(link);
                 log.debug('itemreceipt_id', itemreceipt_id);
             }

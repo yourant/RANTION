@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-29 17:21:38
+ * @LastEditTime   : 2020-05-29 16:34:41
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -12,7 +12,7 @@
  * @NScriptType UserEventScript
  * @NModuleScope SameAccount
  */
-define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (record, search, runtime, moment) {
+define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(record, search, runtime, moment) {
 
     function beforeLoad(scriptContext) {
 
@@ -34,6 +34,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         try {
 
             if (type == 'create' && ui == 'USEREVENT' && price_type) {
+
 
                 var numLines = newRecord.getLineCount({
                     sublistId: 'item'
@@ -216,7 +217,6 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                 }
             }
 
-
             var sings = [];
             for (var m = 0; m < arr2.length; m++) {
                 if (sings.indexOf('true') == -1) {
@@ -245,8 +245,6 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                     }
                 }
             }
-
-
         } catch (error) {
             log.error('设置价格出错了', error);
         }
@@ -356,7 +354,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
             type: 'customrecord_vemdor_price_manage_d',
             filters: filters,
             columns: columns
-        }).run().each(function (result) {
+        }).run().each(function(result) {
             resultArr.push(result);
 
             log.audit('price', result.getValue('custrecord_vmpd_unit_price'));
@@ -436,7 +434,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
             type: 'customrecord_vemdor_price_manage_d',
             filters: filters,
             columns: columns
-        }).run().each(function (result) {
+        }).run().each(function(result) {
             resultArr.push(result);
             ++add;
             // 只取符合条件的第一个价格
@@ -501,7 +499,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                 name: "quantity",
                 summary: "SUM"
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             total = rec.getValue({
                 name: "quantity",
                 summary: "SUM"

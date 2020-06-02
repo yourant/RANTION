@@ -81,7 +81,8 @@ var yanwenApi = {
             if (SuccessResult == "true") {
                 return Result.success({
                     //燕文的单号
-                    Epcode: Node.getElementsByTagName({ tagName: 'Epcode' })[0].textContent
+                    Epcode: Node.getElementsByTagName({ tagName: 'Epcode' })[0].textContent,
+                    YanwenNumber: Node.getElementsByTagName({ tagName: 'YanwenNumber' })[0].YanwenNumber
                 })
             } else {
                 return Result.error(Node.getElementsByTagName({ tagName: 'ReasonMessage' })[0].textContent)
@@ -659,7 +660,7 @@ var YanWenDict = {
         Postcode: { key_ns: "custrecord_dps_recipien_code", help: "收货人-邮编", require: true, getType: "value" },
         State: { key_ns: "custrecord_dps_s_state", help: "收货人-州", require: true, getType: "value" },
         City: { key_ns: "custrecord_dps_recipient_city", help: "收货人-城市", require: true, getType: "value" },
-        Address1: { key_ns: "custrecord_dps_addressee_address", help: "收货人-地址1", require: true, getType: "value" },
+        Address1: { key_ns: "custrecord_dps_street1", help: "收货人-地址1", require: true, getType: "value" },
         Address2: { key_ns: "", help: "收货人-地址2", require: false, getType: "value" },
         NationalId: { key_ns: "", help: "护照ID，税号。（国家为巴西时 此属性必填）", require: false }
     },

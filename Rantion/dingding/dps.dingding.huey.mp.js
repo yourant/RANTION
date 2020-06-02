@@ -9,6 +9,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         // 获取token
         var token = getToken();
         if (token) {
+            //dingtalk
             var url = 'http://47.107.254.110:18082/rantion-user/dingtalkRecord';
 
             var endDate = new Date((new Date).toDateString());
@@ -33,9 +34,10 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 message.data.forEach(function(item, i) {
                     var detail = JSON.parse(item.detail);
                     if (!getProcessinstance(detail)) {
-                        log.error('add-record-fail:', detail.businessId);
+                        //log.error('add-record-fail:', detail.businessId);
+                        log.error('add-record-fail-msg-id:', item.processInstanceId);
                     } else {
-                        log.error('success:', detail.businessId)
+                        log.error('add-record-fail-msg-id:', item.processInstanceId);
                     }
                 });
             }
@@ -82,7 +84,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
 
         if (!go) {
             log.error('had_succee:', business_id)
-            return false;
+            return true;
         }
         //核算主体
         var accounting_entity;

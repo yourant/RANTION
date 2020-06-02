@@ -27,7 +27,7 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
         for (var i = 0; i < item_count; i++) {
 
             var OutDetailCreateRequestDto = {};
-            var itemid = v_record.getSublistValue({
+            var itemid = v_record.getSublistText({
                 sublistId: 'item',
                 fieldId: 'item',
                 line: i
@@ -172,7 +172,7 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
             //获取物流渠道商信息
             var logisticsChannelCode = v_record.getValue('custbody_dps_dhl_po_return');
             if (logisticsChannelCode == '')
-                logisticsChannelCode = '假的';
+                logisticsChannelCode = '货拉拉';
             var logisticsChannelName = logisticsChannelCode;
             var logisticsProviderCode = logisticsChannelCode;
             var logisticsProviderName = logisticsChannelCode;

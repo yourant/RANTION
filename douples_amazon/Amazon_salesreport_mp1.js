@@ -13,8 +13,8 @@
  * @NScriptType MapReduceScript
  * @NModuleScope SameAccount
  */
-define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/search", "N/xml", "./Helper/Moment.min", "N/runtime"],
-    function (require, exports, core, log, record, search, xml, moment, runtime) {
+define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/search", "N/xml", "./Helper/Moment.min", "N/runtime","./Helper/interfunction.min"],
+    function (require, exports, core, log, record, search, xml, moment, runtime,interfun) {
         Object.defineProperty(exports, "__esModule", {
             value: true
         });
@@ -48,7 +48,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                         values: false
                     },
                     {
-                        name: 'custrecord_dps_amazon_report_get',
+                        name: 'custrecord_dps_get_report',
                         operator: 'is',
                         values: true
                     }
@@ -182,7 +182,6 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                         value: report_start_date
                     })
                 }
-
                 log.debug('report_start_date', report_start_date);
 
 
@@ -218,7 +217,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                     nb = moment(postbDate.getTime() + 12 * 60 * 60 * 1000).toDate();
                 } else {
                     log.audit(" orders:" + type_fin)
-                    nb = moment(postbDate.getTime() + 2 * 60 * 60 * 1000).toDate();
+                    nb = moment(postbDate.getTime() + 12 * 60 * 60 * 1000).toDate();
                 }
 
                 ref_2 = moment(nb).toISOString();
@@ -277,7 +276,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                     log.audit('enventlists length', enventlists.length)
                     enventlists.map(function (l) {
                         ctx.write({
-                            key: acc,
+                            key: acc+"."+l.amazon_order_id,
                             value: {
                                 "acc": acc,
                                 "posta": posta,
@@ -349,7 +348,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                     log.error("000v", (vendT - vStartT));
                 })
                 var totalEndT = new Date().getTime();
-                log.error("000T", (totalEndT - totalStartT));
+                log.error("000耗时", (totalEndT - totalStartT));
             } catch (e) {
                 log.error("error:", e)
                 var miss_rec = record.create({
@@ -413,9 +412,9 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                 ship_rec = record.create({
                     type: 'customrecord_amazon_finances_cahce'
                 })
-            ship_rec.setValue({
+            ship_rec.setText({
                 fieldId: 'custrecord_amazon_finances_postedafter',
-                value: moment.utc(l.posted_date).toDate()
+                text:interfun.getFormatedDate("","",l.posted_date).date
             })
             ship_rec.setValue({
                 fieldId: 'custrecord_amazon_ginances_postdate_txt',

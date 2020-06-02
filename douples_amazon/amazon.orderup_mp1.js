@@ -159,8 +159,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
         var customer = obj.customer;
         var line_items = obj.iteminfo;
 
-        log.debug('')
-        log.debug('1', 2);
+
 
         try {
             if (line_items) {
@@ -170,19 +169,19 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
             line_items = '';
             log.error('error', error);
         }
-        var externalid = "aio" + amazon_account_id + ".ss" + o.amazon_order_id;
-        log.debug('2', 1);
+        var externalid = "aio" + amazon_account_id + "." + o.amazon_order_id;
+
         var fulfillment_channel = o.fulfillment_channel;
-        log.debug('1', 3);
+
         var order_type = (o.fulfillment_channel == 'MFN' ? i.salesorder_type : e.fbaorder_type) == '1' ? 'salesorder' : 'cashsale';
         var order_form = o.fulfillment_channel == 'MFN' ? i.salesorder_form : e.fbaorder_form;
-        log.debug('1', 4);
+
         var order_location = o.fulfillment_channel == 'MFN' ? i.salesorder_location : e.fbaorder_location;
         // var order_trandate = p.if_payment_as_tran_date ? moment.utc(o.purchase_date).toDate() : moment.utc(o.purchase_date).toDate();
         var order_trandate = o.purchase_date;
 
 
-        log.debug('1', 1);
+
 
         var error_message = [],
             currency_id;
@@ -768,25 +767,25 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
 
 
             //计算公式
-            log.debug("计算公式:",ord_formula)
+            log.debug("计算公式:", ord_formula)
             var fla = {}
-                var formula_str = ord_formula.split(/[^+-]/g).join("").split("")
-                log.debug("1formula ", formula_str)
-                var formula_name = ord_formula.split(/[{}+-]/g)
-                log.debug("2 formula ", formula_name)
-                var fsn = 0
-                for (var i = 0; i < formula_name.length; i++) {
-                    if (formula_name[i]) {
-                        if (fsn == 0) {
-                            fla[price_conf[formula_name[i]]] = "start"
-                            fsn++
-                        } else {
-                            fla[price_conf[formula_name[i]]] = formula_str[fsn - 1]
-                            fsn++
-                        }
+            var formula_str = ord_formula.split(/[^+-]/g).join("").split("")
+            log.debug("1formula ", formula_str)
+            var formula_name = ord_formula.split(/[{}+-]/g)
+            log.debug("2 formula ", formula_name)
+            var fsn = 0
+            for (var i = 0; i < formula_name.length; i++) {
+                if (formula_name[i]) {
+                    if (fsn == 0) {
+                        fla[price_conf[formula_name[i]]] = "start"
+                        fsn++
+                    } else {
+                        fla[price_conf[formula_name[i]]] = formula_str[fsn - 1]
+                        fsn++
                     }
                 }
-            
+            }
+
             log.debug("2 fla ", fla)
 
             line_items.map(function (line) {

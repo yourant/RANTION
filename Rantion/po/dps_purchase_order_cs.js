@@ -1,13 +1,3 @@
-/*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-05-29 14:33:38
- * @LastEditors    : Li
- * @Description    : 
- * @FilePath       : \Rantion\po\dps_purchase_order_cs.js
- * @可以输入预定的版权声明、个性签名、空行等
- */ 
 /**
  *@NApiVersion 2.x
  *@NScriptType ClientScript

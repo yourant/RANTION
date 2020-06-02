@@ -32,22 +32,24 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             pageSize: pageSize
         });
         var totalCount = pageData.count; // 总数
-        var pageCount = pageData.pageRanges.length; // 页数
-        pageData.fetch({
-            index: Number(nowPage - 1)
-        }).data.forEach(function (result) {
-            sitess.push({
-                'id': result.getValue('internalid'),
-                'name': result.getValue('name'),
-                'region': result.getValue('custrecord_aio_amazon_region'),
-                'website': result.getValue('custrecord_aio_amazon_website'),
-                'endpoint': result.getValue('custrecord_aio_amazon_mws_endpoint'),
-                'marketplace': result.getValue('custrecord_aio_amazon_marketplace'),
-                'marketplace_id': result.getValue('custrecord_aio_amazon_marketplace_id'),
-                'currency': result.getValue('custrecord_aio_amazon_currency'),
-                'timezone': result.getValue('custrecord_aio_amazon_site_timezone')
+        if (totalCount > 0) {
+            var pageCount = pageData.pageRanges.length; // 页数
+            pageData.fetch({
+                index: Number(nowPage - 1)
+            }).data.forEach(function (result) {
+                sitess.push({
+                    'id': result.getValue('internalid'),
+                    'name': result.getValue('name'),
+                    'region': result.getValue('custrecord_aio_amazon_region'),
+                    'website': result.getValue('custrecord_aio_amazon_website'),
+                    'endpoint': result.getValue('custrecord_aio_amazon_mws_endpoint'),
+                    'marketplace': result.getValue('custrecord_aio_amazon_marketplace'),
+                    'marketplace_id': result.getValue('custrecord_aio_amazon_marketplace_id'),
+                    'currency': result.getValue('custrecord_aio_amazon_currency'),
+                    'timezone': result.getValue('custrecord_aio_amazon_site_timezone')
+                });
             });
-        });
+        }
         retjson.code = 0;
         retjson.data = sitess;
         retjson.msg = '查询成功';

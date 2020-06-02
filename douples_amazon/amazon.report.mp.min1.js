@@ -63,14 +63,14 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             name: 'custscript_restriction'
         });
         log.audit("RESTRICTION", restr);
-        // var acc_arry = core.amazon.getReportAccountList();
+        var acc_arry = core.amazon.getReportAccountList();
 
         var startDate, endate;
 
         var sum = 0;
 
-        // core.amazon.getReportAccountList().map(function (account) {
-        core.amazon.getAccountList().map(function (account) {
+        core.amazon.getReportAccountList().map(function (account) {
+        // core.amazon.getAccountList().map(function (account) {
             if (account.id == 5) {
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {

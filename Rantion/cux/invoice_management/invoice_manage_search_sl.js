@@ -18,7 +18,9 @@ define(['N/search', 'N/ui/serverWidget', 'N/format'], function (search, serverWi
         //设置查询参数默认值
         form.updateDefaultValues({
             custpage_po_s: params.custpage_po_s,
-            custpage_vendor_s: params.custpage_vendor_s
+            custpage_vendor_s: params.custpage_vendor_s,
+            custpage_start_date_s: params.custpage_start_date_s,
+            custpage_end_date_s: params.custpage_end_date_s
         });
         if (method == 'GET') {
             try {
@@ -44,7 +46,9 @@ define(['N/search', 'N/ui/serverWidget', 'N/format'], function (search, serverWi
         var pageSize = params.custpage_page_size ? params.custpage_page_size : 20; // 每页数量
         var po_s = params.custpage_po_s; // po
         var vendor_s = params.custpage_vendor_s; // vendor
-        var rsJson = getResult(pageSize, nowPage, po_s, vendor_s); //查询结果
+        var start_date_s = params.custpage_start_date_s;
+        var end_date_s = params.custpage_end_date_s;
+        var rsJson = getResult(pageSize, nowPage, po_s, vendor_s, start_date_s, end_date_s); //查询结果
         var result = rsJson.result;
         var totalCount = rsJson.totalCount;
         var pageCount = rsJson.pageCount;
@@ -61,7 +65,7 @@ define(['N/search', 'N/ui/serverWidget', 'N/format'], function (search, serverWi
      * @param {*} po_s 
      * @param {*} vendor_s 
      */
-    function getResult(pageSize, nowPage, po_s, vendor_s) {
+    function getResult(pageSize, nowPage, po_s, vendor_s, start_date_s, end_date_s) {
         var rsJson = {};
         var skus = [];
         var filters = [];
@@ -71,9 +75,13 @@ define(['N/search', 'N/ui/serverWidget', 'N/format'], function (search, serverWi
         if (vendor_s) {
             filters.push({ name: 'entityid', join: 'vendor', operator: 'anyof', values: vendor_s });
         }
+        if (start_date_s) {
+            filters.push({ name: 'trandate', operator: 'within', values: [start_date_s, end_date_s] });
+        }
         filters.push({ name: 'type', operator: 'anyof', values: ['PurchOrd'] });
         filters.push({ name: 'mainline', operator: 'is', values: ['T'] });
         filters.push({ name: 'taxline', operator: 'is', values: ['F'] });
+        filters.push({ name: 'custbody_dps_invoice_status', operator: 'noneof', values: 3 });
         var poSearch = search.create({
             type: 'purchaseorder',
             filters: filters,
@@ -113,6 +121,8 @@ define(['N/search', 'N/ui/serverWidget', 'N/format'], function (search, serverWi
         form.addFieldGroup({ id: 'custpage_search_group', label: '查询条件' });
         form.addField({ id: 'custpage_po_s', type: serverWidget.FieldType.SELECT, source: 'purchaseorder', label: '采购订单号', container: 'custpage_search_group' });
         form.addField({ id: 'custpage_vendor_s', type: serverWidget.FieldType.SELECT, source: 'vendor', label: '供应商编号', container: 'custpage_search_group' });
+        form.addField({ id: 'custpage_start_date_s', type: serverWidget.FieldType.DATE, label: '采购时间从', container: 'custpage_search_group' });
+        form.addField({ id: 'custpage_end_date_s', type: serverWidget.FieldType.DATE, label: '采购时间至', container: 'custpage_search_group' });
         form.addSubtab({ id: 'custpage_sub_sku_tab', label: '采购订单搜索结果' });
         var sku_sublist = form.addSublist({ id: 'custpage_sku_sublist', type: serverWidget.SublistType.LIST, label: '采购货品明细', tab: 'custpage_sub_sku_tab' });
         sku_sublist.addMarkAllButtons();

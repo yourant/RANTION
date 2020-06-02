@@ -189,7 +189,7 @@ function(search, ui, moment, format, runtime, record) {
         log.debug('today',today);
 
         var filters = [
-            { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["1","16"] },
+            { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["16","1"] },
             { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
         ];
         if (account) {
@@ -343,25 +343,26 @@ function(search, ui, moment, format, runtime, record) {
                     quantity_week52: rs.getValue(rs.columns[56]),
                 });
             });
+        }
 
-            //实际采购订单交货量
-            if(SKUIds.length > 0){
-                var transferorder_arr = [];
-                SKUIds.map(function(line){
-                    var location;
-                    search.create({
-                        type: 'customrecord_aio_account',
-                        filters: [
-                            { name: 'internalId', operator: 'is', values: line.forecast_account },
-                        ],
-                        columns: [
-                            { name: 'custrecord_aio_salesorder_location'}
-                        ]
-                    }).run().each(function (rec) {
-                        location = rec.getValue('custrecord_aio_salesorder_location');
-                    });
-                    log.debug('location',location);
-
+        //实际采购订单交货量
+        if(SKUIds.length > 0){
+            var transferorder_arr = [];
+            SKUIds.map(function(line){
+                var location;
+                search.create({
+                    type: 'customrecord_aio_account',
+                    filters: [
+                        { name: 'internalId', operator: 'is', values: line.forecast_account },
+                    ],
+                    columns: [
+                        { name: 'custrecord_aio_salesorder_location'}
+                    ]
+                }).run().each(function (rec) {
+                    location = rec.getValue('custrecord_aio_salesorder_location');
+                });
+                log.debug('location',location);
+                if(location){
                     search.create({
                         type: 'transferorder',
                         filters: [
@@ -389,76 +390,88 @@ function(search, ui, moment, format, runtime, record) {
                         })
                         return true;
                     });
-                });
-
-                transferorder_arr.push({
-                    item_sku: 9444,
-                    account: 5,
-                    week : 'quantity_week'+20,
-                    quantity_shipped : 20
-                })
-
-                transferorder_arr.push({
-                    item_sku: 9444,
-                    account: 5,
-                    week : 'quantity_week'+20,
-                    quantity_shipped : 10
-                })
-                transferorder_arr.push({
-                    item_sku: 9233,
-                    account: 8,
-                    week : 'quantity_week'+20,
-                    quantity_shipped : 20
-                })
-
-                var need_item_sku = [],new_item_list = [];
-                for (var i = 0; i < transferorder_arr.length; i++) {
-                    if (need_item_sku.indexOf(transferorder_arr[i].item_sku) === -1) {
-                        new_item_list.push({
-                            item_sku: transferorder_arr[i].item_sku,
-                            account: transferorder_arr[i].account,
-                            week : transferorder_arr[i].week,
-                            quantity_shipped : transferorder_arr[i].quantity_shipped
-                        });
-                    } else {
-                        for (var j = 0; j < new_item_list.length; j++) {
-                            if (new_item_list[j].item_sku == transferorder_arr[i].item_sku) {
-                                new_item_list[j].quantity_shipped = Number(transferorder_arr[i].quantity_shipped) + Number(new_item_list[j].quantity_shipped);
-                                break;
-                            }
-                        }
-                    }
-                    need_item_sku.push(transferorder_arr[i].item_sku);
                 }
 
-                for(var i = 0; i < item_data.length; i++){
-                    if(item_data[i]['data_type'] == 16){
-                        var key_text;
-                        var need_num;
-                        for(var property in item_data[i]){
-                            if(new_item_list.length > 0){
-                                for(var a = 0; a < new_item_list.length; a++){
-                                    if(new_item_list[a]['item_sku'] == item_data[i]['item_sku'] && new_item_list[a]['account'] == item_data[i]['account']){
-                                        if(new_item_list[a]['week'] == property){
-                                            key_text = property;
-                                            need_num = item_data[i][property] - new_item_list[a]['quantity_shipped'];
-                                        }
+                item_data.push({
+                    item_sku: line.item_sku,
+                    item_sku_text: line.item_sku_name,
+                    item_name: line.item_name,
+                    account: line.forecast_account,
+                    account_text: line.forecast_account_name,
+                    site: line.forecast_site,
+                    data_type: '2',
+                });
+                
+            });
+
+            transferorder_arr.push({
+                item_sku: 9444,
+                account: 5,
+                week : 'quantity_week'+20,
+                quantity_shipped : 20
+            })
+
+            transferorder_arr.push({
+                item_sku: 9444,
+                account: 5,
+                week : 'quantity_week'+20,
+                quantity_shipped : 10
+            })
+            transferorder_arr.push({
+                item_sku: 9233,
+                account: 8,
+                week : 'quantity_week'+20,
+                quantity_shipped : 20
+            })
+
+            var need_item_sku = [],new_item_list = [];
+            for (var i = 0; i < transferorder_arr.length; i++) {
+                if (need_item_sku.indexOf(transferorder_arr[i].item_sku) === -1) {
+                    new_item_list.push({
+                        item_sku: transferorder_arr[i].item_sku,
+                        account: transferorder_arr[i].account,
+                        week : transferorder_arr[i].week,
+                        quantity_shipped : transferorder_arr[i].quantity_shipped
+                    });
+                } else {
+                    for (var j = 0; j < new_item_list.length; j++) {
+                        if (new_item_list[j].item_sku == transferorder_arr[i].item_sku) {
+                            new_item_list[j].quantity_shipped = Number(transferorder_arr[i].quantity_shipped) + Number(new_item_list[j].quantity_shipped);
+                            break;
+                        }
+                    }
+                }
+                need_item_sku.push(transferorder_arr[i].item_sku);
+            }
+
+            for(var i = 0; i < item_data.length; i++){
+                if(item_data[i]['data_type'] == 16){
+                    var key_text;
+                    var need_num;
+                    for(var property in item_data[i]){
+                        if(new_item_list.length > 0){
+                            for(var a = 0; a < new_item_list.length; a++){
+                                if(new_item_list[a]['item_sku'] == item_data[i]['item_sku'] && new_item_list[a]['account'] == item_data[i]['account']){
+                                    if(new_item_list[a]['week'] == property){
+                                        key_text = property;
+                                        need_num = item_data[i][property] - new_item_list[a]['quantity_shipped'];
                                     }
                                 }
                             }
                         }
+                    }
+                    if(need_num){
                         item_data[i][key_text] = need_num.toString();
                     }
                     
                 }
+                
             }
-            
-    
-
-            rsJson.result = item_data;
-            rsJson.totalCount = totalCount;
-            rsJson.pageCount = pageCount;
         }
+
+        rsJson.result = item_data;
+        rsJson.totalCount = totalCount;
+        rsJson.pageCount = pageCount;
         log.debug('rsJson',rsJson);
         return rsJson;
     }
@@ -537,6 +550,19 @@ function(search, ui, moment, format, runtime, record) {
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 if(result[a]['quantity_week'+index]){
                                     sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  //
+                                }
+                            }
+                            zl++;
+                        }
+
+                        if(result[a]['data_type'] == 2){
+                            sublist.setSublistValue({ id: 'custpage_data_type', value: '建议处理情况', line: zl });
+                            for (var index = 1; index <= 52; index++) { 
+                                var sub_filed = 'custpage_quantity_week' + index;
+                                if(result[a]['quantity_week'+index]){
+                                    sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  //
+                                }else{
+                                    sublist.setSublistValue({ id: sub_filed, value: '0', line: zl}); 
                                 }
                             }
                             zl++;

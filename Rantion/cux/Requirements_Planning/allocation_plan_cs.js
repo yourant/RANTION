@@ -48,29 +48,32 @@ define(['N/currentRecord', 'N/url', 'N/https', 'N/ui/dialog', 'N/format'], funct
         var sublistId = 'custpage_sublist';
         var curr = currentRecord.get();
         var week_date = curr.getValue('custpage_week_date');
-        console.log(week_date + '---------------week_date');
+        console.log(typeof(week_date) + '---------------week_date');
         var date_from = format.parse({ value:curr.getValue('custpage_date_from'), type: format.Type.DATE});
         var week_from = weekofday(date_from);
         console.log(week_from + '---------------week_from');
         var date_to = format.parse({ value:curr.getValue('custpage_date_to'), type: format.Type.DATE});
         var week_to = weekofday(date_to);
         console.log(week_to + '------------------------week_to');
-        
         var item_arr = [];
         for(var i = 0; i < curr.getLineCount({sublistId:sublistId}); i++){
             var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type_id',line:i});
             var quantity = 0;
-            if(data_type == 2){
-                for(var a = week_from; a < week_to + 1; a++){
-                    if(a == week_date){
-                        quantity = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week' + a,line:i});
+            if(data_type == 5){
+                week_date.map(function(line){
+                    for(var a = week_from; a < week_to + 1; a++){
+                        if(a == line){
+                            quantity = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week' + a,line:i});
+                        }
                     }
-                }
-                item_arr.push({
-                    item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
-                    account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
-                    item_quantity: quantity
+                    item_arr.push({
+                        item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
+                        account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
+                        week_date: line,
+                        item_quantity: quantity
+                    })
                 })
+                
             }
         }
         console.log(item_arr);
@@ -91,6 +94,7 @@ define(['N/currentRecord', 'N/url', 'N/https', 'N/ui/dialog', 'N/format'], funct
                 }
                 var body = {
                     items : item_arr,
+                    week : week_date
                 }
         
                 var response = https.post({

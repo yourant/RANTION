@@ -44,8 +44,9 @@ var jetstarApi = {
                 return Result.error('未知异常或系统繁忙')
             }
 
+        } else {
+            return Result.error('生成请求数据失败：' + result.msg)
         }
-        return result;
     },
     //取消订单
     Void: function (shipment_id, client_reference) {
@@ -330,6 +331,9 @@ var jetstarApi = {
                             //货品详情取值
                             if (secondKey == "declarations") {
                                 var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: subItemKey, line: subLine })
+                                if (!itemId) {
+                                    return Result.error("获取参数失败，原因：第" + (subLine + 1) + "行货品未填写")
+                                }
                                 var columns = new Array()
                                 for (var thirdKey in secondInfo) {
                                     var thirdInfo = secondInfo[thirdKey]
@@ -466,7 +470,7 @@ var JetStarSmallDict = {
         company: { key_ns: "", require: false, getType: "value" },
         tel: { key_ns: "custrecord_dps_ship_small_phone", help: "收件人联系方式，必填", require: true, getType: "value" },
         mobile: { key_ns: "", help: "", require: false, getType: "value" },
-        address_1: { key_ns: "custrecord_dps_addressee_address", help: "收件人地址，必填", require: true, getType: "value" },
+        address_1: { key_ns: "custrecord_dps_street1", help: "收件人地址，必填", require: true, getType: "value" },
         address_2: { key_ns: "", help: "", require: false, getType: "value" },
         address_3: { key_ns: "", help: "", require: false, getType: "value" },
         city: { key_ns: "custrecord_dps_recipient_city", help: "收件人城市，必填", require: true, getType: "text" },
@@ -505,7 +509,7 @@ var JetStarSmallDict = {
             name_en: { key_ns: "custitem_dps_skuenglish", help: "英文名称，必填", require: true, getType: "value" },
             unit_value: { key_ns: "cost", help: "申报单价", require: true, getType: "value" },
             qty: { key_ns: "", help: "申报数量", require: false, getType: "value" },
-            material: { key_ns: "custitem_dps_material", help: "材质", require: false, getType: "value" },
+            material: { key_ns: "custitem_dps_nature", help: "材质", require: false, getType: "value" },
             usage: { key_ns: "custitem_dps_use", help: "用途", require: false, getType: "value" },
             brand: { key_ns: "custitem_dps_brand", help: "品牌名称", require: false, getType: "value" },
             model: { key_ns: "", help: "型号", require: false, getType: "value" },
@@ -538,7 +542,7 @@ var JetStarBigDict = {
         company: { key_ns: "", require: false, getType: "value" },
         tel: { key_ns: "custrecord_dps_contact_phone", help: "收件人联系方式，必填", require: true, getType: "value" },
         mobile: { key_ns: "", help: "", require: false, getType: "value" },
-        address_1: { key_ns: "custrecord_dps_addressee_address_dh", help: "收件人地址，必填", require: true, getType: "value" },
+        address_1: { key_ns: "custrecord_dps_street1_dh", help: "收件人地址，必填", require: true, getType: "value" },
         address_2: { key_ns: "", help: "", require: false, getType: "value" },
         address_3: { key_ns: "", help: "", require: false, getType: "value" },
         city: { key_ns: "custrecord_dps_recipient_city_dh", help: "收件人城市，必填", require: true, getType: "text" },
@@ -577,7 +581,7 @@ var JetStarBigDict = {
             name_en: { key_ns: "custitem_dps_skuenglish", help: "英文名称，必填", require: true, getType: "value" },
             unit_value: { key_ns: "cost", help: "申报单价", require: true, getType: "value" },
             qty: { key_ns: "", help: "申报数量", require: false, getType: "value" },
-            material: { key_ns: "custitem_dps_material", help: "材质", require: false, getType: "value" },
+            material: { key_ns: "custitem_dps_nature", help: "材质", require: false, getType: "value" },
             usage: { key_ns: "custitem_dps_use", help: "用途", require: false, getType: "value" },
             brand: { key_ns: "custitem_dps_brand", help: "品牌名称", require: false, getType: "value" },
             model: { key_ns: "", help: "型号", require: false, getType: "value" },

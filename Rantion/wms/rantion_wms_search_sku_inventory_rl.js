@@ -8,87 +8,140 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
         
     }
 
+    // params：{
+    //     warehouseCode ：String //仓库编号 必传
+    //     sku ：String //可选
+    //     positionCode ：String //库位编号 可选
+    //     barcode : String //箱号 可选
+    // }
+    // result：{
+    //     warehouseCode ：String //仓库编号
+    //     warehouseName ：String //仓库名称
+    //     sku ：String
+    //     type ：String //类型 1:箱内 2:箱外
+    //     barcode ：String //条码 箱号/SKU （类型为1时，条码是箱号，为2是，条码是SKU）
+    //     positionCode ：String //库位编号
+    //     qty ：String //数量
+    // }
     function _post(context) {
         var retjson = {};
         var nowPage = Number(context.page ? context.page : 1); // 查询页
         var pageSize = Number(context.pageSize ? context.pageSize : 100); // 每页数量
+        var warehouseCode = context.warehouseCode;
         var sku = context.sku;
+        var positionCode = context.positionCode;
+        var barcode = context.barcode;
 
-        if (!sku) {
-            retjson.code = 1;
-            retjson.data = [];
-            retjson.msg = '缺少SKU参数';
-            retjson.totalCount = 0;
-            retjson.pageCount = 0;
-            retjson.nowPage = 1;
-            retjson.pageSize = 1;
-            return JSON.stringify(retjson);
+        var filters = [];
+        if (warehouseCode) {
+            filters.push({ name: 'custrecord_dps_warehouse_code', operator: 'is', values: warehouseCode });
         }
-
-        var locations = {};
-        var locationids = [];
-        var mySearch = search.create({
-            type: 'inventoryitem',
-            filters: [
-                { name: 'type', operator: 'anyof', values: ['InvtPart'] },
-                { name: 'custrecord_wms_location_type', join: 'inventorylocation', operator: 'anyof', values: ['2','3'] },
-                { name: 'name', operator: 'is', values: sku }
-            ],
-            columns: [
-                'itemid', 'custitem_dps_ctype', 'custitem_dps_skuchiense','locationquantityonhand', 
-                'locationquantitycommitted', 'locationquantityavailable', 'custitem_dps_picture',
-                { name: 'custrecord_dps_wms_location', join: 'inventorylocation' }, 
-                { name: 'custrecord_dps_wms_location_name', join: 'inventorylocation' }
+        if (positionCode) {
+            filters.push({ name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode });
+        }
+        if (barcode) {
+            filters.push({ name: 'custrecord_dps_wms_location', operator: 'is', values: barcode });
+            filters.push({ name: 'custrecord_wms_location_type', operator: 'anyof', values: [ '3' ] });
+        } else {
+            filters.push({ name: 'custrecord_wms_location_type', operator: 'anyof', values: [ '2', '3' ] });
+        }
+        filters.push({ name: 'isinactive', operator: 'is', values: 'F' });
+        var ids = [];
+        var locapare = {};
+        var locaware = {};
+        search.create({
+            type: 'location',
+            filters: filters,
+            columns : [ 
+                'internalid', 'custrecord_wms_location_type', 'custrecord_dps_wms_location',
+                'custrecord_dps_warehouse_code', 'custrecord_dps_warehouse_name',
+                { name: 'custrecord_wms_location_type', join: 'custrecord_dps_parent_location' },
+                { name: 'custrecord_dps_wms_location', join: 'custrecord_dps_parent_location' }
             ]
-        });
-        var pageData = mySearch.runPaged({
-            pageSize: pageSize
-        });
-        var totalCount = pageData.count; // 总数
-        var pageCount = pageData.pageRanges.length; // 页数
-        pageData.fetch({
-            index: Number(nowPage - 1)
-        }).data.forEach(function (result) {
-            var key = result.getValue({ name: 'custrecord_dps_wms_location', join: 'inventorylocation' });
-            var numonhand = Number(result.getValue('locationquantityonhand'));
-            var numcommitted = Number(result.getValue('locationquantitycommitted'));
-            var numavailable = Number(result.getValue('locationquantityavailable'));
-            var location = locations[key];
-            if (location) {
-                location.numonhand = location.numonhand + numonhand;
-                location.numcommitted = location.numcommitted + numcommitted;
-                location.numavailable = location.numavailable + numavailable;
-            } else {
-                var json = {};
-                json.item = result.getValue('itemid');
-                json.item_type = result.getValue('custitem_dps_ctype');
-                json.item_name = result.getValue('custitem_dcustitem_dps_skuchienseps_ctype');
-                json.item_picture = result.getValue('custitem_dps_picture');
-                json.code = result.getValue({ name: 'custrecord_dps_wms_location', join: 'inventorylocation' });
-                json.name = result.getValue({ name: 'custrecord_dps_wms_location_name', join: 'inventorylocation' });
-                json.numonhand = numonhand;
-                json.numcommitted = numcommitted;
-                json.numavailable = numavailable;
-                locations[key] = json;
-                locationids.push(key);
-            }
+        }).run().each(function(result) {
+            var id = result.getValue('internalid');
+            ids.push(id);
+            var code = result.getValue('custrecord_dps_wms_location');
+            var type = result.getValue('custrecord_wms_location_type');
+            var key = type + '_' + code;
+            var json = {};
+            json.wareCode = result.getValue('custrecord_dps_warehouse_code');
+            json.wareName = result.getValue('custrecord_dps_warehouse_name');
+            locaware[code] = json;
+            locapare[key] = result.getValue({ name: 'custrecord_dps_wms_location', join: 'custrecord_dps_parent_location' });
             return true;
         });
+
+        var filters = [];
         var skus = [];
-        for (var index = 0; index < locationids.length; index++) {
-            var json = {};
-            var j = locations[locationids[index]];
-            json.item = j.item;
-            json.item_type = j.item_type;
-            json.item_name = j.item_name;
-            json.item_picture = j.item_picture;
-            json.code = j.code;
-            json.name = j.name;
-            json.quantity_onhand = j.numonhand;
-            json.quantity_committed = j.numcommitted;
-            json.quantity_available = j.numavailable;
-            skus.push(json);
+        if (ids.length > 0) {
+            filters.push({ name: 'internalid', join: 'inventorylocation', operator: 'anyof', values: ids });
+            if (sku) {
+                filters.push({ name: 'itemid', operator: 'is', values: sku });
+            }
+            filters.push({ name: 'locationquantityonhand', operator: 'greaterthanorequalto', values: ['0'] });
+            var mySearch = search.create({
+                type: 'inventoryitem',
+                filters: filters,
+                columns : [ 
+                    'itemid', 'locationquantityonhand',
+                    { name: 'custrecord_wms_location_type', join: 'inventorylocation' },
+                    { name: 'custrecord_dps_wms_location', join: 'inventorylocation' }
+                ]
+            });
+            var pageData = mySearch.runPaged({
+                pageSize: pageSize
+            });
+            var totalCount = pageData.count; // 总数
+            var pageCount = pageData.pageRanges.length; // 页数
+            if (totalCount > 0) {
+                var skups = {};
+                var skupids = [];
+                pageData.fetch({
+                    index: Number(nowPage - 1)
+                }).data.forEach(function (result) {
+                    var locationtype = result.getValue({ name: 'custrecord_wms_location_type', join: 'inventorylocation' });
+                    var code = result.getValue({ name: 'custrecord_dps_wms_location', join: 'inventorylocation' });
+                    var wareCode = locaware[code].wareCode;
+                    var wareName = locaware[code].wareName;
+                    var sku = result.getValue('itemid');
+                    var type = locationtype == 2 ? 2 : 1;
+                    var barcode = type == 1 ? code : sku;
+                    var keyyy = '3_' + code;
+                    var positionCode = locationtype == 2 ? code : locapare[keyyy];
+                    var qty = Number(result.getValue('locationquantityonhand'));
+                    var key = sku + '_' + code;
+                    var skuobj = skups[key];
+                    if (skuobj) {
+                        skuobj.qty = skuobj.qty + qty;
+                    } else {
+                        var json = {};
+                        json.wareCode = wareCode;
+                        json.wareName = wareName;
+                        json.sku = sku;
+                        json.type = type;
+                        json.barcode = barcode;
+                        json.positionCode = positionCode;
+                        json.qty = qty;
+                        skups[key] = json;
+                        skupids.push(key);
+                    }
+                    return true;
+                });
+                for (var index = 0; index < skupids.length; index++) {
+                    skus.push({
+                        'warehouseCode': skups[skupids[index]].wareCode,
+                        'warehouseName': skups[skupids[index]].wareName,
+                        'sku': skups[skupids[index]].sku,
+                        'type': skups[skupids[index]].type,
+                        'barcode': skups[skupids[index]].barcode,
+                        'positionCode': skups[skupids[index]].positionCode,
+                        'qty': Number(skups[skupids[index]].qty)
+                    });
+                }
+            }
         }
+        
         retjson.code = 0;
         retjson.data = skus;
         retjson.msg = '查询成功';

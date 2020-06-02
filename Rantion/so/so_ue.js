@@ -136,11 +136,11 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                             { name: 'custrecord_dps_cu_decl_infomation_link', join: 'custrecord_dps_customs_decla_item_link', operator: 'anyof', values: informa_id }
                         ],
                         columns: [
-                            'custrecord_dps_customs_declara_item_num', 'custrecord_dps_customs_decl_item_qty', 'custrecord_dps_custom_decl_item_un_price'
+                            'custrecord_dps_customs_decl_item', 'custrecord_dps_customs_decl_item_qty', 'custrecord_dps_custom_decl_item_un_price'
                         ]
                     }).run().each(function(result) {
                         SKUs.push({
-                            'item': result.getValue('custrecord_dps_customs_declara_item_num'),
+                            'item': result.getValue('custrecord_dps_customs_decl_item'),
                             'qty': result.getValue('custrecord_dps_customs_decl_item_qty'),
                             'price': result.getValue('custrecord_dps_custom_decl_item_un_price')
                         });

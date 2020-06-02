@@ -6,9 +6,24 @@ define(["N/search", "N/record", "N/http", '../Helper/logistics_cost_calculation.
 function (search, record, http, costCal, loactionPre) {
 
     function onRequest(context) {
-        var id = '77299';
-        var idid = '1631';
-        createLogisticsStrategy(id, idid);
+        var soid = '103096';
+        var idid = '2732';
+        createLogisticsStrategy(soid, idid);
+
+        // var locationid;
+        // var positionCode = 'AAAD6610101';
+        // search.create({
+        //     type: 'location',
+        //     filters: [
+        //         { name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode },
+        //         { name: 'subsidiary', operator: 'is', values: '5' }
+        //     ],
+        //     columns : [ 'internalid' ]
+        // }).run().each(function(result) {
+        //     locationid = result.getValue('internalid');
+        //     return false;
+        // });
+        // log.debug('ss', locationid);
 
 
         // var resultJSON = {};

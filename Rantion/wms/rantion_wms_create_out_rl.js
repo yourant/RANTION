@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-01 13:43:30
+ * @LastEditTime   : 2020-06-01 12:00:16
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -291,7 +291,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             var flag;
 
             log.debug('message.data.code', message.data.code);
-            if (message.data.code != 0 || message.data.code != 8) {
+            if (message.data.code != 0) {
                 flag = 8;
             } else {
                 flag = 14;

@@ -11,9 +11,10 @@ var endiciaDomain = "http://elstestserver2.endicia.com"
 var endiciaApi = {
     http: undefined,
     xml: undefined,
-    init: function (http, xml) {
+    init: function (http, xml, search) {
         this.xml = xml
         this.http = http
+        this.search = search
     },
     url: {
         label: endiciaDomain + '/LabelService/EwsLabelService.asmx',//创建标签
@@ -142,7 +143,7 @@ var endiciaApi = {
 
     },
     //创建标签
-    GetPostageLabel: function (option) {
+    GetPostageLabel: function (rec) {
         var reqParamXml = this.CreateHeader()
         var bodyNode = reqParamXml.getElementsByTagName({ tagName: 'soap:Body' })[0]
         var GetPostageLabelNode = reqParamXml.createElement("GetPostageLabel")
@@ -152,59 +153,116 @@ var endiciaApi = {
         });
         bodyNode.appendChild(GetPostageLabelNode)
         var requestBodyNode = reqParamXml.createElement("LabelRequest")
-        var hasOption = false
+        requestBodyNode.setAttribute({
+            name: 'xmlns',
+            value: 'www.envmgr.com/LabelService'
+        });
         var requesterNode = reqParamXml.createElement('RequesterID'), requesterValue = reqParamXml.createTextNode(requesterID)
         requesterNode.appendChild(requesterValue)
         requestBodyNode.appendChild({
             newChild: requesterNode
         })
+        requesterNode.setAttribute({
+            name: 'xmlns',
+            value: 'www.envmgr.com/LabelService'
+        });
         var accountIdNode = reqParamXml.createElement('AccountID'), accountIdValue = reqParamXml.createTextNode(username)
         accountIdNode.appendChild(accountIdValue)
         requestBodyNode.appendChild({
             newChild: accountIdNode
         })
+        accountIdNode.setAttribute({
+            name: 'xmlns',
+            value: 'www.envmgr.com/LabelService'
+        });
         var passPhraseNode = reqParamXml.createElement('PassPhrase'), passPhraseValue = reqParamXml.createTextNode(password)
         passPhraseNode.appendChild(passPhraseValue)
         requestBodyNode.appendChild({
             newChild: passPhraseNode
         })
+        passPhraseNode.setAttribute({
+            name: 'xmlns',
+            value: 'www.envmgr.com/LabelService'
+        });
+        var MailClassNode = reqParamXml.createElement('MailClass'), MailClassValue = reqParamXml.createTextNode("Priority")
+        MailClassNode.appendChild(MailClassValue)
+        requestBodyNode.appendChild({
+            newChild: MailClassNode
+        })
+        MailClassNode.setAttribute({
+            name: 'xmlns',
+            value: 'www.envmgr.com/LabelService'
+        });
+        var WeightOzNode = reqParamXml.createElement('WeightOz'), WeightOzValue = reqParamXml.createTextNode(String(this.caculateWeight(rec)))
+        WeightOzNode.appendChild(WeightOzValue)
+        requestBodyNode.appendChild({
+            newChild: WeightOzNode
+        })
+        WeightOzNode.setAttribute({
+            name: 'xmlns',
+            value: 'www.envmgr.com/LabelService'
+        });
         //遍历字典 获取请求参数中的数据 并生成相应的xml数据
         for (var key in endiciaLabelDict) {
-            if (option && option[key]) {
-                hasOption = true
-                var newNode = reqParamXml.createElement(key)
-                var nodeValue = reqParamXml.createTextNode(option[key])
-                newNode.appendChild(nodeValue)
-                requestBodyNode.appendChild({
-                    newChild: newNode
-                })
+            var dict = endiciaLabelDict[key]
+            var key_ns = dict.key_ns
+            if (key_ns) {
+                var value = this.getRecValue(rec, dict, key);
+                if (value) {
+                    var newNode = reqParamXml.createElement(key)
+                    newNode.setAttribute({
+                        name: 'xmlns',
+                        value: 'www.envmgr.com/LabelService'
+                    });
+                    var nodeValue = reqParamXml.createTextNode(value)
+                    newNode.appendChild(nodeValue)
+                    requestBodyNode.appendChild({
+                        newChild: newNode
+                    })
+                }
             }
         }
         GetPostageLabelNode.appendChild(requestBodyNode)
         //测试用例
         // hasOption = true
-        if (hasOption) {
-            var xmlString = this.xml.Parser.toString({
-                document: reqParamXml
+        var xmlString = this.xml.Parser.toString({
+            document: reqParamXml
+        })
+        log.audit('xmlString', xmlString);
+        //测试用例
+        // xmlString = '<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><GetPostageLabel xmlns="www.envmgr.com/LabelService"><LabelRequest><MailClass>Priority</MailClass><WeightOz>16</WeightOz><RequesterID>lxxx</RequesterID><AccountID>2553512</AccountID><PassPhrase>TheSkyeIsGreene11</PassPhrase><PartnerCustomerID>100</PartnerCustomerID><PartnerTransactionID>200</PartnerTransactionID><ToName>Jane Doe</ToName><ToAddress1>278 Castro Street</ToAddress1><ToCity>Mountain View</ToCity><ToState>CA</ToState><ToPostalCode>94041</ToPostalCode><FromCompany>Endicia, Inc.</FromCompany><FromName>John Doe</FromName><ReturnAddress1>1990 Grand Ave</ReturnAddress1><FromCity>El Segundo</FromCity><FromState>CA</FromState><FromPostalCode>90245</FromPostalCode></LabelRequest></GetPostageLabel></soap:Body></soap:Envelope>'
+        var response = this.POST(endiciaApi.url.label, xmlString, 'www.envmgr.com/LabelService/GetPostageLabel')
+        if (response.code == 200) {
+            log.audit('response.body', response.body);
+            var result = this.xml.Parser.fromString({
+                text: response.body
             })
-            //测试用例
-            // xmlString = '<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><GetPostageLabel xmlns="www.envmgr.com/LabelService"><LabelRequest><MailClass>Priority</MailClass><WeightOz>16</WeightOz><RequesterID>lxxx</RequesterID><AccountID>2553512</AccountID><PassPhrase>TheSkyeIsGreene11</PassPhrase><PartnerCustomerID>100</PartnerCustomerID><PartnerTransactionID>200</PartnerTransactionID><ToName>Jane Doe</ToName><ToAddress1>278 Castro Street</ToAddress1><ToCity>Mountain View</ToCity><ToState>CA</ToState><ToPostalCode>94041</ToPostalCode><FromCompany>Endicia, Inc.</FromCompany><FromName>John Doe</FromName><ReturnAddress1>1990 Grand Ave</ReturnAddress1><FromCity>El Segundo</FromCity><FromState>CA</FromState><FromPostalCode>90245</FromPostalCode></LabelRequest></GetPostageLabel></soap:Body></soap:Envelope>'
-            var response = this.POST(endiciaApi.url.label, xmlString, 'www.envmgr.com/LabelService/GetPostageLabel')
-            if (response.code == 200) {
-                var result = this.xml.Parser.fromString({
-                    text: response.body
-                })
-                if (result.getElementsByTagName({ tagName: 'Base64LabelImage' }).length > 0) {
-                    return Result.success(result.getElementsByTagName({ tagName: 'Base64LabelImage' })[0].textContent)
-                } else {
-                    return Result.error("无法获取图片资源")
+            if (result.getElementsByTagName({ tagName: 'Status' }).length > 0) {
+                var Status = result.getElementsByTagName({ tagName: 'Status' })[0].textContent
+                if (errorCode[Status]) {
+                    var ErrorMessage = errorCode[Status].info
+                    if (result.getElementsByTagName({ tagName: 'Status' }).length > 0) {
+                        ErrorMessage = result.getElementsByTagName({ tagName: 'ErrorMessage' })[0].textContent
+                    }
+                    return Result.error(errorCode[Status].title + ": " + ErrorMessage)
                 }
+                var resultData = {}
+                if (result.getElementsByTagName({ tagName: 'Base64LabelImage' }).length > 0) {
+                    resultData.Base64LabelImage = result.getElementsByTagName({ tagName: 'Base64LabelImage' })[0].textContent
+                }
+                if (result.getElementsByTagName({ tagName: 'PIC' }).length > 0) {
+                    resultData.PIC = result.getElementsByTagName({ tagName: 'PIC' })[0].textContent
+                }
+                if (result.getElementsByTagName({ tagName: 'TrackingNumber' }).length > 0) {
+                    resultData.TrackingNumber = result.getElementsByTagName({ tagName: 'TrackingNumber' })[0].textContent
+                }
+                return Result.success(resultData)
             } else {
-                log.audit('response', response);
-                return Result.error("请求失败，未知异常")
+                return Result.error("无法解析返回结果")
             }
         } else {
-            return Result.error('请传入参数')
+            log.audit('response', response);
+            return Result.error("请求失败，未知异常")
         }
     },
     /**
@@ -360,6 +418,81 @@ var endiciaApi = {
         });
         return res
     },
+    getRecValue: function (rec, dict, key) {
+        var key_ns = dict.key_ns
+        var value = ""
+        //获取对应NS系统中的记录的值
+        if (key_ns) {
+            if (key == 'ToCity' || key == 'ToState') {
+                value = rec.getText(key_ns)
+            } else {
+                value = rec.getValue(key_ns)
+            }
+            if (value && dict.parseType) {
+                this.search.create({
+                    type: dict.parseType,
+                    filters: [
+                        { name: 'internalId', operator: 'is', values: value },
+                    ],
+                    columns: [
+                        { name: dict.parseId }
+                    ]
+                }).run().each(function (parseRec) {
+                    if (key == 'FromCity') {
+                        value = parseRec.getText(dict.parseId)
+                    }
+                    else {
+                        value = parseRec.getValue(dict.parseId)
+                    }
+                    return true;
+                });
+                if (key == 'FromCompany') {
+                    this.search.create({
+                        type: 'customrecord_country_code',
+                        filters: [
+                            { name: 'internalId', operator: 'is', values: value },
+                        ],
+                        columns: [
+                            { name: 'custrecord_cc_country_code' }
+                        ]
+                    }).run().each(function (parseRec) {
+                        value = parseRec.getValue('custrecord_cc_country_code')
+                        return true;
+                    });
+                }
+            }
+        }
+        return value
+    },
+    caculateWeight: function (rec) {
+        var subKey = "recmachcustrecord_dps_ship_small_links"
+        var line = rec.getLineCount({ sublistId: subKey })
+        var itemIdArray = new Array()
+        var itemNum = {}
+        for (var i = 0; i < line; i++) {
+            var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_item', line: i })
+            itemIdArray.push(itemId)
+            //数量获取
+            itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_shipment_item_quantity', line: i })
+        }
+        var allWeight = 0
+        if (itemIdArray.length > 0) {
+            this.search.create({
+                type: 'item',
+                filters: [
+                    { name: 'internalId', operator: 'anyof', values: itemIdArray },
+                ],
+                columns: [{ name: 'custitem_dps_heavy2' }]
+            }).run().each(function (skurec) {
+                var weight = skurec.getValue("custitem_dps_heavy2")
+                var num = itemNum[skurec.id]
+                if (num) allWeight += Number(weight) * Number(num)
+                return true;
+            });
+        }
+        log.audit('allweight', allWeight);
+        return allWeight
+    },
     POST: function (url, reqParam, action) {
         return this.http.post({
             url: url,
@@ -382,21 +515,21 @@ var endiciaApi = {
 }
 
 var endiciaLabelDict = {
-    MailClass: { help: '计算所有适用的指定邮件类别（国内或国际）的费率。', valueType: 'PriorityExpress,First,LibraryMail,MediaMail,ParcelSelect,RetailGround,Priority,PriorityMailExpressInternational,FirstClassMailInternational,FirstClassPackageInternationalService,PriorityMailInternational' },
-    WeightOz: { help: '包装重量，以盎司为单位。', valueType: '重量' },
-    PartnerCustomerID: { help: '', valueType: '' },
-    PartnerTransactionID: { help: '', valueType: '' },
-    ToName: { help: '优先邮件快递和国际邮件的收件人名称：ToName或ToCompany必须包含一个值。', valueType: '字符串（47个字符）' },
-    ToAddress1: { help: '收件人的第一个收货地址行', valueType: '字符串（47个字符）' },
-    ToCity: { help: '收件人所在的城市对于国内邮件，允许的字符为：AZ az连字符句号空间', valueType: '字符串（50个字符）' },
-    ToState: { help: '收件人所在的州或省。如果ValidateAddress是FALSE国内邮件，则此元素必须包含有效的2个字符的状态码。国内邮件是必需的，国际邮件是可选的。', valueType: '字符串（2或25个字符）' },
-    ToPostalCode: { help: '收件人的邮政编码。', valueType: '字符串 (5个或15个字符）' },
-    FromCompany: { help: '发件人所在的国家。对于美国地址，此值应留空。', valueType: '字符串（50个字符）' },
-    FromName: { help: '发件人姓名。FromName或FromCompany必须包含一个值。对于海关表格，此元素必须至少包含两个词。', valueType: '字符串（47个字符）' },
-    ReturnAddress1: { help: '发件人的第一个收货地址行', valueType: '字符串（47个字符）' },
-    FromCity: { help: '发件人所在城市允许的字符：AZ，az，连字符，句号，空格', valueType: '字符串（50个字符）' },
-    FromState: { help: '发件人所在的州或省。如果ValidateAddress为FALSE，则此元素必须包含有效的两个字符的状态代码。', valueType: '字符串（25个字符）' },
-    FromPostalCode: { help: '发件人的邮政编码。格式仅是ZIP5或美国地址的ZIP + 4。', valueType: '字符串（10个字符' },
+    // MailClass: { key_ns: '', help: '计算所有适用的指定邮件类别（国内或国际）的费率。', valueType: 'PriorityExpress,First,LibraryMail,MediaMail,ParcelSelect,RetailGround,Priority,PriorityMailExpressInternational,FirstClassMailInternational,FirstClassPackageInternationalService,PriorityMailInternational' },
+    WeightOz: { key_ns: '', help: '包装重量，以盎司为单位。', valueType: '重量' },
+    PartnerCustomerID: { key_ns: 'custrecord_dps_ship_platform_order_numbe', help: '', valueType: '' },
+    PartnerTransactionID: { key_ns: 'custrecord_dps_ship_platform_order_numbe', help: '', valueType: '' },
+    ToName: { key_ns: 'custrecord_dps_ship_small_recipient', help: '优先邮件快递和国际邮件的收件人名称：ToName或ToCompany必须包含一个值。', valueType: '字符串（47个字符）' },
+    ToAddress1: { key_ns: 'custrecord_dps_street1', help: '收件人的第一个收货地址行', valueType: '字符串（47个字符）' },
+    ToCity: { key_ns: 'custrecord_dps_recipient_city', help: '收件人所在的城市对于国内邮件，允许的字符为：AZ az连字符句号空间', valueType: '字符串（50个字符）' },
+    ToState: { key_ns: 'custrecord_dps_s_state', help: '收件人所在的州或省。如果ValidateAddress是FALSE国内邮件，则此元素必须包含有效的2个字符的状态码。国内邮件是必需的，国际邮件是可选的。', valueType: '字符串（2或25个字符）' },
+    ToPostalCode: { key_ns: 'custrecord_dps_recipien_code', help: '收件人的邮政编码。', valueType: '字符串 (5个或15个字符）' },
+    FromCompany: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人所在的国家。对于美国地址，此值应留空。', valueType: '字符串（50个字符）', parseType: 'location', parseId: 'custrecord_aio_country_sender' },
+    FromName: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人姓名。FromName或FromCompany必须包含一个值。对于海关表格，此元素必须至少包含两个词。', valueType: '字符串（47个字符）', parseType: 'location', parseId: 'custrecord_aio_sender_name' },
+    ReturnAddress1: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人的第一个收货地址行', valueType: '字符串（47个字符）', parseType: 'location', parseId: 'custrecord_aio_sender_address' },
+    FromCity: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人所在城市允许的字符：AZ，az，连字符，句号，空格', valueType: '字符串（50个字符）', parseType: 'location', parseId: 'custrecord_aio_sender_city' },
+    FromState: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人所在的州或省。如果ValidateAddress为FALSE，则此元素必须包含有效的两个字符的状态代码。', valueType: '字符串（25个字符）', parseType: 'location', parseId: 'custrecord_aio_sender_state' },
+    FromPostalCode: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人的邮政编码。格式仅是ZIP5或美国地址的ZIP + 4。', valueType: '字符串（10个字符', parseType: 'location', parseId: 'custrecord_aio_sender_address_code' },
 }
 
 //接口范围参数
@@ -441,6 +574,7 @@ var PostageRateDict = {
 
 var errorCode = {
     101: { title: "GenericError", info: "{Error Message}" },
+    162: { title: "Error generating XML data", info: "Error generating XML data. Object reference not set to an instance of an object. Error encountered (Log ID: 22305)" },
     102: { title: "InternalEndiciaError", info: "Internal Endicia Error: {Error Message}" },
     307: { title: "InvalidOriginZipCode", info: "Invalid origin ZIP Code." },
     308: { title: "InvalidDestinationZipCode", info: "Invalid destination ZIP Code." },

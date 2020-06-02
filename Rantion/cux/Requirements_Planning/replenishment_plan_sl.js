@@ -374,6 +374,30 @@ function(search, ui, moment, format, runtime, record) {
                             data_type_text: '倒排补货量',
                             need_time: need_time
                         }); 
+
+                        item_data.push({
+                            item_sku: line.item_sku,
+                            item_sku_text: line.item_sku_name,
+                            item_name: line.item_name,
+                            account: line.forecast_account,
+                            account_text: line.forecast_account_name,
+                            site: line.forecast_site,
+                            data_type: '2',
+                            data_type_text: '修改补货量',
+                            need_time: need_time
+                        }); 
+
+                        item_data.push({
+                            item_sku: line.item_sku,
+                            item_sku_text: line.item_sku_name,
+                            item_name: line.item_name,
+                            account: line.forecast_account,
+                            account_text: line.forecast_account_name,
+                            site: line.forecast_site,
+                            data_type: '4',
+                            data_type_text: '补货量',
+                            need_time: need_time
+                        }); 
                     });
                 })
             }
@@ -422,13 +446,13 @@ function(search, ui, moment, format, runtime, record) {
         var zl = 0;
         for (var z = 0; z < SKUIds.length; z++) {
             if (result.length > 0) {
-                var arr_list = {}, arr_data = [];
+                var arr_list = {}, arr_data = [],need1_zl = 0;
                 for(var a = 0; a < result.length; a++){
                     if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
                         sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
-                                sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });    
-                                sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
-                                sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
+                        sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });    
+                        sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
+                        sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
                         if(result[a]['data_type'] == 3){
                             for (var index = 1; index <= 52; index++) {
                                 // sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
@@ -455,7 +479,7 @@ function(search, ui, moment, format, runtime, record) {
                         }
 
                         if(result[a]['data_type'] == 16){
-                            for (var index = 1; index <= 52; index++) {
+                            for (var index = week_start; index <= week_end; index++) {
                                 // sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
                                 // sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });    
                                 // sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
@@ -464,36 +488,39 @@ function(search, ui, moment, format, runtime, record) {
                                 if(result[a]['quantity_week'+index]){
                                     sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  
                                 }
-                                arr_list.item_sku = result[a]['item_sku'];
-                                arr_list.account_id = result[a]['account'];
-                                arr_data.push(result[a]['quantity_week'+index]);
-                                arr_list.arr_data = arr_data;
                             }
+                            need1_zl = zl;
                             zl++;
                         }
-
-                        if(result[a]['data_type'] == 1){
+                        log.debug('arr_list',arr_list);
+                        if(result[a]['data_type'] == 1 || result[a]['data_type'] == 2 || result[a]['data_type'] == 4){
                             var need_today = new Date(+new Date()+8*3600*1000 - result[a]['need_time']*24*3600*1000);
                             log.debug('need_today',need_today);
                             var need_week_today = weekofday(need_today);
                             log.debug('need_week_today',need_week_today);
-                            for (var index = 1; index <= 52; index++) {
-                                // sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
-                                // sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });    
-                                // sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
-                                // sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
+                            var cc = week_today - need_week_today;
+                            for (var index = week_start; index <= week_end; index++) {
                                 var sub_filed = 'custpage_quantity_week' + index;
-                                if(arr_list){
-                                    if(result[a]['item_sku'] == arr_list.item_sku && result[a]['account'] == arr_list.account_id){
-                                        if(arr_list.arr_data.length > 0){
-                                            for(var i = need_week_today - 1; i < arr_list.arr_data.length; i++){
-                                                sublist.setSublistValue({ id: sub_filed, value: arr_list.arr_data[i], line: zl}); 
-                                            }
-                                        }
-                                    }
-                                    
-                                }
+                                var sub_need =  'custpage_quantity_week' + (Number(index) + Number(cc));
+                                var x1 = sublist.getSublistValue({ id : sub_need, line: need1_zl});
+                                sublist.setSublistValue({ id: sub_filed, value: x1, line: zl});
                             }
+                            // for (var index = 1; index <= 52; index++) {
+                            //     //var sub_filed = 'custpage_quantity_week' + index;
+                            //     var sub_filed = 'custpage_quantity_week' + index;
+                            //     if(arr_list){
+                            //         if(result[a]['item_sku'] == arr_list.item_sku && result[a]['account'] == arr_list.account_id){
+                            //             if(arr_list.arr_data.length > 0){
+                            //                 for(var i = need_week_today - 1; i < arr_list.arr_data.length; i++){
+                            //                     if(arr_list.arr_data[i]){
+                            //                         sublist.setSublistValue({ id: sub_filed, value: arr_list.arr_data[i], line: zl}); 
+                            //                     }
+                            //                 }
+                            //             }
+                            //         }
+                                    
+                            //     }
+                            // }
                             zl++;
                         }
                     }

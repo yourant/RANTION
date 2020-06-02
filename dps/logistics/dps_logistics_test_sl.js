@@ -10,13 +10,24 @@ define(['./jetstar/dps_logistics_request.js',
     function (jetstar, openapi, yanwen, endicia, Moment, http, record, search, file, xml, redirect, serverWidget) {
 
         function onRequest(context) {
-            var itemf = record.transform({
-                fromType: 'transferorder',
-                toType: record.Type.ITEM_FULFILLMENT,
-                fromId: '83119'
+            var boxSkuArray = new Array()
+            search.create({
+                type: 'item',
+                filters: [
+                    { name: 'locationquantityonhand', operator: 'GREATERTHAN', values: 0 },
+                    { name: 'inventorylocation', operator: 'is', values: '227' }
+                ],
+                columns: [
+                    { name: 'locationquantityonhand' }
+                ]
+            }).run().each(function (rec) {
+                boxSkuArray.push({
+                    item: rec.id,
+                    count: rec.getValue('locationquantityonhand')
+                })
+                return true;
             });
-            itemf.setValue({ fieldId: 'shipstatus', value: 'C' })
-            itemf.save()
+            context.response.write(JSON.stringify(boxSkuArray))
             // 捷士测试
             // jetstarApi.init(http)
             // var reqParam = jetstarApi.Create(rec)

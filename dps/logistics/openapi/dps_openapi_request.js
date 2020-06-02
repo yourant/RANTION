@@ -725,7 +725,7 @@ var OpenApiDict = {
             Country: { key_ns: "custrecord_dps_recipient_country", help: "国家", example: "US", require: true, getType: "value" },
             Province: { key_ns: "custrecord_dps_s_state", help: "省/州", example: "Florida", require: true, getType: "value" },
             City: { key_ns: "custrecord_dps_recipient_city", help: "城市", example: "Coral Springs", require: true, getType: "value" },
-            Street1: { key_ns: "custrecord_dps_addressee_address", help: "街道1", example: "9110 NW 21st street", require: true, getType: "value" },
+            Street1: { key_ns: "custrecord_dps_street1", help: "街道1", example: "9110 NW 21st street", require: true, getType: "value" },
             Street2: { key_ns: "", help: "街道2", example: "", require: false, getType: "value" },
             Postcode: { key_ns: "custrecord_dps_recipien_code", help: "邮编", example: "45429", require: true, getType: "value" },
             Contact: { key_ns: "custrecord_dps_ship_small_recipient", help: "联系人", example: "David Mcaffee", require: true, getType: "value" },

@@ -7,8 +7,8 @@ define([], function() {
     function beforeLoad(context) {
         if (context.type == 'view') {
             var newRecord = context.newRecord;
-            var poId = newRecord.getValue('custrecord_inter_po_report');
-            if (!poId) {
+            var status = newRecord.getValue('custrecord_declaration_status');
+            if (status == 1) {
                 var transferId = newRecord.getValue('custrecord_transfer_order');
                 var shippingId = newRecord.getValue('custrecord_fulfillment_record');
                 var informationId = newRecord.id;

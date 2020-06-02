@@ -170,9 +170,6 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
          */
         function reacquireLogistics(rec_id) {
 
-            // alert('重新获取物流渠道: ' + rec_id);
-            // return;
-
             var url1 = url.resolveScript({
                 scriptId: 'customscript_dps_wms_logistics_samll_ite',
                 deploymentId: 'customdeploy_dps_wms_logistics_samll_ite',
@@ -188,27 +185,80 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
                 action: 'Logistics',
                 recordID: rec_id
             };
-            log.debug('body1', body1);
-            log.debug('url1', url1);
             var response;
 
             var options = {
-                title: "重新获取物流渠道",
+                title: "重新获取物流运单号",
                 message: "Press OK or Cancel"
             };
 
             function success(result) {
                 if (result) {
-
                     response = https.post({
                         url: url1,
                         body: body1,
                         headers: header
                     });
-                    if (response.body == false) {
-                        alert('重新获取物流渠道');
+                    log.audit('respone', response.body);
+                    var body = JSON.parse(response.body)
+                    if (body.code == 500) {
+                        alert('重新获取物流运单号失败：' + body.msg)
                     } else {
-                        alert('重新获取物流渠道: ' + response.body);
+                        alert('重新获取物流运单号成功');
+                        window.location.reload(true);
+                    }
+                }
+            }
+
+            function failure(reason) {
+                log.debug('reason', reason)
+            }
+            dialog.confirm(options).then(success).catch(failure);
+
+        }
+
+
+        /**
+         * 重新获取物流跟踪号
+         * @param {*} rec_id 
+         */
+        function getTrackingNumber(rec_id) {
+
+            var url1 = url.resolveScript({
+                scriptId: 'customscript_dps_wms_logistics_samll_ite',
+                deploymentId: 'customdeploy_dps_wms_logistics_samll_ite',
+                returnExternalUrl: false
+            });
+
+            var header = {
+                "Content-Type": "application/json;charset=utf-8",
+                "Accept": "application/json"
+            };
+
+            var body1 = {
+                action: 'TrackingNumber',
+                recordID: rec_id
+            };
+            var response;
+
+            var options = {
+                title: "重新获取物流运单号",
+                message: "Press OK or Cancel"
+            };
+
+            function success(result) {
+                if (result) {
+                    response = https.post({
+                        url: url1,
+                        body: body1,
+                        headers: header
+                    });
+                    log.audit('respone', response.body);
+                    var body = JSON.parse(response.body)
+                    if (body.code == 500) {
+                        alert('重新获取物流跟踪号失败：' + body.msg)
+                    } else {
+                        alert('重新获取物流跟踪号成功');
                         window.location.reload(true);
                     }
                 }
@@ -278,6 +328,17 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
 
         }
 
+        function showImg(id) {
+            var url1 = url.resolveScript({
+                scriptId: 'customscript_dps_fulfillment_show_img',
+                deploymentId: 'customdeploy_dps_fulfillment_show_img',
+                returnExternalUrl: false
+            });
+            window.open(url1 + "&id=" + id)
+        }
+
+
+
 
         return {
             pageInit: pageInit,
@@ -291,7 +352,9 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
             validateDelete: validateDelete,
             saveRecord: saveRecord,
             reacquireLogistics: reacquireLogistics,
-            WMSShipping: WMSShipping
+            WMSShipping: WMSShipping,
+            getTrackingNumber: getTrackingNumber,
+            showImg: showImg
         };
 
     });

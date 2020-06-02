@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/log', 'N/record', 'N/currentRecord', 'N/https', 'N/url', 'N/ui/dialog'], function(log, record, currentRecord, https, url, dialog) {
+define(['N/log', 'N/record', 'N/search'], function(log, record, search) {
     /**
      * Function to be executed after page is initialized.
      *
@@ -12,38 +12,53 @@ define(['N/log', 'N/record', 'N/currentRecord', 'N/https', 'N/url', 'N/ui/dialog
      *
      * @since 2015.2
      */
+
+
+    var total;
+    var o_payment;
+    var o_i_payment = 0;
+
     function pageInit(scriptContext) {
 
+        var objRecord = scriptContext.currentRecord;
+
+        var prepaymentamount = 0;
+        search.create({
+            type: 'purchaseorder',
+            filters: [{
+                "name": "internalid",
+                "operator": "is",
+                "values": objRecord.getValue('purchaseorder')
+            }],
+            columns: ["custbody_dps_prepaymentamount", "custbody_dps_actualprepaidamount", "total"]
+        }).run().each(function(res) {
+            prepaymentamount = Number(res.getValue('custbody_dps_prepaymentamount'));
+            o_payment = Number(res.getValue('custbody_dps_actualprepaidamount'));
+            total = Number(res.getValue('total'));
+            console.log(prepaymentamount);
+        });
         if (scriptContext.mode == 'create') {
-            var objRecord = scriptContext.currentRecord;
 
-            var form = scriptContext.form;
-
-            console.log(scriptContext);
-
-            var p_record = record.load({
-                type: 'purchaseorder',
-                id: objRecord.getValue('purchaseorder')
-            });
-
-            var actualprepaidamount = p_record.getValue('custbody_dps_actualprepaidamount');
-
-            console.log('actualprepaidamount:' + actualprepaidamount);
-
-            if (actualprepaidamount != '' || actualprepaidamount > 0) {
-                alert('此订单已经预付');
-                location.href = document.referrer;
+            //获取订单预付金额
+            var set_payment;
+            if (prepaymentamount > 0 && o_payment == 0) {
+                set_payment = prepaymentamount;
             } else {
-                //获取订单预付金额
-                var payment = objRecord.getValue('custpage_payment_file');
-                objRecord.setValue({
-                    fieldId: 'payment',
-                    value: payment,
-                });
-
-
-
+                set_payment = total - o_payment;
             }
+
+            if (set_payment == 0) {
+                alert('预付金额已达上限');
+                location.href = document.referrer;
+                return;
+            }
+            objRecord.setValue({
+                fieldId: 'payment',
+                value: set_payment,
+            });
+        } else if (scriptContext.mode == 'edit') {
+            o_i_payment = Number(objRecord.getValue('payment'));
+            console.log('edit', o_i_payment);
         }
     }
 
@@ -60,7 +75,21 @@ define(['N/log', 'N/record', 'N/currentRecord', 'N/https', 'N/url', 'N/ui/dialog
      * @since 2015.2
      */
     function fieldChanged(scriptContext) {
+        var bf_cur = scriptContext.currentRecord;
 
+        if (isNaN(o_payment))
+            o_payment = 0;
+
+        var n_payment = Number(bf_cur.getValue('payment'));
+        n_payment = o_payment + n_payment - o_i_payment;
+        log.error('before-save:n_payment', n_payment);
+        if (n_payment > total) {
+            alert('预付总金额：' + n_payment + "大于订单总金额：" + total);
+            bf_cur.setValue({
+                fieldId: 'payment',
+                value: total - o_payment + o_i_payment,
+            });
+        }
     }
 
     /**

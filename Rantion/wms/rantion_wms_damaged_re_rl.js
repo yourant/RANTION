@@ -28,6 +28,12 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
             var secondCompany = getCompanyId("广州蓝图创拓进出口贸易有限公司")
             var thirdCompany = getCompanyId("广州蓝深科技有限公司")
 
+            if (!context.fono) throw new Error('请传递单号fono')
+            //存在相应单号不做任何处理 返回成功信息给客户
+            var exist = checkExist(context.fono)
+            if (exist) return JSON.stringify({ code: 0, data: {} });
+
+
             var damageedLocation = "damageLocation"
             var item = getItemId(context.sku)
             log.audit('item', item);
@@ -160,19 +166,17 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
         return result
     }
 
-    //根据wms的SKU获取NS对应的ID 
     function getItemId(sku) {
         var result
         search.create({
-            type: 'customrecord_dps_amazon_seller_sku',
+            type: 'item',
             filters: [
-                { name: 'custrecord_dps_amazon_sku_number', operator: 'is', values: sku },
+                { name: 'itemid', operator: 'is', values: sku },
             ],
             columns: [
-                { name: 'custrecord_dps_amazon_ns_sku' }
             ]
         }).run().each(function (rec) {
-            result = rec.getValue('custrecord_dps_amazon_ns_sku')
+            result = rec.id
             return false;
         });
         return result
@@ -216,6 +220,24 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
         });
         return count
     }
+
+    function checkExist(fono) {
+        var exist = false
+        search.create({
+            type: 'transferorder',
+            filters: [
+                { name: 'custbody_dps_wms_damage_num', operator: 'is', values: fono },
+            ],
+            columns: [
+                { name: 'internalId' }
+            ]
+        }).run().each(function (rec) {
+            exist = true
+            return false;
+        });
+        return exist;
+    }
+
 
     function _put(context) {
 

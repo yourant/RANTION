@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-06-01 17:31:42
+ * @LastEditTime   : 2020-06-02 10:21:15
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -56,6 +56,19 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
         //       "width": 30.00
         //     }
         //   ]
+
+
+        // WMS 装柜回传
+        // {
+        //     "containerNo": "123",
+        //     "shippingType": 10,
+        //     "sourceWarehouseCode": "gzhdc",
+        //     "sourceWarehouseName": "gzhdc",
+        //     "targetWarehouseCode": "TEST",
+        //     "targetWarehouseName": "TEST",
+        //     "containerVolume": 100,
+        //     "createBy": "徐玉立"
+        // }
 
         var data = context;
 

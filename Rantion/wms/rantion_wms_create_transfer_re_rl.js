@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-06-02 10:12:44
+ * @LastEditTime   : 2020-06-02 10:20:07
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -151,6 +151,27 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                     // }
 
 
+
+                    // WMS 回传数据
+                    // {
+                    //     "deliveryTime": "2020-06-01 19:01:44",
+                    //     "abno": "AB200601000002",
+                    //     "aono": "103411",
+                    //     "containerNo": "123",
+                    //     "boxQty": 1,
+                    //     "volume": 1000.00,
+                    //     "weight": 321.00,
+                    //     "storageList": [{
+                    //         "sku": "1101",
+                    //         "type": 2,
+                    //         "barcode": "1101",
+                    //         "positionCode": "AAAD6610101",
+                    //         "qty": 1
+                    //     }],
+                    //     "delivery": true
+                    // }
+
+
                     var conVolume = l_con.getValue("custrecord_dps_cabinet_rec_volume");
                     l_con.setValue({
                         fieldId: 'custrecord_dps_cabinet_rec_remai_volume',
@@ -197,7 +218,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
                 l_rec.setValue({
                     fieldId: 'custrecord_dps_shipping_rec_status',
-                    values: 6
+                    value: 6
                 });
 
                 var l_rec_id = l_rec.save();

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-26 10:25:55
- * @LastEditTime   : 2020-05-27 10:07:55
+ * @LastEditTime   : 2020-06-03 15:26:05
  * @LastEditors    : Li
  * @Description    :  用于渲染表格
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.li.tool.setValue.js
@@ -70,7 +70,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         search.create({
             type: 'customrecord_dps_customs_invoice',
             filters: [{
-                name: 'internalid',
+                name: 'custrecord_dps_cus_inv_information',
                 operator: 'anyof',
                 values: INV
             }],
@@ -184,7 +184,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         search.create({
             type: 'customrecord_dps_packing_documents',
             filters: [{
-                name: 'custrecord_dps_packing_doc_inv_links',
+                name: 'custrecord_dps_p_declaration_informa',
                 operator: 'anyof',
                 values: BOX
             }],
@@ -286,7 +286,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         search.create({
             type: 'customrecord_dps_customs_declaration',
             filters: [{
-                name: 'internalid',
+                name: 'custrecord_dps_cu_decl_infomation_link',
                 operator: 'anyof',
                 values: inv
             }],
@@ -438,7 +438,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         search.create({
             type: 'customrecord_dps_customs_contract',
             filters: [{
-                name: 'custrecord_dps_cust_contr_inv_link',
+                name: 'custrecord_dps_c_c_information',
                 operator: 'anyof',
                 values: con
             }],
@@ -531,7 +531,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         search.create({
             type: 'customrecord_dps_elements_declaration',
             filters: [{
-                name: 'custrecord_dps_elem_dedecl_inv_link',
+                name: 'custrecord_dps_elem_dedecl_information',
                 operator: 'anyof',
                 values: inv
             }],
@@ -601,7 +601,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         search.create({
             type: 'customrecord_dps_us_billing_information',
             filters: [{
-                name: 'custrecord_dps_us_b_i_tax_links',
+                name: 'custrecord_dps_us_b_i_informa',
                 operator: 'anyof',
                 values: inv
             }],

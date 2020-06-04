@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-05-29 15:20:22
+ * @LastEditTime   : 2020-06-03 19:53:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -12,12 +12,35 @@
  *@NApiVersion 2.x
  *@NScriptType Suitelet
  */
-define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency'], function (task, log, search, record, file, currency) {
+define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/runtime'], function (task, log, search, record, file, currency, runtime) {
 
     function onRequest(context) {
 
         try {
 
+
+            var fileObj = file.load({
+                id: 7403
+            });
+
+            var sessionObj = runtime.getCurrentSession();
+            log.debug('sessionObj', sessionObj);
+            log.debug("File Path: ", fileObj.path);
+            log.debug("File URL: ", fileObj.url);
+
+            var account = runtime.accountId;
+            log.debug("Account ID for the current user: ", runtime.accountId);
+
+            var url = 'https://';
+            if (account.indexOf('_SB1') > -1) {
+                var ac = account.replace('_SB1', '');
+                url += ac + '-sb1.app.netsuite.com';
+            } else {
+                url += account;
+            }
+            url += fileObj.url;
+
+            log.debug('url', url);
 
             var load_test_id;
             // var load_test = record.load({
@@ -32,15 +55,15 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency'], func
 
             // load_test_id = load_test.save();
 
-            load_test_id = record.submitFields({
-                type: "customrecord_dps_li_test",
-                id: 1,
-                values: {
-                    name: 4
-                }
-            });
+            // load_test_id = record.submitFields({
+            //     type: "customrecord_dps_li_test",
+            //     id: 1,
+            //     values: {
+            //         name: 4
+            //     }
+            // });
 
-            log.debug('load_test_id', load_test_id);
+            // log.debug('load_test_id', load_test_id);
             var fau;
             // search.create({
             //     type: 'customrecord_dps_li_test',
@@ -268,192 +291,192 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency'], func
 
         /*
 
-        if (location) {
-            log.debug('location', location);
+            if (location) {
+                log.debug('location', location);
+                ful_create_rec.setValue({
+                    fieldId: 'custrecord_dps_ship_samll_location', //发运仓库 
+                    value: location
+                });
+            }
+
+            /*
             ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_ship_samll_location', //发运仓库 
-                value: location
+                fieldId: 'custrecord_dps_ship_order_number', //订单号 
+                value: tranid
             });
-        }
+            log.debug('tranid', tranid);
 
-        /*
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_order_number', //订单号 
-            value: tranid
-        });
-        log.debug('tranid', tranid);
-
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_platform_order_numbe', //平台订单号 
-            value: otherrefnum
-        });
-        log.debug('otherrefnum', otherrefnum);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_status', //状态 
-            value: 1
-        });
-
-        /*
-        log.debug('marketplaceid', marketplaceid);
-        if (marketplaceid) {
             ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_ship_small_sales_platform', //销售平台 
-                value: marketplaceid ? marketplaceid : ''
+                fieldId: 'custrecord_dps_ship_platform_order_numbe', //平台订单号 
+                value: otherrefnum
             });
-        }
-
-        log.debug('account', account);
-        if (account) {
+            log.debug('otherrefnum', otherrefnum);
             ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_ship_small_account', //销售店铺 
-                value: account
+                fieldId: 'custrecord_dps_ship_small_status', //状态 
+                value: 1
             });
-        }
 
-        var sub_id = 'recmachcustrecord_dps_ship_small_links';
-        /*
-        log.debug('item_arr', item_arr);
-        for (var i = 0, len = item_arr.length; i < len; i++) {
-            log.debug('i', i);
-            ful_create_rec.setSublistValue({
-                sublistId: sub_id,
-                fieldId: 'custrecord_dps_ship_small_item_item',
-                line: i,
-                value: item_arr[i].item
-            });
-            ful_create_rec.setSublistValue({
-                sublistId: sub_id,
-                fieldId: 'custrecord_dps_ship_small_sku_line',
-                line: i,
-                value: item_arr[i].sku
-            });
-            ful_create_rec.setSublistValue({
-                sublistId: sub_id,
-                fieldId: 'custrecord_dps_ship_small_item_quantity',
-                line: i,
-                value: item_arr[i].quantity
-            });
-        }
-        
-        log.debug('cc_ctiy', cc_ctiy);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_recipient_city',
-            value: cc_ctiy
-        });
+            /*
+            log.debug('marketplaceid', marketplaceid);
+            if (marketplaceid) {
+                ful_create_rec.setValue({
+                    fieldId: 'custrecord_dps_ship_small_sales_platform', //销售平台 
+                    value: marketplaceid ? marketplaceid : ''
+                });
+            }
 
-        log.debug('cc_zip', cc_zip);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_recipien_code',
-            value: cc_zip
-        });
+            log.debug('account', account);
+            if (account) {
+                ful_create_rec.setValue({
+                    fieldId: 'custrecord_dps_ship_small_account', //销售店铺 
+                    value: account
+                });
+            }
 
-        log.debug('cc_state', cc_state);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_s_state',
-            value: cc_state
-        });
-
-        var c_country = searchCountryByCode(cc_country);
-
-        log.debug('c_country', c_country);
-        if (c_country) {
+            var sub_id = 'recmachcustrecord_dps_ship_small_links';
+            /*
+            log.debug('item_arr', item_arr);
+            for (var i = 0, len = item_arr.length; i < len; i++) {
+                log.debug('i', i);
+                ful_create_rec.setSublistValue({
+                    sublistId: sub_id,
+                    fieldId: 'custrecord_dps_ship_small_item_item',
+                    line: i,
+                    value: item_arr[i].item
+                });
+                ful_create_rec.setSublistValue({
+                    sublistId: sub_id,
+                    fieldId: 'custrecord_dps_ship_small_sku_line',
+                    line: i,
+                    value: item_arr[i].sku
+                });
+                ful_create_rec.setSublistValue({
+                    sublistId: sub_id,
+                    fieldId: 'custrecord_dps_ship_small_item_quantity',
+                    line: i,
+                    value: item_arr[i].quantity
+                });
+            }
+            
+            log.debug('cc_ctiy', cc_ctiy);
             ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_recipient_country',
-                value: c_country
+                fieldId: 'custrecord_dps_recipient_city',
+                value: cc_ctiy
             });
-        }
 
-        log.debug('cc_addr1', cc_addr1);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_street1',
-            value: cc_addr1 ? cc_addr1 : ''
-        });
+            log.debug('cc_zip', cc_zip);
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_recipien_code',
+                value: cc_zip
+            });
 
-        log.debug('cc_addr2', cc_addr2);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_street2',
-            value: cc_addr2 ? cc_addr2 : ''
-        });
+            log.debug('cc_state', cc_state);
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_s_state',
+                value: cc_state
+            });
 
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_destination', //目的地 
-            value: first_name + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country
-        });
+            var c_country = searchCountryByCode(cc_country);
 
-        if (first_name) {
-            first_name += ',';
-        }
-        if (cc_addr1) {
-            cc_addr1 += ',';
-        }
-        if (cc_addr2) {
-            cc_addr2 += ',';
-        }
-        if (cc_zip) {
-            cc_zip += ',';
-        }
-        if (cc_ctiy) {
-            cc_ctiy += ',';
-        }
-        if (cc_state) {
-            cc_state += ',';
-        }
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_addressee_address', // 收件人地址
-            value: first_name + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
-        });
+            log.debug('c_country', c_country);
+            if (c_country) {
+                ful_create_rec.setValue({
+                    fieldId: 'custrecord_dps_recipient_country',
+                    value: c_country
+                });
+            }
 
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_recipient', //  收件人 
-            value: first_name
-        });
+            log.debug('cc_addr1', cc_addr1);
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_street1',
+                value: cc_addr1 ? cc_addr1 : ''
+            });
 
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_phone', //  联系电话 
-            value: cc_phone_number
-        });
-       
+            log.debug('cc_addr2', cc_addr2);
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_street2',
+                value: cc_addr2 ? cc_addr2 : ''
+            });
 
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_salers_order', // 关联的销售订单
-            value: soid
-        });
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_ship_small_destination', //目的地 
+                value: first_name + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country
+            });
 
-        var set_value = 0;
-        var temp = getDeclaredValue(cc_country, location);
+            if (first_name) {
+                first_name += ',';
+            }
+            if (cc_addr1) {
+                cc_addr1 += ',';
+            }
+            if (cc_addr2) {
+                cc_addr2 += ',';
+            }
+            if (cc_zip) {
+                cc_zip += ',';
+            }
+            if (cc_ctiy) {
+                cc_ctiy += ',';
+            }
+            if (cc_state) {
+                cc_state += ',';
+            }
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_addressee_address', // 收件人地址
+                value: first_name + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
+            });
 
-        log.debug('typeof(temp)', typeof (temp));
-        // temp = JSON.parse(temp);
-        var dec_value = temp[0].tariff;
-        var currency = temp[0].currency;
-        log.debug('cureency', currency);
-        if (dec_value) {
-            if (amount > dec_value) {
-                var l_v = Number(dec_value) * 0.2,
-                    h_v = Number(dec_value) * 0.8;
-                set_value = randomNum(l_v, h_v);
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_ship_small_recipient', //  收件人 
+                value: first_name
+            });
 
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_ship_small_phone', //  联系电话 
+                value: cc_phone_number
+            });
+           
+
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_ship_small_salers_order', // 关联的销售订单
+                value: soid
+            });
+
+            var set_value = 0;
+            var temp = getDeclaredValue(cc_country, location);
+
+            log.debug('typeof(temp)', typeof (temp));
+            // temp = JSON.parse(temp);
+            var dec_value = temp[0].tariff;
+            var currency = temp[0].currency;
+            log.debug('cureency', currency);
+            if (dec_value) {
+                if (amount > dec_value) {
+                    var l_v = Number(dec_value) * 0.2,
+                        h_v = Number(dec_value) * 0.8;
+                    set_value = randomNum(l_v, h_v);
+
+                } else {
+                    set_value = account;
+                }
             } else {
                 set_value = account;
             }
-        } else {
-            set_value = account;
-        }
 
-        log.audit('set_value', set_value);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_declared_value',
-            value: Number(set_value)
-        });
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_declare_currency',
-            value: Number(currency)
-        });
+            log.audit('set_value', set_value);
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_declared_value',
+                value: Number(set_value)
+            });
+            ful_create_rec.setValue({
+                fieldId: 'custrecord_dps_declare_currency',
+                value: Number(currency)
+            });
 
-        var ful_create_rec_id = ful_create_rec.save({
-            ignoreMandatoryFields: true
-        });
-        */
+            var ful_create_rec_id = ful_create_rec.save({
+                ignoreMandatoryFields: true
+            });
+            */
         log.audit('发运记录生成成功, ID： ', ful_create_rec_id);
 
         if (ful_create_rec_id) {

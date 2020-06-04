@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-04 10:12:41
+ * @LastEditTime   : 2020-06-02 20:15:56
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -36,15 +36,6 @@ define(['N/record', 'N/search', 'N/log', 'N/redirect'], function (record, search
                 redirect.toRecord({
                     type: bl_rec.type,
                     id: bl_rec.id
-                });
-            }
-
-            if (type == 'view') {
-                var form = context.form;
-                form.addButton({
-                    id: 'custpage_dps_li_get_label_button',
-                    label: '获取标签',
-                    functionName: "getPalletLabels(" + bf_cur.id + ")"
                 });
             }
         }

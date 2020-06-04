@@ -19,14 +19,15 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
         var locationids = [];
         var filters = [];
         // filters.push({ name: 'type', operator: 'anyof', values: ['InvtPart'] });
-        filters.push({ name: 'custrecord_wms_location_type', join: 'inventorylocation', operator: 'anyof', values: ['2','3'] });
+        filters.push({ name: 'custrecord_wms_location_type', join: 'inventoryLocation', operator: 'anyof', values: ['2','3'] });
+        filters.push({ name: 'locationquantityavailable', operator: 'greaterthan', values: ['0'] });
         if (sku) {
-            filters.push({ name: 'itemid', operator: 'is', values: sku });
+            filters.push({ name: 'name', operator: 'is', values: sku });
         }
         var mySearch = search.create({
             type: 'item',
             filters: filters,
-            columns: [{ name: 'itemid', summary: 'GROUP' }]
+            columns: [ 'name' ]
         });
         var pageData = mySearch.runPaged({
             pageSize: pageSize
@@ -41,66 +42,74 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             pageData.fetch({
                 index: Number(nowPage - 1)
             }).data.forEach(function (result) {
-                skuAAAAids.push(result.getValue({ name: 'itemid', summary: 'GROUP' }));
+                skuAAAAids.push(result.getValue('name'));
                 return true;
             });
-            if (!sku) {
-                filters.push({ name: 'itemid', operator: 'is', values: skuAAAAids });
-            }
-            search.create({
-                type: 'item',
-                filters: filters,
-                columns: [
-                    'itemid', 'custitem_dps_skuchiense', 'locationquantityonhand', 
-                    'locationquantitycommitted', 'locationquantityavailable', 'custitem_dps_picture',
-                    'isinactive', 'custitem_dps_ctype',
-                    { name: 'subsidiary', join: 'inventorylocation' },
-                    { name: 'custrecord_dps_warehouse_code', join: 'inventorylocation' },
-                    { name: 'custrecord_dps_warehouse_name', join: 'inventorylocation' }
-                ]
-            }).run().each(function (result) {
-                var itemid = result.getValue('itemid');
-                var loc = result.getValue({ name: 'custrecord_dps_warehouse_code', join: 'inventorylocation' });
-                var key = itemid + '_' + loc;
-                var numonhand = Number(result.getValue('locationquantityonhand'));
-                var comid = result.getValue({ name: 'subsidiary', join: 'inventorylocation' });
-                if (comid == 2 || comid == 5) {
-                    var keycom = itemid + '_' + comid;
-                    var comsku = comskus[keycom];
-                    if (comsku) {
-                        comsku.qty = comsku.qty + numonhand;
+            log.debug('sss', skuAAAAids);
+            skuAAAAids.map(function (itemsku) {
+                filters = [];
+                filters.push({ name: 'custrecord_wms_location_type', join: 'inventoryLocation', operator: 'anyof', values: ['2','3'] });
+                filters.push({ name: 'locationquantityavailable', operator: 'greaterthan', values: ['0'] });
+                filters.push({ name: 'name', operator: 'is', values: itemsku });
+                search.create({
+                    type: 'item',
+                    filters: filters,
+                    columns: [
+                        'name', 'custitem_dps_skuchiense', 'locationquantityonhand', 
+                        'locationquantitycommitted', 'locationquantityavailable', 'custitem_dps_picture',
+                        'isinactive', 'custitem_dps_ctype',
+                        { name: 'subsidiary', join: 'inventorylocation' },
+                        { name: 'custrecord_dps_warehouse_code', join: 'inventorylocation' },
+                        { name: 'custrecord_dps_warehouse_name', join: 'inventorylocation' }
+                    ]
+                }).run().each(function (result) {
+                    var itemid = result.getValue('name');
+                    var loc = result.getValue({ name: 'custrecord_dps_warehouse_code', join: 'inventorylocation' });
+                    var numcommitted = Number(result.getValue('locationquantitycommitted'));
+                    var numavailable = Number(result.getValue('locationquantityavailable'));
+                    var numonhand = Number(result.getValue('locationquantityonhand'));
+                    var key = itemid + '_' + loc;
+                    var comid = result.getValue({ name: 'subsidiary', join: 'inventorylocation' });
+                    if (comid == 2 || comid == 5) {
+                        var keycom = itemid + '_' + comid;
+                        var comsku = comskus[keycom];
+                        if (comsku) {
+                            comsku.qty = comsku.qty + numonhand;
+                        } else {
+                            var json = {};
+                            json.qty = numonhand;
+                            comskus[keycom] = json;
+                        }
+                    }
+                    log.debug('key', key);
+                    var location = locations[key];
+                    if (location) {
+                        location.numonhand = location.numonhand + numonhand;
+                        location.numcommitted = location.numcommitted + numcommitted;
+                        location.numavailable = location.numavailable + numavailable;
                     } else {
                         var json = {};
-                        json.qty = numonhand;
-                        comskus[keycom] = json;
+                        json.item = itemid;
+                        skuids.push(itemid);
+                        json.comid = comid;
+                        json.item_status = result.getValue('isinactive') == true ? 'inactive' : 'active';
+                        json.item_type = result.getText('custitem_dps_ctype');
+                        json.item_name = result.getValue('custitem_dps_skuchiense');
+                        json.item_picture = result.getValue('custitem_dps_picture');
+                        json.code = result.getValue({ name: 'custrecord_dps_warehouse_code', join: 'inventorylocation' });
+                        json.name = result.getValue({ name: 'custrecord_dps_warehouse_name', join: 'inventorylocation' });
+                        json.numonhand = numonhand;
+                        json.numcommitted = numcommitted;
+                        json.numavailable = numavailable;
+                        locations[key] = json;
+                        locationids.push(key);
                     }
-                }
-                var numcommitted = Number(result.getValue('locationquantitycommitted'));
-                var numavailable = Number(result.getValue('locationquantityavailable'));
-                var location = locations[key];
-                if (location) {
-                    location.numonhand = location.numonhand + numonhand;
-                    location.numcommitted = location.numcommitted + numcommitted;
-                    location.numavailable = location.numavailable + numavailable;
-                } else {
-                    var json = {};
-                    json.item = itemid;
-                    skuids.push(itemid);
-                    json.comid = comid;
-                    json.item_status = result.getValue('isinactive') == true ? 'inactive' : 'active';
-                    json.item_type = result.getText('custitem_dps_ctype');
-                    json.item_name = result.getValue('custitem_dps_skuchiense');
-                    json.item_picture = result.getValue('custitem_dps_picture');
-                    json.code = result.getValue({ name: 'custrecord_dps_warehouse_code', join: 'inventorylocation' });
-                    json.name = result.getValue({ name: 'custrecord_dps_warehouse_name', join: 'inventorylocation' });
-                    json.numonhand = numonhand;
-                    json.numcommitted = numcommitted;
-                    json.numavailable = numavailable;
-                    locations[key] = json;
-                    locationids.push(key);
-                }
-                return true;
+                    return true;
+                });
             });
+            
+            log.debug('locationids', locationids);
+            log.debug('locations', locations);
             // search.create({ // TODO
             //     type: 'transferorder',
             //     filters: [],

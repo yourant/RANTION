@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-25 22:21:51
- * @LastEditTime   : 2020-05-27 10:57:27
+ * @LastEditTime   : 2020-06-03 15:11:52
  * @LastEditors    : Li
  * @Description    : 搜索报关相关记录, 打印
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.show.print.sl.js
@@ -30,60 +30,41 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
 
             if (print) {
 
+                var dec_info;
                 if (tran_order) {
                     var bigRec, invNO;
                     search.create({
-                        type: 'transferorder',
+                        type: 'customrecord_customs_declaration_informa',
                         filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: tran_order
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: true
-                            }
-                        ],
+                            name: 'custrecord_transfer_order',
+                            operator: 'anyof',
+                            values: tran_order
+                        }],
                         columns: [
-                            'custbody_dps_fu_rec_link'
+                            'custrecord_fulfillment_record', 'custrecord_declaration_status', 'custrecord_print_status'
                         ]
                     }).run().each(function (rec) {
-                        bigRec = rec.getValue('custbody_dps_fu_rec_link');
+                        // bigRec = rec.getValue('custrecord_fulfillment_record');
+                        dec_info = rec.id;
+                        // declaration_status = rec.getValue('custrecord_declaration_status');
+                        // print_status = rec.getValue('custrecord_print_status');
                     });
 
-                    log.debug('bigRec', bigRec);
+                    log.debug('dec_info', dec_info);
 
-                    if (bigRec) {
-                        search.create({
-                            type: 'customrecord_dps_shipping_record',
-                            filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: bigRec
-                            }],
-                            columns: [
-                                'custrecord_dps_ship_rec_c_inv_link'
-                            ]
-                        }).run().each(function (rec) {
-                            invNO = rec.getValue('custrecord_dps_ship_rec_c_inv_link');
-                        });
-
-                    }
                 }
 
                 log.debug('打印 tran_order', tran_order)
                 var moduleXML = "SuiteScripts/Rantion/cux/Declaration_Information/xml/报关资料模版.xml";
 
-                var fileObj = tool.setModuleXMLValue(invNO, moduleXML);
-
+                var fileObj = tool.setModuleXMLValue(dec_info, moduleXML);
 
                 if (fileObj) {
                     var id = record.submitFields({
-                        type: 'transferorder',
-                        id: tran_order,
+                        type: 'customrecord_customs_declaration_informa',
+                        id: dec_info,
                         values: {
-                            custbody_dps_print_customs_nformation: true
+                            custrecord_print_status: 1
                         }
                     });
                 }
@@ -148,11 +129,6 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
         form.addSubmitButton({
             label: '查询',
         });
-        // var button = form.addButton({
-        //     id: 'button1',
-        //     functionName: 'printExcel',
-        //     label: '打印'
-        // });
 
         var text = form.addField({
             id: 'custpage_text',
@@ -230,130 +206,101 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
 
         var invNO, flag = false;
         if (tran_order) {
-            var bigRec;
+            var bigRec, dec_info, declaration_status, print_status;
             search.create({
-                type: 'transferorder',
+                type: 'customrecord_customs_declaration_informa',
                 filters: [{
-                        name: 'internalid',
-                        operator: 'anyof',
-                        values: tran_order
-                    },
-                    {
-                        name: 'mainline',
-                        operator: 'is',
-                        values: true
-                    }
-                ],
+                    name: 'custrecord_transfer_order',
+                    operator: 'anyof',
+                    values: tran_order
+                }],
                 columns: [
-                    'custbody_dps_fu_rec_link', 'custbody_dps_print_customs_nformation'
+                    'custrecord_fulfillment_record', 'custrecord_declaration_status', 'custrecord_print_status'
                 ]
             }).run().each(function (rec) {
-                bigRec = rec.getValue('custbody_dps_fu_rec_link');
-                flag = rec.getValue('custbody_dps_print_customs_nformation');
+                bigRec = rec.getValue('custrecord_fulfillment_record');
+                dec_info = rec.id;
+                declaration_status = rec.getText('custrecord_declaration_status');
+                print_status = rec.getText('custrecord_print_status');
             });
 
             log.debug('bigRec', bigRec);
 
-            if (bigRec) {
-                search.create({
-                    type: 'customrecord_dps_shipping_record',
-                    filters: [{
-                        name: 'internalid',
-                        operator: 'anyof',
-                        values: bigRec
-                    }],
-                    columns: [
-                        'custrecord_dps_ship_rec_c_inv_link'
-                    ]
-                }).run().each(function (rec) {
-                    invNO = rec.getValue('custrecord_dps_ship_rec_c_inv_link');
+            if (dec_info) {
 
+                var button = form.addButton({
+                    id: 'button1',
+                    functionName: 'printExcel',
+                    label: '打印'
                 });
-
-                log.debug('invNO', invNO);
-                if (invNO) {
-
-                    var button = form.addButton({
-                        id: 'button1',
-                        functionName: 'printExcel',
-                        label: '打印'
-                    });
-                    // text.defaultValue = invNO;
-                } else {
-                    // button.isDisabled = true;
-                }
 
             }
 
             var line = form.getSublist({
                 id: 'sublistid'
             });
-            var status = '未打印';
             for (var i = 0; i < 1; i++) {
                 line.setSublistValue({
                     id: 'custpage_transferorder',
                     value: tran_order,
                     line: i
                 });
-
-                if (flag) {
-                    status = '已打印';
-                }
-                if (!invNO) {
-                    status = '不可打印';
-                }
+                line.setSublistValue({
+                    id: 'custpage_customs_information',
+                    value: dec_info,
+                    line: i
+                });
+                line.setSublistValue({
+                    id: 'custpage_declaration_status',
+                    value: declaration_status,
+                    line: i
+                });
                 line.setSublistValue({
                     id: 'custpage_print_status',
-                    value: status,
+                    value: print_status,
                     line: i
                 });
 
             }
         } else {
-            var status = '未打印';
+
             var line = form.getSublist({
                 id: 'sublistid'
             });
             var i = 0,
                 limit = 1000;
+            var bigRec, dec_info, declaration_status, print_status;
             search.create({
-                type: 'transferorder',
-                filters: [{
-                    name: 'mainline',
-                    operator: 'is',
-                    values: true
-                }],
+                type: 'customrecord_customs_declaration_informa',
+                filters: [],
                 columns: [
-                    'custbody_dps_fu_rec_link', 'custbody_dps_print_customs_nformation',
-                    {
-                        name: 'custrecord_dps_ship_rec_c_inv_link',
-                        join: 'custbody_dps_fu_rec_link'
-                    }
+                    'custrecord_fulfillment_record', 'custrecord_declaration_status', 'custrecord_print_status', 'custrecord_transfer_order'
                 ]
             }).run().each(function (rec) {
-
-                var flag = rec.getValue('custbody_dps_print_customs_nformation')
-
-                var inv = rec.getValue({
-                    name: 'custrecord_dps_ship_rec_c_inv_link',
-                    join: 'custbody_dps_fu_rec_link'
-                });
+                bigRec = rec.getValue('custrecord_fulfillment_record');
+                dec_info = rec.id;
+                declaration_status = rec.getText('custrecord_declaration_status');
+                print_status = rec.getText('custrecord_print_status');
 
                 line.setSublistValue({
                     id: 'custpage_transferorder',
-                    value: rec.id,
+                    value: rec.getValue('custrecord_transfer_order'),
                     line: i
                 });
 
-                if (flag) {
-                    status = '已打印';
-                }
-                if (!inv) {
-                    status = '不可打印';
-                }
+                line.setSublistValue({
+                    id: 'custpage_customs_information',
+                    value: dec_info,
+                    line: i
+                });
+                line.setSublistValue({
+                    id: 'custpage_declaration_status',
+                    value: declaration_status,
+                    line: i
+                });
                 line.setSublistValue({
                     id: 'custpage_print_status',
-                    value: status,
+                    value: print_status,
                     line: i
                 });
 

@@ -14,9 +14,9 @@
  *@description 亚马逊抓单脚本/使用MP直接抓单
  *@lastupdate 20200305 11:45
  */
-define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "./Helper/Moment.min", "N/log", "N/search",
-    "N/record", "N/transaction", "N/encode", "N/https", "N/xml", 'N/config', '../Rantion/Helper/location_preferred.js'
-], function (format, runtime, core, cryptoJS, moment, log, search, record, transaction, encode, https, xml, config, loactionPre) {
+define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/log", "N/search",
+    "N/record", "N/transaction", '../Rantion/Helper/location_preferred.js',"./Helper/interfunction.min"
+], function (format, runtime, core,  moment, log, search, record, transaction, loactionPre,interfun) {
 
     const price_conf = {
         "SKU售价": "item_price",
@@ -42,7 +42,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
         log.debug("idto", idto);
         var orders = [];
         core.amazon.getAccountList().map(function (account) {
-            var limit = 1 // 999; //350
+            var limit = 4000 // 999; //350
             var filters = [{
                     name: 'custrecord_aio_cache_resolved',
                     operator: search.Operator.IS,
@@ -53,11 +53,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     operator: "is",
                     values: "Shipped"
                 },
-                // {
-                //     name: "internalidnumber",
-                //     operator: "equalto",
-                //     values: 2
-                // },
+                {
+                    name: "custrecord_trandate_amazonorder",
+                    operator: "within",
+                    values: ["1/5/2020","1/6/2020"]
+                },
             ];
             if (idform) {
                 filters.push({
@@ -139,8 +139,9 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
     }
 
     function map(context) {
-
+        var startT = new Date().getTime()
         var obj = JSON.parse(context.value);
+        return
         log.audit('obj', obj)
         var amazon_account_id = obj.id;
         var o = obj.order;
@@ -154,7 +155,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
 
         var version = obj.version;
 
-        log.error('version', version);
+        log.error('version '+ version,"country: "+country);
 
         var customer = obj.customer;
         var line_items = obj.iteminfo;
@@ -325,11 +326,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     log.debug("endDate123", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            value: endDate,
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.EUROPE_LONDON
-                        })
+                        text:  interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -357,11 +354,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     log.debug("endDate", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            value: endDate,
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.EUROPE_LONDON
-                        })
+                        text:  interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -380,11 +373,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     log.debug("endDate777", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            value: moment.utc(order_trandate).toDate(),
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.AMERICA_LOS_ANGELES
-                        })
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -402,12 +391,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
 
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            // value: endDate,
-                            value: moment.utc(order_trandate).toDate(),
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.EUROPE_LONDON
-                        })
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -466,11 +450,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     log.debug("endDate123", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            value: endDate,
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.EUROPE_LONDON
-                        })
+                        text:interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -498,11 +478,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     log.debug("endDate", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            value: endDate,
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.EUROPE_LONDON
-                        })
+                        text:interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -521,11 +497,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     log.debug("endDate777", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            value: moment.utc(order_trandate).toDate(),
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.AMERICA_LOS_ANGELES
-                        })
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -543,12 +515,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
 
                     ord.setText({
                         fieldId: 'trandate',
-                        text: format.format({
-                            // value: endDate,
-                            value: moment.utc(order_trandate).toDate(),
-                            type: format.Type.DATE,
-                            timezone: format.Timezone.EUROPE_LONDON
-                        })
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -564,7 +531,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                 log.debug('o.order_lastupdate11', order_lastupdate);
 
                 if (ord.getValue('orderstatus') == 'A' && ['Pending', 'Canceled', 'Unfulfillable'].indexOf(o.order_status) > -1) {
-                    log.debug('11', 11);
                     /** 如果有地址，替换掉原来的临时地址 */
                     if (o.shipping_address && o.buyer_email) {
                         c = record.load({
@@ -751,7 +717,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                 line_items = core.amazon.getOrderItems(a, o.amazon_order_id);
             log.debug("0000011line_items:" + obj.rec_id, line_items);
 
-            var otherId = record.submitFields({
+             record.submitFields({
                 type: 'customrecord_aio_order_import_cache',
                 id: obj.rec_id,
                 values: {
@@ -797,13 +763,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                 }
                 var skuid;
                 try {
-
                     search.create({
                         type: 'customrecord_dps_amazon_seller_sku',
                         filters: [{
                                 name: 'custrecord_dps_amazon_sku_number',
                                 operator: 'is',
-                                values: line.seller_sku
+                                values:  line.seller_sku.trim()
                             } //sku
                             , { // 存在货品非活动的情况
                                 name: 'isinactive',
@@ -825,6 +790,70 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                         return false;
                     });
 
+                    if(!skuid)
+                    search.create({
+                        type: 'item',
+                        filters: [{
+                                name: 'itemid',
+                                operator: 'is',
+                                values: line.seller_sku.trim()
+                            } //sku
+                        ],
+                    }).run().each(function (rec) {
+                        skuid = rec.id;
+                    });
+                    if (!skuid) {
+                        var sku_notes, counts = 0
+                        search.create({
+                            type: 'customrecord_no_sku_record',
+                            filters: [{
+                                name: 'custrecord_not_on_sku',
+                                operator: 'is',
+                                values:  line.seller_sku.trim()
+                            },
+                            {
+                                name: 'custrecord_account',
+                                operator: 'is',
+                                values: amazon_account_id
+                            }
+                            ],
+                            columns: [{
+                                name: 'custrecord_total_orders'
+                            }]
+                        }).run().each(function (e) {
+                            counts = e.getValue("custrecord_total_orders")
+                            sku_notes = record.load({
+                                type: 'customrecord_no_sku_record',
+                                id: e.id
+                            })
+                        })
+                        if (!sku_notes) {
+                            sku_notes = record.create({
+                                type: "customrecord_no_sku_record"
+                            })
+                        }
+                        sku_notes.setValue({
+                            fieldId: 'custrecord_not_on_sku',
+                            value: seller_sku
+                        })
+                        sku_notes.setValue({
+                            fieldId: 'custrecord_orderno',
+                            value: "Amazon"
+                        })
+                        sku_notes.setValue({
+                            fieldId: 'custrecord_account',
+                            value: amazon_account_id
+                        })
+                        sku_notes.setValue({
+                            fieldId: 'custrecord_total_orders',
+                            value: Number(counts) + 1
+                        })
+                        sku_notes.save();
+                        log.debug("找不到sku，已记录下来")
+                    throw "找不到货品, 或者货品已经非活动了(SKU): " + line.seller_sku.trim();
+                }
+               
+ 
                 } catch (e) {
                     log.error("assemblyitem error :::", e)
                 }
@@ -833,10 +862,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                 });
                 log.debug('12set skuid', 'skuid:' + skuid + ', cid:' + cid)
 
-                if (!skuid) {
-                    throw "找不到货品, 或者货品已经非活动了(SKU): " + line.seller_sku.trim();
-                }
-
+             
 
 
                 ord.setCurrentSublistValue({
@@ -872,26 +898,37 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                 });
 
                 //按照计算逻辑公式计算itemprice
-                var itemprice = 0
+
+                var itemprice = 0,fla_str=""
                 for (key in fla) {
                     if (fla[key] == "start") {
                         itemprice = Number(line[key])
+                        fla_str += key+""
                     } else {
                         if (fla[key] == "-") {
                             itemprice = itemprice - Number(line[key])
+                            fla_str += "-"+key
                         } else if (fla[key] == "+") {
+                            fla_str += "+"+key
                             itemprice = itemprice + Number(line[key])
                         }
                     }
                 }
-                log.debug("0000000itemprice:" + itemprice, "原始的货品价格：" + line.item_price)
-                log.debug('15rate', line.item_price / line.qty)
+                log.debug("组合好的计算公式fla_str:",fla_str)
+         
+                if (country == "US" || country == "CA") {
+                    log.debug('需要加稅tax_item_amount'+tax_item_amount, tax_item_amount+"+"+itemprice)
+                    tax_item_amount = line[core.consts.fieldsMapping._LIST_ORDER_ITEMS_.mapping['custcol_aio_s_item_tax']]
+                    itemprice +=Number(tax_item_amount)
+                }
+                log.debug("0000000itemprice:" + itemprice, "原始的货品价格：" + line.item_price) 
+               
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'rate',
                     value: itemprice / line.qty
                 });
-                log.debug('16amount', line.item_price)
+               
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'amount',
@@ -903,11 +940,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                     fieldId: 'custcol_aio_origianl_amount',
                     value: itemprice
                 });
-                ord.setCurrentSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'custcol_purchased_application_date', //需求时间
-                    value: 1
-                });
+                // ord.setCurrentSublistValue({
+                //     sublistId: 'item',
+                //     fieldId: 'custcol_purchased_application_date', //需求时间
+                //     value: 1
+                // });
                 log.audit("tax_item_amount::", line.item_tax + "," + line.shipping_tax)
                 /** 设置订单含税 */
                 if (p.salesorder_if_taxed && i.tax_item && line.item_tax) {
@@ -952,7 +989,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                 discount_rate += Number(line.shipping_discount) + Number(line.promotion_discount);
 
                 num++;
-                tax_item_amount = line[core.consts.fieldsMapping._LIST_ORDER_ITEMS_.mapping['custcol_aio_s_item_tax']]
                 //  log.audit("line[core.consts.fieldsMapping._LIST_ORDER_ITEMS_.mapping['custcol_aio_s_item_tax']]:",line[core.consts.fieldsMapping._LIST_ORDER_ITEMS_.mapping['custcol_aio_s_item_tax']])
                 try {
                     ord.commitLine({
@@ -968,36 +1004,31 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
                 log.audit("tax_item_amount:", tax_item_amount)
                 try {
 
-                    // set tax line     56357
-                    log.debug('amazon_account_id', amazon_account_id + ",country:" + country);
-                    if (enabled_sites == "AmazonUS" || enabled_sites == "AmazonCA") {
-                        ord.selectNewLine({
-                            sublistId: 'item'
-                        });
-                        ord.setCurrentSublistValue({
-                            sublistId: 'item',
-                            fieldId: 'item',
-                            value: 56357
-                        });
-                        ord.setCurrentSublistValue({
-                            sublistId: 'item',
-                            fieldId: 'quantity',
-                            value: line.qty
-                        });
-                        ord.setCurrentSublistValue({
-                            sublistId: 'item',
-                            fieldId: 'amount',
-                            value: tax_item_amount
-                        });
-                        ord.setCurrentSublistValue({
-                            sublistId: 'item',
-                            fieldId: 'custcol_purchased_application_date',
-                            value: 1
-                        }); //需求时间
-                        ord.commitLine({
-                            sublistId: 'item'
-                        });
-                    }
+                    // set tax line     56357  不再增加费用货品，增加个税合并到itemprice上
+                    // log.debug('amazon_account_id', amazon_account_id + ",country:" + country);
+                    // if (country == "US" || country == "CA") {
+                    //     ord.selectNewLine({
+                    //         sublistId: 'item'
+                    //     });
+                    //     ord.setCurrentSublistValue({
+                    //         sublistId: 'item',
+                    //         fieldId: 'item',
+                    //         value: 56357
+                    //     });
+                    //     ord.setCurrentSublistValue({
+                    //         sublistId: 'item',
+                    //         fieldId: 'quantity',
+                    //         value: line.qty
+                    //     });
+                    //     ord.setCurrentSublistValue({
+                    //         sublistId: 'item',
+                    //         fieldId: 'amount',
+                    //         value: tax_item_amount
+                    //     });
+                    //     ord.commitLine({
+                    //         sublistId: 'item'
+                    //     });
+                    // }
                 } catch (err) {
                     log.error("selectNewLine error", err)
                 }
@@ -1206,6 +1237,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min", "
             });
             log.debug(externalid, externalid + " | \u7CFB\u7EDF\u7EA7\u522B\u9519\u8BEF\uFF0C\u8BA2\u5355\u63A8\u81F3MISSING ORDER! #" + mid + " order: " + JSON.stringify(o, null, 2));
         }
+        log.debug("生成一张单耗时:", new Date().getTime() -startT)
     }
 
     function reduce(context) {

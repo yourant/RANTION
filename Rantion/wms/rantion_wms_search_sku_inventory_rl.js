@@ -33,19 +33,39 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
         var barcode = context.barcode;
 
         var filters = [];
+        filters.push(['isinactive', 'is', 'F']);
         if (warehouseCode) {
-            filters.push({ name: 'custrecord_dps_warehouse_code', operator: 'is', values: warehouseCode });
+            filters.push('and');
+            filters.push(['custrecord_dps_warehouse_code', 'is', warehouseCode]);
         }
-        if (positionCode) {
-            filters.push({ name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode });
+        if (positionCode && !barcode) {
+            filters.push('and');
+            var parids = [];
+            search.create({
+                type: 'location',
+                filters: [
+                    { name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode },
+                    { name: 'custrecord_wms_location_type', operator: 'anyof', values: ['2'] }
+                ]
+            }).run().each(function(result) {
+                parids.push(result.id);
+                return true;
+            });
+            if (parids.length > 0) {
+                filters.push([['custrecord_dps_wms_location', 'is', positionCode], 'or', ['custrecord_dps_parent_location', 'anyof', parids]]);
+            } else {
+                filters.push(['custrecord_dps_wms_location', 'is', positionCode]);
+            }
+            filters.push('and');
+            filters.push(['custrecord_wms_location_type', 'anyof', ['2','3']]);
         }
         if (barcode) {
-            filters.push({ name: 'custrecord_dps_wms_location', operator: 'is', values: barcode });
-            filters.push({ name: 'custrecord_wms_location_type', operator: 'anyof', values: [ '3' ] });
-        } else {
-            filters.push({ name: 'custrecord_wms_location_type', operator: 'anyof', values: [ '2', '3' ] });
+            filters.push('and');
+            filters.push(['custrecord_dps_wms_location', 'is', barcode]);
+            filters.push('and');
+            filters.push(['custrecord_wms_location_type', 'anyof', ['3']]);
         }
-        filters.push({ name: 'isinactive', operator: 'is', values: 'F' });
+        log.debug('filters', JSON.stringify(filters));
         var ids = [];
         var locapare = {};
         var locaware = {};
@@ -86,7 +106,8 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                 columns : [ 
                     'itemid', 'locationquantityonhand',
                     { name: 'custrecord_wms_location_type', join: 'inventorylocation' },
-                    { name: 'custrecord_dps_wms_location', join: 'inventorylocation' }
+                    { name: 'custrecord_dps_wms_location', join: 'inventorylocation' },
+                    { name: 'subsidiary', join: 'inventorylocation' }
                 ]
             });
             var pageData = mySearch.runPaged({

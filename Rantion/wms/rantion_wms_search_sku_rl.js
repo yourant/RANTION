@@ -28,8 +28,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                 'vendorname', 'custitem_dps_high', 'custitem_dps_long',
                 'custitem_dps_wide', 'custitem_dps_weight', 'custitem_dps_picture',
                 'custitem_dps_factory_inspe', 'custitem_dps_warehouse_check',
-                'custitem_dps_group', 'stockunit', 
-                // 'baseunit'
+                'custitem_dps_group', 'stockunit'
             ]
         });
         var pageData = mySearch.runPaged({

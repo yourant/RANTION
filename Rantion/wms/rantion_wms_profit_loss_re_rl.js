@@ -102,7 +102,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
                         var diffCount = firstCount * -1
                         if (!firstLocation) throw new Error("蓝深贸易有限公司 对应库位不存在 库位编号：" + parami.positionCode)
                         if (firstCount < remainCount) {
-                            remainCount = (remainCount - firstCount) * -1
+                            remainCount = (remainCount - Math.abs(firstCount))
                         } else {
                             diffCount = remainCount * -1
                             remainCount = 0
@@ -120,7 +120,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
                         var diffCount = secondCount * -1
                         if (!secondLocation) throw new Error("广州蓝图创拓进出口贸易有限公司 对应库位不存在 库位编号：" + parami.positionCode)
                         if (secondCount < remainCount) {
-                            remainCount = (remainCount - secondCount) * -1
+                            remainCount = (remainCount - Math.abs(secondCount))
                         } else {
                             diffCount = remainCount * -1
                             remainCount = 0
@@ -306,7 +306,8 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
             type: 'location',
             filters: [
                 { name: 'subsidiary', operator: 'is', values: companyId },
-                { name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode }
+                { name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode },
+                { name: 'isinactive', operator: 'is', values: 'F' }
             ],
             columns: [
                 { name: 'internalId' }

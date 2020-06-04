@@ -126,6 +126,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
         rec.setValue({ fieldId: 'subsidiary', value: company })
         rec.setValue({ fieldId: 'orderstatus', value: 'B' })
         rec.setValue({ fieldId: 'location', value: location })
+        rec.setValue({ fieldId: 'custbody_dps_transferor_type', value: '6' })
         rec.setValue({ fieldId: 'transferlocation', value: toLocation })
         rec.setValue({ fieldId: 'custbody_dps_wms_damage_num', value: fono })
         rec.setSublistValue({ sublistId: 'item', fieldId: 'item', value: item, line: 0 });

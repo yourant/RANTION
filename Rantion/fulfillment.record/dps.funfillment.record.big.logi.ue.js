@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-04 15:43:04
+ * @LastEditTime   : 2020-06-04 17:11:03
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -35,7 +35,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var bf_cur = context.newRecord;
 
             var bigRec_status = bf_cur.getValue('custrecord_dps_shipping_rec_status');
-            log.debug('bigRec_status', bigRec_status);
+            log.debug('beforeLoad bigRec_status', bigRec_status);
             if (type == 'view' && bigRec_status == 4) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
@@ -50,10 +50,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     functionName: "amazonShipment(" + bf_cur.id + ")"
                 });
             }
-            if (type == 'view' && bigRec_status == 8) {
+            if (type == 'view' && bigRec_status == 8 || bigRec_status == 9) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
-                    label: '重新WMS发运',
+                    label: 'WMS发运',
                     functionName: "WMSShipping(" + bf_cur.id + ")"
                 });
             }
@@ -69,12 +69,14 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         }
 
         function beforeSubmit(context) {
-
+            log.debug('beforeSubmit', context.newRecord);
         }
 
         function afterSubmit(context) {
 
             var af_rec1 = context.newRecord;
+
+            log.audit('af_rec1', af_rec1);
 
             af_rec = record.load({
                 type: af_rec1.type,
@@ -684,10 +686,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                         }
 
-                    // } else {
-                    //     var upresp = core.amazon.updateInboundShipment(rec_account, address_id, shipping_rec_shipmentsid, 'WORKING', label_prep_preference, DestinationFulfillmentCenterId, items);
+                        // } else {
+                        //     var upresp = core.amazon.updateInboundShipment(rec_account, address_id, shipping_rec_shipmentsid, 'WORKING', label_prep_preference, DestinationFulfillmentCenterId, items);
 
-                    //     log.debug('upresp', upresp);
+                        //     log.debug('upresp', upresp);
                     }
 
                 } else if (rec_status == 12) {

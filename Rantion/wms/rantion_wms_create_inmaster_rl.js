@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-04 14:35:15
+ * @LastEditTime   : 2020-06-04 17:54:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -304,6 +304,10 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         'item', 'rate', 'quantity', 'entity', 'location', 'subsidiary',
                         'trandate', 'tranid', 'custcol_dps_trans_order_item_sku', 'custcol_dps_so_item_title',
                         {
+                            name: "itemid",
+                            join: "item",
+                        },
+                        {
                             name: "custitem_aio_asin",
                             join: "item",
                         },
@@ -358,7 +362,10 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     total += Number(it);
                     var info = {
                         item: rec.getValue('item'),
-                        sku: rec.getValue('custcol_dps_trans_order_item_sku'),
+                        sku: rec.getValue({
+                            name: "itemid",
+                            join: "item",
+                        }),
                         rate: rec.getValue('rate'),
                         quantity: it,
                         title: rec.getValue({
@@ -398,6 +405,8 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     skuList.push(info);
                 }
 
+
+                log.debug('skuList', skuList);
                 log.audit('total', total);
                 var da = new Date();
 

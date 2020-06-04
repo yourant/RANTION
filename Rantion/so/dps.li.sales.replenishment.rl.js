@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:50:16
- * @LastEditTime   : 2020-05-25 19:34:49
+ * @LastEditTime   : 2020-06-04 20:52:42
  * @LastEditors    : Li
  * @Description    : 复制对应的销售订单, 生成新的销售订单; 推送 入库信息到WMS
  * @FilePath       : \Rantion\so\dps.li.sales.replenishment.rl.js
@@ -23,24 +23,36 @@ define(['N/record', 'N/search', 'N/log', 'N/format', "../../douples_amazon/Helpe
 
         var action = context.action;
         log.debug('action', action);
-        if (action == 1) {
-            // SO
-            var soId = createSO(context);
-            info = {
-                soId: soId,
-                action: 'createSo'
-            }
-            return info;
-        } else if (action == 2) {
-            // WMS
 
-            var getWMSid = toWMS(context);
-            info = {
-                soId: getWMSid,
-                action: 'WMS'
-            }
+        try {
+            if (action == 1) {
+                // SO
+                var soId = createSO(context);
+                info = {
+                    soId: soId,
+                    action: 'createSo',
+                    msg: '创建补货销售订单成功： ' + soId
+                }
+                return info;
+            } else if (action == 2) {
+                // WMS
 
-            return info;
+                var getWMSid = toWMS(context);
+                info = {
+                    soId: getWMSid,
+                    action: 'WMS'
+                }
+
+                return info;
+            }
+        } catch (error) {
+            log.error('生成销售订单出错了', error);
+
+            info = {
+                msg: '创建补货销售订单出错了'
+            };
+
+            return info
         }
 
         return info || false;
@@ -48,8 +60,6 @@ define(['N/record', 'N/search', 'N/log', 'N/format', "../../douples_amazon/Helpe
     }
 
     function toWMS(con) {
-
-
 
 
         // 推送WMS 成功, 标记状态
@@ -76,6 +86,53 @@ define(['N/record', 'N/search', 'N/log', 'N/format', "../../douples_amazon/Helpe
             id: con.soId,
             // isDynamic: true
         });
+
+        var retArr = [],
+            limit = 3999,
+            otherrefnum;
+        search.create({
+            type: 'returnauthorization',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: con.id
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                }
+            ],
+            columns: [
+                'item', 'quantity',
+                {
+                    join: 'createdfrom',
+                    name: 'otherrefnum'
+                }
+            ]
+        }).run().each(function (rec) {
+
+            otherrefnum = rec.getValue({
+                join: 'createdfrom',
+                name: 'otherrefnum'
+            })
+            var it = {
+                item: rec.getValue('item'),
+                qty: rec.getValue('quantity')
+            };
+
+            retArr.push(it);
+
+            return --limit > 0;
+
+        });
+
+        log.debug('retArr', retArr);
 
         log.audit('new Date()', new Date());
         log.audit('new Date().getTimezoneOffset()', new Date().getTimezoneOffset());
@@ -106,51 +163,41 @@ define(['N/record', 'N/search', 'N/log', 'N/format', "../../douples_amazon/Helpe
 
         log.debug('numLines', numLines);
 
-        for (var i = 0; i < numLines; i++) {
-            objRecord.setSublistValue({
-                sublistId: 'item',
-                fieldId: 'rate',
-                value: 0,
-                line: i
-            });
-            objRecord.setSublistValue({
-                sublistId: 'item',
-                fieldId: 'amount',
-                value: 0,
-                line: i
-            });
-        }
+        retArr.map(function (arr, key) {
 
-        log.audit('objRecord', objRecord);
+            var lineNumber = objRecord.findSublistLineWithValue({
+                sublistId: 'item',
+                fieldId: 'item',
+                value: arr.item
+            });
+
+            if (lineNumber > -1) {
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'quantity',
+                    value: Math.abs(arr.qty),
+                    line: lineNumber
+                });
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'rate',
+                    value: 0,
+                    line: lineNumber
+                });
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'amount',
+                    value: 0,
+                    line: lineNumber
+                });
+            }
+
+        });
+
+        // log.audit('objRecord', objRecord);
         var new_so_id = objRecord.save();
 
-
-        // var newRate = record.load({
-        //     type: 'salesorder',
-        //     id: new_so_id
-        // });
-
-        // var numLines = newRate.getLineCount({
-        //     sublistId: 'item'
-        // });
-
-        // log.debug('numLines', numLines);
-
-        // for (var i = 0; i < numLines; i++) {
-        //     objRecord.setSublistValue({
-        //         sublistId: 'item',
-        //         fieldId: 'rate',
-        //         value: 0,
-        //         line: i
-        //     });
-        //     objRecord.setSublistValue({
-        //         sublistId: 'item',
-        //         fieldId: 'amount',
-        //         value: 0,
-        //         line: i
-        //     });
-        // }
-
+        log.debug('new_so_id', new_so_id);
 
         var id = record.submitFields({
             type: 'returnauthorization',
@@ -160,7 +207,7 @@ define(['N/record', 'N/search', 'N/log', 'N/format', "../../douples_amazon/Helpe
             }
         });
 
-        return new_so_id || false;
+        return otherrefnum || false;
     }
 
     return {

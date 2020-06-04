@@ -21,7 +21,8 @@
  * @NModuleScope SameAccount
  * @lastupdate 20200302 20:09
  */
-define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/record", "N/runtime", "./Helper/Moment.min", "N/search"], function (format, require, exports, core, log, record, runtime, moment, search) {
+define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/record", "N/runtime", "./Helper/Moment.min", "N/search","./Helper/interfunction.min"],
+ function (format, require, exports, core, log, record, runtime, moment, search,interfun) {
     Object.defineProperty(exports, "__esModule", {
         value: true
     });
@@ -63,7 +64,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             name: 'custscript_restriction'
         });
         log.audit("RESTRICTION", restr);
-        var acc_arry = core.amazon.getReportAccountList();
 
         var startDate, endate;
 
@@ -71,7 +71,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
 
         core.amazon.getReportAccountList().map(function (account) {
         // core.amazon.getAccountList().map(function (account) {
-            if (account.id == 5) {
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {
                     log.audit("account:" + account.id, marketplace);
@@ -82,42 +81,33 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             core.amazon.requestReportFake(account, report_type);
                             log.audit("requestReportFake", "requestReportFake");
                         } else {
-
                             log.audit("requestReportrequestReport", account.id);
-
                             // 根据站点来设置时间
                             if (account.enabled_sites == 'AmazonUS') {
                                 // 美国站点
                                 log.audit("account.id " + account.id, "美国站点");
                                 startDate = "2020-04-01T00:00:00.000Z";
                                 endate = "2020-04-19T23:59:59.999Z";
-
                             } else if (account.enabled_sites == 'AmazonUK') {
                                 // 英国站点
                                 log.audit("account.id " + account.id, "英国站点");
-
                                 startDate = "2020-04-01T08:00:00.000Z";
                                 endate = "2020-03-20T08:00:00.000Z";
-
                             } else if (account.enabled_sites == 'AmazonDE' || account.enabled_sites == 'AmazonES' || account.enabled_sites == 'AmazonFR' || account.enabled_sites == 'AmazonIT') {
                                 // 欧洲站点
                                 log.audit("account.id " + account.id, "欧洲站点");
-
                                 startDate = "2020-04-01T09:00:00.000Z";
                                 endate = "2020-03-20T09:00:00.000Z";
-
                             } else {
                                 // 其他站点
                                 log.audit("account.id " + account.id, "其他站点");
                                 startDate = "2020-04-01T00:00:00.000Z";
                                 endate = "2020-03-19T23:59:59.999Z";
                             }
-
                             startDate = report_start_date;
                             endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
-
-                            startDate = '2020-04-01T00:00:00.000Z';
-                            endate = '2020-04-31T23:59:59.000Z';
+                            startDate = '2020-05-01T00:00:00.000Z';
+                            endate = '2020-06-01T00:00:00.000Z';
                             log.debug(report_type, "startDate:" + startDate + "   endate:" + endate);
 
                             core.amazon.requestReport(account, report_type, {
@@ -125,51 +115,17 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                                 'EndDate': endate,
                                 'MarketplaceIdList.Id.1': account.marketplace,
                             });
-
-                            // core.amazon.requestReport(account, report_type, {
-                            //     'StartDate': report_start_date,
-                            //     'EndDate': moment.utc().subtract(1, 'days').endOf('day').toISOString(),
-                            //     'MarketplaceIdList.Id.1': account.marketplace,
-                            // });
-
                         }
                     } else {
 
-                        // 结算报告量大, 先按店铺拉取
-                        if (account.id == 3 && report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-                            log.audit("getRequestingReportList", "getRequestingReportList");
-                            core.amazon.getRequestingReportList(account, report_type).map(function (r) {
-                                log.error('账号 ID', account);
-                                var rLines = r.lines;
-                                log.audit('rLines', rLines[0]);
-                                r.lines.map(function (l) {
-                                    return lines.push({
-                                        acc_id: account.id,
-                                        salesorder_location: account.info.salesorder_location,
-                                        id: r.id,
-                                        type: report_type,
-                                        line: l,
-                                        firstLine: rLines[0],
-                                    });
-                                });
-
-                                record.submitFields({
-                                    type: core.ns.amazon_report._name,
-                                    id: r.id,
-                                    values: {
-                                        'custrecord_aio_origin_report_is_download': true
-                                    }
-                                });
-                            });
-                        } else if (account.id) {
                             var rid = Date.now();
                             log.audit("getRequestingReportList", "getRequestingReportList");
                             core.amazon.getRequestingReportList(account, report_type).map(function (r) {
                                 log.error('账号 ID', account);
                                 var rLines = r.lines;
-                                log.audit('rLines', rLines[0]);
+                                log.audit('rLines'+rLines.length, rLines[0]);
 
-                                r.lines.map(function (l) {
+                                rLines.map(function (l) {
                                     return lines.push({
                                         acc_id: account.id,
                                         salesorder_location: account.info.salesorder_location,
@@ -185,7 +141,8 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                                     type: core.ns.amazon_report._name,
                                     id: r.id,
                                     values: {
-                                        'custrecord_aio_origin_report_is_download': true
+                                        'custrecord_aio_origin_report_is_download': true,
+                                        'custrecord_amazon_report_counts': rLines.length //本次拉取总数
                                     }
                                 });
                             });
@@ -240,9 +197,8 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                                     updateInventoryRecord.save();
                                 }
                             }
-                        }
+                        
                     }
-                }
             } else {
                 log.audit("check_if_handle", 'check_if_handle false');
             }
@@ -265,7 +221,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             r.push(lines[i]);
             count++;
 
-            if (count >= 10 || i == (lines.length - 1)) {
+            if (count >= 20 || i == (lines.length - 1)) {
                 results.push(JSON.stringify(r));
                 count = 0;
                 r = [];
@@ -278,26 +234,25 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
     };
 
     exports.map = function (ctx) {
-        try {
-            var rid = ctx.value.rid;
-            var reportFlag = false;
+      
             var vArray = JSON.parse(ctx.value);
             log.error('vArray', vArray)
+            var acc_id,id,type,line,firstLine
+            try {
             vArray.map(function (v) {
                 log.error("v:", v)
                 // log.audit("JSON.parse(ctx.value)",JSON.stringify(v));
-                var acc_id = Number(v.acc_id),
+                    acc_id = Number(v.acc_id),
                     id = Number(v.id),
                     type = v.type,
                     line = v.line,
                     firstLine = v.firstLine;
-
+            
                 line['report-id'] = id;
                 line['account'] = acc_id;
-                var date_text;
                 if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
                     line['deposit-date'] = firstLine['deposit-date'];
-                    line['total-amount'] = firstLine['total-amount']; //??????????????ó??????¨??í????????????????????????????
+                    line['total-amount'] = firstLine['total-amount']; 
                     line['settlement-start-date'] = firstLine['settlement-start-date'];
                     line['settlement-end-date'] = firstLine['settlement-end-date'];
                     line['currency'] = firstLine['currency'];
@@ -374,25 +329,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         check_rec_id = e.id
                     });
                 }
-                // else if (mapping.record_type_id == "customrecord_aio_amazon_settlement") {
-                //     // Amazon 结算报告     customrecord_aio_amazon_settlement        _GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_
-                //     search.create({
-                //         type: 'customrecord_aio_amazon_settlement',
-                //         filters: [
-                //             { name: "custrecord_aio_sett_amount_type", operator: "is", values: line['amount-type'] },
-                //             { name: "custrecord_aio_sett_tran_type", operator: "is", values: line['transaction-type'] },
-                //             { name: "custrecord_aio_sett_id", operator: "is", values: line['settlement-id'] },
-                //             { name: "custrecord_aio_sett_amount", operator: "is", values: line['amount'] },
-                //             { name: "custrecord_aio_sett_deposit_date", operator: "is", values: line['deposit-date'] },
-                //             { name: "custrecord_aio_sett_order_id", operator: "is", values: line['order-id'] },
-                //             // { name: "custrecord_aio_sett_sku", operator: "is", values: line['sku']?:"" },
-                //             { name: "custrecord_aio_origin_account", join: "custrecord_aio_sett_report_id", operator: "anyof", values: [acc_id] },
-                //             { name: "custrecord_aio_sett_posted_date_time", operator: "is", values: line['posted-date-time'] }
-                //         ]
-                //     }).run().each(function (e) {
-                //         check_rec_id = e.id
-                //     })
-                // }
                 else if (mapping.record_type_id == "customrecord_aio_amazon_customer_return") {
                     search.create({
                         type: 'customrecord_aio_amazon_customer_return',
@@ -520,43 +456,20 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         isDynamic: true
                     });
                 }
-                // var rec = record.create({ type: mapping.record_type_id, isDynamic: true });
 
                 var date_key = mapping.date_key;
                 // log.debug('line[date_key:',line[date_key]);
-                date_textutc = line[date_key]
-                var returndateTextutc = line["return-date"]
-
-                line[date_key] = format.format({
-                    value: moment(line[date_key]).toDate(),
-                    type: format.Type.DATE,
-                    timezone: format.Timezone.AMERICA_LOS_ANGELES //????????×????????????ú????????
-                });
-
-                line[date_key] = format.format({
-                    value: moment(line[date_key]).toDate(),
-                    type: format.Type.DATE,
-                    timezone: format.Timezone.AMERICA_LOS_ANGELES //????????×????????????ú????????
-                });
-
-                log.debug('Object', '1')
+               line[date_key+"-txt"] = line[date_key];
+               if(line[date_key]){
+                   line[date_key] = interfun.getFormatedDate("","",line[date_key]).date;
+               }
                 Object.keys(mapping.mapping).map(function (field_id) {
                     var values = line[mapping.mapping[field_id]];
-                    log.debug('Object field_id: ' + field_id, values);
                     if (values && JSON.stringify(values).length < 300) {
                         if (mapping.mapping[field_id] == date_key) {
                             rec.setText({
                                 fieldId: field_id,
                                 text: values
-                            });
-                        } else if (field_id == 'custrecord_aio_b2c_return_return_date') {
-                            rec.setText({
-                                fieldId: field_id,
-                                text: format.format({
-                                    value: moment(values).toDate(),
-                                    type: format.Type.DATE,
-                                    timezone: format.Timezone.AMERICA_LOS_ANGELES //????????×????????????ú????????
-                                })
                             });
                         } else {
                             rec.setValue({
@@ -564,23 +477,16 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                                 value: values
                             });
                         }
+                    } else if(values && JSON.stringify(values).length >= 300){
+                        log.error('else if values',values);
+                        rec.setValue({
+                            fieldId: field_id,
+                            value: values.substring(0,19)
+                        });
                     }
 
                 });
 
-                if (type == core.enums.report_type._GET_AMAZON_FULFILLED_SHIPMENTS_DATA_) {
-                    rec.setValue({
-                        fieldId: "custrecord_shipment_date_text",
-                        value: date_textutc
-                    });
-                }
-                if (type == core.enums.report_type._GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA_) {
-                    log.error('returndateTextutc', returndateTextutc)
-                    rec.setValue({
-                        fieldId: "custrecord_amazon_returndate_text",
-                        value: returndateTextutc
-                    });
-                }
 
                 if (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
                     log.error("_GET_FBA_MYI_ALL_INVENTORY_DATA_", v.rid + "-" + v.salesorder_location + "-" + acc_id)
@@ -598,49 +504,102 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                     });
                 }
                 if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-                    var s_date = format.format({
-                        value: moment.utc(dateDeal(line['settlement-start-date'])).toDate(),
-                        type: format.Type.DATE,
-                        timezone: format.Timezone.AMERICA_LOS_ANGELES //????????×????????????ú????????
-                    });
-                    var e_date = format.format({
-                        value: moment.utc(dateDeal(line['settlement-end-date'])).toDate(),
-                        type: format.Type.DATE,
-                        timezone: format.Timezone.AMERICA_LOS_ANGELES //????????×????????????ú????????
-                    });
                     rec.setText({
                         fieldId: "custrecord_settlement_start",
-                        text: s_date
+                        text: interfun.getFormatedDate("","",line["settlement-start-date"]).date
                     });
                     rec.setText({
                         fieldId: "custrecord_settlement_enddate",
-                        text: e_date
+                        text:  interfun.getFormatedDate("","",line["settlement-end-date"]).date
                     });
-
-                    // rec.setValue({ fieldId: "custrecord_settlement_start", value: moment.utc(dateDeal(line['settlement-start-date'])).toDate() });
-                    // rec.setValue({ fieldId: "custrecord_settlement_enddate", value: moment.utc(dateDeal(line['settlement-end-date'])).toDate() });
                 }
-                var id = rec.save();
-                log.debug('rec.id', id);
+                var ss = rec.save();
+                log.debug('rec.id', ss);
             })
         } catch (err) {
-            log.error('err cc', err);
+            var ss = createMissingReport(type, id,err,acc_id)
+            log.error('error:save id:'+ss, err);
         }
-        // log.debug("0map ??á????",new Date().getTime())
+      
     };
 
 
     function dateDeal(str) {
         var strs = str.substring(0, 10)
         var ins = strs.split(".")[0].length
-        var s_d
+        var s_d =str
         if (ins < 4) {
             s_d = strs.split(".")[2] + "/" + strs.split(".")[1] + "/" + strs.split(".")[0] + " " + str.substring(11, 19)
         } else {
+            if(str.indexOf("UTC")>-1)
             s_d = str.substring(0, 19)
         }
         return s_d
     }
+    /**
+    * 生成单据失败记录
+    * @param {*} type 
+    * @param {*} account_id 
+    * @param {*} order_id 
+    * @param {*} so_id 
+    * @param {*} reason 
+    * @param {*} date 
+    */
+   function createMissingReport(repoty, repo_id, reason, acc) {
+    var mo;
+    var fils = []
+    repoty?fils.push({ name: 'custrecord_amazon_missing_rep', operator: 'anyof',values: repoty}):""
+    repo_id?fils.push({ name: 'custrecord_amazon_missing_reportid', operator: 'anyof',values: repo_id}):""
+    acc?fils.push({ name: 'custrecord_amazon_missing_account', operator: 'anyof',values: acc}):""
+    search.create({
+      type: 'customrecord_amazon_missing_report',
+      filters: fils
+    }).run().each(function (rec) {
+      mo = record.load({
+        type: 'customrecord_amazon_missing_report',
+        id: rec.id
+      });
+      return false;
+    });
+    if (!mo) {
+      mo = record.create({
+        type: 'customrecord_amazon_missing_report',
+        isDynamic: true,
+      });
+    }
+    repoty?
+    mo.setValue({
+      fieldId: 'custrecord_amazon_missing_rep',
+      value: repoty
+    }):""; //类型
+    acc?
+    mo.setValue({
+      fieldId: 'custrecord_amazon_missing_account',
+      value: acc
+    }):"";
+    repo_id?
+    mo.setValue({
+      fieldId: 'custrecord_amazon_missing_reportid',
+      value: repo_id
+    }):"";
+    reason?
+    mo.setValue({
+      fieldId: 'custrecord_amazon_missing_reason',
+      value: reason
+    }):"";
+    //设置为false，重新拉一次
+    record.submitFields({
+        type:"customrecord_aio_amazon_report",
+        id:repo_id,
+        values:{
+            custrecord_aio_origin_report_is_download:false
+        }
+    })
+    return mo.save();
+  };
+
     exports.reduce = function (ctx) { };
-    exports.summarize = core.utils.summarize;
+    exports.summarize = function (ctx) { 
+        log.audit("处理完成",ctx)
+    };
 });

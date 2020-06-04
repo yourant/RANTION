@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-04 10:09:02
+ * @LastEditTime   : 2020-06-04 15:43:04
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -370,7 +370,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             ]
                         }).run().each(function (rec) {
 
-
                             var it = {
                                 purpose: rec.getValue({
                                     name: 'custrecord_dps_f_b_purpose',
@@ -631,7 +630,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             log.debug('rep', rep);
                             var shipmentid1 = rep[0].ShipmentId;
                             shipping_rec_shipmentsid = shipmentid1;
-                            var DestinationFulfillmentCenterId = rep[0].DestinationFulfillmentCenterId;
+                            DestinationFulfillmentCenterId = rep[0].DestinationFulfillmentCenterId;
                             reItem = rep[0].Items;
                             // log.audit('shipmentid1', shipmentid1);
                             // log.audit('DestinationFulfillmentCenterId', DestinationFulfillmentCenterId);
@@ -639,6 +638,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 type: af_rec.type,
                                 id: af_rec.id,
                                 values: {
+                                    custrecord_dps_shipping_rec_status: 15,
                                     custrecord_dps_ful_shipmentid_array: JSON.stringify(rep),
                                     custrecord_dps_shipping_rec_shipmentsid: shipmentid1,
                                     custrecord_dps_shipping_rec_destinationf: DestinationFulfillmentCenterId
@@ -647,25 +647,26 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                             var response1 = core.amazon.createInboundShipment(rec_account, address_id, shipmentid1, shipmentid1, DestinationFulfillmentCenterId, 'WORKING', '', label_prep_preference, reItem);
 
+                            var id = record.submitFields({
+                                type: 'customrecord_dps_shipping_record',
+                                id: af_rec.id,
+                                values: {
+                                    custrecord_dps_shipping_rec_status: 16,
+                                }
+                            });
+
 
                             log.debug('response1', response1);
 
-                            var upresp = core.amazon.updateInboundShipment(rec_account, address_id, shipmentid1, 'WORKING', DestinationFulfillmentCenterId, label_prep_preference, items);
+                            var upresp = core.amazon.updateInboundShipment(rec_account, address_id, shipping_rec_shipmentsid, 'WORKING', label_prep_preference, DestinationFulfillmentCenterId, items);
 
                             log.debug('upresp', upresp);
-                            // var shipmentArr = [];
-                            // rep.map(function (arr, key) {
-                            //     var response1 = core.amazon.createInboundShipment(rec_account, address_id, arr.ShipmentId, arr.ShipmentId, arr.DestinationFulfillmentCenterId, 'WORKING', '', label_prep_preference, arr.Items);
-                            //     shipmentArr.push(response1);
-                            //     log.debug(key + ' response1: ' + response1, arr);
-                            // });
 
                             var id = record.submitFields({
                                 type: 'customrecord_dps_shipping_record',
                                 id: af_rec.id,
                                 values: {
                                     custrecord_dps_shipping_rec_status: 10,
-                                    // custrecord_dps_shipping_rec_shipmentsid: JSON.stringify(shipmentArr)
                                 }
                             });
 
@@ -683,18 +684,22 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                         }
 
+                    // } else {
+                    //     var upresp = core.amazon.updateInboundShipment(rec_account, address_id, shipping_rec_shipmentsid, 'WORKING', label_prep_preference, DestinationFulfillmentCenterId, items);
+
+                    //     log.debug('upresp', upresp);
                     }
 
                 } else if (rec_status == 12) {
 
 
                     var rec_shipmentsid = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
-                    try {
-                        rec_shipmentsid = JSON.parse(rec_shipmentsid);
-                    } catch (error) {
-                        log.audit('装换数据出错了', error);
+                    // try {
+                    //     rec_shipmentsid = JSON.parse(rec_shipmentsid);
+                    // } catch (error) {
+                    //     log.audit('装换数据出错了', error);
 
-                    }
+                    // }
                     var total_number = af_rec.getValue('custrecord_dps_total_number');
                     var getRe;
                     /*
@@ -747,7 +752,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     // var total_number = af_rec.getValue('custrecord_dps_total_number');
                     // var getRe
                     try {
-                        getRe = core.amazon.getPalletLabels(rec_account, total_number, shipmentId);
+                        getRe = core.amazon.getPalletLabels(rec_account, total_number, rec_shipmentsid);
 
                     } catch (error) {
                         log.error('获取箱唛出错了', error);

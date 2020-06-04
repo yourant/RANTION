@@ -1,3 +1,13 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-05-15 12:05:49
+ * @LastEditTime   : 2020-06-04 14:35:15
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
@@ -54,68 +64,156 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
             var sourceType = Number(context.sourceType); // 来源类型 10:交货单 20:退货入库 30:调拨入库 40:盘盈入库
             // 交货单入库
             if (sourceType == 10) {
-                var item_arr = [], order_po_no = 0, boxNum = 0, planQty = 0;
+                var item_arr = [],
+                    order_po_no = 0,
+                    boxNum = 0,
+                    planQty = 0;
                 search.create({
                     type: 'customrecord_dps_delivery_order_item',
-                    filters: [
-                        {name: 'custrecord_dps_delivery_order_id',operator: 'anyof',values: context.id}
-                    ],
+                    filters: [{
+                        name: 'custrecord_dps_delivery_order_id',
+                        operator: 'anyof',
+                        values: context.id
+                    }],
                     columns: [
-                        'custrecord_item_sku',//货品
-                        'custrecord_line_boxes_number',//箱数
-                        'custrecord_item_quantity',//交货数量
-                        'custrecord_outstanding_quantity',//剩余交货数量
-                        {name: "custitem_dps_spucoding",join: "custrecord_item_sku"},//SPU编码
-                        {name: "custitem_dps_picture",join: "custrecord_item_sku"},//产品图片
-                        {name: "custitem_dps_skuchiense",join: "custrecord_item_sku"},//中文标题
-                        {name: "custitem_dps_specifications",join: "custrecord_item_sku"},//规格
+                        'custrecord_item_sku', //货品
+                        'custrecord_line_boxes_number', //箱数
+                        'custrecord_item_quantity', //交货数量
+                        'custrecord_outstanding_quantity', //剩余交货数量
+                        {
+                            name: "custitem_dps_spucoding",
+                            join: "custrecord_item_sku"
+                        }, //SPU编码
+                        {
+                            name: "custitem_dps_picture",
+                            join: "custrecord_item_sku"
+                        }, //产品图片
+                        {
+                            name: "custitem_dps_skuchiense",
+                            join: "custrecord_item_sku"
+                        }, //中文标题
+                        {
+                            name: "custitem_dps_specifications",
+                            join: "custrecord_item_sku"
+                        }, //规格
                         //主体上的
-                        {name: "custrecord_purchase_order_no",join: "custrecord_dps_delivery_order_id"},//采购单ID
-                        {name: "custrecord_delivery_remarks",join: "custrecord_dps_delivery_order_id"},//备注
-                        {name: "name",join: "custrecord_dps_delivery_order_id"},//交货单号
-                        {name: "custrecord_supplier_code",join: "custrecord_dps_delivery_order_id"},//供应商编码
-                        {name: "custrecord_supplier",join: "custrecord_dps_delivery_order_id"},//供应商
-                        {name: "custrecord_tracking_number",join: "custrecord_dps_delivery_order_id"},//运单号
-                        {name: "custrecord_delivery_date",join: "custrecord_dps_delivery_order_id"},//交期
-                        {name: "custrecord_dsp_delivery_order_location",join: "custrecord_dps_delivery_order_id"},//地点
+                        {
+                            name: "custrecord_purchase_order_no",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //采购单ID
+                        {
+                            name: "custrecord_delivery_remarks",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //备注
+                        {
+                            name: "name",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //交货单号
+                        {
+                            name: "custrecord_supplier_code",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //供应商编码
+                        {
+                            name: "custrecord_supplier",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //供应商
+                        {
+                            name: "custrecord_tracking_number",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //运单号
+                        {
+                            name: "custrecord_delivery_date",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //交期
+                        {
+                            name: "custrecord_dsp_delivery_order_location",
+                            join: "custrecord_dps_delivery_order_id"
+                        }, //地点
                     ]
                 }).run().each(function (rec) {
-                    order_po_no = rec.getValue({name: "custrecord_purchase_order_no",join: "custrecord_dps_delivery_order_id"});
+                    order_po_no = rec.getValue({
+                        name: "custrecord_purchase_order_no",
+                        join: "custrecord_dps_delivery_order_id"
+                    });
                     boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
-                    if(rec.getValue({name: 'custrecord_delivery_date',join: 'custrecord_dps_delivery_order_id'})){
-                        var estimateTime = format.parse({ value:rec.getValue({name: 'custrecord_delivery_date',join: 'custrecord_dps_delivery_order_id'}), type: format.Type.DATE});
-                        data['estimateTime'] = (new Date(estimateTime)).getTime();///1000
-                    }else{
+                    if (rec.getValue({
+                            name: 'custrecord_delivery_date',
+                            join: 'custrecord_dps_delivery_order_id'
+                        })) {
+                        var estimateTime = format.parse({
+                            value: rec.getValue({
+                                name: 'custrecord_delivery_date',
+                                join: 'custrecord_dps_delivery_order_id'
+                            }),
+                            type: format.Type.DATE
+                        });
+                        data['estimateTime'] = (new Date(estimateTime)).getTime(); ///1000
+                    } else {
                         data['estimateTime'] = '';
                     }
                     planQty += Number(rec.getValue('custrecord_item_quantity'));
-                    data['remark'] = rec.getValue({name: 'custrecord_delivery_remarks',join: 'custrecord_dps_delivery_order_id'});
-                    data['sourceNo'] = rec.getValue({name: "name",join: "custrecord_dps_delivery_order_id"});
+                    data['remark'] = rec.getValue({
+                        name: 'custrecord_delivery_remarks',
+                        join: 'custrecord_dps_delivery_order_id'
+                    });
+                    data['sourceNo'] = rec.getValue({
+                        name: "name",
+                        join: "custrecord_dps_delivery_order_id"
+                    });
                     data['sourceType'] = 10;
-                    data['supplierCode'] = rec.getValue({name: "custrecord_supplier_code",join: "custrecord_dps_delivery_order_id"});
-                    data['supplierName'] = rec.getText({name: "custrecord_supplier",join: "custrecord_dps_delivery_order_id"});
-                    data['waybillNo'] = rec.getValue({name: "custrecord_tracking_number",join: "custrecord_dps_delivery_order_id"});
-                    data['warehouseCode'] = rec.getValue({name: "custrecord_dsp_delivery_order_location",join: "custrecord_dps_delivery_order_id"});//rec.getValue({name: "custrecord_dps_wms_location",join: "location"});//仓库编号
-                    data['warehouseName'] = rec.getText({name: "custrecord_dsp_delivery_order_location",join: "custrecord_dps_delivery_order_id"});//rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
+                    data['supplierCode'] = rec.getValue({
+                        name: "custrecord_supplier_code",
+                        join: "custrecord_dps_delivery_order_id"
+                    });
+                    data['supplierName'] = rec.getText({
+                        name: "custrecord_supplier",
+                        join: "custrecord_dps_delivery_order_id"
+                    });
+                    data['waybillNo'] = rec.getValue({
+                        name: "custrecord_tracking_number",
+                        join: "custrecord_dps_delivery_order_id"
+                    });
+                    data['warehouseCode'] = rec.getValue({
+                        name: "custrecord_dsp_delivery_order_location",
+                        join: "custrecord_dps_delivery_order_id"
+                    }); //rec.getValue({name: "custrecord_dps_wms_location",join: "location"});//仓库编号
+                    data['warehouseName'] = rec.getText({
+                        name: "custrecord_dsp_delivery_order_location",
+                        join: "custrecord_dps_delivery_order_id"
+                    }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                     //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
-                    var variant_arr = [
-                        {
-                            name : 'color',
-                            value : '白色'
+                    var variant_arr = [{
+                            name: 'color',
+                            value: '白色'
                         },
                         {
-                            name : 'size',
-                            value : 'L'
+                            name: 'size',
+                            value: 'L'
                         }
                     ];
                     item_arr.push({
-                        boxNum: rec.getValue({name: "custrecord_line_boxes_number"}),
-                        planQty: rec.getValue({name: "custrecord_item_quantity"}),
-                        productCode: rec.getValue({name: "custitem_dps_spucoding",join: "custrecord_item_sku"}),
-                        productImageUrl: rec.getValue({name: "custitem_dps_picture",join: "custrecord_item_sku"}),
-                        productTitle: rec.getValue({name: "custitem_dps_skuchiense",join: "custrecord_item_sku"}),
+                        boxNum: rec.getValue({
+                            name: "custrecord_line_boxes_number"
+                        }),
+                        planQty: rec.getValue({
+                            name: "custrecord_item_quantity"
+                        }),
+                        productCode: rec.getValue({
+                            name: "custitem_dps_spucoding",
+                            join: "custrecord_item_sku"
+                        }),
+                        productImageUrl: rec.getValue({
+                            name: "custitem_dps_picture",
+                            join: "custrecord_item_sku"
+                        }),
+                        productTitle: rec.getValue({
+                            name: "custitem_dps_skuchiense",
+                            join: "custrecord_item_sku"
+                        }),
                         remainderQty: rec.getValue('custrecord_outstanding_quantity') ? rec.getValue('custrecord_outstanding_quantity') : 0,
-                        sku: rec.getText({name: "custrecord_item_sku"}),
+                        sku: rec.getText({
+                            name: "custrecord_item_sku"
+                        }),
                         variant: JSON.stringify(variant_arr),
                     });
                     return true;
@@ -126,30 +224,49 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
                 search.create({
                     type: 'purchaseorder',
-                    filters: [
-                        {name: 'internalid',operator: 'anyof',values: order_po_no},
-                        {name: 'mainline', operator: 'is', values: true}
+                    filters: [{
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: order_po_no
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: true
+                        }
                     ],
                     columns: [
                         'tranid',
                         'entity',
                         'subsidiary',
-                        {name: "custrecord_tax_included",join: "subsidiary"},
+                        {
+                            name: "custrecord_tax_included",
+                            join: "subsidiary"
+                        },
                         // {name: "custrecord_dps_wms_location",join: "location"},
                         // {name: "custrecord_dps_wms_location_name",join: "location"},
                     ]
                 }).run().each(function (rec) {
-                    var vendor_data = record.load({type: 'vendor', id: rec.getValue('entity')});
-                    data['pono'] = rec.getValue('tranid');//采购单号
-                    data['inspectionType'] = vendor_data.getValue('custentity_supplier_type') == 1 ? 10 : 20;//质检类型
-                    data['taxFlag'] = rec.getValue({name: "custrecord_tax_included",join: "subsidiary"}) == 1 ? 1 : 0;//是否含税 0:否1:是
-                    data['tradeCompanyCode'] = rec.getValue('subsidiary');//交易主体编号
-                    data['tradeCompanyName'] = rec.getText('subsidiary').substr(rec.getText('subsidiary').lastIndexOf(' ') + 1);//交易主体名称
+                    var vendor_data = record.load({
+                        type: 'vendor',
+                        id: rec.getValue('entity')
+                    });
+                    data['pono'] = rec.getValue('tranid'); //采购单号
+                    data['inspectionType'] = vendor_data.getValue('custentity_supplier_type') == 1 ? 10 : 20; //质检类型
+                    data['taxFlag'] = rec.getValue({
+                        name: "custrecord_tax_included",
+                        join: "subsidiary"
+                    }) == 1 ? 1 : 0; //是否含税 0:否1:是
+                    data['tradeCompanyCode'] = rec.getValue('subsidiary'); //交易主体编号
+                    data['tradeCompanyName'] = rec.getText('subsidiary').substr(rec.getText('subsidiary').lastIndexOf(' ') + 1); //交易主体名称
                     return false;
                 });
-                var order_data = record.load({type: 'purchaseorder', id: order_po_no});
-                data['purchaser'] = order_data.getText('employee');//采购员
-                log.debug('data',data);
+                var order_data = record.load({
+                    type: 'purchaseorder',
+                    id: order_po_no
+                });
+                data['purchaser'] = order_data.getText('employee'); //采购员
+                log.debug('data', data);
                 // message.code = 1;
                 // message.data = 'sssssssss';
                 // return message;
@@ -259,22 +376,32 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
                 var skuList = [];
                 for (var i = 0; i < sku_arr.length; i++) {
+
+                    var inspectionType = 2;
+                    if (inspection_type == 1) {
+                        inspectionType = 10;
+                    } else if (inspection_type == 2) {
+                        inspectionType = 20;
+                    } else {
+                        inspectionType = 30;
+                    }
                     var info = {
                         "boxNum": 0, // 箱数
                         "planQty": sku_arr[i].quantity, // 计划入库数
                         "productCode": sku_arr[i].item, // 产品编码
-                        "productImageUrl": sku_arr[i].url ? sku_arr[i].url: 'null', //图片路径
+                        "productImageUrl": sku_arr[i].url ? sku_arr[i].url : 'null', //图片路径
                         "productTitle": sku_arr[i].title, //产品标题
                         "remainderQty": 0, // 余数
-                        "sku": sku_arr[i].sku // sku
+                        "sku": sku_arr[i].sku, // sku
+                        'inspectionType': inspectionType, //     质检类型(字段迁移至 货品行)
                     }
                     skuList.push(info);
                 }
 
-                log.error('total', total);
+                log.audit('total', total);
                 var da = new Date();
 
-                log.error('Math.abs(Number(total))', Math.abs(Number(total)));
+                log.audit('Math.abs(Number(total))', Math.abs(Number(total)));
 
 
                 var taxFlag = 0;
@@ -288,12 +415,17 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                 // 2 抽检
                 // 3 免检
 
+                log.debug('inspection_type', inspection_type);
                 var inspectionType = 2;
                 if (inspection_type == 1) {
                     inspectionType = 10;
                 } else if (inspection_type == 2) {
                     inspectionType = 20;
+                } else {
+                    inspectionType = 30;
                 }
+
+                log.debug('inspectionType', inspectionType);
 
                 data["inspectionType"] = inspectionType;
                 data["planQty"] = Math.abs(Number(total));
@@ -307,21 +439,21 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                 data["taxFlag"] = taxFlag; // 是否含税
 
                 var ent = entity.replace(/[0-9]/ig, "").trim();
-                log.error('ent： ' + ent, 'entity: ' + entity);
+                log.audit('ent： ' + ent, 'entity: ' + entity);
                 // data["supplierName"] = ent; // 供应商名称
                 data["tradeCompanyCode"] = subsidiary_id; // 交易主体编号
                 var con = subsidiary.split(':');
-                log.error('con length ' + con.length, con);
+                log.audit('con length ' + con.length, con);
                 var length = con.length;
                 subsidiary = con[length - 1];
 
-                log.error('subsidiary', subsidiary);
+                log.audit('subsidiary', subsidiary);
                 data["tradeCompanyName"] = subsidiary.trim(); // 交易主体名称
                 data["warehouseCode"] = location_id; // 仓库编码
                 data["warehouseName"] = location; // 仓库名称
                 data["waybillNo"] = tranid; // 运单号
                 data["skuList"] = skuList; // SKU LIST
-                log.error('data', data);
+                log.audit('data', data);
 
             }
             // 调拨入库
@@ -338,10 +470,11 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                 log.error('response code', message.data);
                 flag = true;
             }
-            
+
             if (sourceType == 10) {
-                var result_data = {},status = 'error';
-                if(message.data.code == 0){
+                var result_data = {},
+                    status = 'error';
+                if (message.data.code == 0) {
                     var id = record.submitFields({
                         type: 'customrecord_dps_delivery_order',
                         id: context.id,
@@ -353,17 +486,17 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                 }
                 result_data.status = status;
                 result_data.data = message.data.msg;
-                log.error('result_data', result_data);
+                log.audit('result_data', result_data);
                 return result_data;
             }
-            
+
 
             if (sourceType == 20) {
                 var id = record.submitFields({
                     type: 'returnauthorization',
                     id: context.id,
                     values: {
-                        custbody_dps_wms_info: message.data,
+                        custbody_dps_wms_info: JSON.stringify(message.data),
                         custbody_dps_push_wms: flag
                     }
                 });

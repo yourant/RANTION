@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-04 10:12:41
+ * @LastEditTime   : 2020-06-04 15:21:53
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -40,12 +40,24 @@ define(['N/record', 'N/search', 'N/log', 'N/redirect'], function (record, search
             }
 
             if (type == 'view') {
-                var form = context.form;
-                form.addButton({
-                    id: 'custpage_dps_li_get_label_button',
-                    label: '获取标签',
-                    functionName: "getPalletLabels(" + bf_cur.id + ")"
-                });
+
+                var transferor_type = bl_rec.getValue('custbody_dps_transferor_type');
+                if (transferor_type == 7) {
+                    var form = context.form;
+                    form.addButton({
+                        id: 'custpage_dps_li_get_label_button',
+                        label: '获取标签',
+                        functionName: "getPalletLabels(" + bl_rec.id + ")"
+                    });
+
+                    form.addButton({
+                        id: 'custpage_dps_li_get_label_button',
+                        label: '调拨单发运',
+                        functionName: "fulfillment(" + bl_rec.id + ")"
+                    });
+
+                    form.clientScriptModulePath = './dps.funfillment.record.transferorder.cs.js';
+                }
             }
         }
     }
@@ -416,7 +428,20 @@ define(['N/record', 'N/search', 'N/log', 'N/redirect'], function (record, search
                 {
                     name: 'custitem_dps_brand',
                     join: 'item'
-                }
+                },
+                {
+                    name: 'custitem_dps_unit',
+                    join: 'item'
+                },
+                {
+                    name: 'custitem_dps_declare',
+                    join: 'item'
+                },
+                {
+                    name: 'custitem_dps_customs_code',
+                    join: 'item'
+                },
+
             ]
         }).run().each(function (rec) {
             if (rec.getValue('quantity') > 0) {
@@ -436,7 +461,20 @@ define(['N/record', 'N/search', 'N/log', 'N/redirect'], function (record, search
                         name: 'custitem_dps_brand',
                         join: 'item'
                     }),
-                    taxamount: rec.getValue("taxamount")
+                    taxamount: rec.getValue("taxamount"),
+                    util: rec.getValue({
+                        name: 'custitem_dps_unit',
+                        join: 'item'
+                    }),
+                    declare: rec.getValue({
+                        name: 'custitem_dps_declare',
+                        join: 'item'
+                    }),
+                    code: rec.getValue({
+                        name: 'custitem_dps_customs_code',
+                        join: 'item'
+                    }),
+
                 }
                 info.push(it);
             }
@@ -652,6 +690,10 @@ define(['N/record', 'N/search', 'N/log', 'N/redirect'], function (record, search
                 value: temp.brandName
             });
             elem.setValue({
+                fieldId: 'custrecord_dps_elem_dedecl_other_reporti',
+                value: temp.declare
+            });
+            elem.setValue({
                 fieldId: 'custrecord_dps_elem_dedecl_information',
                 value: informaId
             });
@@ -695,10 +737,21 @@ define(['N/record', 'N/search', 'N/log', 'N/redirect'], function (record, search
                 fieldId: 'custrecord_dps_us_b_i_unit_price_includ',
                 value: temp.qty
             });
+
             usbil.setValue({
                 fieldId: 'custrecord_dps_us_b_i_tax_included_amoun',
                 value: temp.taxamount
             });
+
+            usbil.setValue({
+                fieldId: 'custrecord_dps_us_b_i_unit',
+                value: temp.util
+            });
+            usbil.setValue({
+                fieldId: 'custrecord_dps_us_b_i_elements_declarati',
+                value: temp.declare
+            });
+
             usbil.setValue({
                 fieldId: 'custrecord_dps_us_b_i_informa',
                 value: informaId

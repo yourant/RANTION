@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-03 20:27:19
- * @LastEditTime   : 2020-06-03 20:34:37
+ * @LastEditTime   : 2020-06-04 12:09:11
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.cs.js
@@ -13,7 +13,7 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/url', 'N/log', 'N/https'], function (url, log, https) {
+define(['N/url', 'N/log', 'N/https', 'N/ui/dialog'], function (url, log, https, dialog) {
 
 
     function pageInit(scriptContext) {
@@ -66,14 +66,14 @@ define(['N/url', 'N/log', 'N/https'], function (url, log, https) {
 
     /**
      * 
-     * @param {*} rec_id 
+     * @param {*} recId 
      */
-    function getPalletLabels(rec_id) {
+    function getPalletLabels(recId) {
 
-        console.log('WMSShipping', rec_id);
+        console.log('getPalletLabels', recId);
         var url1 = url.resolveScript({
-            scriptId: 'customscript_dps_wms_create_transfer_rl',
-            deploymentId: 'customdeploy_dps_wms_create_transfer_rl',
+            scriptId: 'customscript_dps_funfi_record_tran_rl',
+            deploymentId: 'customdeploy_dps_funfi_record_tran_rl',
             returnExternalUrl: false
         });
 
@@ -83,29 +83,29 @@ define(['N/url', 'N/log', 'N/https'], function (url, log, https) {
         };
 
         var body1 = {
-            action: 'WMS',
-            recordID: rec_id
+            action: 'getPalletLabels',
+            recordID: recId
         };
         log.debug('body1', body1);
         log.debug('url1', url1);
         var response;
 
         var options = {
-            title: "重新WMS发运",
+            title: "获取标签",
             message: "Press OK or Cancel"
         };
 
         function success(result) {
             if (result) {
-                response = https.put({
+                response = https.post({
                     url: url1,
                     body: body1,
                     headers: header
                 });
                 if (response.body == false) {
-                    alert('重新WMS发运')
+                    alert('获取标签失败')
                 } else {
-                    alert('重新WMS发运: ' + response.body);
+                    alert('获取标签: ' + response.body);
                     window.location.reload(true);
                 }
             }
@@ -115,6 +115,61 @@ define(['N/url', 'N/log', 'N/https'], function (url, log, https) {
             log.debug('reason', reason)
         }
         dialog.confirm(options).then(success).catch(failure);
+    }
+
+    /**
+     * 
+     * @param {*} recId 
+     */
+    function fulfillment(recId) {
+
+        console.log('fulfillment', recId);
+
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_funfi_record_tran_rl',
+            deploymentId: 'customdeploy_dps_funfi_record_tran_rl',
+            returnExternalUrl: false
+        });
+
+        var header = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
+
+        var body1 = {
+            action: 'fulfillment',
+            recordID: recId
+        };
+        log.debug('body1', body1);
+        log.debug('url1', url1);
+        var response;
+
+        var options = {
+            title: "发运",
+            message: "Press OK or Cancel"
+        };
+
+        function success(result) {
+            if (result) {
+                response = https.post({
+                    url: url1,
+                    body: body1,
+                    headers: header
+                });
+                if (response.body == false) {
+                    alert('发运失败')
+                } else {
+                    alert('发运: ' + response.body);
+                    window.location.reload(true);
+                }
+            }
+        }
+
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+
     }
 
     return {
@@ -127,7 +182,9 @@ define(['N/url', 'N/log', 'N/https'], function (url, log, https) {
         validateLine: validateLine,
         validateInsert: validateInsert,
         validateDelete: validateDelete,
-        saveRecord: saveRecord
+        saveRecord: saveRecord,
+        getPalletLabels: getPalletLabels,
+        fulfillment: fulfillment
     };
 
 });

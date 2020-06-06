@@ -153,6 +153,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                     transferorder_c_rec.setValue({ fieldId: 'location', value: poLocation });
                     transferorder_c_rec.setValue({ fieldId: 'transferlocation', value: to_loaction });
                     transferorder_c_rec.setValue({ fieldId: 'orderstatus', value: 'B' });
+                    transferorder_c_rec.setValue({ fieldId: 'custbody_dps_transferor_type', value: '5' });
                     for (var index = 0; index < SKUs.length; index++) {
                         transferorder_c_rec.selectNewLine({ sublistId : 'item' });
                         transferorder_c_rec.setCurrentSublistValue({ sublistId : 'item', fieldId : 'item', value : SKUs[index].item });

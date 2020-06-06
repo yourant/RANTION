@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-04 17:52:00
+ * @LastEditTime   : 2020-06-05 22:55:44
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -99,6 +99,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         sub(con);
                     }
                     log.debug('context.type', context.type);
+                    /*
                     if (context.type == 'create') {
                         var info = searchItemInfo(af_rec.id);
                         var subsidiary = af_rec.getValue('subsidiary');
@@ -141,6 +142,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
 
                     }
+
+                    */
                 }
             } catch (error) {
                 log.error('error', error);
@@ -1338,7 +1341,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 if (rec.getValue('custrecord_dps_ship_record_tranor_type') == 1) {
                     type = 20;
                     data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+                } else {
+                    data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
                 }
+
                 data["type"] = type;
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
                 data["waybillNo"] = rec.id; // 运单号
@@ -1967,7 +1973,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             fieldId: 'custrecord_dps_p_declaration_informa',
             value: informaId
         });
-        var subId = 'recmachcustrecord_dps_z_b_l_links'
+        var subId = 'recmachcustrecord_dps_z_b_l_links';
         for (var i = 0, len = info.length; i < len; i++) {
             var temp = info[i];
             boxRec.setSublistValue({
@@ -2057,6 +2063,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         var subId = 'recmachcustrecord_dps_customs_decla_item_link'
         for (var i = 0, len = info.length; i < len; i++) {
             var temp = info[i];
+            dec.setSublistValue({
+                sublistId: subId,
+                fieldId: 'custrecord_dps_customs_declara_item_num',
+                value: temp.code,
+                line: i
+            });
             dec.setSublistValue({
                 sublistId: subId,
                 fieldId: 'custrecord_dps_customs_decl_item_name',

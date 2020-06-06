@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-01 15:50:05
+ * @LastEditTime   : 2020-06-04 21:46:11
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -54,6 +54,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     'custrecord_dps_shipping_rec_logistics_no',
                     'custrecord_dps_f_b_purpose', // 用途
                     'custrecord_dps_declare_currency_dh', // 申报币种
+                    'custrecord_dps_shipping_rec_shipmentsid', // shipmentId
 
                     {
                         name: 'custrecord_dps_wms_location',
@@ -101,6 +102,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     shippingType = 20;
                 }
 
+
+
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
                 data["createBy"] = rec.getValue({
@@ -131,7 +134,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 });
 
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
-                data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
+
                 data["sourceWarehouseCode"] = rec.getValue({
                     name: 'custrecord_dps_wms_location',
                     join: 'custrecord_dps_shipping_rec_location'
@@ -166,7 +169,10 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 // 4 移库
 
                 if (type1 == 1) {
-                    type = 20
+                    type = 20;
+                    data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+                } else {
+                    data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
                 }
                 data["type"] = type;
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');

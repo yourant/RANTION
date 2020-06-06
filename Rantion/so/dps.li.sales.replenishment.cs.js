@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:43:21
- * @LastEditTime   : 2020-06-04 21:02:06
+ * @LastEditTime   : 2020-06-04 20:42:51
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\dps.li.sales.replenishment.cs.js
@@ -163,11 +163,15 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog', 'N/record'],
             return true;
         }
 
+        // function createNewSo(soId) {
         function createNewSo(soId, id, action) {
 
+            console.log(soId, id, action);
 
             var url1;
             var title1 = '';
+
+            // return;
 
             var body1;
             if (action == 1) {
@@ -185,6 +189,8 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog', 'N/record'],
                 };
             } else if (action == 2) {
 
+                // console.log('action', 2);
+
                 title1 = "是否推送WMS";
                 url1 = url.resolveScript({
                     scriptId: 'customscript_dps_wms_create_inmaster_rl',
@@ -199,11 +205,15 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog', 'N/record'],
                 };
             }
 
+            // console.log('1', 1);
+
             var header = {
                 "Content-Type": "application/json;charset=utf-8",
                 "Accept": "application/json"
             };
 
+            // console.log('body1', body1);
+            // console.log('url1', url1);
             log.debug('body1', body1);
             log.debug('url1', url1);
             var response, res_body;
@@ -222,23 +232,21 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog', 'N/record'],
                         headers: header
                     });
                     res_body = JSON.parse(response.body);
-
+                    console.log('res_body', res_body);
                     if (res_body.soId == false) {
                         if (res_body.action == 'createSo') {
                             alert(msg);
                         }
                         window.location.reload(true);
                     } else {
-
+                        // console.log(1, res_body);
                         if (res_body.action == 'createSo') {
                             alert(res_body.msg);
                         }
-
+                        // console.log(12, res_body.code);
                         if (res_body.code) {
-
+                            // console.log(2, res_body);
                             alert(res_body.data);
-                        } else if (res_body.code != 0) {
-                            alert(res_body.data)
                         }
                         window.location.reload(true);
                     }

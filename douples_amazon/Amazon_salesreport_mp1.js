@@ -327,7 +327,6 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                 log.error("0000v.length", v.length);
                 var totalStartT = new Date().getTime();
                 v.map(function (vl) {
-                    var vStartT = new Date().getTime();
                     var l = JSON.parse(vl).ship_l,
                         acc = JSON.parse(vl).acc
                     postb = JSON.parse(vl).postb
@@ -344,8 +343,6 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                         log.debug("bushi arry")
                         createRec(l, acc, type_fin)
                     }
-                    var vendT = new Date().getTime();
-                    log.error("000v", (vendT - vStartT));
                 })
                 var totalEndT = new Date().getTime();
                 log.error("000耗时", (totalEndT - totalStartT));

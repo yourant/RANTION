@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-08 20:33:17
+ * @LastEditTime   : 2020-06-08 14:33:46
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -208,9 +208,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         var tra_order_link = af_rec.getValue('custrecord_dps_trans_order_link');
 
         try {
-            // if (rec_status == 1) {
-            if (rec_status == 12) {
-                // WMS 分箱回传, 推送物流
+            if (rec_status == 1) {
                 // 推送物流商, 获取追踪号
                 // TODO
                 pushOrder(af_rec);
@@ -238,6 +236,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 } else {
                     shippingType = 20;
                 }
+
 
                 var message = {};
                 // 获取token
@@ -710,89 +709,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 rep = response;
                             }
 
-
-                            if (util.isArray(response)) {
-                                log.debug('createInboundShipmentPlan response', response);
-                                log.debug('rep', rep);
-
-                                var shipmentid1 = rep[0].ShipmentId;
-                                shipping_rec_shipmentsid = shipmentid1;
-                                DestinationFulfillmentCenterId = rep[0].DestinationFulfillmentCenterId;
-                                reItem = rep[0].Items;
-
-                                var id = record.submitFields({
-                                    type: 'customrecord_dps_shipping_record',
-                                    id: recordID,
-                                    values: {
-                                        custrecord_dps_shipping_rec_status: 15,
-                                        custrecord_dps_ful_shipmentid_array: JSON.stringify(rep),
-                                        custrecord_dps_shipping_rec_shipmentsid: shipmentid1,
-                                        custrecord_dps_shipping_rec_destinationf: DestinationFulfillmentCenterId
-                                    }
-                                });
-
-                                var response1 = core.amazon.createInboundShipment(rec_account, address_id, shipmentid1, shipmentid1, DestinationFulfillmentCenterId, 'WORKING', '', label_prep_preference, reItem);
-
-                                if (util.isObject(response1)) {
-                                    var id = record.submitFields({
-                                        type: 'customrecord_dps_shipping_record',
-                                        id: recordID,
-                                        values: {
-                                            custrecord_dps_shipping_rec_status: 16,
-                                            custrecord_dps_shipment_info: str + '\n' + JSON.stringify(response1)
-                                        }
-                                    });
-                                } else {
-                                    var id = record.submitFields({
-                                        type: 'customrecord_dps_shipping_record',
-                                        id: recordID,
-                                        values: {
-                                            // custrecord_dps_shipping_rec_status: 16,
-                                            custrecord_dps_shipment_info: str + '\n' + '创建入库件成功'
-                                        }
-                                    });
-                                }
-
-                                log.debug('response1', response1);
-
-                                try {
-
-                                    upresp = core.amazon.updateInboundShipment(rec_account, address_id, shipping_rec_shipmentsid, 'WORKING', label_prep_preference, DestinationFulfillmentCenterId, items);
-
-                                    log.debug('upresp', upresp);
-
-                                    var id = record.submitFields({
-                                        type: 'customrecord_dps_shipping_record',
-                                        id: recordID,
-                                        values: {
-                                            custrecord_dps_shipping_rec_status: 18,
-                                            custrecord_dps_shipment_info: str + '\n' + '更新入库件成功'
-                                        }
-                                    });
-                                } catch (error) {
-                                    var id = record.submitFields({
-                                        type: 'customrecord_dps_shipping_record',
-                                        id: recordID,
-                                        values: {
-                                            // custrecord_dps_shipping_rec_status: 18,
-                                            custrecord_dps_shipment_info: str + '\n' + JSON.stringify(error)
-                                        }
-                                    });
-                                }
-                            } else {
-                                log.audit('不属于数组', rep);
-
-                                var id = record.submitFields({
-                                    type: 'customrecord_dps_shipping_record',
-                                    id: recordID,
-                                    values: {
-                                        // custrecord_dps_shipping_rec_status: 18,
-                                        custrecord_dps_shipment_info: str + '\n' + JSON.stringify(rep)
-                                    }
-                                });
-                            }
-
-                            /*
                             log.debug('response', response);
                             log.debug('rep', rep);
                             var shipmentid1 = rep[0].ShipmentId;
@@ -836,8 +752,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     custrecord_dps_shipping_rec_status: 18,
                                 }
                             });
-
-                            */
 
                         } catch (error) {
                             log.error('创建入库计划,获取shipment失败了', error);
@@ -1528,18 +1442,18 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         join: 'custrecord_dps_shipping_record_item'
                     }, // 产品英文标题,
 
-                    {
-                        name: 'custitem_dps_use',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }
 
+                    // {
+                    //     name: 'taxamount',
+                    //     join: 'custrecord_dps_trans_order_link'
+                    // }
                 ]
             }).run().each(function (rec) {
 
                 var it = {
                     purpose: rec.getValue({
-                        name: 'custitem_dps_use',
-                        join: 'custrecord_dps_shipping_record_item'
+                        name: 'custrecord_dps_f_b_purpose',
+                        join: 'custrecord_dps_shipping_record_parentrec'
                     }),
                     brandName: rec.getText({
                         name: 'custitem_dps_brand',

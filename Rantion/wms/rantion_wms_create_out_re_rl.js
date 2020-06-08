@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 13:42:44
- * @LastEditTime   : 2020-05-30 16:55:30
+ * @LastEditTime   : 2020-06-08 15:06:55
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_re_rl.js
@@ -40,7 +40,7 @@ define(['N/log', 'N/record', 'N/search'], function (log, record, search) {
             search.create({
                 type: 'customrecord_dps_shipping_small_record',
                 filters: [{
-                    name: 'custrecord_dps_ship_platform_order_numbe',
+                    name: 'custrecord_dps_ship_order_number',
                     operator: 'startswith',
                     values: sourceNo
                 }, ],

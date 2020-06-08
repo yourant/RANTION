@@ -303,7 +303,7 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                 "record_type_id": "customrecord_aio_amazon_settlement",
                 "mapping": {
                     "custrecord_aio_sett_report_id": 'report-id',
-                    "custrecord_aio_account_2": 'account',
+                    "custrecord_amazon_account": 'account',
                     "custrecord_aio_sett_deposit_date": 'deposit-date',
                     "custrecord_aio_sett_total_amount": 'total-amount',
                     "custrecord_aio_sett_id": 'settlement-id',
@@ -1267,311 +1267,6 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
             });
             return accounts;
         },
-        getAccountList_Report: function () {
-            var t = fiedls.account,
-                tsite = fiedls.amazon_global_sites,
-                tdev = fiedls.amazon_dev_accounts;
-            var accounts = [],
-                seller_ids = [];
-            //如果seller id相同，先判断是否为pull report acc 
-
-            search.create({
-                type: t._name,
-                filters: [
-                    // { name: "internalidnumber", operator: "notequalto", values: 35 },
-                    {
-                        name: 'custrecord_aio_marketplace',
-                        operator: 'anyof',
-                        values: 1 /* amazon */
-                    },
-                    {
-                        name: 'custrecord_aio_seller_id',
-                        operator: 'isnotempty'
-                    },
-                    /*{ name: 'custrecord_aio_mws_auth_token', operator: 'isnotempty' },*/
-                    {
-                        name: 'custrecord_aio_dev_account',
-                        operator: 'noneof',
-                        values: '@NONE@'
-                    },
-                    {
-                        name: 'isinactive',
-                        operator: 'is',
-                        values: false
-                    },
-
-                ],
-                columns: [
-                    /** * 名称 * @index 0 */
-                    {
-                        name: 'name'
-                    },
-                    /** * 账户API信息 * @index 1 */
-                    {
-                        name: t.seller_id
-                    },
-                    {
-                        name: t.mws_auth_token
-                    },
-                    {
-                        name: tsite.amazon_marketplace_id,
-                        join: t.enabled_sites
-                    },
-                    {
-                        name: tsite.amazon_mws_endpoint,
-                        join: t.enabled_sites
-                    },
-                    {
-                        name: tdev.aws_access_key_id,
-                        join: t.dev_account
-                    },
-                    {
-                        name: tdev.secret_key_guid,
-                        join: t.dev_account
-                    },
-                    /** * 账户基础信息 * @index 7 * */
-                    {
-                        name: 'name'
-                    },
-                    {
-                        name: t.currency
-                    },
-                    {
-                        name: 'custrecord_aio_if_salesorder'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_type'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_form'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_location'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_start_date'
-                    },
-                    /** * FBA信息 * @index 14 */
-                    {
-                        name: 'custrecord_aio_if_fbaorder'
-                    },
-                    {
-                        name: 'custrecord_aio_fbaorder_type'
-                    },
-                    {
-                        name: 'custrecord_aio_fbaorder_form'
-                    },
-                    {
-                        name: 'custrecord_aio_fbaorder_location'
-                    },
-                    {
-                        name: 'custrecord_aio_fbaorder_start_date'
-                    },
-                    /**@index 19 */
-                    {
-                        name: 'custrecord_aio_if_only_paid_orders'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_if_taxed'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_tax_rate_ipt'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_tax_auto_calc'
-                    },
-                    {
-                        name: 'custrecord_aio_if_zero_price'
-                    },
-                    {
-                        name: 'custrecord_aio_if_check_customer_email'
-                    },
-                    {
-                        name: 'custrecord_aio_if_check_customer_addr'
-                    },
-                    {
-                        name: 'custrecord_aio_if_including_fees'
-                    },
-                    {
-                        name: 'custrecord_aio_if_payment_as_tran_date'
-                    },
-                    /** * 其他信息 * @index 28 */
-                    {
-                        name: 'custrecord_aio_dept'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_payment_method'
-                    },
-                    {
-                        name: 'custrecord_aio_discount_item'
-                    },
-                    {
-                        name: 'custrecord_aio_tax_item'
-                    },
-                    {
-                        name: tsite.amazon_currency,
-                        join: t.enabled_sites
-                    },
-                    /** * 公司信息 * @index 33 */
-                    exports.utils.checkIfSubsidiaryEnabled() ? {
-                        name: 'custrecord_aio_subsidiary'
-                    } : {
-                        name: 'formulanumeric',
-                        formula: '0'
-                    },
-                    /** * 报告抓取信息 * @index 34 */
-                    {
-                        name: 'custrecord_aio_if_handle_removal_report'
-                    },
-                    {
-                        name: 'custrecord_aio_if_handle_custrtn_report'
-                    },
-                    /** * Preferences * @index 36 */
-                    {
-                        name: 'custrecord_aio_if_only_paid_orders'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_if_taxed'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_tax_rate_ipt'
-                    },
-                    {
-                        name: 'custrecord_aio_salesorder_tax_auto_calc'
-                    },
-                    {
-                        name: 'custrecord_aio_if_zero_price'
-                    },
-                    {
-                        name: 'custrecord_aio_if_check_customer_email'
-                    },
-                    {
-                        name: 'custrecord_aio_if_check_customer_addr'
-                    },
-                    {
-                        name: 'custrecord_aio_if_payment_as_tran_date'
-                    },
-                    /** * 待扩展的放这个下面，上面次序不要叄1�7 * @index 44 */
-                    {
-                        name: 'custrecord_aio_if_handle_inv_report'
-                    },
-                    {
-                        name: 'custrecord_aio_to_default_from_location'
-                    },
-                    {
-                        name: 'custrecord_aio_shipping_item'
-                    },
-                    {
-                        name: 'custrecord_aio_to_form'
-                    },
-                    /** @index 48 */
-                    {
-                        name: fiedls.account.if_post_order_fulfillment
-                    },
-                    {
-                        name: fiedls.account.post_order_if_search
-                    },
-                    {
-                        name: fiedls.account.if_handle_sett_report
-                    },
-                    /** 站点 @index 51 */
-                    {
-                        name: 'custrecord_aio_amazon_marketplace',
-                        join: "custrecord_aio_enabled_sites"
-                    },
-                    {
-                        name: "custrecord_dps_get_report"
-                    }
-
-                ]
-            }).run().each(function (rec) {
-
-                var acc_info = {
-                    id: rec.id,
-                    country: rec.getValue(rec.columns[51]),
-                    auth_meta: {
-                        seller_id: rec.getValue(rec.columns[1]),
-                        auth_token: rec.getValue(rec.columns[2]),
-                        access_id: rec.getValue(rec.columns[5]),
-                        sec_key: rec.getValue(rec.columns[6]),
-                        end_point: rec.getValue(rec.columns[4]),
-                    },
-                    info: {
-                        name: rec.getValue(rec.columns[7]),
-                        currency: rec.getValue(rec.columns[8]),
-                        if_salesorder: rec.getValue(rec.columns[9]),
-                        salesorder_type: rec.getValue(rec.columns[10]),
-                        salesorder_form: rec.getValue(rec.columns[11]),
-                        salesorder_location: rec.getValue(rec.columns[12]),
-                        salesorder_start_date: rec.getValue(rec.columns[13]),
-                        dept: rec.getValue(rec.columns[28]),
-                        salesorder_payment_method: rec.getValue(rec.columns[29]),
-                        discount_item: rec.getValue(rec.columns[30]),
-                        shipping_cost_item: rec.getValue(rec.columns[46]),
-                        tax_item: rec.getValue(rec.columns[31]),
-                        site_currency: rec.getValue(rec.columns[32]),
-                        subsidiary: Number(rec.getValue(rec.columns[33])),
-                        enable_tracking_upload: rec.getValue(rec.columns[48]),
-                        enabled_tracking_upload_search: rec.getValue(rec.columns[49]),
-                    },
-                    extra_info: {
-                        if_fbaorder: rec.getValue(rec.columns[14]),
-                        fbaorder_type: rec.getValue(rec.columns[15]),
-                        fbaorder_form: rec.getValue(rec.columns[16]),
-                        fbaorder_location: rec.getValue(rec.columns[17]),
-                        fbaorder_start_date: rec.getValue(rec.columns[18]),
-                        if_including_fees: rec.getValue(rec.columns[26]),
-                        if_handle_custrtn_report: rec.getValue(rec.columns[35]),
-                        if_handle_removal_report: rec.getValue(rec.columns[34]),
-                        if_handle_inventory_report: rec.getValue(rec.columns[44]),
-                        if_handle_settlement_report: rec.getValue(rec.columns[50]),
-                        to_default_from_location: rec.getValue(rec.columns[45]),
-                        aio_to_default_form: rec.getValue(rec.columns[47]),
-                    },
-                    marketplace: rec.getValue(rec.columns[3]),
-                    preference: {
-                        if_only_paid_orders: rec.getValue(rec.columns[36]),
-                        salesorder_if_taxed: rec.getValue(rec.columns[37]),
-                        salesorder_tax_rate_ipt: rec.getValue(rec.columns[38]),
-                        salesorder_tax_auto_calc: rec.getValue(rec.columns[39]),
-                        if_zero_price: rec.getValue(rec.columns[40]),
-                        if_check_customer_email: rec.getValue(rec.columns[41]),
-                        if_check_customer_addr: rec.getValue(rec.columns[42]),
-                        if_payment_as_tran_date: rec.getValue(rec.columns[43]),
-                    }
-                }
-                var ispull = rec.getValue(rec.columns[52]),
-                    chc = false
-                //如果这部分sellid相同，取第一个，后面看是否是pull
-                for (var i = 0; i < seller_ids.length; i++) {
-                    if (seller_ids[i].seller_id == acc_info.auth_meta.seller_id) {
-                        if (ispull) {
-                            accounts[i].id = rec.id
-                        }
-                        seller_ids[i].acc_id.push(rec.id)
-                        chc = true
-                        break
-                    }
-                }
-                if (!chc) {
-                    seller_ids.push({
-                        "acc_id": [rec.id],
-                        "seller_id": acc_info.auth_meta.seller_id
-                    })
-                    accounts.push(acc_info);
-                }
-
-                // log.debug("accounts stringify indexOf "+accounts.indexOf(JSON.stringify(acc_info)),JSON.stringify(acc_info))
-                // log.debug("accounts indexOf "+accounts.indexOf(acc_info),acc_info)
-                // log.debug("accounts",accounts)
-                return true;
-            });
-            return {
-                "accounts": accounts,
-                "seller_ids": seller_ids
-            }
-
-        },
         requestReport: function (account, type, params) {
             if (params === void 0) {
                 params = {};
@@ -1685,7 +1380,7 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
             var rids = [],
                 params = {},
                 reports = [];
-            var limit = 1
+            var limit =1
             search.create({
                 type: _._name,
                 filters: [{
@@ -4243,7 +3938,7 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                 });
 
 
-                log.audit('createInboundShipmentPlan params', params);
+                log.audit('createInboundShipmentPlan params',params);
 
                 var response = exports.amazon.mwsRequestMaker(auth, 'CreateInboundShipmentPlan', '2010-10-01', params, '/FulfillmentInboundShipment/2010-10-01');
                 log.debug('response', response);
@@ -4411,36 +4106,8 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                     });
                 });
 
-                var result = {};
-                if (inboundShipmentPlans.length == 0) {
-                    var res = xml.Parser.fromString({
-                        text: response.replace('xmlns', 'aaa')
-                    });
-
-                    log.debug('res', response.indexOf('</ErrorResponse>'));
-                    if (response.indexOf('</ErrorResponse>') != -1) {
-                        var code_ = xml.XPath.select({
-                            node: res,
-                            xpath: '//Code'
-                        });
-
-                        log.debug('code_', code_);
-                        result.code = code_[0].textContent;
-                        var message_ = xml.XPath.select({
-                            node: res,
-                            xpath: '//Message'
-                        });
-
-                        log.debug('message_', message_);
-                        result.message = message_[0].textContent;
-                        log.debug("result", JSON.stringify(result));
-
-                    }
-                }
-
-                log.debug('inboundShipmentPlans.length', inboundShipmentPlans.length);
             }
-            return inboundShipmentPlans.length > 0 ? inboundShipmentPlans : result;
+            return inboundShipmentPlans;
         },
         createShipmentPlan: function (context) {
             var assistant = ui.createAssistant({
@@ -5467,34 +5134,7 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                     return _.textContent;
                 }).join('');
             }
-
-            var result= {};
-            if (response.indexOf('</ErrorResponse>') != -1) {
-                var res = xml.Parser.fromString({
-                    text: response.replace('xmlns', 'aaa')
-                });
-
-                log.debug('res', response.indexOf('</ErrorResponse>'));
-                if (response.indexOf('</ErrorResponse>') != -1) {
-                    var code_ = xml.XPath.select({
-                        node: res,
-                        xpath: '//Code'
-                    });
-
-                    log.debug('code_', code_);
-                    result.code = code_[0].textContent;
-                    var message_ = xml.XPath.select({
-                        node: res,
-                        xpath: '//Message'
-                    });
-
-                    log.debug('message_', message_);
-                    result.message = message_[0].textContent;
-                    log.debug("result", JSON.stringify(result));
-
-                }
-            }
-            return rtn_shipment_id|| result;
+            return rtn_shipment_id;
         },
         CreateFulfillmentOrder: function (account_id, params) {
             var auth = exports.amazon.getAuthByAccountId(account_id);
@@ -5934,19 +5574,18 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                 throw "\u4ECEAIO\u83B7\u53D6\u8D26\u53F7\u4FE1\u606F\u5931\u8D25";
             }
         },
-        updateInboundShipment: function (account_id, to_id, shipment_id, shipment_status, LabelPrepPreference, DestinationFulfillmentCenterId, items) {
+        updateInboundShipment: function (account_id, to_id, shipment_id, shipment_status) {
             var auth = exports.amazon.getAuthByAccountId(account_id),
-                // to = record.load({
-                //     type: record.Type.TRANSFER_ORDER,
-                //     id: to_id,
-                //     isDynamic: true
-                // }),
-                // addr = exports.amazon.getAddressById(Number(to.getValue(exports.ns.bodies.inbound_ship_from_addr)));
-                addr = to_id;
+                to = record.load({
+                    type: record.Type.TRANSFER_ORDER,
+                    id: to_id,
+                    isDynamic: true
+                }),
+                addr = exports.amazon.getAddressById(Number(to.getValue(exports.ns.bodies.inbound_ship_from_addr)));
             if (auth && addr) {
                 var params = {
                     "ShipmentId": shipment_id,
-                    "InboundShipmentHeader.ShipmentName": shipment_id,
+                    "InboundShipmentHeader.ShipmentName": to.getValue(exports.ns.bodies.inbound_shipment_name),
                     "InboundShipmentHeader.ShipFromAddress.Name": addr.Name,
                     "InboundShipmentHeader.ShipFromAddress.AddressLine1": addr.AddressLine1,
                     "InboundShipmentHeader.ShipFromAddress.AddressLine2": addr.AddressLine2,
@@ -5955,27 +5594,25 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                     "InboundShipmentHeader.ShipFromAddress.StateOrProvinceCode": addr.StateOrProvinceCode,
                     "InboundShipmentHeader.ShipFromAddress.CountryCode": addr.CountryCode,
                     "InboundShipmentHeader.ShipFromAddress.PostalCode": addr.PostalCode,
-                    "InboundShipmentHeader.DestinationFulfillmentCenterId": DestinationFulfillmentCenterId,
+                    "InboundShipmentHeader.DestinationFulfillmentCenterId": to.getValue(exports.ns.bodies.inbound_dest_center_id),
                     "InboundShipmentHeader.ShipmentStatus": shipment_status,
                     // "InboundShipmentHeader.IntendedBoxContentsSource": intended_box_contents_source,
-                    "InboundShipmentHeader.LabelPrepPreference": LabelPrepPreference,
+                    "InboundShipmentHeader.LabelPrepPreference": to.getValue(exports.ns.bodies.inbound_label_prep_type),
                 };
-                // var line_count = to.getLineCount({
-                //     sublistId: 'item'
-                // });
-                for (var key = 0, line_count = items.length; key < line_count; key++) {
-                    params["InboundShipmentItems.member." + (key + 1) + ".QuantityShipped"] = items[key].Quantity;
-                    params["InboundShipmentItems.member." + (key + 1) + ".SellerSKU"] = items[key].SellerSKU;
-                    // params["InboundShipmentItems.member." + (key + 1) + ".QuantityShipped"] = to.getSublistValue({
-                    //     sublistId: 'item',
-                    //     fieldId: exports.ns.cols.qty_shipped,
-                    //     line: key
-                    // });
-                    // params["InboundShipmentItems.member." + (key + 1) + ".SellerSKU"] = to.getSublistValue({
-                    //     sublistId: 'item',
-                    //     fieldId: exports.ns.cols.amazon_msku,
-                    //     line: key
-                    // });
+                var line_count = to.getLineCount({
+                    sublistId: 'item'
+                });
+                for (var key = 0; key < line_count; key++) {
+                    params["InboundShipmentItems.member." + (key + 1) + ".QuantityShipped"] = to.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: exports.ns.cols.qty_shipped,
+                        line: key
+                    });
+                    params["InboundShipmentItems.member." + (key + 1) + ".SellerSKU"] = to.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: exports.ns.cols.amazon_msku,
+                        line: key
+                    });
                 }
                 log.debug('params', params);
                 var response = exports.amazon.mwsRequestMaker(auth, 'UpdateInboundShipment', '2010-10-01', params, '/FulfillmentInboundShipment/2010-10-01');
@@ -5990,11 +5627,11 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                     return _.textContent;
                 }).join('');
                 if (rtn_shipment_id) {
-                    // to.setValue({
-                    //     fieldId: exports.ns.bodies.inbound_shipment_status,
-                    //     value: exports.amazon.listInboundShipments(auth, null, [rtn_shipment_id]).shift().shipment_status
-                    // });
-                    // to.save();
+                    to.setValue({
+                        fieldId: exports.ns.bodies.inbound_shipment_status,
+                        value: exports.amazon.listInboundShipments(auth, null, [rtn_shipment_id]).shift().shipment_status
+                    });
+                    to.save();
                     return rtn_shipment_id;
                 } else {
                     throw "\u66F4\u65B0Amazon Inbound Shipment[" + shipment_id + "]\u5931\u8D25\uFF0C\u8BE6\u7EC6\u8FD4\u56DE\u4FE1\u606F: " + response;

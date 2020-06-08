@@ -2,10 +2,10 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-13 13:52:41
- * @LastEditTime   : 2020-06-08 14:48:25
+ * @LastEditTime   : 2020-06-07 14:20:02
  * @LastEditors    : Li
  * @Description    : 
- * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_rl.js
+ * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_rl copy.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 /**
@@ -199,6 +199,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
 
                         var response = core1.mwsRequestMaker(auth, 'CreateFulfillmentOrder', '2010-10-01', params, '/FulfillmentOutboundShipment/2010-10-01/');
 
+
                         log.debug('请求返回的数据 MCF response', response);
 
                         // var res = xml.Parser.fromString({
@@ -260,47 +261,12 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                         }
                     }
                 } else {
-                    var msg = [],
-                        str = '';
-                    lAddr.forEach(function (la, key) {
-                        var chex = ['.SellerSKU', '.Quantity', 'DestinationAddress.Name', 'DestinationAddress.Line1',
-                            'DestinationAddress.CountryCode', 'DestinationAddress.StateOrProvinceCode',
-                            'SellerFulfillmentOrderId', 'DisplayableOrderDateTime', 'DisplayableOrderComment', 'ShippingSpeedCategory'
-                        ];
-
-                        if (la.indexOf('.SellerSKU') != -1) {
-                            str += 'SellerSKU 为空；';
-                        }
-                        if (la.indexOf('.Quantity') != -1) {
-                            str += '货品数量 为空；';
-                        }
-                        if (la.indexOf('DestinationAddress.Name') != -1) {
-                            str += '收件人 为空；';
-                        }
-                        if (la.indexOf('DestinationAddress.Line1') != -1) {
-                            str += '收件人地址1 为空；';
-                        }
-                        if (la.indexOf('DestinationAddress.CountryCode') != -1) {
-                            str += '收件人国家 为空；';
-                        }
-                        if (la.indexOf('DestinationAddress.StateOrProvinceCode') != -1) {
-                            str += '收件人州编码 为空；';
-                        }
-                        if (la.indexOf('SellerFulfillmentOrderId') != -1) {
-                            str += '履行订单号 为空；';
-                        }
-                        if (la.indexOf('ShippingSpeedCategory') != -1) {
-                            str += '配送等级 为空；';
-                        }
-
-                    });
-
                     result.code = '缺少参数';
-                    result.message = str;
+                    result.message = lAddr;
                 }
             } else {
 
-                var fulPo, delivery_shop, fulInfo, result = {};
+                var fulPo, delivery_shop, fulInfo;
                 search.create({
                     type: 'salesorder',
                     filters: [{
@@ -354,7 +320,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                             type: record.Type.SALES_ORDER,
                             id: context.recId,
                             values: {
-                                custbody_dps_mcf_info: fulInfo + '\n' + message_[0].textContent
+                                custbody_dps_mcf_info: message_[0].textContent
                             },
                             options: {
                                 enableSourcing: false,
@@ -374,16 +340,15 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                             id: context.recId,
                             values: {
                                 custbody_dps_mcf_info: fulInfo + '\n取消mcf订单成功。RequestId：' + requestId_[0].textContent,
-                                custbody_dps_create_mcf_order: false
+                                custbody_dps_create_mcf_order: true
                             },
                             options: {
                                 enableSourcing: false,
                                 ignoreMandatoryFields: true
                             }
                         });
-
-                        // 取消mcf订单成功。RequestId：3ddb350c-4df2-41d5-a2a0-87bdbca97aed
                     }
+
 
                 }
             }

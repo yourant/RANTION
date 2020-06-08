@@ -813,7 +813,7 @@ function (costCal, record, search, log) {
         ful.setValue({ fieldId: 'custrecord_dps_ship_samll_location', value: order.locationid }); // 发货仓库
         ful.save();
 
-        log.debug('fullfillment end, 总共耗时：', new Date().getTime() - startTime);
+        log.debug('soid:' + soid + ', fullfillment end, 总共耗时：', new Date().getTime() - startTime);
     }
 
     function getRecBySearch(filters) {

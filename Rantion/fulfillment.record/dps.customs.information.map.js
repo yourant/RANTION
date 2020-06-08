@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-05 19:59:20
- * @LastEditTime   : 2020-06-06 11:53:04
+ * @LastEditTime   : 2020-06-08 15:39:27
  * @LastEditors    : Li
  * @Description    : 搜索大货发运记录, 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.map.js
@@ -240,6 +240,10 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                     }
 
                     var it = {
+                        name: rec.getValue({
+                            name: 'custitem_dps_declaration_cn',
+                            join: 'item'
+                        }),
                         taxamount: rec.getValue('taxamount'),
                         buyer: rec.getValue({
                             name: 'custentity_dps_buyer',
@@ -370,6 +374,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             var temp = itemInfo[i];
             inv.setSublistValue({
                 sublistId: subId,
+                fieldId: 'custrecord_dps_customs_invoice_item',
+                line: i,
+                value: temp.itemId
+            });
+            inv.setSublistValue({
+                sublistId: subId,
                 fieldId: 'custrecord_dps_customs_invoice_item_qty',
                 line: i,
                 value: temp.qty
@@ -381,6 +391,8 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 value: temp.name
             });
 
+
+            // 通过 API 直接获取 汇率
             var cur_rate = currency.exchangeRate({
                 source: 'CNY',
                 target: 'USD',

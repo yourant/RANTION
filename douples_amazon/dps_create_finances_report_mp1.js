@@ -78,49 +78,13 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
       "PerformanceBondRefundEventList"
     ]
     exports.getInputData = function () {
-      var data = 
-      [  {
-          "aono": "102575",
-          "boxNo": "1",
-          "length": 10.00,
-          "width": 10.00,
-          "height": 10.00,
-          "weight": 10.00,
-          "detailModels": [      {
-              "boxNo": "1",
-              "sku": "101005",
-              "productType": 10,
-              "qty": 5
-            }
-          ]
-        },
-        {
-          "aono": "102575",
-          "boxNo": "2",
-          "length": 20.00,
-          "width": 20.00,
-          "height": 20.00,
-          "weight": 20.00,
-          "detailModels": [      {
-              "boxNo": "2",
-              "sku": "101005",
-              "productType": 10,
-              "qty": 5
-            }
-          ]
-        }
-      ]
-      
-      var obd =getDataObj(data)
-      log.debug("obd:",obd)
-return
       var orders = [],
         limit = 4000;
       search.create({
         type: 'customrecord_amazon_finances_cahce',
         filters: [
           // { name: 'custrecord_amazon_finances_postedafter',operator:"within", values: ["2020年2月1日","2020年2月29日"]}, 
-          // { name: 'custrecord_amazon_finances_checkbox',operator: search.Operator.IS, values: false}, 
+          { name: 'custrecord_amazon_finances_checkbox',operator: search.Operator.IS, values: false}, 
           // { name: 'custrecord_finance_type',operator:"is",values:"orders"}, 
           // { name: 'custrecord_amazon_finances_orderid',operator:"is",values:"303-6657489-5667535"}, 
         ],
@@ -133,30 +97,6 @@ return
       return orders;
     };
 
-       /**
-       *    aono  作为KEY，其他作为数组返回一个obj
-       */
-      function  getDataObj(data){
-        var data_obj={},data_arrays=[],f=true
-       data.map(function(ob){
-          f=true
-          for(var key in data_obj){
-              if(key ==ob.aono ){
-                  f=false
-                  delete ob.aono;
-                  data_obj[key].push(ob)
-              }
-          }
-          if(f){
-            data_arrays=[]
-            var ao = ob.aono
-            delete ob.aono;
-            data_arrays.push(ob)
-            data_obj[ao] =  data_arrays
-          }
-       })
-       return data_obj
-    }
     exports.map = function (ctx) {
       var cache_id = ctx.value
       var fin = record.load({
@@ -669,6 +609,6 @@ return
       }
     }
     exports.summarize = function (ctx) {
-      log.debug('处理完成')
+      log.audit('处理完成',ctx)
     };
   });

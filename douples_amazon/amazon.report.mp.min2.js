@@ -47,23 +47,19 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
         exports.getInputData = function () {
             var lines = [];
             var is_request = runtime.getCurrentScript().getParameter({
-                name: 'custscript_aio_obt_report_is_request'
+                name: 'custscript_aio_obt_report_is_request2'
             }),
                 report_type = runtime.getCurrentScript().getParameter({
-                    name: 'custscript_aio_obt_report_type'
+                    name: 'custscript_aio_obt_report_type2'
                 }),
                 report_range = runtime.getCurrentScript().getParameter({
-                    name: 'custscript_aio_obt_report_date_range'
+                    name: 'custscript_aio_obt_report_date_range2'
                 }),
                 report_start_date = Number(report_range) <= 3 ? moment.utc().subtract(1, ['', 'days', 'weeks', 'months'][report_range]).startOf('day').toISOString() : moment.utc().subtract(Number(report_range) - 2, 'days').startOf('day').toISOString();
             log.audit("report_type", report_type);
             log.audit("report_range", report_range);
             log.audit("StartDate", report_start_date);
             log.audit("EndDate", moment.utc().subtract(1, 'days').endOf('day').toISOString());
-            var restr = runtime.getCurrentScript().getParameter({
-                name: 'custscript_restriction'
-            });
-            log.audit("RESTRICTION", restr);
 
             var startDate, endate;
 
@@ -80,8 +76,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             sum++;
                             core.amazon.requestReportFake(account, report_type);
                             log.audit("requestReportFake", "requestReportFake");
-                        } else if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
-                            core.amazon.requestReport(account, report_type, {});
                         } else {
                             log.audit("requestReportrequestReport", account.id);
                             // 根据站点来设置时间
@@ -225,7 +219,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 r.push(lines[i]);
                 count++;
 
-                if (count >= 20 || i == (lines.length - 1)) {
+                if (count >= 400 || i == (lines.length - 1)) {
                     results.push(JSON.stringify(r));
                     count = 0;
                     r = [];
@@ -240,8 +234,77 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
         exports.map = function (ctx) {
 
             var vArray = JSON.parse(ctx.value);
-            log.error('vArray', vArray)
+            var report_type = runtime.getCurrentScript().getParameter({
+                name: 'custscript_aio_obt_report_type2'
+            })
+            log.error('vArray:'+vArray.length, vArray)
             var acc_id, id, type, line, firstLine
+            var startT = new Date().getTime();
+            try {
+                if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
+                    log.debug("是结算报告")
+                    var rec = record.create({type:"customrecord_aio_amazon_settlement2",isDynamic:true})
+                    var mapping = core.consts.fieldsMapping[core.enums.report_type[report_type]]
+                     vArray.map(function (v) {
+                        rec.selectNewLine({sublistId:"recmachcustrecord_settlement_link"})
+                        log.error("v:", v)
+                        // log.audit("JSON.parse(ctx.value)",JSON.stringify(v));
+                        acc_id = Number(v.acc_id),
+                            id = Number(v.id),
+                            type = v.type,
+                            line = v.line,
+                            firstLine = v.firstLine;
+    
+                            line['report-id'] = id;
+                            line['account'] = acc_id;
+                            line['deposit-date'] = firstLine['deposit-date'];
+                            line['total-amount'] = firstLine['total-amount'];
+                            line['settlement-start-date'] = firstLine['settlement-start-date'];
+                            line['settlement-end-date'] = firstLine['settlement-end-date'];
+                            line['currency'] = firstLine['currency'];
+                            line['receipt_date'] = moment.utc(dateDeal(firstLine['deposit-date'])).toDate();
+                            var date_key = mapping.date_key;
+                            // log.debug('line[date_key:',line[date_key]);
+                            line[date_key + "-txt"] = line[date_key];
+                            if (line[date_key]) {
+                                line[date_key] = interfun.getFormatedDate("", "", line[date_key]).date;
+                            }
+                            Object.keys(mapping.mapping).map(function (field_id) {
+                                var values = line[mapping.mapping[field_id]];
+                                if (values && JSON.stringify(values).length < 300) {
+                                    if (mapping.mapping[field_id] == date_key) {
+                                        rec.setCurrentSublistText({sublistId:"recmachcustrecord_settlement_link",fieldId:field_id,text:values})
+                                    } else {
+                                        rec.setCurrentSublistValue({sublistId:"recmachcustrecord_settlement_link",fieldId:field_id,value:values})
+                                    }
+                                } else if (values && JSON.stringify(values).length >= 300) {
+                                    rec.setCurrentSublistValue({sublistId:"recmachcustrecord_settlement_link",fieldId:field_id,value:values.substring(0,299)})
+                                }
+                            });
+                            if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
+                                rec.setCurrentSublistText({
+                                    sublistId:"recmachcustrecord_settlement_link",
+                                    fieldId: "custrecord_settlement_start",
+                                    text: interfun.getFormatedDate("", "", line["settlement-start-date"]).date
+                                });
+                                rec.setCurrentSublistText({
+                                    sublistId:"recmachcustrecord_settlement_link",
+                                    fieldId: "custrecord_settlement_enddate",
+                                    text: interfun.getFormatedDate("", "", line["settlement-end-date"]).date
+                                });
+                            }
+                            rec.commitLine({sublistId:"recmachcustrecord_settlement_link"})
+                    })
+                    var ss = rec.save()  
+                    log.debug("00000000000000头表保存成功",ss)
+                    return 
+                }
+                var ss = "success ,"+" 耗时："+ (new Date().getTime() -startT)
+                log.debug("000000000000a耗时:",ss)
+            } catch (error) {
+                log.error("000000000000error:",error)
+            }
+           return
             try {
                 vArray.map(function (v) {
                     log.error("v:", v)
@@ -251,11 +314,10 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         type = v.type,
                         line = v.line,
                         firstLine = v.firstLine;
-
+                     
                     line['report-id'] = id;
                     line['account'] = acc_id;
                     if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-                        return
                         line['deposit-date'] = firstLine['deposit-date'];
                         line['total-amount'] = firstLine['total-amount'];
                         line['settlement-start-date'] = firstLine['settlement-start-date'];

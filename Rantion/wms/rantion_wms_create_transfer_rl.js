@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-04 21:46:11
+ * @LastEditTime   : 2020-06-08 18:01:56
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -218,6 +218,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             //     sublistId: subli_id
             // });
 
+
+            var itemArr = [];
             search.create({
                 type: 'customrecord_dps_shipping_record_item',
                 filters: [{
@@ -285,6 +287,11 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         join: 'custrecord_dps_shipping_record_item'
                     }, // 产品英文标题,
 
+                    {
+                        name: 'custitem_dps_use',
+                        join: 'custrecord_dps_shipping_record_item'
+                    },
+                    'custrecord_dps_shipping_record_item', // 货品
 
                     // {
                     //     name: 'taxamount',
@@ -311,10 +318,12 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 //     sku(string): SKU,
                 //   }
 
+                itemArr.push(rec.getValue('custrecord_dps_shipping_record_item'));
                 var it = {
+                    itemId: rec.getValue('custrecord_dps_shipping_record_item'),
                     purpose: rec.getValue({
-                        name: 'custrecord_dps_f_b_purpose',
-                        join: 'custrecord_dps_shipping_record_parentrec'
+                        name: 'custitem_dps_use',
+                        join: 'custrecord_dps_shipping_record_item'
                     }),
                     brandName: rec.getText({
                         name: 'custitem_dps_brand',
@@ -383,13 +392,66 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
             });
 
+            var newItemInfo = [];
+
+            var new_limit = 3999;
+            search.create({
+                type: 'customrecord_dps_amazon_seller_sku',
+                filters: [{
+                    name: "custrecord_dps_amazon_ns_sku",
+                    operator: 'anyof',
+                    values: itemArr
+                }],
+                columns: [{
+                        name: "custrecord_dps_amazon_sku_number",
+                    },
+                    {
+                        name: "custrecord_dps_amazon_ns_sku",
+                    },
+                    {
+                        name: "custrecord_ass_asin",
+                        join: "custrecord_dps_amazon_sku_number",
+                    },
+                    {
+                        name: "name",
+                        join: "custrecord_dps_amazon_sku_number",
+                    },
+                    {
+                        name: "custrecord_ass_fnsku",
+                        join: "custrecord_dps_amazon_sku_number",
+                    }
+                ]
+            }).run().each(function (rec) {
+
+                var it = rec.getValue('custrecord_dps_amazon_ns_sku');
+                item_info.forEach(function (item, key) {
+                    if (item.itemId == it) {
+
+                        item.asin = rec.getValue({
+                            name: "custrecord_ass_asin",
+                            join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
+                        });
+                        item.fnsku = rec.getValue({
+                            name: "custrecord_ass_fnsku",
+                            join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
+                        })
+                        item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
+
+                        newItemInfo.push(item);
+                    }
+                });
+                return --new_limit > 0;
+            });
+
+            log.audit('newItemInfo', newItemInfo);
+
             if (Number(taxamount) > 0) {
                 data["taxFlag"] = 1;
             } else {
                 data["taxFlag"] = 0;
             }
             // log.error('item_info', item_info);
-            data['allocationDetailCreateRequestDtos'] = item_info
+            data['allocationDetailCreateRequestDtos'] = newItemInfo;
 
             // 发送请求
             message = sendRequest(token, data);

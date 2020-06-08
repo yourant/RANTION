@@ -184,7 +184,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                 approvalstatus: inv.getValue('approvalstatus')
             });
 
-            var coount_id = inv.getValue('custbody_order_locaiton')
+            var coount_id = inv.getValue('custbody_aio_account')
             if (inv.getValue('approvalstatus') == 1)
                 record.submitFields({
                     type: 'invoice',
@@ -236,7 +236,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
 
                  if(record_id){
 
-                     var acc = inv.getValue('custbody_order_locaiton'),
+                     var acc = inv.getValue('custbody_aio_account'),
                          account;
                      search.create({
                          type: 'customrecord_aio_account',

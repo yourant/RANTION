@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-01 12:00:16
+ * @LastEditTime   : 2020-06-08 15:06:19
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -175,7 +175,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     // data["shopCode"] = '平台编号';
 
                     data["shopName"] = rec.getValue('custrecord_dps_ship_small_account'); //'店铺名称';
-                    data["sourceNo"] = rec.getValue('custrecord_dps_ship_platform_order_numbe'); //'来源单号';
+                    data["sourceNo"] = rec.getValue('custrecord_dps_ship_order_number'); //'来源单号';
                     data["sourceType"] = 10; //'来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整';
                     // data["telephone"] = '固定电话';
                     // data["trackingNo"] = '最终跟踪号';

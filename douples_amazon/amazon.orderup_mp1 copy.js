@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-07 09:41:37
- * @LastEditTime   : 2020-06-08 20:46:35
+ * @LastEditTime   : 2020-05-19 23:52:27
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \douples_amazon\amazon.orderup_mp1.js
@@ -15,8 +15,8 @@
  *@lastupdate 20200305 11:45
  */
 define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/log", "N/search",
-    "N/record", "N/transaction", '../Rantion/Helper/location_preferred.js', "./Helper/interfunction.min"
-], function (format, runtime, core, moment, log, search, record, transaction, loactionPre, interfun) {
+    "N/record", "N/transaction", '../Rantion/Helper/location_preferred.js',"./Helper/interfunction.min"
+], function (format, runtime, core,  moment, log, search, record, transaction, loactionPre,interfun) {
 
     const price_conf = {
         "SKU售价": "item_price",
@@ -36,13 +36,13 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         var idto = runtime.getCurrentScript().getParameter({
             name: 'custscript_id_to1'
         });
-        //  acc=7
+         acc=1
         log.debug("acc", acc);
         log.debug("idform", idform);
         log.debug("idto", idto);
         var orders = [];
         core.amazon.getAccountList().map(function (account) {
-            var limit = 1000 // 999; //350
+            var limit = 200 // 999; //350
             var filters = [{
                     name: 'custrecord_aio_cache_resolved',
                     operator: search.Operator.IS,
@@ -56,7 +56,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 {
                     name: "custrecord_trandate_amazonorder",
                     operator: "within",
-                    values: ["1/5/2020", "1/6/2020"]
+                    values: ["1/5/2020","1/6/2020"]
                 },
                 // {
                 //     name: "custrecord_dds111",
@@ -64,15 +64,10 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 //     values: "没有sku对应"
                 // },
                 {
-                    name: "custrecord_aio_cache_order_id",
+                    name: "custrecord_dps_cache_fulfillment_channel",
                     operator: "is",
-                    values: "405-0236604-0538770"
+                    values: "MFN"
                 },
-                // {
-                //     name: "custrecord_dps_cache_fulfillment_channel",
-                //     operator: "is",
-                //     values: "MFN"
-                // }
             ];
             if (idform) {
                 filters.push({
@@ -168,7 +163,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         var ord_formula = obj.ord_formula; //计算公式
         var version = obj.version;
 
-        log.error('version ' + version, "country: " + country);
+        log.error('version '+ version,"country: "+country);
 
         var customer = obj.customer;
         var line_items = obj.iteminfo;
@@ -239,10 +234,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 }]
             }).run().each(function (rec) {
                 // log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  1111");
-                record.delete({
-                    type: order_type,
-                    id: rec.id
-                })
+                record.delete({type:order_type,id:rec.id})
                 // ord = record.load({
                 //     type: order_type,
                 //     id: rec.id,
@@ -340,7 +332,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     log.debug("endDate123", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text:  interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -368,7 +360,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     log.debug("endDate", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text:  interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -387,7 +379,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     log.debug("endDate777", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -405,7 +397,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -464,7 +456,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     log.debug("endDate123", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text:interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -492,7 +484,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     log.debug("endDate", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text:interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -511,7 +503,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     log.debug("endDate777", endDate);
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -529,7 +521,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
                     ord.setText({
                         fieldId: 'trandate',
-                        text: interfun.getFormatedDate("", "", order_trandate).date
+                        text: interfun.getFormatedDate("","",order_trandate).date
                     });
 
                     ord.setText({
@@ -713,11 +705,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 });
                 return mark_resolved(amazon_account_id, o.amazon_order_id);
             }
-            if (!line_items) {
+            if (!line_items){
                 line_items = core.amazon.getOrderItems(a, o.amazon_order_id);
                 log.debug("0000011line_items:" + obj.rec_id, line_items);
-
-                record.submitFields({
+    
+                 record.submitFields({
                     type: 'customrecord_aio_order_import_cache',
                     id: obj.rec_id,
                     values: {
@@ -725,7 +717,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     }
                 });
             }
-
+           
             log.debug("OKokokok:" + obj.rec_id, line_items)
             var itemAry = [],
                 tax_item_amount = 0,
@@ -763,10 +755,10 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 if (line.qty == 0) {
                     return;
                 }
-                var skuid;
+                var skuid; 
 
-                try {
-                    skuid = interfun.getskuId(line.seller_sku.trim(), amazon_account_id, o.amazon_order_id)
+             try{ 
+                skuid = interfun.getskuId(line.seller_sku.trim(),amazon_account_id,o.amazon_order_id)
                 } catch (e) {
                     log.error("assemblyitem error :::", e)
                 }
@@ -774,6 +766,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     sublistId: 'item'
                 });
                 log.debug('12set skuid', 'skuid:' + skuid + ', cid:' + cid)
+
+             
 
 
                 ord.setCurrentSublistValue({
@@ -800,12 +794,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     fieldId: 'custcol_dps_trans_order_item_sku',
                     value: line.seller_sku
                 });
-                // MSKU
-                ord.setCurrentSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'custcol_aio_amazon_msku',
-                    value: line.seller_sku
-                });
 
                 log.debug('14quantity:' + typeof (line.qty), line.qty);
                 ord.setCurrentSublistValue({
@@ -816,31 +804,30 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
                 //按照计算逻辑公式计算itemprice
 
-                var itemprice = 0,
-                    fla_str = ""
+                var itemprice = 0,fla_str=""
                 for (key in fla) {
                     if (fla[key] == "start") {
                         itemprice = Number(line[key])
-                        fla_str += key + ""
+                        fla_str += key+""
                     } else {
                         if (fla[key] == "-") {
                             itemprice = itemprice - Number(line[key])
-                            fla_str += "-" + key
+                            fla_str += "-"+key
                         } else if (fla[key] == "+") {
-                            fla_str += "+" + key
+                            fla_str += "+"+key
                             itemprice = itemprice + Number(line[key])
                         }
                     }
                 }
-                log.debug("组合好的计算公式fla_str:", fla_str)
-                log.debug("0000000itemprice:" + itemprice, "原始的货品价格：" + line.item_price)
-
+                log.debug("组合好的计算公式fla_str:",fla_str)
+                log.debug("0000000itemprice:" + itemprice, "原始的货品价格：" + line.item_price) 
+               
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'rate',
                     value: itemprice / line.qty
                 });
-
+               
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'amount',
@@ -940,11 +927,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 value: Number(amazon_account_id)
             });
             ord.setValue({
-                fieldId: 'custbody_order_locaiton', //订单店铺
+                fieldId: 'custbody_order_locaiton',//订单店铺
                 value: Number(amazon_account_id)
             });
             ord.setValue({
-                fieldId: 'custbody_sotck_account', //发货店铺
+                fieldId: 'custbody_sotck_account',  //发货店铺
                 value: Number(amazon_account_id)
             });
             ord.setValue({
@@ -956,7 +943,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             log.debug('31-1order_location', order_location);
             if (o.fulfillment_channel == 'MFN') {
                 // 仓库优选
-                var ship_loca_id = loactionPre.locationPreferred(amazon_account_id);
+                var ship_loca_id = loactionPre.locationPreferred(amazon_order_id);
                 if (ship_loca_id) {
                     order_location = ship_loca_id;
                 }
@@ -977,12 +964,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 })
             }
 
-            for (var field_id in core.consts.fieldsMapping._LIST_ORDERS_.mapping) {
+             for (var field_id in core.consts.fieldsMapping._LIST_ORDERS_.mapping) {
                 ord.setValue({
-                    fieldId: field_id,
-                    value: o[core.consts.fieldsMapping._LIST_ORDERS_.mapping[field_id]]
-                });
-            }
+                     fieldId: field_id,
+                     value: o[core.consts.fieldsMapping._LIST_ORDERS_.mapping[field_id]]
+                 });
+             }
             if (error_message.length) {
                 log.debug('error_message', error_message.length);
                 var mid = mark_missing_order(externalid, amazon_account_id, o.amazon_order_id, itemAry + error_message.join('\n'), order_trandate);
@@ -1108,7 +1095,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             });
             log.debug(externalid, externalid + " | \u7CFB\u7EDF\u7EA7\u522B\u9519\u8BEF\uFF0C\u8BA2\u5355\u63A8\u81F3MISSING ORDER! #" + mid + " order: " + JSON.stringify(o, null, 2));
         }
-        log.debug("生成一张单耗时:", new Date().getTime() - startT)
+        log.debug("生成一张单耗时:", new Date().getTime() -startT)
     }
 
     function reduce(context) {
@@ -1117,7 +1104,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
     }
 
     function summarize(summary) {
-        log.audit("处理完成", summary)
+
     }
 
     // 发运记录的相关字段
@@ -1301,27 +1288,28 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         var o_name = o.shipping_address.name ? o.shipping_address.name : (o.buyer_name ? o.buyer_name : (o.buyer_email.split('@')[0]))
 
         try {
-            var files = [{
-                    name: 'name',
-                    operator: 'is',
-                    values: o_name
-                },
-                {
-                    name: 'custrecord_cc_country',
-                    operator: 'is',
-                    values: o.shipping_address.country_code
-                },
+            var files = [ 
+            {
+                name: 'name',
+                operator: 'is',
+                values: o_name
+            },
+            {
+                name: 'custrecord_cc_country',
+                operator: 'is',
+                values: o.shipping_address.country_code
+            },
             ]
-            if (o.shipping_address.address_line1)
-                files.push({
-                    name: 'custrecord_cc_addr1',
-                    operator: 'is',
-                    values: o.shipping_address.address_line1
-                })
+           if(o.shipping_address.address_line1)
+            files.push({
+                name: 'custrecord_cc_addr1',
+                operator: 'is',
+                values: o.shipping_address.address_line1
+            })
             search.create({
                 type: 'customrecord_customer_contact',
                 filters: files
-
+                
             }).run().each(function (rec) {
                 c_id = rec.id;
                 return false;

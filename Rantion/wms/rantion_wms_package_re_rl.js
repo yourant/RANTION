@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-06-02 10:21:15
+ * @LastEditTime   : 2020-06-08 20:15:00
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -102,6 +102,10 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
                         id: bigRec
                     });
 
+
+                    var boxNum = objRecord.getValue('custrecord_dps_total_number'),
+                        addNum = 1;
+
                     var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
 
                     var numLines = objRecord.getLineCount({
@@ -117,6 +121,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
                         log.debug('detailModels.length', detailModels.length)
                         for (var j = 0, j_len = detailModels.length; j < j_len; j++) {
 
+                            // addNum++;
 
                             add++;
 
@@ -177,6 +182,14 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
 
                             log.debug("Remaining governance units: " + scriptObj.getRemainingUsage());
                         }
+
+
+
+                        log.debug('Number(addNum) + Number(boxNum)', Number(addNum) + Number(boxNum));
+                        objRecord.setValue({
+                            fieldId: 'custrecord_dps_total_number',
+                            value: (Number(addNum) + Number(boxNum)).toFixed(0)
+                        });
 
                         objRecord.setValue({
                             fieldId: 'custrecord_dps_shipping_rec_status',

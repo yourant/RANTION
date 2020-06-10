@@ -446,20 +446,22 @@ var endiciaApi = {
                     }
                     return true;
                 });
-                if (key == 'FromCompany') {
-                    this.search.create({
-                        type: 'customrecord_country_code',
-                        filters: [
-                            { name: 'internalId', operator: 'is', values: value },
-                        ],
-                        columns: [
-                            { name: 'custrecord_cc_country_code' }
-                        ]
-                    }).run().each(function (parseRec) {
-                        value = parseRec.getValue('custrecord_cc_country_code')
-                        return true;
-                    });
-                }
+                // if (value && key == 'FromCompany') {
+                //     log.audit('FromCompany', value);
+                //     this.search.create({
+                //         type: 'subsidiary',
+                //         filters: [
+                //             { name: 'internalId', operator: 'is', values: value },
+                //         ],
+                //         columns: [
+                //             { name: 'namenohierarchy' }
+                //         ]
+                //     }).run().each(function (parseRec) {
+                //         value = parseRec.getValue('namenohierarchy')
+                //         return false;
+                //     });
+                //     log.audit('newCompany', value);
+                // }
             }
         }
         return value
@@ -471,9 +473,11 @@ var endiciaApi = {
         var itemNum = {}
         for (var i = 0; i < line; i++) {
             var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_item', line: i })
-            itemIdArray.push(itemId)
-            //数量获取
-            itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_shipment_item_quantity', line: i })
+            if (itemId) {
+                itemIdArray.push(itemId)
+                //数量获取
+                itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_quantity', line: i })
+            }
         }
         var allWeight = 0
         if (itemIdArray.length > 0) {
@@ -489,6 +493,10 @@ var endiciaApi = {
                 if (num) allWeight += Number(weight) * Number(num)
                 return true;
             });
+        }
+        if (allWeight) {
+            allWeight = allWeight * 0.035274;
+            allWeight = allWeight.toFixed(0)
         }
         log.audit('allweight', allWeight);
         return allWeight
@@ -517,14 +525,14 @@ var endiciaApi = {
 var endiciaLabelDict = {
     // MailClass: { key_ns: '', help: '计算所有适用的指定邮件类别（国内或国际）的费率。', valueType: 'PriorityExpress,First,LibraryMail,MediaMail,ParcelSelect,RetailGround,Priority,PriorityMailExpressInternational,FirstClassMailInternational,FirstClassPackageInternationalService,PriorityMailInternational' },
     WeightOz: { key_ns: '', help: '包装重量，以盎司为单位。', valueType: '重量' },
-    PartnerCustomerID: { key_ns: 'custrecord_dps_ship_platform_order_numbe', help: '', valueType: '' },
-    PartnerTransactionID: { key_ns: 'custrecord_dps_ship_platform_order_numbe', help: '', valueType: '' },
+    PartnerCustomerID: { key_ns: 'custrecord_dps_ship_order_number', help: '', valueType: '' },
+    PartnerTransactionID: { key_ns: 'custrecord_dps_ship_order_number', help: '', valueType: '' },
     ToName: { key_ns: 'custrecord_dps_ship_small_recipient', help: '优先邮件快递和国际邮件的收件人名称：ToName或ToCompany必须包含一个值。', valueType: '字符串（47个字符）' },
     ToAddress1: { key_ns: 'custrecord_dps_street1', help: '收件人的第一个收货地址行', valueType: '字符串（47个字符）' },
     ToCity: { key_ns: 'custrecord_dps_recipient_city', help: '收件人所在的城市对于国内邮件，允许的字符为：AZ az连字符句号空间', valueType: '字符串（50个字符）' },
     ToState: { key_ns: 'custrecord_dps_s_state', help: '收件人所在的州或省。如果ValidateAddress是FALSE国内邮件，则此元素必须包含有效的2个字符的状态码。国内邮件是必需的，国际邮件是可选的。', valueType: '字符串（2或25个字符）' },
     ToPostalCode: { key_ns: 'custrecord_dps_recipien_code', help: '收件人的邮政编码。', valueType: '字符串 (5个或15个字符）' },
-    FromCompany: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人所在的国家。对于美国地址，此值应留空。', valueType: '字符串（50个字符）', parseType: 'location', parseId: 'custrecord_aio_country_sender' },
+    FromCompany: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人所在的国家。对于美国地址，此值应留空。', valueType: '字符串（50个字符）', parseType: 'location', parseId: 'subsidiary' },
     FromName: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人姓名。FromName或FromCompany必须包含一个值。对于海关表格，此元素必须至少包含两个词。', valueType: '字符串（47个字符）', parseType: 'location', parseId: 'custrecord_aio_sender_name' },
     ReturnAddress1: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人的第一个收货地址行', valueType: '字符串（47个字符）', parseType: 'location', parseId: 'custrecord_aio_sender_address' },
     FromCity: { key_ns: 'custrecord_dps_ship_samll_location', help: '发件人所在城市允许的字符：AZ，az，连字符，句号，空格', valueType: '字符串（50个字符）', parseType: 'location', parseId: 'custrecord_aio_sender_city' },

@@ -40,6 +40,8 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 (type == core.enums.report_type._GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA_) ||
                 (type == core.enums.report_type._GET_VAT_TRANSACTION_DATA_) ||
                 (type == core.enums.report_type._GET_FBA_FULFILLMENT_INVENTORY_RECEIPTS_DATA_) ||
+                (type == core.enums.report_type._GET_FBA_STORAGE_FEE_CHARGES_DATA_) ||
+                (type == core.enums.report_type._GET_FBA_FULFILLMENT_LONGTERM_STORAGE_FEE_CHARGES_DATA_) ||
                 (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_));
         };
 
@@ -67,10 +69,16 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
 
             var startDate, endate;
 
-            var sum = 0;
-
-            core.amazon.getReportAccountList().map(function (account) {
-                // core.amazon.getAccountList().map(function (account) {
+            var sum = 0,acc_arrys=[];
+            //listing可以区分站点
+            if (report_type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_) {
+                acc_arrys = core.amazon.getAccountList()
+            }else{
+                acc_arrys =  core.amazon.getReportAccountList()
+            }
+            // core.amazon.getReportAccountList().map(function (account) {
+                acc_arrys.map(function (account) {
+                    if(account.id !=5)return
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {
                     log.audit("account:" + account.id, marketplace);
@@ -83,39 +91,17 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         } else if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
                             core.amazon.requestReport(account, report_type, {});
                         } else {
-                            log.audit("requestReportrequestReport", account.id);
-                            // 根据站点来设置时间
-                            if (account.enabled_sites == 'AmazonUS') {
-                                // 美国站点
-                                log.audit("account.id " + account.id, "美国站点");
-                                startDate = "2020-04-01T00:00:00.000Z";
-                                endate = "2020-04-19T23:59:59.999Z";
-                            } else if (account.enabled_sites == 'AmazonUK') {
-                                // 英国站点
-                                log.audit("account.id " + account.id, "英国站点");
-                                startDate = "2020-04-01T08:00:00.000Z";
-                                endate = "2020-03-20T08:00:00.000Z";
-                            } else if (account.enabled_sites == 'AmazonDE' || account.enabled_sites == 'AmazonES' || account.enabled_sites == 'AmazonFR' || account.enabled_sites == 'AmazonIT') {
-                                // 欧洲站点
-                                log.audit("account.id " + account.id, "欧洲站点");
-                                startDate = "2020-04-01T09:00:00.000Z";
-                                endate = "2020-03-20T09:00:00.000Z";
-                            } else {
-                                // 其他站点
-                                log.audit("account.id " + account.id, "其他站点");
-                                startDate = "2020-04-01T00:00:00.000Z";
-                                endate = "2020-03-19T23:59:59.999Z";
-                            }
                             startDate = report_start_date;
                             endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
-                            startDate = '2020-05-01T00:00:00.000Z';
-                            endate = '2020-06-01T00:00:00.000Z';
+                            // startDate = '2020-05-01T00:00:00.000Z';
+                            endate = '2020-06-10T02:00:00.000Z';
                             log.debug(report_type, "startDate:" + startDate + "   endate:" + endate);
 
                             core.amazon.requestReport(account, report_type, {
                                 'StartDate': startDate,
                                 'EndDate': endate,
                                 'MarketplaceIdList.Id.1': account.marketplace,
+                                'ReportOptions': "ShowSalesChannel"
                             });
                         }
                     } else {
@@ -255,7 +241,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                     line['report-id'] = id;
                     line['account'] = acc_id;
                     if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-                        return
                         line['deposit-date'] = firstLine['deposit-date'];
                         line['total-amount'] = firstLine['total-amount'];
                         line['settlement-start-date'] = firstLine['settlement-start-date'];
@@ -446,6 +431,36 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             check_rec_id = e.id;
                         })
 
+                    } else if (mapping.record_type_id == "customrecord_aio_amazon_mfn_listing") {
+                        // 报告为 Amazon Listing 报告,增加去重机制
+                        search.create({
+                            type: mapping.record_type_id,
+                            filters: [{
+                                name: 'custrecord_aio_mfn_l_listing_id',
+                                operator: 'is',
+                                values: line["listing-id"]
+                            },
+                            {
+                                name: 'custrecord_aio_mfn_l_seller_sku',
+                                operator: 'is',
+                                values: line["seller-sku"]
+                            },
+                            // { name: 'custrecord_dps_fba_received_inv_req_id',operator: 'is',values: line["report-id"]},
+                            {
+                                name: 'custrecord_aio_mfn_l_asin1',
+                                operator: 'is',
+                                values: line["asin1"]
+                            },
+                            {
+                                name: 'custrecord_aio_mfn_l_product_id',
+                                operator: 'is',
+                                values: line["product-id"]
+                            }
+                            ]
+                        }).run().each(function (e) {
+                            check_rec_id = e.id;
+                        })
+                        log.audit('check_rec_id', check_rec_id);
                     }
                     if (check_rec_id) {
                         log.audit("0load " + line['amazon-order-id'] ? line['amazon-order-id'] : line["order-id"], "1 load: " + mapping.record_type_id)
@@ -486,7 +501,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             log.error('else if values', values);
                             rec.setValue({
                                 fieldId: field_id,
-                                value: values.substring(0, 19)
+                                value: values.substring(0, 299)
                             });
                         }
 
@@ -516,6 +531,12 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         rec.setText({
                             fieldId: "custrecord_settlement_enddate",
                             text: interfun.getFormatedDate("", "", line["settlement-end-date"]).date
+                        });
+                    }
+                    if (type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_) {
+                        rec.setValue({
+                            fieldId: "custrecord_aio_mfn_l_listing_acc_id",
+                            value: acc_id
                         });
                     }
                     var ss = rec.save();

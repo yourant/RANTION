@@ -68,6 +68,8 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     order_po_no = 0,
                     boxNum = 0,
                     planQty = 0;
+
+                var inspectionType;
                 search.create({
                     type: 'customrecord_dps_delivery_order_item',
                     filters: [{
@@ -96,6 +98,10 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                             name: "custitem_dps_specifications",
                             join: "custrecord_item_sku"
                         }, //规格
+                        {
+                            name: "custitem_dps_warehouse_check",
+                            join: "custrecord_item_sku"
+                        }, // 仓检类型
                         //主体上的
                         {
                             name: "custrecord_purchase_order_no",
@@ -215,6 +221,10 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                             name: "custrecord_item_sku"
                         }),
                         variant: JSON.stringify(variant_arr),
+                        inspectionType: rec.getValue({
+                            name: "custitem_dps_warehouse_check",
+                            join: "custrecord_item_sku"
+                        }) == 1 ? inspectionType : 30
                     });
                     return true;
                 });
@@ -252,7 +262,8 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         id: rec.getValue('entity')
                     });
                     data['pono'] = rec.getValue('tranid'); //采购单号
-                    data['inspectionType'] = vendor_data.getValue('custentity_supplier_type') == 1 ? 10 : 20; //质检类型
+                    inspectionType = vendor_data.getValue('custentity_supplier_type') == 1 ? 10 : 20; //质检类型
+                    data['inspectionType'] = inspectionType;
                     data['taxFlag'] = rec.getValue({
                         name: "custrecord_tax_included",
                         join: "subsidiary"
@@ -383,13 +394,9 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
                 var skuList = [];
                 for (var i = 0; i < sku_arr.length; i++) {
-
-                    var inspectionType = 2;
                     if (inspection_type == 1) {
-                        inspectionType = 10;
+                        inspectionType = inspectionType;
                     } else if (inspection_type == 2) {
-                        inspectionType = 20;
-                    } else {
                         inspectionType = 30;
                     }
                     var info = {

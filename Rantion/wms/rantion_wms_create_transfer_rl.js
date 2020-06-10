@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-08 18:01:56
+ * @LastEditTime   : 2020-06-10 17:17:55
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -29,6 +29,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         var token = getToken();
         if (token) {
             var data = {};
+            var tranType;
 
             search.create({
                 type: 'customrecord_dps_shipping_record',
@@ -149,7 +150,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     join: 'custrecord_dps_shipping_rec_to_location'
                 });
                 data["targetWarehouseName"] = rec.getValue({
-                    name: 'custrecord_dps_wms_location',
+                    name: 'custrecord_dps_wms_location_name',
                     join: 'custrecord_dps_shipping_rec_to_location'
                 });
                 data["taxFlag"] = 1;
@@ -162,6 +163,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
                 var type1 = rec.getValue('custrecord_dps_ship_record_tranor_type');
 
+                tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
+
                 var type = 10;
                 // 1 FBA调拨
                 // 2 自营仓调拨
@@ -172,7 +175,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     type = 20;
                     data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
                 } else {
-                    data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                    data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
                 }
                 data["type"] = type;
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
@@ -392,56 +395,64 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
             });
 
+            log.debug('itemArr', itemArr);
+
             var newItemInfo = [];
 
-            var new_limit = 3999;
-            search.create({
-                type: 'customrecord_dps_amazon_seller_sku',
-                filters: [{
-                    name: "custrecord_dps_amazon_ns_sku",
-                    operator: 'anyof',
-                    values: itemArr
-                }],
-                columns: [{
-                        name: "custrecord_dps_amazon_sku_number",
-                    },
-                    {
+            if (tranType == 1) {
+                var new_limit = 3999;
+                search.create({
+                    type: 'customrecord_dps_amazon_seller_sku',
+                    filters: [{
                         name: "custrecord_dps_amazon_ns_sku",
-                    },
-                    {
-                        name: "custrecord_ass_asin",
-                        join: "custrecord_dps_amazon_sku_number",
-                    },
-                    {
-                        name: "name",
-                        join: "custrecord_dps_amazon_sku_number",
-                    },
-                    {
-                        name: "custrecord_ass_fnsku",
-                        join: "custrecord_dps_amazon_sku_number",
-                    }
-                ]
-            }).run().each(function (rec) {
-
-                var it = rec.getValue('custrecord_dps_amazon_ns_sku');
-                item_info.forEach(function (item, key) {
-                    if (item.itemId == it) {
-
-                        item.asin = rec.getValue({
+                        operator: 'anyof',
+                        values: itemArr
+                    }],
+                    columns: [{
+                            name: "custrecord_dps_amazon_sku_number",
+                        },
+                        {
+                            name: "custrecord_dps_amazon_ns_sku",
+                        },
+                        {
                             name: "custrecord_ass_asin",
-                            join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                        });
-                        item.fnsku = rec.getValue({
+                            join: "custrecord_dps_amazon_sku_number",
+                        },
+                        {
+                            name: "name",
+                            join: "custrecord_dps_amazon_sku_number",
+                        },
+                        {
                             name: "custrecord_ass_fnsku",
-                            join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                        })
-                        item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
+                            join: "custrecord_dps_amazon_sku_number",
+                        }
+                    ]
+                }).run().each(function (rec) {
 
-                        newItemInfo.push(item);
-                    }
+                    var it = rec.getValue('custrecord_dps_amazon_ns_sku');
+                    item_info.forEach(function (item, key) {
+                        if (item.itemId == it) {
+
+                            item.asin = rec.getValue({
+                                name: "custrecord_ass_asin",
+                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
+                            });
+                            item.fnsku = rec.getValue({
+                                name: "custrecord_ass_fnsku",
+                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
+                            })
+                            item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
+
+                            newItemInfo.push(item);
+                        }
+                    });
+                    return --new_limit > 0;
                 });
-                return --new_limit > 0;
-            });
+
+                data['allocationDetailCreateRequestDtos'] = newItemInfo;
+            } else {
+                data['allocationDetailCreateRequestDtos'] = item_info;
+            }
 
             log.audit('newItemInfo', newItemInfo);
 
@@ -451,7 +462,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 data["taxFlag"] = 0;
             }
             // log.error('item_info', item_info);
-            data['allocationDetailCreateRequestDtos'] = newItemInfo;
+            // data['allocationDetailCreateRequestDtos'] = newItemInfo;
 
             // 发送请求
             message = sendRequest(token, data);

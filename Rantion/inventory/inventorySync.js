@@ -11,7 +11,7 @@ define(['N/search', 'N/log', 'N/record'], function (search, log, record) {
         var losses = [];
 
         var updateList = [];
-        console.log("updateList begin");
+        log.debug("updateList begin");
         search.create({
             type: 'customrecord_fba_update_inventory',
             columns: [
@@ -20,19 +20,19 @@ define(['N/search', 'N/log', 'N/record'], function (search, log, record) {
                 'custrecord_fba_update_inventory_rid',
                 'custrecord_fba_update_status'
             ],
-            filters: [{ name: 'custrecord_fba_update_status', operator: 'is', values: 2 }]
+            filters: [{ name: 'custrecord_fba_update_status', operator: 'EQUALTO', values: 2 }]
         }).run().each(function (e) {
             var result = JSON.parse(JSON.stringify(e));
-            console.log("updateList begin", JSON.stringify(e));
+            log.debug("updateList begin", JSON.stringify(e));
             var isC = false;
             var custrecord_salesorder_location = result.values.custrecord_salesorder_location;
             updateList.map(function (v) {
-                console.log("updateList v", JSON.stringify(v));
+                log.debug("updateList v", JSON.stringify(v));
                 if (v.salesorder_location == custrecord_salesorder_location) {
                     isC = true;
                 }
             });
-            if (!false) {
+            if (!isC) {
                 var item = {
                     account: result.values.custrecord_fba_update_inventory_account,
                     salesorder_location: result.values.custrecord_salesorder_location,
@@ -42,14 +42,14 @@ define(['N/search', 'N/log', 'N/record'], function (search, log, record) {
             }
         });
 
-        console.log("updateList ", JSON.stringify(updateList));
+        log.debug("updateList ", JSON.stringify(updateList));
 
         updateList.map(function (update) {
             var i = 1;
-            console.log("updateList item ", update);
+            log.debug("updateList item ", update);
             var nowPage = Number(0); // 查询页
             var pageSize = Number(100); // 每页数量
-            console.log('update.rid ', update.rid);
+            log.debug('update.rid ', update.rid);
             var inventoryitem = search.create({
                 type: 'customrecord_fba_myi_all_inventory_data',
                 columns: [
@@ -57,30 +57,31 @@ define(['N/search', 'N/log', 'N/record'], function (search, log, record) {
                 ],
                 filters: [
                     { name: 'custrecord_fba_inventory_rid', operator: 'EQUALTO', values: Number(update.rid) },
-                    { name: 'custrecord_fba_account', operator: 'EQUALTO', values: Number(update.account) },
+                    { name: 'custrecord_fba_account', operator: 'is', values: update.account },
                     { name: 'custrecord_all_salesorder_location', operator: 'EQUALTO', values: Number(update.salesorder_location) }
                 ]
             });
             var pageData = inventoryitem.runPaged({
-                // pageSize: pageSize
-                pageSize: 10
+                pageSize: pageSize
+                // pageSize: 10
             });
             var totalCount = pageData.count; // 总数
-            // var pageCount = pageData.pageRanges.length; // 页数
-            var pageCount = 1; // 页数
-            console.log('totalCount', JSON.stringify(totalCount));
+            var pageCount = pageData.pageRanges.length; // 页数
+            // var pageCount = 1; // 页数
+            log.debug('totalCount', JSON.stringify(totalCount));
             while (pageCount > 0) {
                 pageData.fetch({
                     index: Number(nowPage++)
                 }).data.forEach(function (result) {
                     var resultJSON = result.toJSON();
+                    log.debug('resultJSON', JSON.stringify(resultJSON));
                     // if (resultJSON.custrecord_fba_sku &&
                     //     resultJSON.custrecord_fba_afn_total_quantity &&
                     //     resultJSON.custrecord_fba_inventory_rid &&
                     //     resultJSON.custrecord_fba_account &&
                     //     resultJSON.custrecord_all_salesorder_location) {
                     //获取映射关系sku customrecord_dps_amazon_seller_sku
-                    // console.log('customrecord_dps_amazon_seller_sku', JSON.stringify(record.load({
+                    // log.debug('customrecord_dps_amazon_seller_sku', JSON.stringify(record.load({
                     //     type: "customrecord_dps_amazon_seller_sku",
                     //     id: ++i
                     // })));
@@ -90,17 +91,19 @@ define(['N/search', 'N/log', 'N/record'], function (search, log, record) {
                             'custrecord_dps_amazon_sku_number',
                             'custrecord_dps_amazon_ns_sku'
                         ]
-                        , filters: [{ name: 'custrecord_dps_amazon_sku_number', operator: 'is', values: resultJSON.values.custrecord_fba_sku }]
+                        , filters:
+                            [{ name: 'name', join: 'custrecord_dps_amazon_sku_number', operator: 'is', values: resultJSON.values.custrecord_fba_sku }
+                                , { name: 'isinactive', join: 'custrecord_dps_amazon_ns_sku', operator: 'is', values: false }]
                     }).run().each(function (seller) {
                         var sellerJSON = JSON.parse(JSON.stringify(seller));
-                        console.log('sellerJSON', sellerJSON)
+                        log.debug('sellerJSON', sellerJSON)
                         var skuId = sellerJSON.values.custrecord_dps_amazon_ns_sku[0].value;
                         var inventoryitem = record.load({
                             type: "inventoryitem",
                             id: skuId
                         });
                         var inventoryitemJSON = JSON.parse(JSON.stringify(inventoryitem));
-                        console.log('inventoryitemJSON', inventoryitemJSON)
+                        log.debug('inventoryitemJSON', inventoryitemJSON)
 
                         var item_count = inventoryitem.getLineCount({ sublistId: 'locations' });
                         for (var i = 0; i < item_count; i++) {
@@ -117,7 +120,7 @@ define(['N/search', 'N/log', 'N/record'], function (search, log, record) {
                                     line: i,
                                 });
                                 var qty = resultJSON.values.custrecord_fba_afn_total_quantity;
-                                console.log("库存对比 ", qty + "-" + quantityavailable)
+                                log.debug("库存对比 ", qty + "-" + quantityavailable)
                                 if (qty > quantityavailable) {
                                     surplus.push({
                                         item: skuId,
@@ -140,16 +143,16 @@ define(['N/search', 'N/log', 'N/record'], function (search, log, record) {
                 pageCount--;
             }
 
-            console.log('i', i);
+            log.debug('i', i);
         });
-        console.log('surplus', surplus);
+        log.debug('surplus', surplus);
 
         var firstCompany = getCompanyId("蓝深贸易有限公司")
         if (surplus.length > 0) {
             var useType = stockUseType('盘盈入库')
             saveInventoryAdjust(firstCompany, surplus, useType);
         }
-        console.log('losses', losses);
+        log.debug('losses', losses);
         if (losses.length > 0) {
             var useType = stockUseType('盘亏出库')
             saveInventoryAdjust(firstCompany, losses, useType);

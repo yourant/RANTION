@@ -2,12 +2,13 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/ui/dialog', 'N/runtime'], function (dialog, runtime) {
+define(['../Helper/config.js', 'N/ui/dialog', 'N/runtime'], 
+function (config, dialog, runtime) {
 
     var roleId = runtime.getCurrentUser().role;
 
     function pageInit(context) {
-        if (roleId == 16) {
+        if (roleId == config.vendorRoleId) {
             document.getElementById('custrecord_supplier_code').disabled = true; // 供应商编码
             document.getElementById('custrecord_settlement_method').disabled = true; // 结算方式
             document.getElementById('custrecord_delivery_remarks').disabled = true; // 备注
@@ -49,13 +50,13 @@ define(['N/ui/dialog', 'N/runtime'], function (dialog, runtime) {
     }
 
     function fieldChanged(context) {
-        if (roleId != 16 && roleId != 3) {
+        if (roleId != config.vendorRoleId && roleId != config.managerRoleId) {
             var fieldId = context.fieldId;
             if (fieldId != 'custrecord_item_quantity' && fieldId != 'custrecord_delivery_date' 
                 && fieldId != 'custrecord_outstanding_quantity') {
                 dialog.alert({
                     title: '不允许进行修改',
-                    message: '不允许进行修改！！'
+                    message: '不允许进行修改！'
                 }).then(success).catch(failure);
                 function success(result) { 
                     window.location.reload(true); 

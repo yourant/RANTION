@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-06-03 19:53:10
+ * @LastEditTime   : 2020-06-09 20:28:20
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -19,6 +19,18 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
         try {
 
 
+            /*
+            record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: 1113,
+                values: {
+                    custrecord_dps_shipping_rec_status: 17,
+                    // custrecord_dps_shipment_info: error
+                }
+            });
+
+
+            /*
             var fileObj = file.load({
                 id: 7403
             });
@@ -43,6 +55,8 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
             log.debug('url', url);
 
             var load_test_id;
+
+            /*
             // var load_test = record.load({
             //     type: 'customrecord_dps_li_test',
             //     id: 1
@@ -98,6 +112,7 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
             // } else {
             //     context.response.write('无');
             // }
+            */
 
         } catch (error) {
             // context.response.write('error: ' + JSON.stringify(error));

@@ -205,7 +205,9 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
 
 
         var invNO, flag = false;
+        log.debug("tran_order:",tran_order)
         if (tran_order) {
+            log.debug("tran_order:存在，现在搜索报关资料记录",tran_order)
             var bigRec, dec_info, declaration_status, print_status;
             search.create({
                 type: 'customrecord_customs_declaration_informa',
@@ -225,43 +227,44 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
             });
 
             log.debug('bigRec', bigRec);
+            
 
             if (dec_info) {
-
+                log.debug('dec_info 存在，显示打印标签', dec_info);
                 var button = form.addButton({
                     id: 'button1',
                     functionName: 'printExcel',
                     label: '打印'
                 });
-
+                var line = form.getSublist({
+                    id: 'sublistid'
+                });
+                for (var i = 0; i < 1; i++) {
+                    line.setSublistValue({
+                        id: 'custpage_transferorder',
+                        value: tran_order,
+                        line: i
+                    });
+                    line.setSublistValue({
+                        id: 'custpage_customs_information',
+                        value: dec_info,
+                        line: i
+                    });
+                    line.setSublistValue({
+                        id: 'custpage_declaration_status',
+                        value: declaration_status,
+                        line: i
+                    });
+                    line.setSublistValue({
+                        id: 'custpage_print_status',
+                        value: print_status,
+                        line: i
+                    });
+    
+                }
             }
 
-            var line = form.getSublist({
-                id: 'sublistid'
-            });
-            for (var i = 0; i < 1; i++) {
-                line.setSublistValue({
-                    id: 'custpage_transferorder',
-                    value: tran_order,
-                    line: i
-                });
-                line.setSublistValue({
-                    id: 'custpage_customs_information',
-                    value: dec_info,
-                    line: i
-                });
-                line.setSublistValue({
-                    id: 'custpage_declaration_status',
-                    value: declaration_status,
-                    line: i
-                });
-                line.setSublistValue({
-                    id: 'custpage_print_status',
-                    value: print_status,
-                    line: i
-                });
-
-            }
+           
         } else {
 
             var line = form.getSublist({

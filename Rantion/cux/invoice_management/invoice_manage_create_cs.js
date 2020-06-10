@@ -19,7 +19,25 @@ define(['N/currentRecord', 'N/ui/dialog'], function(currentRecord, dialog) {
     }
 
     function fieldChanged(context) {
-        
+        var sblId = 'custpage_sku_sublist';
+        var vvv = rec.getCurrentSublistValue({ sublistId: sblId, fieldId: 'custpage_checkbox' });
+        if (vvv && context.fieldId == 'custpage_checkbox') {
+            var li = rec.getCurrentSublistIndex({ sublistId: sblId });
+            var lineRec = rec.selectLine({ sublistId: sblId, line: li });
+            var vendor = lineRec.getSublistValue({ sublistId: sblId, fieldId: 'custpage_sub_po_vendor_no', line: li });
+
+            var lineNum = rec.getLineCount({ sublistId: sblId });
+            for (var i = 0; i < lineNum; i++) {
+                var check = lineRec.getSublistValue({ sublistId: sblId, fieldId: 'custpage_checkbox', line: i });
+                var currVendor = lineRec.getSublistValue({ sublistId: sblId, fieldId: 'custpage_sub_po_vendor_no', line: i });
+                if (check && currVendor != vendor) {
+                    dialog.alert({ title: '提示', message: '不同主体不可勾选生成同一张发票' });
+                    var recaa = context.currentRecord;
+                    recaa.setCurrentSublistValue({ sublistId: sblId, fieldId: 'custpage_checkbox', value: false });
+                    break;
+                }
+            }
+        }
     }
 
     function postSourcing(context) {

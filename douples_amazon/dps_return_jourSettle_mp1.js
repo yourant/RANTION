@@ -14,7 +14,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
     const income_fin=363    //应收账款-暂估	 1122.05	
     const income_settle=361    //应收账款-待结算  1122.03
     const Fincome_Plat=412	    //预收账款-平台	 2203.03 
+    const Amazon_Plat=622	    //应收账款-平台 Amazon	 1122.04.01
     const income_Refund=471    //主营业务收入-退款	 6001.06
+    const paymentmethod=7  //银行存款
+    const AR_settle=125    //  AR-待结算  1099
 
     //查找已付款的发票，进行冲销
     function getInputData() {
@@ -50,12 +53,14 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           columns: [
             { name: 'custrecord_aio_sett_id', summary: "GROUP" },     //按 settlement id和单号分组
             { name: 'custrecord_aio_sett_order_id', summary: "GROUP" },
-            { name: "custrecord_aio_sett_report_id", summary: "GROUP" }
+            { name: "custrecord_aio_sett_report_id", summary: "GROUP" },
+            { name: "custrecord_aio_sett_merchant_order_id", summary: "GROUP" }
           ]
         }).run().each(function (e) {
           orders.push({
             "settle_id": e.getValue(e.columns[0]) + "",
             "reportId":  e.getValue(e.columns[2]),
+            "merchant_order_id":  e.getValue(e.columns[3]),
             "orderid": e.getValue(e.columns[1])
           })
           return --limit > 0
@@ -76,6 +81,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         var orderid = obj.orderid
         var settlmentid = obj.settle_id
         var reportId = obj.reportId
+        var merchant_order_id = obj.merchant_order_id
         var entity, orderstatus, subsidiary, currency,settlement_idObj = {},settlement_ids=[], settlmentID = {}, shipsID = {},item_code
         var cl_date;  //冲销结算时间
         var endDate,postDate,depositDate,incomeaccount;
@@ -83,7 +89,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         var postdate_arry = []
         var postdate_obj = {} ,check_post_date,PT_Arrys=[] //记录下货价和税
         var currency_txt
-        var Item_amount=0,m_postdate_obj={}
+        var Item_amount=0,m_postdate_obj={},settlement_idArrs=[]
 
         var search_acc ,seller_id,report_acc,report_site,report_subsidiary,report_customer,report_siteId
         //拿到seller id
@@ -108,7 +114,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           })
           search_acc  = interfun.getSearchAccount(seller_id)
           log.debug("seller_id: "+seller_id,"search_acc "+search_acc)
-
+   
         search.create({
           type: record.Type.RETURN_AUTHORIZATION,
           filters: [
@@ -219,6 +225,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                item_code = rec.getValue('custrecord_aio_sett_order_item_code') 
               //货品价格和税是收入，不计入冲销
               if ( !(Tranction_type == "Refund" && Amount_type == "ItemPrice" &&Amount_desc == "Principal" ) ) {
+                settlement_idArrs.push(rec.id)
                      //Refund会出现两个Tax的情况，这时候要判断Tax大于0的记为费用
                      var month ,mok=false ,pos
                      //getFormatedDate(postDate, endDate, depositDate,startDate)
@@ -328,6 +335,39 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           }).run().each(function (e) {
             currency = e.id
           })
+          //如果状态是待履行，且存在客户存款
+          var so_obj = interfun.SearchSO(orderid,merchant_order_id,search_acc,cl_date.date)
+
+          if(so_obj.fulfill ="isrefund"){
+                    //创建客户退款，未发货先退款的情况
+                    var sdk = record.create({type:"customerrefund",isDynamic:true})
+                    sdk.setValue({fieldId:"customer",value:so_obj.entity})
+                    sdk.setValue({fieldId:"paymentmethod",value:paymentmethod})  //银行
+                    sdk.setValue({fieldId:"account",value:AR_settle})  //科目
+                    sdk.setValue({fieldId:"aracct",value:Amazon_Plat})  //应收款项客户
+                    sdk.setValue({fieldId:"currency",value:currency})  
+                    sdk.setText({fieldId:"trandate",text:cl_date.date})  
+                    var len  = sdk.getLineCount({sublistId:"deposit"})
+                    log.debug("len:"+len)
+                    for(var i =0;i<len;i++){
+                      sdk.selectLine({sublistId:"deposit",line:i})
+                      if(sdk.getCurrentSublistValue({sublistId:"deposit",fieldId:"doc"}) == so_obj.cust_depo)
+                      sdk.setCurrentSublistValue({sublistId:"deposit",fieldId:"apply",value:true})
+                      break
+                    }
+                    var ss = sdk.save()
+                    log.debug("未发货先结算，创建客户存款成功",ss)
+                    settlement_idArrs.map(function(set_id){
+                        record.submitFields({
+                            type: "customrecord_aio_amazon_settlement",
+                            id: set_id,
+                            values: {
+                                custrecord_settle_is_generate_voucher: true
+                            }
+                        })
+                    })
+                    return 
+          }
           log.debug("Item_amount:"+Item_amount,"settlmentID:"+JSON.stringify(settlmentID))
           log.debug("settlement_idObj:",JSON.stringify(settlement_idObj))
           for (var key in settlmentID) {
@@ -637,285 +677,6 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
       });
       return mo.save();
     };
-   /**
-     * 格式化时间，时区转为美国
-     * 判断是否为2020.02.01 08:00:00 UTC之后才处理
-     * @param {*} dateStr
-     */
-    
-    function getFormatedDate(postDate, endDate, depositDate,startDate) {
-      var o_date = moment.utc("2020/02/01 08:00:00").toDate()   //UTC 2020年2月1日 8点，美国0点
-      var rs
-      if (!depositDate) {
-        var post_strs = postDate.substring(0, 10)
-        var end_strs = endDate.substring(0, 10)
-        var start_strs = startDate.substring(0, 10)
-        var end_len = end_strs.split(".")[0].length
-        if (end_len < 4) {
-          endDate = end_strs.split(".")[2] + "/" + end_strs.split(".")[1] + "/" + end_strs.split(".")[0] + " " + endDate.substring(11, 19)
-          postDate = post_strs.split(".")[2] + "/" + post_strs.split(".")[1] + "/" + post_strs.split(".")[0] + " " + postDate.substring(11, 19)
-          startDate = start_strs.split(".")[2] + "/" + start_strs.split(".")[1] + "/" + start_strs.split(".")[0] + " " + startDate.substring(11, 19)
-        } else {
-          if(endDate.indexOf("UTC")>-1)
-          endDate = endDate.substring(0, 19)
-          if(postDate.indexOf("UTC")>-1)
-          postDate = postDate.substring(0, 19)
-          if(startDate.indexOf("UTC")>-1)
-          startDate = startDate.substring(0, 19)
-        }
-    
-        var ender_date  = moment.utc(endDate).toDate()
-        var poster_date  = moment.utc(postDate).toDate()
-        var starter_date  = moment.utc(startDate).toDate()
-        log.debug("date_post:"+poster_date,"moment（date_post）："+ender_date)
-        if(o_date > poster_date){
-          //判断posted date是否在2020年2月1日 UTC8点之后才处理
-           return "2"
-        }
-        ender_date = format.format({
-          value: ender_date,
-          type: format.Type.DATE,
-          timezone: format.Timezone.AMERICA_LOS_ANGELES  //统一转为美国时间 endDate
-        });
-        poster_date = format.format({
-          value:poster_date,
-          type: format.Type.DATE,
-          timezone: format.Timezone.AMERICA_LOS_ANGELES  //统一转为美国时间 postDate
-        });
-        starter_date = format.format({
-          value:starter_date,
-          type: format.Type.DATE,
-          timezone: format.Timezone.AMERICA_LOS_ANGELES  //统一转为美国时间 postDate
-        });
-        var Day = ender_date.split(/[\u4e00-\u9fa5]/g)[2] 
-        var month = ender_date.split(/[\u4e00-\u9fa5]/g)[1] 
-        if (Day >3 && month > starter_date.split(/[\u4e00-\u9fa5]/g)[1]) {  //跨越且大于等于3日取endDate,放当月
-          rs = {
-            "ps":"end",
-            "date":ender_date
-          }
-        } else {  /**  
-                   取 post Date,放当月  
-                 */
-                log.debug("  取 post Date,放当月")
-                rs = {
-                  "ps":"post",
-                  "date":poster_date
-                }
-        }
-      } else {
-        //收款时间 depositDate
-        var deposit_strs = depositDate.substring(0, 10)
-        var deposit_len = deposit_strs.split(".")[0].length
-        if (deposit_len < 4) {
-          depositDate = deposit_strs.split(".")[2] + "/" + deposit_strs.split(".")[1] + "/" + deposit_strs.split(".")[0] + " " + depositDate.substring(11, 19)
-        } else {
-          if(depositDate.indexOf("UTC")>-1)
-          depositDate = depositDate.substring(0, 19)
-        }
-        rs = {
-          "ps":"deposit",
-          "date":format.format({
-            value: moment.utc(depositDate).toDate(),
-            type: format.Type.DATE,
-            timezone: format.Timezone.AMERICA_LOS_ANGELES  //统一转为美国时间 depositDate
-          })
-        }
-      }
-      return  rs
-    }
-    function credit_cr(orderid) {
-      search.create({
-        type: record.Type.CREDIT_MEMO,
-        filters: [
-          { name: 'mainline', operator: 'is', values: true },
-          { name: 'status', operator: 'is', values: "CustCred:A" },
-          { name: 'custbody_aio_marketplaceid', operator: 'is', values: 1 },
-          { name: "otherrefnum", operator: "equalto", values: orderid },
-          { name: 'custbody_journal_voucher_checkedbox', operator: 'is', values: false },
-
-        ], columns: [{ name: "internalid", sort: 'DESC' }]
-      }).run().each(function (e) {
-        var cache_id = e.id;
-        var cre = record.load({
-          type: record.Type.CREDIT_MEMO,
-          id: cache_id
-        });
-        if (cre) {
-          log.debug("找到了cr", cache_id)
-          var depositdate, settleid
-          var ref = record.create({
-            type: "customerrefund",
-            isDynamic: true
-          })
-          ref.setValue({
-            fieldId: "customer",
-            value: cre.getValue("entity")
-          })
-          var acc = cre.getValue('custbody_order_locaiton'), account;
-          var currency = cre.getValue('currency')
-          log.debug("acc:", acc)
-          log.debug("cache_id:", cache_id)
-          search.create({
-            type: 'customrecord_aio_account',
-            filters: [{ name: 'internalid', operator: 'is', values: acc }],
-            columns: [{ name: 'custrecord_customer_payment_account' }]
-          }).run().each(function (e) {
-            account = e.getValue(e.columns[0])
-          })
-          // account = 125
-          log.debug("account客户付款科目", account)
-          // ref.setValue({ fieldId: 'account', value: cre.getValue('account') });
-          // ref.setValue({ fieldId: 'aracct', value: account });
-          ref.setValue({ fieldId: 'currency', value: currency });
-          ref.setValue({
-            fieldId: "paymentmethod",
-            value: 8
-          })
-          log.debug("currency:", ref.getValue('currency'))
-          log.debug("depositdate", depositdate)
-          depositdate = depositdate.substring(0, depositdate.length - 4)
-          log.debug("depositdate", depositdate)
-
-          ref.setValue({
-            fieldId: 'trandate',
-            value: moment.utc(getFormatedDate(depositdate)).toDate()
-          });
-          for (var i = 0; i < ref.getLineCount({
-            sublistId: "apply"
-          }); i++) {
-            ref.selectLine({
-              sublistId: 'apply',
-              line: i
-            })
-            var internalid = ref.getCurrentSublistValue({
-              sublistId: 'apply',
-              fieldId: 'internalid'
-            })
-            // log.debug("internalid:", internalid+":"+cache_id)
-            if (internalid == cache_id) {
-              ref.setCurrentSublistValue({
-                sublistId: 'apply',
-                fieldId: 'apply',
-                value: true
-              })
-              break
-            }
-          }
-          log.debug('legth', ref.getLineCount({
-            sublistId: "apply"
-          }))
-          var lineWithCreditmemo = ref.findSublistLineWithValue('apply', 'internalid', cache_id);
-          log.debug('lineWithCreditmemo', lineWithCreditmemo)
-
-          var total = ref.getValue("total")
-          var subsidiary = ref.getValue("subsidiary")
-          var acc_ref = ref.getValue("account")
-          var save_id = ref.save({
-            ignoreMandatoryFields: true
-          });
-          log.audit("客户退款成功:" + total, save_id)
-          resetBackJo(orderid, save_id)  //反写jour
-          record.submitFields({
-            type: record.Type.CREDIT_MEMO,
-            id: cache_id,
-            values: {
-              custbody_journal_voucher_checkedbox: true
-            }
-          })
-          //生成退款单之后，将费用计入对应的银行账户
-        } else {
-          log.debug("找不到cr", orderid)
-        }
-        return true
-      })
-
-
-    }
-
-    function resetBackJo(orderid, save_id) {
-      search.create({
-        type: "journalentry",
-        filters: [{
-          name: 'mainline',
-          operator: 'is',
-          values: true
-        },
-        {
-          name: 'custbody_jour_orderid',
-          operator: 'is',
-          values: orderid
-        },
-        {
-          name: 'custbody_curr_voucher',
-          operator: 'is',
-          values: "退款预估凭证"
-        },
-        ]
-      }).run().each(function (e) {
-        record.submitFields({
-          type: "journalentry",
-          id: e.id,
-          values: {
-            custbody_payment: save_id,
-          }
-        })
-      })
-      search.create({
-        type: "journalentry",
-        filters: [{
-          name: 'mainline',
-          operator: 'is',
-          values: true
-        },
-        {
-          name: 'custbody_jour_orderid',
-          operator: 'is',
-          values: orderid
-        },
-        {
-          name: 'custbody_curr_voucher',
-          operator: 'is',
-          values: "退款冲减凭证"
-        },
-        ]
-      }).run().each(function (e) {
-        record.submitFields({
-          type: "journalentry",
-          id: e.id,
-          values: {
-            custbody_payment: save_id,
-          }
-        })
-      })
-      search.create({
-        type: "journalentry",
-        filters: [{
-          name: 'mainline',
-          operator: 'is',
-          values: true
-        },
-        {
-          name: 'custbody_jour_orderid',
-          operator: 'is',
-          values: orderid
-        },
-        {
-          name: 'custbody_curr_voucher',
-          operator: 'is',
-          values: "退款凭证"
-        },
-        ]
-      }).run().each(function (e) {
-        record.submitFields({
-          type: "journalentry",
-          id: e.id,
-          values: {
-            custbody_payment: save_id,
-          }
-        })
-      })
-    }
     return {
       getInputData: getInputData,
       map: map,

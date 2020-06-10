@@ -9,59 +9,47 @@
  */
 
 /**
- *@NApiVersion 2.x
- *@NScriptType MapReduceScript
+ * @NApiVersion 2.x
+ * @NScriptType MapReduceScript
  */
-define(['../Rantion/Helper/logistics_cost_calculation.js', 'N/record', 'N/search', 'N/log'],
-function (costCal, record, search, log) {
+define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calculation.js', 'N/record', 'N/search', 'N/log'],
+function (config, costCal, record, search, log) {
 
     function getInputData() {
         var limit = 3999,
             order = [];
         search.create({
             type: 'salesorder',
-            filters: [{
-                    name: 'mainline',
-                    operator: 'is',
-                    values: true
-                },
-                // 是否生成小货发运记录
-                {
-                    name: 'custbody_dps_so_create_ful_record',
-                    operator: 'is',
-                    values: true
-                },
-                // 关联的小货发运记录为空
-                {
-                    name: 'custbody_dps_small_fulfillment_record',
-                    operator: 'anyof',
-                    values: '@NONE@'
-                }
+            filters: [
+                { name: 'mainline', operator: 'is', values: true },// 是否生成小货发运记录
+                { name: 'custbody_dps_so_create_ful_record', operator: 'is', values: true },// 关联的小货发运记录为空
+                { name: 'custbody_dps_small_fulfillment_record', operator: 'anyof', values: '@NONE@' },
+                // { name: 'location', operator: 'noneof', values: '@NONE@'},
+                { name: 'custbody_order_type_fulfillment', operator: 'anyof', values: ['2'] }
             ]
         }).run().each(function (rec) {
             order.push(rec.id);
             return --limit > 0;
         });
-
-
-        log.debug('order length: ' + order.length, order);
-
+        log.debug('可处理订单数量', order.length);
         return order;
-
     }
 
     function map(context) {
-
         try {
-            var value = context.value;
-            var create_ful_rec_id = createFulfillmentRecord(value, 'value');
+            var soid = context.value;
+            log.debug('创建发运记录', 'soid:' + soid);
+            // 创建发运记录
+            var create_ful_rec_id = createFulfillmentRecord(soid, 'value');
+            log.debug('创建发运记录成功', 'create_ful_rec_id:' + create_ful_rec_id);
             if (create_ful_rec_id) {
-                createLogisticsStrategy(value, create_ful_rec_id);
+                // 物流匹配
+                log.debug('物流匹配', 'soid:' + soid + ', create_ful_rec_id:' + create_ful_rec_id);
+                createLogisticsStrategy(soid, create_ful_rec_id);
             }
         } catch (error) {
             log.error('创建发运记录 error', error);
         }
-
     }
 
     function reduce(context) {
@@ -79,80 +67,39 @@ function (costCal, record, search, log) {
      * @returns {*} 返回生成的发运记录的ID, 或者 false;
      */
     function createFulfillmentRecord(soid, sku) {
-
-        var location, item, quantity, api_content, tranid, otherrefnum, account, marketplaceid, amount;
-        var first_name, cc_country, cc_state, cc_ctiy, cc_zip, cc_addr1, cc_addr2, cc_phone_number;
+        var location, api_content, tranid, otherrefnum, account, marketplaceid, amount, 
+            first_name, cc_country, cc_state, cc_ctiy, cc_zip, cc_addr1, cc_addr2, cc_phone_number;
         var item_arr = [],
             limit = 3999;
-
         search.create({
             type: 'salesorder',
-            filters: [{
-                    name: 'internalid',
-                    operator: 'is',
-                    values: soid
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: "type",
-                    join: "item",
-                    operator: "noneof",
-                    values: "OthCharge"
-                }
+            filters: [
+                { name: 'internalid', operator: 'is', values: soid },
+                { name: 'mainline', operator: 'is', values: false },
+                { name: 'taxline', operator: 'is', values: false },
+                { name: 'type', join: 'item', operator: 'noneof', values: 'OthCharge' }
             ],
-            columns: ['location', 'item', 'quantity', 'custbody_aio_api_content', 'tranid', 'amount',
-                'otherrefnum', 'custbody_aio_account', 'custcol_dps_trans_order_item_sku', 'custbody_aio_marketplaceid',
-                {
-                    name: 'custrecord_cc_first_name',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custrecord_cc_country',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custrecord_cc_state',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custrecord_cc_ctiy',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custrecord_cc_zip',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custrecord_cc_addr1',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custrecord_cc_addr2',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custrecord_cc_phone_number',
-                    join: 'custbody_dps_order_contact'
-                }
-
+            columns: [
+                'location', 'item', 'quantity', 'custbody_aio_api_content', 'tranid', 'amount',
+                'otherrefnum', 'custbody_aio_account', 'custcol_dps_trans_order_item_sku', 
+                'custbody_aio_marketplaceid', 'custitem_dps_heavy2',
+                { name: 'custrecord_cc_first_name', join: 'custbody_dps_order_contact' },
+                { name: 'custrecord_cc_country', join: 'custbody_dps_order_contact' },
+                { name: 'custrecord_cc_state', join: 'custbody_dps_order_contact' },
+                { name: 'custrecord_cc_ctiy', join: 'custbody_dps_order_contact' },
+                { name: 'custrecord_cc_zip', join: 'custbody_dps_order_contact' },
+                { name: 'custrecord_cc_addr1', join: 'custbody_dps_order_contact' },
+                { name: 'custrecord_cc_addr2', join: 'custbody_dps_order_contact' },
+                { name: 'custrecord_cc_phone_number', join: 'custbody_dps_order_contact' }
             ]
         }).run().each(function (rec) {
-
             amount = rec.getValue('amount');
             location = rec.getValue('location');
             var info = {
                 item: rec.getValue('item'),
                 quantity: rec.getValue('quantity'),
-                sku: rec.getValue('custcol_dps_trans_order_item_sku')
+                sku: rec.getValue('custcol_dps_trans_order_item_sku'),
+                weight: rec.getValue('custitem_dps_heavy2')
             }
             item_arr.push(info);
             api_content = rec.getValue('custbody_aio_api_content');
@@ -160,160 +107,62 @@ function (costCal, record, search, log) {
             otherrefnum = rec.getValue('otherrefnum');
             account = rec.getValue('custbody_aio_account');
             marketplaceid = rec.getValue('custbody_aio_marketplaceid');
-
-            first_name = rec.getValue({
-                name: 'custrecord_cc_first_name',
-                join: 'custbody_dps_order_contact'
-            });
-            cc_country = rec.getValue({
-                name: 'custrecord_cc_country',
-                join: 'custbody_dps_order_contact'
-            });
-            cc_state = rec.getValue({
-                name: 'custrecord_cc_state',
-                join: 'custbody_dps_order_contact'
-            });
-            cc_ctiy = rec.getValue({
-                name: 'custrecord_cc_ctiy',
-                join: 'custbody_dps_order_contact'
-            });
-            cc_zip = rec.getValue({
-                name: 'custrecord_cc_zip',
-                join: 'custbody_dps_order_contact'
-            });
-            cc_addr1 = rec.getValue({
-                name: 'custrecord_cc_addr1',
-                join: 'custbody_dps_order_contact'
-            });
-            cc_addr2 = rec.getValue({
-                name: 'custrecord_cc_addr2',
-                join: 'custbody_dps_order_contact'
-            });
-            cc_phone_number = rec.getValue({
-                name: 'custrecord_cc_phone_number',
-                join: 'custbody_dps_order_contact'
-            });
-
+            first_name = rec.getValue({ name: 'custrecord_cc_first_name', join: 'custbody_dps_order_contact' });
+            cc_country = rec.getValue({ name: 'custrecord_cc_country', join: 'custbody_dps_order_contact' });
+            cc_state = rec.getValue({ name: 'custrecord_cc_state', join: 'custbody_dps_order_contact' });
+            cc_ctiy = rec.getValue({ name: 'custrecord_cc_ctiy', join: 'custbody_dps_order_contact' });
+            cc_zip = rec.getValue({ name: 'custrecord_cc_zip', join: 'custbody_dps_order_contact' });
+            cc_addr1 = rec.getValue({ name: 'custrecord_cc_addr1', join: 'custbody_dps_order_contact' });
+            cc_addr2 = rec.getValue({ name: 'custrecord_cc_addr2', join: 'custbody_dps_order_contact' });
+            cc_phone_number = rec.getValue({ name: 'custrecord_cc_phone_number', join: 'custbody_dps_order_contact' });
             return --limit > 0;
         });
-
         var ful_create_rec = record.create({
             type: 'customrecord_dps_shipping_small_record'
         });
-
-
-        log.debug('location', location);
+        // 发运仓库
         if (location) {
-            ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_ship_samll_location', //发运仓库 
-                value: location
-            });
+            ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_samll_location', value: location });
         }
-
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_order_number', //订单号 
-            value: tranid
-        });
-        log.debug('tranid', tranid);
-
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_platform_order_numbe', //平台订单号 
-            value: otherrefnum
-        });
-        log.debug('otherrefnum', otherrefnum);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_status', //状态 
-            value: 1
-        });
-
-        log.debug('marketplaceid', marketplaceid);
+        // 订单号 
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_order_number', value: tranid });
+        // 平台订单号 
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_platform_order_numbe', value: otherrefnum });
+        // 状态 
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_status', value: 1 });
+        // 销售平台
         if (marketplaceid) {
-            ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_ship_small_sales_platform', //销售平台 
-                value: marketplaceid ? marketplaceid : ''
-            });
+            ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_sales_platform', value: marketplaceid ? marketplaceid : '' });
         }
-
-        log.debug('account', account);
+        // 销售店铺
         if (account) {
-            ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_ship_small_account', //销售店铺 
-                value: account
-            });
+            ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_account',  value: account });
         }
-
         var sub_id = 'recmachcustrecord_dps_ship_small_links';
-
-        log.debug('item_arr', item_arr);
+        var real_weight = 0;
         for (var i = 0, len = item_arr.length; i < len; i++) {
-            ful_create_rec.setSublistValue({
-                sublistId: sub_id,
-                fieldId: 'custrecord_dps_ship_small_item_item',
-                line: i,
-                value: item_arr[i].item
-            });
-            ful_create_rec.setSublistValue({
-                sublistId: sub_id,
-                fieldId: 'custrecord_dps_ship_small_sku_line',
-                line: i,
-                value: item_arr[i].sku
-            });
-            ful_create_rec.setSublistValue({
-                sublistId: sub_id,
-                fieldId: 'custrecord_dps_ship_small_item_quantity',
-                line: i,
-                value: item_arr[i].quantity
-            });
+            var skuqty = Number(item_arr[i].quantity);
+            var skuweight = Number(item_arr[i].weight);
+            real_weight = real_weight + (skuqty * skuweight);
+            ful_create_rec.setSublistValue({ sublistId: sub_id, fieldId: 'custrecord_dps_ship_small_item_item', line: i, value: item_arr[i].item });
+            ful_create_rec.setSublistValue({ sublistId: sub_id, fieldId: 'custrecord_dps_ship_small_sku_line', line: i, value: item_arr[i].sku });
+            ful_create_rec.setSublistValue({ sublistId: sub_id, fieldId: 'custrecord_dps_ship_small_item_quantity', line: i, value: skuqty });
         }
-
-        log.debug('cc_ctiy', cc_ctiy);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_recipient_city',
-            value: cc_ctiy
-        });
-
-        log.debug('cc_zip', cc_zip);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_recipien_code',
-            value: cc_zip
-        });
-
-        log.debug('cc_state', cc_state);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_s_state',
-            value: cc_state ? cc_state : ''
-        });
-
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_real_weight', value: real_weight });
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_recipient_city', value: cc_ctiy });
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_recipien_code', value: cc_zip });
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_s_state', value: cc_state ? cc_state : '' });
         var c_country;
         if (cc_country) {
             c_country = searchCountryByCode(cc_country);
         }
-
-        log.debug('c_country', c_country);
         if (c_country) {
-            ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_recipient_country',
-                value: c_country
-            });
+            ful_create_rec.setValue({ fieldId: 'custrecord_dps_recipient_country', value: c_country });
         }
-
-        log.debug('cc_addr1', cc_addr1);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_street1',
-            value: cc_addr1 ? cc_addr1 : ''
-        });
-
-        log.debug('cc_addr2', cc_addr2);
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_street2',
-            value: cc_addr2 ? cc_addr2 : ''
-        });
-
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_destination', //目的地 
-            value: first_name + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country
-        });
-
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_street1', value: cc_addr1 ? cc_addr1 : '' });
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_street2', value: cc_addr2 ? cc_addr2 : '' });
+        // 目的地
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_destination', value: first_name + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country });
         if (first_name) {
             first_name += ',';
         }
@@ -332,82 +181,55 @@ function (costCal, record, search, log) {
         if (cc_state) {
             cc_state += ',';
         }
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_addressee_address', // 收件人地址
-            value: first_name + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
-        });
-
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_recipient', //  收件人 
-            value: first_name
-        });
-
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_phone', //  联系电话 
-            value: cc_phone_number ? cc_phone_number : ''
-        });
-
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_salers_order', // 关联的销售订单
-            value: soid
-        });
-
+        // 收件人地址
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_addressee_address', value: first_name + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country });
+        // 收件人 
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_recipient', value: first_name });
+        // 联系电话 
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_phone', value: cc_phone_number ? cc_phone_number: '' });
+        // 关联的销售订单
+        ful_create_rec.setValue({ fieldId: 'custrecord_dps_ship_small_salers_order', value: soid });
         try {
-
             var set_value = 0;
-            var temp = getDeclaredValue(cc_country, location);
-
-            log.debug('typeof(temp)', typeof (temp));
-            // temp = JSON.parse(temp);
-            var dec_value = temp[0].tariff;
-            var currency = temp[0].currency;
-            log.debug('cureency', currency);
-            if (dec_value) {
-                if (amount > dec_value) {
-                    var l_v = Number(dec_value) * 0.2,
-                        h_v = Number(dec_value) * 0.8;
-                    set_value = randomNum(l_v, h_v);
-
+            var currency;
+            var temp = getDeclaredValue(cc_country);
+            log.debug('获取关税起征点的值', JSON.stringify(temp));
+            if (temp.length > 0) {
+                var dec_value = temp[0].tariff;
+                currency = temp[0].currency;
+                if (dec_value) {
+                    if (amount > dec_value) {
+                        var l_v = Number(dec_value) * 0.2,
+                            h_v = Number(dec_value) * 0.8;
+                        set_value = randomNum(l_v, h_v);
+                    } else {
+                        set_value = account;
+                    }
                 } else {
                     set_value = account;
                 }
-            } else {
-                set_value = account;
             }
-
-            log.audit('set_value', set_value);
-            ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_declared_value',
-                value: set_value
-            });
-            ful_create_rec.setValue({
-                fieldId: 'custrecord_dps_declare_currency',
-                value: Number(currency)
-            });
+            ful_create_rec.setValue({ fieldId: 'custrecord_dps_declared_value', value: set_value });
+            if (currency) {
+                ful_create_rec.setValue({ fieldId: 'custrecord_dps_declare_currency', value: Number(currency) });
+            }
+            log.debug('设置申报价值', set_value);
         } catch (error) {
             log.error('设置申报价值报错了', error);
         }
-
-        var ful_create_rec_id = ful_create_rec.save({
-            ignoreMandatoryFields: true
-        });
-        log.audit('发运记录生成成功, ID： ', ful_create_rec_id);
-
+        var ful_create_rec_id = ful_create_rec.save({ ignoreMandatoryFields: true });
         if (ful_create_rec_id) {
-            // custbody_dps_small_fulfillment_record    关联的小货发运记录
-            var otherId = record.submitFields({
+            // custbody_dps_small_fulfillment_record 关联的小货发运记录
+            record.submitFields({
                 type: 'salesorder',
                 id: soid,
                 values: {
                     'custbody_dps_small_fulfillment_record': ful_create_rec_id
                 }
             });
-            log.debug('otherId', otherId);
         }
-
         return ful_create_rec_id || false;
     }
-
 
     //生成从minNum到maxNum的随机数
     function randomNum(minNum, maxNum) {
@@ -421,27 +243,23 @@ function (costCal, record, search, log) {
         }
     }
 
-
     /**
      * 获取地点的国家
      * @param {*} locationid 
      */
     function getLocationCode(locationid) {
         var country_id;
-        search.create({
-            type: 'location',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: locationid
-            }],
-            columns: [{
-                name: 'custrecord_aio_country_sender'
-            }]
-        }).run().each(function (rec) {
-            country_id = rec.getValue('custrecord_aio_country_sender');
-        });
-
+        if (locationid) {
+            search.create({
+                type: 'location',
+                filters: [
+                    { name: 'internalid', operator: 'anyof', values: locationid }
+                ],
+                columns: [ 'custrecord_aio_country_sender' ]
+            }).run().each(function (rec) {
+                country_id = rec.getValue('custrecord_aio_country_sender');
+            });
+        }
         return country_id || false;
     }
 
@@ -450,73 +268,53 @@ function (costCal, record, search, log) {
      * @param {*} code 
      */
     function searchCountryByCode(code) {
-
-        log.debug('code', code);
         var country_id;
         search.create({
             type: 'customrecord_country_code',
-            filters: [{
-                name: "custrecord_cc_country_code",
-                operator: "startswith",
-                values: code
-            }]
+            filters: [
+                { name: 'custrecord_cc_country_code', operator: 'startswith', values: code }
+            ]
         }).run().each(function (rec) {
             country_id = rec.id;
             return true;
         });
-
         return country_id || false;
     }
-
 
     /**
      * 获取关税起征点的值
      * @param {*} code 
-     * @param {*} locationid 
      */
-    function getDeclaredValue(code, locationid) {
-
-        var t = searchCountryByCode(code);
-        var f = getLocationCode(locationid);
-
-        log.debug('t: ' + t, 'f: ' + f);
-
-        var tariff = [];
-        if (t && f) {
+    function getDeclaredValue(code) {
+        var target_country_id = searchCountryByCode(code);
+        var origin_country_id = config.countryCodeChinaID; // 中国
+        log.debug('发货国家country_id', origin_country_id);
+        log.debug('目标国家country_id', target_country_id);
+        var tariffs = [];
+        if (origin_country_id && target_country_id) {
             search.create({
                 type: 'customrecord_dps_tariff_threshold',
-                filters: [{
-                        name: 'custrecord_dps_tar_the_country_origin',
-                        operator: 'anyof',
-                        values: f
-                    },
-                    {
-                        name: 'custrecord_dps_tar_the_target_country',
-                        operator: 'anyof',
-                        values: t
-                    }
+                filters: [
+                    { name: 'custrecord_dps_tar_the_country_origin', operator: 'anyof', values: origin_country_id },
+                    { name: 'custrecord_dps_tar_the_target_country', operator: 'anyof', values: target_country_id }
                 ],
-                columns: [{
-                        name: 'custrecord_dps_tar_thre_tariff_threshold'
-                    },
-                    {
-                        name: 'custrecord_dps_tar_thre_currency'
-                    }
-                ]
+                columns: [ 'custrecord_dps_tar_thre_tariff_threshold', 'custrecord_dps_tar_thre_currency' ]
             }).run().each(function (rec) {
                 var it = {
                     tariff: rec.getValue('custrecord_dps_tar_thre_tariff_threshold'),
                     currency: rec.getValue('custrecord_dps_tar_thre_currency')
                 }
-                tariff.push(it);
+                tariffs.push(it);
             });
         }
-
-        log.debug('getDeclaredValue tariff', tariff);
-
-        return tariff || false;
+        return tariffs || false;
     }
 
+    /**
+     * 物流匹配
+     * @param {*} soid 
+     * @param {*} fulid 
+     */
     function createLogisticsStrategy(soid, fulid) {
         var startTime = new Date().getTime();
         var SKUs = [];

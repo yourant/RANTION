@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-05-21 11:20:34
+ * @LastEditTime   : 2020-06-10 16:39:13
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -192,7 +192,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
 
         var options = {
             title: "重新WMS发运",
-            message: "Press OK or Cancel"
+            message: "重新WMS发运?"
         };
 
         function success(result) {
@@ -223,7 +223,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
      * @param {*} rec_id 
      */
     function amazonShipment(rec_id) {
-        console.log('WMSShipping', rec_id);
+        console.log('获取shipment', rec_id);
         var url1 = url.resolveScript({
             scriptId: 'customscript_dps_funf_rec_big_shipment',
             deploymentId: 'customdeploy_dps_funf_rec_big_shipment',
@@ -236,7 +236,8 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         };
 
         var body1 = {
-            recordID: rec_id
+            recordID: rec_id,
+            action: "amazonShipment"
         };
         log.debug('body1', body1);
         log.debug('url1', url1);
@@ -244,7 +245,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
 
         var options = {
             title: "重新获取shipment",
-            message: "Press OK or Cancel"
+            message: "重新获取shipment?"
         };
 
         function success(result) {
@@ -271,9 +272,9 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
     }
 
     /**
-         * 重新获取物流渠道
-         * @param {*} rec_id 
-         */
+     * 重新获取物流渠道
+     * @param {*} rec_id 
+     */
     function reacquireLogistics(rec_id) {
 
         var url1 = url.resolveScript({
@@ -295,7 +296,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
 
         var options = {
             title: "重新获取物流运单号",
-            message: "Press OK or Cancel"
+            message: "重新获取物流运单号?"
         };
 
         function success(result) {
@@ -306,9 +307,9 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
                     headers: header
                 });
                 log.audit('respone', response.body);
-                var body = JSON.parse(response.body)
+                var body = JSON.parse(response.body);
                 if (body.code == 500) {
-                    alert('重新获取物流运单号失败：' + body.msg)
+                    alert('重新获取物流运单号失败：' + body.msg);
                 } else {
                     alert('重新获取物流运单号成功');
                     window.location.reload(true);
@@ -325,58 +326,165 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
 
 
     /**
-         * 重新获取物流跟踪号
-         * @param {*} rec_id 
-         */
-        function getTrackingNumber(rec_id) {
+     * 重新获取物流跟踪号
+     * @param {*} rec_id 
+     */
+    function getTrackingNumber(rec_id) {
 
-            var url1 = url.resolveScript({
-                scriptId: 'customscript_dps_fulfillment_big_btn_rl',
-                deploymentId: 'customdeploy_dps_fulfillment_big_btn_rl',
-                returnExternalUrl: false
-            });
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_fulfillment_big_btn_rl',
+            deploymentId: 'customdeploy_dps_fulfillment_big_btn_rl',
+            returnExternalUrl: false
+        });
 
-            var header = {
-                "Content-Type": "application/json;charset=utf-8",
-                "Accept": "application/json"
-            };
+        var header = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
 
-            var body1 = {
-                action: 'TrackingNumber',
-                recordID: rec_id
-            };
-            var response;
+        var body1 = {
+            action: 'TrackingNumber',
+            recordID: rec_id
+        };
+        var response;
 
-            var options = {
-                title: "重新获取物流运单号",
-                message: "Press OK or Cancel"
-            };
+        var options = {
+            title: "重新获取物流运单号",
+            message: "重新获取物流运单号?"
+        };
 
-            function success(result) {
-                if (result) {
-                    response = https.post({
-                        url: url1,
-                        body: body1,
-                        headers: header
-                    });
-                    log.audit('respone', response.body);
-                    var body = JSON.parse(response.body)
-                    if (body.code == 500) {
-                        alert('重新获取物流跟踪号失败：' + body.msg)
-                    } else {
-                        alert('重新获取物流跟踪号成功');
-                        window.location.reload(true);
-                    }
+        function success(result) {
+            if (result) {
+                response = https.post({
+                    url: url1,
+                    body: body1,
+                    headers: header
+                });
+                log.audit('respone', response.body);
+                var body = JSON.parse(response.body)
+                if (body.code == 500) {
+                    alert('重新获取物流跟踪号失败：' + body.msg)
+                } else {
+                    alert('重新获取物流跟踪号成功');
+                    window.location.reload(true);
                 }
             }
-
-            function failure(reason) {
-                log.debug('reason', reason)
-            }
-            dialog.confirm(options).then(success).catch(failure);
-
         }
 
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+
+    }
+
+
+    /**
+     * 重新获取物流面单
+     * @param {*} rec_id 
+     */
+    function getLabel(rec_id) {
+
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_fulfillment_big_btn_rl',
+            deploymentId: 'customdeploy_dps_fulfillment_big_btn_rl',
+            returnExternalUrl: false
+        });
+
+        var header = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
+
+        var body1 = {
+            action: 'GetLabel',
+            recordID: rec_id
+        };
+        var response;
+
+        var options = {
+            title: "获取物流面单",
+            message: "获取物流面单?"
+        };
+
+        function success(result) {
+            if (result) {
+                response = https.post({
+                    url: url1,
+                    body: body1,
+                    headers: header
+                });
+                log.audit('respone', response.body);
+                var body = JSON.parse(response.body)
+                if (body.code == 500) {
+                    alert('重新获取物流面单失败：' + body.msg)
+                    window.location.reload(true);
+                } else {
+                    alert('重新获取物流面单成功');
+                    window.location.reload(true);
+                }
+            }
+        }
+
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+    }
+
+
+    /**
+     * 生成报关资料
+     * @param {*} rec_id 
+     */
+    function createInformation(rec_id) {
+        console.log('生成报关资料', rec_id);
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_funf_rec_big_shipment',
+            deploymentId: 'customdeploy_dps_funf_rec_big_shipment',
+            returnExternalUrl: false
+        });
+
+        var header = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
+
+        var body1 = {
+            recordID: rec_id,
+            action: "createInformation"
+        };
+        log.debug('body1', body1);
+        log.debug('url1', url1);
+        var response;
+
+        var options = {
+            title: "生成报关资料",
+            message: "是否生成报关资料?"
+        };
+
+        function success(result) {
+            if (result) {
+                response = https.post({
+                    url: url1,
+                    body: body1,
+                    headers: header
+                });
+                console.log('response.body ', response.body);
+                if (response.body == false) {
+                    alert('生成报关资料失败');
+                } else {
+                    alert('生成报关资料: ' + response.body);
+                    window.location.reload(true);
+                }
+            }
+        }
+
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+    }
 
     return {
         pageInit: pageInit,
@@ -392,6 +500,8 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         WMSShipping: WMSShipping,
         amazonShipment: amazonShipment,
         reacquireLogistics: reacquireLogistics,
-        getTrackingNumber: getTrackingNumber
+        getTrackingNumber: getTrackingNumber,
+        getLabel: getLabel,
+        createInformation: createInformation
     }
 });

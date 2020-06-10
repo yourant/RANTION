@@ -14,9 +14,46 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record', 'N/currentRec
      */
     function pageInit(scriptContext) {
 
-        console.log('record_type:' + scriptContext.currentRecord.type);
-        console.log('record_type:' + scriptContext.currentRecord.id);
+        // console.log('record_type:' + scriptContext.currentRecord.type);
+        // console.log('record_type:' + scriptContext.currentRecord.id);
 
+        // var filters = [];
+        // filters.push({ name: 'custrecord_fba_update_inventory_account', operator: 'EQUALTO', values: 1 });
+        // filters.push({ name: 'custrecord_salesorder_location', operator: 'EQUALTO', values: 4 });
+        // var updateId;
+        // var fbaUpdateInventorySearch = search.create({
+        //     type: 'customrecord_fba_update_inventory',
+        //     filters: filters,
+        //     columns: [
+        //         'custrecord_fba_update_inventory_account',
+        //         'custrecord_salesorder_location',
+        //         'custrecord_fba_update_inventory_rid',
+        //         'custrecord_fba_update_status'
+        //     ]
+        // }).run().each(function (e) {
+        //     updateId = e.id;
+        //     if (updateId) {
+        //         console.log(11)
+        //     } else {
+        //         console.log(22)
+        //     }
+        //     console.log(updateId)
+        // });
+        console.log("begin");
+        search.create({
+            type: 'customrecord_dps_amazon_seller_sku',
+            columns: [
+                'custrecord_dps_amazon_sku_number',
+                'custrecord_dps_amazon_ns_sku'
+            ]
+            , filters: [
+                { name: 'name', join: 'custrecord_dps_amazon_sku_number', operator: 'is', values: 'MF239-FBA' }
+                , { name: 'isinactive', join: 'custrecord_dps_amazon_ns_sku', operator: 'is', values: false }
+            ]
+        }).run().each(function (seller) {
+            var sellerJSON = JSON.parse(JSON.stringify(seller));
+            console.log(sellerJSON);
+        });
         // var filters = [];
         // filters.push({ name: 'custrecord_fba_update_inventory_account', operator: 'is', values: 1 });
         // filters.push({ name: 'custrecord_salesorder_location', operator: 'is', values: 1 });
@@ -71,155 +108,155 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record', 'N/currentRec
         //     return true;
         // })
 
-        //盘盈
-        var surplus = [];
-        //盘亏
-        var losses = [];
+        // //盘盈
+        // var surplus = [];
+        // //盘亏
+        // var losses = [];
 
-        var updateList = [];
-        console.log("updateList begin");
-        search.create({
-            type: 'customrecord_fba_update_inventory',
-            columns: [
-                'custrecord_fba_update_inventory_account',
-                'custrecord_salesorder_location',
-                'custrecord_fba_update_inventory_rid',
-                'custrecord_fba_update_status'
-            ],
-            filters: [{ name: 'custrecord_fba_update_status', operator: 'is', values: 2 }]
-        }).run().each(function (e) {
-            var result = JSON.parse(JSON.stringify(e));
-            console.log("updateList begin", JSON.stringify(e));
-            var isC = false;
-            var custrecord_salesorder_location = result.values.custrecord_salesorder_location;
-            updateList.map(function (v) {
-                console.log("updateList v", JSON.stringify(v));
-                if (v.salesorder_location == custrecord_salesorder_location) {
-                    isC = true;
-                }
-            });
-            if (!false) {
-                var item = {
-                    account: result.values.custrecord_fba_update_inventory_account,
-                    salesorder_location: result.values.custrecord_salesorder_location,
-                    rid: result.values.custrecord_fba_update_inventory_rid
-                }
-                updateList.push(item);
-            }
-        });
+        // var updateList = [];
+        // console.log("updateList begin");
+        // search.create({
+        //     type: 'customrecord_fba_update_inventory',
+        //     columns: [
+        //         'custrecord_fba_update_inventory_account',
+        //         'custrecord_salesorder_location',
+        //         'custrecord_fba_update_inventory_rid',
+        //         'custrecord_fba_update_status'
+        //     ],
+        //     filters: [{ name: 'custrecord_fba_update_status', operator: 'is', values: 2 }]
+        // }).run().each(function (e) {
+        //     var result = JSON.parse(JSON.stringify(e));
+        //     console.log("updateList begin", JSON.stringify(e));
+        //     var isC = false;
+        //     var custrecord_salesorder_location = result.values.custrecord_salesorder_location;
+        //     updateList.map(function (v) {
+        //         console.log("updateList v", JSON.stringify(v));
+        //         if (v.salesorder_location == custrecord_salesorder_location) {
+        //             isC = true;
+        //         }
+        //     });
+        //     if (!false) {
+        //         var item = {
+        //             account: result.values.custrecord_fba_update_inventory_account,
+        //             salesorder_location: result.values.custrecord_salesorder_location,
+        //             rid: result.values.custrecord_fba_update_inventory_rid
+        //         }
+        //         updateList.push(item);
+        //     }
+        // });
 
-        console.log("updateList ", JSON.stringify(updateList));
+        // console.log("updateList ", JSON.stringify(updateList));
 
-        updateList.map(function (update) {
-            var i = 1;
-            console.log("updateList item ", update);
-            var nowPage = Number(0); // 查询页
-            var pageSize = Number(100); // 每页数量
-            console.log('update.rid ', update.rid);
-            var inventoryitem = search.create({
-                type: 'customrecord_fba_myi_all_inventory_data',
-                columns: [
-                    'custrecord_fba_sku', 'custrecord_fba_afn_total_quantity', 'custrecord_fba_inventory_rid', 'custrecord_fba_account', 'custrecord_all_salesorder_location'
-                ],
-                filters: [
-                    { name: 'custrecord_fba_inventory_rid', operator: 'EQUALTO', values: Number(update.rid) },
-                    { name: 'custrecord_fba_account', operator: 'EQUALTO', values: Number(update.account) },
-                    { name: 'custrecord_all_salesorder_location', operator: 'EQUALTO', values: Number(update.salesorder_location) }
-                ]
-            });
-            var pageData = inventoryitem.runPaged({
-                // pageSize: pageSize
-                pageSize: 10
-            });
-            var totalCount = pageData.count; // 总数
-            // var pageCount = pageData.pageRanges.length; // 页数
-            var pageCount = 1; // 页数
-            console.log('totalCount', JSON.stringify(totalCount));
-            while (pageCount > 0) {
-                pageData.fetch({
-                    index: Number(nowPage++)
-                }).data.forEach(function (result) {
-                    var resultJSON = result.toJSON();
-                    // if (resultJSON.custrecord_fba_sku &&
-                    //     resultJSON.custrecord_fba_afn_total_quantity &&
-                    //     resultJSON.custrecord_fba_inventory_rid &&
-                    //     resultJSON.custrecord_fba_account &&
-                    //     resultJSON.custrecord_all_salesorder_location) {
-                    //获取映射关系sku customrecord_dps_amazon_seller_sku
-                    // console.log('customrecord_dps_amazon_seller_sku', JSON.stringify(record.load({
-                    //     type: "customrecord_dps_amazon_seller_sku",
-                    //     id: ++i
-                    // })));
-                    search.create({
-                        type: 'customrecord_dps_amazon_seller_sku',
-                        columns: [
-                            'custrecord_dps_amazon_sku_number',
-                            'custrecord_dps_amazon_ns_sku'
-                        ]
-                        , filters: [{ name: 'custrecord_dps_amazon_sku_number', operator: 'is', values: resultJSON.values.custrecord_fba_sku }]
-                    }).run().each(function (seller) {
-                        var sellerJSON = JSON.parse(JSON.stringify(seller));
-                        console.log('sellerJSON', sellerJSON)
-                        var skuId = sellerJSON.values.custrecord_dps_amazon_ns_sku[0].value;
-                        var inventoryitem = record.load({
-                            type: "inventoryitem",
-                            id: skuId
-                        });
-                        var inventoryitemJSON = JSON.parse(JSON.stringify(inventoryitem));
-                        console.log('inventoryitemJSON', inventoryitemJSON)
+        // updateList.map(function (update) {
+        //     var i = 1;
+        //     console.log("updateList item ", update);
+        //     var nowPage = Number(0); // 查询页
+        //     var pageSize = Number(100); // 每页数量
+        //     console.log('update.rid ', update.rid);
+        //     var inventoryitem = search.create({
+        //         type: 'customrecord_fba_myi_all_inventory_data',
+        //         columns: [
+        //             'custrecord_fba_sku', 'custrecord_fba_afn_total_quantity', 'custrecord_fba_inventory_rid', 'custrecord_fba_account', 'custrecord_all_salesorder_location'
+        //         ],
+        //         filters: [
+        //             { name: 'custrecord_fba_inventory_rid', operator: 'EQUALTO', values: Number(update.rid) },
+        //             { name: 'custrecord_fba_account', operator: 'EQUALTO', values: Number(update.account) },
+        //             { name: 'custrecord_all_salesorder_location', operator: 'EQUALTO', values: Number(update.salesorder_location) }
+        //         ]
+        //     });
+        //     var pageData = inventoryitem.runPaged({
+        //         // pageSize: pageSize
+        //         pageSize: 10
+        //     });
+        //     var totalCount = pageData.count; // 总数
+        //     // var pageCount = pageData.pageRanges.length; // 页数
+        //     var pageCount = 1; // 页数
+        //     console.log('totalCount', JSON.stringify(totalCount));
+        //     while (pageCount > 0) {
+        //         pageData.fetch({
+        //             index: Number(nowPage++)
+        //         }).data.forEach(function (result) {
+        //             var resultJSON = result.toJSON();
+        //             // if (resultJSON.custrecord_fba_sku &&
+        //             //     resultJSON.custrecord_fba_afn_total_quantity &&
+        //             //     resultJSON.custrecord_fba_inventory_rid &&
+        //             //     resultJSON.custrecord_fba_account &&
+        //             //     resultJSON.custrecord_all_salesorder_location) {
+        //             //获取映射关系sku customrecord_dps_amazon_seller_sku
+        //             // console.log('customrecord_dps_amazon_seller_sku', JSON.stringify(record.load({
+        //             //     type: "customrecord_dps_amazon_seller_sku",
+        //             //     id: ++i
+        //             // })));
+        //             search.create({
+        //                 type: 'customrecord_dps_amazon_seller_sku',
+        //                 columns: [
+        //                     'custrecord_dps_amazon_sku_number',
+        //                     'custrecord_dps_amazon_ns_sku'
+        //                 ]
+        //                 , filters: [{ name: 'custrecord_dps_amazon_sku_number', operator: 'is', values: resultJSON.values.custrecord_fba_sku }]
+        //             }).run().each(function (seller) {
+        //                 var sellerJSON = JSON.parse(JSON.stringify(seller));
+        //                 console.log('sellerJSON', sellerJSON)
+        //                 var skuId = sellerJSON.values.custrecord_dps_amazon_ns_sku[0].value;
+        //                 var inventoryitem = record.load({
+        //                     type: "inventoryitem",
+        //                     id: skuId
+        //                 });
+        //                 var inventoryitemJSON = JSON.parse(JSON.stringify(inventoryitem));
+        //                 console.log('inventoryitemJSON', inventoryitemJSON)
 
-                        var item_count = inventoryitem.getLineCount({ sublistId: 'locations' });
-                        for (var i = 0; i < item_count; i++) {
-                            var locationid = inventoryitem.getSublistValue({
-                                sublistId: 'locations',
-                                fieldId: 'locationid',
-                                line: i,
-                            });
-                            if (locationid == update.salesorder_location) {
-                                //库存对比
-                                var quantityavailable = inventoryitem.getSublistValue({
-                                    sublistId: 'locations',
-                                    fieldId: 'quantityavailable',
-                                    line: i,
-                                });
-                                var qty = resultJSON.values.custrecord_fba_afn_total_quantity;
-                                console.log("库存对比 ", qty + "-" + quantityavailable)
-                                if (qty > quantityavailable) {
-                                    surplus.push({
-                                        item: skuId,
-                                        location: update.salesorder_location,
-                                        diffCount: qty - quantityavailable
-                                    });
-                                }
-                                if (qty < quantityavailable) {
-                                    losses.push({
-                                        item: skuId,
-                                        location: update.salesorder_location,
-                                        diffCount: qty - quantityavailable
-                                    });
-                                }
-                            }
-                        }
-                        return false;
-                    });
-                });
-                pageCount--;
-            }
+        //                 var item_count = inventoryitem.getLineCount({ sublistId: 'locations' });
+        //                 for (var i = 0; i < item_count; i++) {
+        //                     var locationid = inventoryitem.getSublistValue({
+        //                         sublistId: 'locations',
+        //                         fieldId: 'locationid',
+        //                         line: i,
+        //                     });
+        //                     if (locationid == update.salesorder_location) {
+        //                         //库存对比
+        //                         var quantityavailable = inventoryitem.getSublistValue({
+        //                             sublistId: 'locations',
+        //                             fieldId: 'quantityavailable',
+        //                             line: i,
+        //                         });
+        //                         var qty = resultJSON.values.custrecord_fba_afn_total_quantity;
+        //                         console.log("库存对比 ", qty + "-" + quantityavailable)
+        //                         if (qty > quantityavailable) {
+        //                             surplus.push({
+        //                                 item: skuId,
+        //                                 location: update.salesorder_location,
+        //                                 diffCount: qty - quantityavailable
+        //                             });
+        //                         }
+        //                         if (qty < quantityavailable) {
+        //                             losses.push({
+        //                                 item: skuId,
+        //                                 location: update.salesorder_location,
+        //                                 diffCount: qty - quantityavailable
+        //                             });
+        //                         }
+        //                     }
+        //                 }
+        //                 return false;
+        //             });
+        //         });
+        //         pageCount--;
+        //     }
 
-            console.log('i', i);
-        });
-        console.log('surplus', surplus);
+        //     console.log('i', i);
+        // });
+        // console.log('surplus', surplus);
 
-        var firstCompany = getCompanyId("蓝深贸易有限公司")
-        if (surplus.length > 0) {
-            var useType = stockUseType('盘盈入库')
-            saveInventoryAdjust(firstCompany, surplus, useType);
-        }
-        console.log('losses', losses);
-        if (losses.length > 0) {
-            var useType = stockUseType('盘亏出库')
-            saveInventoryAdjust(firstCompany, losses, useType);
-        }
+        // var firstCompany = getCompanyId("蓝深贸易有限公司")
+        // if (surplus.length > 0) {
+        //     var useType = stockUseType('盘盈入库')
+        //     saveInventoryAdjust(firstCompany, surplus, useType);
+        // }
+        // console.log('losses', losses);
+        // if (losses.length > 0) {
+        //     var useType = stockUseType('盘亏出库')
+        //     saveInventoryAdjust(firstCompany, losses, useType);
+        // }
 
 
         // var nowPage = Number(1); // 查询页

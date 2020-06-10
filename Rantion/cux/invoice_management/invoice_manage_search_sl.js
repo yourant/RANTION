@@ -78,6 +78,8 @@ define(['N/search', 'N/ui/serverWidget', 'N/format'], function (search, serverWi
         if (start_date_s) {
             filters.push({ name: 'trandate', operator: 'within', values: [start_date_s, end_date_s] });
         }
+        filters.push({ name: 'custbody_remaining_invoiced_amount', operator: 'greaterthan', values: ['0'] });
+        filters.push({ name: 'subsidiary', operator: 'noneof', values: ['5'] });
         filters.push({ name: 'type', operator: 'anyof', values: ['PurchOrd'] });
         filters.push({ name: 'mainline', operator: 'is', values: ['T'] });
         filters.push({ name: 'taxline', operator: 'is', values: ['F'] });

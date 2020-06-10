@@ -236,7 +236,7 @@ function(search, ui, moment, format, runtime, record) {
         log.debug('today',today);
 
         var filters = [
-            { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["1"] },
+            { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["1","3"] },
             { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
         ];
         if (account) {
@@ -400,28 +400,50 @@ function(search, ui, moment, format, runtime, record) {
                 { name: 'transferlocation', operator: 'anyof', values: location },
                 { name: 'mainline', operator: 'is', values: ['F'] },
                 { name: 'taxline', operator: 'is', values: ['F'] },
-                { name: 'shipping', operator: 'is', values: ['F'] }
+                { name: 'shipping', operator: 'is', values: ['F'] },
+                { name: 'transactionlinetype', operator: 'is', values: 'RECEIVING' }
             ],
             columns: [
-                //'custbodyexpected_arrival_time',
                 'item',
-                'expectedreceiptdate',
-                'quantity'
-                // { name: 'internalid', join: 'item', summary: 'GROUP' },
-                // { name: 'formulanumeric', formula: 'quantity', summary: 'SUM' }
+                'custbodyexpected_arrival_time',
+                'quantity',
+                'transferlocation'
             ]
         }).run().each(function (result) {
-            if(result.getValue('expectedreceiptdate')){
-                var item_date = format.parse({ value:result.getValue('expectedreceiptdate'), type: format.Type.DATE});
-                var item_time = weekofday(item_date);
-                transit_num.push({
-                    item_id : result.getValue('item'),
-                    item_time : item_time,
-                    item_quantity: result.getValue('quantity')
-                });
-            }
+            log.debug('result',result.id);
+            log.debug('custbodyexpected_arrival_time',result.getValue('custbodyexpected_arrival_time'));
+            SKUIds.map(function(line){
+                if(line.item_sku == result.getValue('item') && line.location == result.getValue('transferlocation')){
+                    if(result.getValue('custbodyexpected_arrival_time')){
+                        var item_date = format.parse({ value:result.getValue('custbodyexpected_arrival_time'), type: format.Type.DATE});
+                        var item_time = weekofday(item_date);
+                        transit_num.push({
+                            item_id : result.getValue('item'),
+                            item_time : item_time,
+                            item_quantity: result.getValue('quantity')
+                        });
+                    }
+                }
+            });
+            
             return true;
         });
+        var need_transit_num = [];
+        var b = [];//记录数组a中的id 相同的下标
+        if(transit_num.length > 0){
+            for(var i = 0; i < transit_num.length;i++){
+                for(var j = transit_num.length-1;j>i;j--){
+                    if(transit_num[i].item_id == transit_num[j].item_id && transit_num[i].item_time == transit_num[j].item_time){
+                        transit_num[i].item_quantity = (transit_num[i].item_quantity*1 + transit_num[j].item_quantity*1).toString()
+                        b.push(j)
+                    }
+                }
+            }
+            for(var k = 0; k<b.length;k++){
+                transit_num.splice(b[k],1)
+            }
+        }
+
         log.debug('transit_num',transit_num);
         var need_transit_num = [];
         if(transit_num.length > 0){
@@ -472,7 +494,7 @@ function(search, ui, moment, format, runtime, record) {
         }
 
         //库存量
-        var location_quantity = [];
+        var location_quantity = [],temporary_arr = [];
         search.create({
             type: 'item', 
             filters: [
@@ -489,7 +511,8 @@ function(search, ui, moment, format, runtime, record) {
                     location_quantity.push({
                         item_id : rec.id,
                         difference_qt : rec.getValue('locationquantityavailable')*1,
-                    })
+                    });
+                    temporary_arr.push(rec.id);
                 }
             });
             return true;
@@ -511,6 +534,22 @@ function(search, ui, moment, format, runtime, record) {
                             data_type_text: '库存量',
                             location_no: location_quantity[a]['difference_qt']
                         });
+                    }else{
+                        if(temporary_arr.indexOf(SKUIds[i]['item_sku']) == -1){
+                            log.debug('item_sku',SKUIds[i]['item_sku']);
+                            item_data.push({
+                                item_sku: SKUIds[i]['item_sku'],
+                                item_sku_text: SKUIds[i]['item_sku_name'],
+                                item_name: SKUIds[i]['item_name'],
+                                account: SKUIds[i]['forecast_account'],
+                                account_text: SKUIds[i]['forecast_account_name'],
+                                site: SKUIds[i]['forecast_site'],
+                                data_type: '3',
+                                data_type_text: '库存量',
+                                location_no: 0
+                            });
+                            temporary_arr.push(SKUIds[i]['item_sku']);
+                        }
                     }
                 }
             }
@@ -531,39 +570,72 @@ function(search, ui, moment, format, runtime, record) {
         })
 
         //调拨计划量
-        if(SKUIds.length > 0){
-            var logistics_cycle = 0, procurement_cycle = 0, other_lead_time = 0;
-            SKUIds.map(function(line){
-                search.create({
-                    type: 'customrecord_supply_chain_lead_time',
-                    filters: [
-                        { name: 'custrecord_aio_sku', operator: 'is', values: line.item_sku },//line.item_sku 
-                    ],
-                    columns: [
-                        { name: 'custrecord_aio_logistics_cycle'},//物流周期
-                        { name: 'custrecord_aio_procurement_cycle'},//采购周期
-                        { name: 'custrecord_aio_other_lead_time'}//其他提前周期
-                    ]
-                }).run().each(function (rec) {
-                    logistics_cycle = rec.getValue('custrecord_aio_logistics_cycle');
-                    procurement_cycle = rec.getValue('custrecord_aio_procurement_cycle');
-                    other_lead_time = rec.getValue('custrecord_aio_other_lead_time');
-                    log.debug('other_lead_time',other_lead_time);
-                    var need_time = Number(logistics_cycle) + Number(other_lead_time);
-                    item_data.push({
-                        item_sku: line.item_sku,
-                        item_sku_text: line.item_sku_name,
-                        item_name: line.item_name,
-                        account: line.forecast_account,
-                        account_text: line.forecast_account_name,
-                        site: line.forecast_site,
-                        data_type: '5',
-                        data_type_text: '调拨计划量',
-                        need_time: need_time
-                    });
-                });
+        var item_arr = []
+        search.create({
+            type: 'item',
+            filters: [
+                { name: 'internalid', operator: 'is', values: skuids },
+            ],
+            columns: [
+                { name: 'custitem_dps_transport'}
+            ]
+        }).run().each(function (rec) {
+            item_arr.push({
+                item_id: rec.id,
+                dps_transport: rec.getValue('custitem_dps_transport')
+            })
+            return true;
+        });
+        log.debug('item_arr',item_arr);
+
+        if(item_arr.length > 0){
+            item_arr.map(function(line){
+                SKUIds.map(function(li){
+                    if(line.dps_transport){
+                        search.create({
+                            type: 'customrecord_logistics_cycle',
+                            filters: [
+                                { name: 'custrecord_default_type_shipping', operator: 'is', values: line.dps_transport },
+                            ],
+                            columns: [
+                                'custrecord_prescription'
+                            ]
+                        }).run().each(function (rec) {
+                            var need_time = Number(rec.getValue('custrecord_prescription'));
+                            if(li.item_sku == line.item_id){
+                                item_data.push({
+                                    item_sku: li.item_sku,
+                                    item_sku_text: li.item_sku_name,
+                                    item_name: li.item_name,
+                                    account: li.forecast_account,
+                                    account_text: li.forecast_account_name,
+                                    site: li.forecast_site,
+                                    data_type: '5',
+                                    data_type_text: '调拨计划量',
+                                    need_time: need_time
+                                });
+                            }
+                        });
+                    } else{
+                        if(li.item_sku == line.item_id){
+                            item_data.push({
+                                item_sku: li.item_sku,
+                                item_sku_text: li.item_sku_name,
+                                item_name: li.item_name,
+                                account: li.forecast_account,
+                                account_text: li.forecast_account_name,
+                                site: li.forecast_site,
+                                data_type: '5',
+                                data_type_text: '调拨计划量',
+                                need_time: ''
+                            });
+                        }
+                    }
+                })
+                
             })
         }
+
         rsJson.result = item_data;
         rsJson.totalCount = totalCount;
         rsJson.pageCount = pageCount;
@@ -612,7 +684,7 @@ function(search, ui, moment, format, runtime, record) {
         var zl = 0;
         for (var z = 0; z < SKUIds.length; z++) {
             if (result.length > 0) {
-                var need1_zl = 0 , need2_zl = 0, need3_zl = 0,need4_zl = 0;
+                var need1_zl, need2_zl, need3_zl,need4_zl;
                 var arr_list = {}, arr_data = [];
                 for(var a = 0; a < result.length; a++){
                     if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
@@ -676,8 +748,8 @@ function(search, ui, moment, format, runtime, record) {
                                     if(result[a]['location_no']){
                                         var need_sub_filed = 'custpage_quantity_week' + (i - 1);
                                         var x1 = need_no;
-                                        var x2 = sublist.getSublistValue({ id : need_sub_filed, line: need2_zl});
-                                        var x3 = sublist.getSublistValue({ id : need_sub_filed, line: need1_zl});
+                                        var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need2_zl}) : 0;
+                                        var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need1_zl}) : 0;
                                         need_no = Number(x1)+Number(x2)-x3;
                                         sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
                                     }
@@ -691,15 +763,11 @@ function(search, ui, moment, format, runtime, record) {
                         if(result[a]['data_type'] == 4){//店铺净需求
                             for (var i = week_start; i <= week_end; i++) { 
                                 var sub_filed = 'custpage_quantity_week' + i;
-                                var x1 = sublist.getSublistValue({ id : sub_filed, line: need1_zl});
-                                var x2 = sublist.getSublistValue({ id : sub_filed, line: need2_zl});
-                                var x3 = sublist.getSublistValue({ id : sub_filed, line: need3_zl});
+                                var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need1_zl}) : 0;
+                                var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0;
+                                var x3 = need3_zl || need3_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need3_zl}) : 0;
                                 var x4 = Number(x3)+Number(x2)-x1;
                                 sublist.setSublistValue({ id: sub_filed, value: x4.toString(), line: zl});
-                                // arr_list.item_sku = result[a]['item_sku'];
-                                // arr_list.account_id = result[a]['account'];
-                                // arr_data.push(x4.toString());
-                                // arr_list.arr_data = arr_data;
                             }
                             need4_zl = zl;
                             zl++;
@@ -714,7 +782,7 @@ function(search, ui, moment, format, runtime, record) {
                             for (var index = week_start; index <= week_end; index++) {
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 var sub_need =  'custpage_quantity_week' + (Number(index) + Number(cc));
-                                var x1 = sublist.getSublistValue({ id : sub_need, line: need4_zl});
+                                var x1 = need4_zl || need4_zl == 0 ? sublist.getSublistValue({ id : sub_need, line: need4_zl}) : 0;
                                 sublist.setSublistValue({ id: sub_filed, value: x1, line: zl});
                             }
                             zl++;

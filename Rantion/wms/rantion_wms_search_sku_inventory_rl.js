@@ -65,7 +65,6 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             filters.push('and');
             filters.push(['custrecord_wms_location_type', 'anyof', ['3']]);
         }
-        log.debug('filters', JSON.stringify(filters));
         var ids = [];
         var locapare = {};
         var locaware = {};
@@ -75,6 +74,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             columns : [ 
                 'internalid', 'custrecord_wms_location_type', 'custrecord_dps_wms_location',
                 'custrecord_dps_warehouse_code', 'custrecord_dps_warehouse_name',
+                { name: 'subsidiary', join: 'custrecord_dps_parent_location' },
                 { name: 'custrecord_wms_location_type', join: 'custrecord_dps_parent_location' },
                 { name: 'custrecord_dps_wms_location', join: 'custrecord_dps_parent_location' }
             ]
@@ -82,29 +82,34 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             var id = result.getValue('internalid');
             ids.push(id);
             var code = result.getValue('custrecord_dps_wms_location');
-            var type = result.getValue('custrecord_wms_location_type');
-            var key = type + '_' + code;
-            var json = {};
-            json.wareCode = result.getValue('custrecord_dps_warehouse_code');
-            json.wareName = result.getValue('custrecord_dps_warehouse_name');
-            locaware[code] = json;
-            locapare[key] = result.getValue({ name: 'custrecord_dps_wms_location', join: 'custrecord_dps_parent_location' });
+            var warecode = result.getValue('custrecord_dps_warehouse_code');
+            if (code && warecode) {
+                var type = result.getValue('custrecord_wms_location_type');
+                var key = type + '_' + code;
+                var json = {};
+                json.wareCode = warecode;
+                json.wareName = result.getValue('custrecord_dps_warehouse_name');
+                locaware[code] = json;
+                locapare[key] = result.getValue({ name: 'custrecord_dps_wms_location', join: 'custrecord_dps_parent_location' });
+            }
             return true;
         });
 
         var filters = [];
         var skus = [];
         if (ids.length > 0) {
+            filters.push({ name: 'isinactive', join: 'inventoryLocation', operator: 'is', values: 'F' });
             filters.push({ name: 'internalid', join: 'inventorylocation', operator: 'anyof', values: ids });
+            filters.push({ name: 'custrecord_wms_location_type', join: 'inventoryLocation', operator: 'anyof', values: ['2','3'] });
             if (sku) {
-                filters.push({ name: 'itemid', operator: 'is', values: sku });
+                filters.push({ name: 'name', operator: 'is', values: sku });
             }
             filters.push({ name: 'locationquantityonhand', operator: 'greaterthanorequalto', values: ['0'] });
             var mySearch = search.create({
-                type: 'inventoryitem',
+                type: 'item',
                 filters: filters,
                 columns : [ 
-                    'itemid', 'locationquantityonhand',
+                    'name', 'locationquantityonhand',
                     { name: 'custrecord_wms_location_type', join: 'inventorylocation' },
                     { name: 'custrecord_dps_wms_location', join: 'inventorylocation' },
                     { name: 'subsidiary', join: 'inventorylocation' }
@@ -121,31 +126,33 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                 pageData.fetch({
                     index: Number(nowPage - 1)
                 }).data.forEach(function (result) {
-                    var locationtype = result.getValue({ name: 'custrecord_wms_location_type', join: 'inventorylocation' });
                     var code = result.getValue({ name: 'custrecord_dps_wms_location', join: 'inventorylocation' });
-                    var wareCode = locaware[code].wareCode;
-                    var wareName = locaware[code].wareName;
-                    var sku = result.getValue('itemid');
-                    var type = locationtype == 2 ? 2 : 1;
-                    var barcode = type == 1 ? code : sku;
-                    var keyyy = '3_' + code;
-                    var positionCode = locationtype == 2 ? code : locapare[keyyy];
-                    var qty = Number(result.getValue('locationquantityonhand'));
-                    var key = sku + '_' + code;
-                    var skuobj = skups[key];
-                    if (skuobj) {
-                        skuobj.qty = skuobj.qty + qty;
-                    } else {
-                        var json = {};
-                        json.wareCode = wareCode;
-                        json.wareName = wareName;
-                        json.sku = sku;
-                        json.type = type;
-                        json.barcode = barcode;
-                        json.positionCode = positionCode;
-                        json.qty = qty;
-                        skups[key] = json;
-                        skupids.push(key);
+                    if (code) {
+                        var locationtype = result.getValue({ name: 'custrecord_wms_location_type', join: 'inventorylocation' });
+                        var wareCode = locaware[code].wareCode;
+                        var wareName = locaware[code].wareName;
+                        var sku = result.getValue('name');
+                        var type = locationtype == 2 ? 2 : 1;
+                        var barcode = type == 1 ? code : sku;
+                        var keyyy = '3_' + code;
+                        var positionCode = locationtype == 2 ? code : locapare[keyyy];
+                        var qty = Number(result.getValue('locationquantityonhand'));
+                        var key = sku + '_' + code;
+                        var skuobj = skups[key];
+                        if (skuobj) {
+                            skuobj.qty = skuobj.qty + qty;
+                        } else {
+                            var json = {};
+                            json.wareCode = wareCode;
+                            json.wareName = wareName;
+                            json.sku = sku;
+                            json.type = type;
+                            json.barcode = barcode;
+                            json.positionCode = positionCode;
+                            json.qty = qty;
+                            skups[key] = json;
+                            skupids.push(key);
+                        }
                     }
                     return true;
                 });

@@ -11,20 +11,18 @@
  */
 define(['N/url'], function(url) {
     var rec;
-    var report_Suitelet;
-    var sublistId = 'custpage_sublist'
+    // var report_Suitelet;
+    var sublistId = 'custpage_sublist';
     function pageInit(context) {
-        rec = context.currentRecord; //当前记录
-
-        report_Suitelet = url.resolveScript({
-            scriptId: 'customscript_delivery_schedule_sl',
-            deploymentId: 'customdeploy_delivery_schedule_sl'
-        });
-        var line = rec.getLineCount({
-            sublistId: sublistId
-        });
-        console.log('line',line);
-        
+        // rec = context.currentRecord; //当前记录
+        // // report_Suitelet = url.resolveScript({
+        // //     scriptId: 'customscript_delivery_schedule_sl',
+        // //     deploymentId: 'customdeploy_delivery_schedule_sl'
+        // // });
+        // var count = rec.getLineCount({
+        //     sublistId: sublistId
+        // });
+        // console.log('count',count);
     }
 
     function saveRecord(context) {
@@ -41,51 +39,35 @@ define(['N/url'], function(url) {
     }
 
     function fieldChanged(context) {
+        console.log('context',context);
         var cur = context.currentRecord;
-        var line2 = cur.getLineCount({
-            sublistId: sublistId
-        });
-        console.log('line2',line2);
-        var currIndex = cur.getCurrentSublistIndex({
-            sublistId: sublistId
-        });
-        for (var i = 0; i < 52; i++) {
-            var sub_filed =  'custpage_quantity_week' + (i+1);
-            if (context.fieldId == sub_filed) {
-                console.log('currIndex',currIndex);
-                if (currIndex == 4) {
-                    alert('允许修改');
-                    return true
-                }else{
-                    alert('不允许修改');
-                    return false
+        var count = cur.getLineCount({sublistId: sublistId}); //获取列表总行数
+        console.log('count----------',count);
+        var currIndex = cur.getCurrentSublistIndex({sublistId: sublistId}); //获取当前的行数
+        console.log('currIndex-----------',currIndex);
+        //获取当前行所需的数据
+        var data_type_id = cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_data_type_id'});
+        console.log('data_type_id---------',data_type_id);
+        if(data_type_id == 7){
+            var qualifiedNumber = cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: context.fieldId});
+            console.log('qualifiedNumber-----------',qualifiedNumber);
+            var store_name = cur.getSublistValue({ sublistId: sublistId, fieldId: 'custpage_store_name', line: currIndex});
+            console.log('store_name-----------',store_name);
+            var item_sku = cur.getSublistValue({ sublistId: sublistId, fieldId: 'custpage_item_sku', line: currIndex});
+            console.log('item_sku------------',item_sku);
+            //获取下一行的数据
+            for(var i = 0; i < count; i++){
+                var data_type_id1 = cur.getSublistValue({ sublistId: sublistId, fieldId: 'custpage_data_type_id', line: i});
+                var store_name1 = cur.getSublistValue({ sublistId: sublistId, fieldId: 'custpage_store_name', line: i});
+                var item_sku1 = cur.getSublistValue({ sublistId: sublistId, fieldId: 'custpage_item_sku', line: i});
+                if(data_type_id1 == 8 && store_name1 == store_name && item_sku == item_sku1){
+                    cur.selectLine({ sublistId: sublistId, line: i });
+                    cur.setCurrentSublistValue({ sublistId: sublistId, fieldId: context.fieldId, value: qualifiedNumber });
+                    cur.commitLine({ sublistId: sublistId });
+                    return;
                 }
             }
         }
-
-        // for (var i = 0; i < line2; i++) {
-        //     var data_type_i = cur.getSublistValue({ sublistId: 'custpage_sublist', fieldId: 'custpage_data_type',line: i });
-        //     console.log('data_type_i',data_type_i);
-        //     if (data_type_i == '修改交货量') {
-        //         alert('可修改');
-        //     }
-            
-        // }
-        
-        // var store_name = cur.getCurrentSublistValue({ sublistId: 'custpage_sublist', fieldId: 'custpage_store_name'});
-        // console.log('store_name',store_name);
-        // var item_sku = cur.getCurrentSublistValue({ sublistId: 'custpage_sublist', fieldId: 'custpage_item_sku'});
-        // console.log('item_sku',item_sku);
-        // var item_name = cur.getCurrentSublistValue({ sublistId: 'custpage_sublist', fieldId: 'custpage_item_name'});
-        // console.log('item_name',item_name);
-        // var data_type = cur.getCurrentSublistValue({ sublistId: 'custpage_sublist', fieldId: 'custpage_data_type'});
-        // console.log('data_type',data_type);
-        // for (var i = 0; i < 52; i++) {
-        //     var sub_filed =  'custpage_quantity_week' + (i+1);
-        //     if (context.fieldId == sub_filed) {
-                
-        //     }
-        // }
     }
 
     function postSourcing(context) {

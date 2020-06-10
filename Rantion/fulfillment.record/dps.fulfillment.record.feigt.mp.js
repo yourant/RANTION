@@ -1,9 +1,9 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-20 10:34:25
- * @LastEditTime   : 2020-06-06 14:39:19
+ * @LastEditTime   : 2020-06-05 13:48:27
  * @LastEditors    : Li
- * @Description    : 自营仓调拨费用分摊
+ * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.feigt.mp.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -35,9 +35,6 @@ define(['../Helper/logistics_cost_calculation', 'N/search', 'N/record', 'N/log']
                         operator: 'anyof',
                         values: 5
                     }, // 子公司 蓝深贸易
-                    {
-
-                    }
                 ]
             }).run().each(function (rec) {
                 recArr.push(rec.id);

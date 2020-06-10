@@ -41,7 +41,8 @@ define(['N/record', 'N/search', 'N/log',
                 });
             }
             var tracking_number = bf_cur.getValue('custrecord_dps_ship_small_trackingnumber');
-            if (!tracking_number && small_status == 3)
+            var logistStatus = bf_cur.getValue('custrecord_dps_push_state_xh')
+            if (!tracking_number && logistStatus == "成功")
                 form.addButton({
                     id: 'custpage_dps_li_traking_button',
                     label: '获取物流跟踪号',
@@ -54,6 +55,21 @@ define(['N/record', 'N/search', 'N/log',
                     label: '查看标签',
                     functionName: "showImg(" + bf_cur.id + ")"
                 });
+            }
+            if (bf_cur.id) {
+                var rec = record.load({
+                    type: "customrecord_dps_shipping_small_record",
+                    id: bf_cur.id
+                });
+                var label = rec.getValue('custrecord_record_fulfill_xh_label_addr')
+                var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
+                if (!label && logistStatus == "成功" && (channel == "出口易" || channel == "捷士")) {
+                    form.addButton({
+                        id: 'custpage_dps_li_get_label',
+                        label: '获取面单',
+                        functionName: "getLabel(" + bf_cur.id + ")"
+                    });
+                }
             }
             form.clientScriptModulePath = './dps.fulfillment.record.full.invoice.cs.js';
         }
@@ -449,15 +465,15 @@ define(['N/record', 'N/search', 'N/log',
         search.create({
             type: 'salesorder',
             filters: [{
-                    name: 'poastext',
-                    operator: 'is',
-                    values: poastext
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: true
-                }
+                name: 'poastext',
+                operator: 'is',
+                values: poastext
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: true
+            }
             ],
             columns: [
                 'location'
@@ -483,16 +499,16 @@ define(['N/record', 'N/search', 'N/log',
         search.create({
             type: 'customrecord_dps_amazon_seller_sku',
             filters: [{
-                    name: 'custrecord_dps_amazon_sku_number',
-                    operator: 'is',
-                    values: sku
-                } //sku
+                name: 'custrecord_dps_amazon_sku_number',
+                operator: 'is',
+                values: sku
+            } //sku
                 , { // 存在货品非活动的情况
-                    name: 'isinactive',
-                    join: 'custrecord_dps_amazon_ns_sku',
-                    operator: 'is',
-                    values: false
-                }
+                name: 'isinactive',
+                join: 'custrecord_dps_amazon_ns_sku',
+                operator: 'is',
+                values: false
+            }
             ],
             columns: [
                 'custrecord_dps_amazon_ns_sku'
@@ -590,6 +606,10 @@ define(['N/record', 'N/search', 'N/log',
      * @param {*} rec 
      */
     function pushOrder(rec) {
+        rec = record.load({
+            type: "customrecord_dps_shipping_small_record",
+            id: rec.id
+        });
         var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
         var result
         log.audit('channel', channel);
@@ -603,7 +623,8 @@ define(['N/record', 'N/search', 'N/log',
                     var labelresult = jetstarApi.GetLabels(shipment_id, '')
                     if (labelresult.code == 200) {
                         var trackingNumber = labelresult.data.shipment.tracking_number
-                        submitIdAndTackingNumber(rec.id, shipment_id, trackingNumber)
+                        var single_pdf = labelresult.data.shipment.single_pdf
+                        submitIdAndTackingNumber(rec.id, shipment_id, trackingNumber, '', '', single_pdf)
                     }
                 } else {
                     record.submitFields({
@@ -621,13 +642,28 @@ define(['N/record', 'N/search', 'N/log',
                 openApi.init(http, search, record)
                 var result = openApi.CreateOrders(rec, "small")
                 if (result.code == 200) {
-                    var orderId = rec.getValue("custrecord_dps_ship_platform_order_numbe")
-                    var infoResult = openApi.GetInfo(orderId)
-                    log.audit('infoResult', infoResult);
-                    if (infoResult.code == 200) {
-                        var trackingNumber = infoResult.data.TrackingNumber
-                        var shipment_id = infoResult.data.Ck1PackageId
-                        submitIdAndTackingNumber(rec.id, shipment_id, trackingNumber)
+                    var orderId = rec.getValue("custrecord_dps_ship_order_number")
+                    submitIdAndTackingNumber(rec.id, orderId)
+                    result = openApi.GetInfo(orderId)
+                    log.audit('infoResult', result);
+                    if (result.code == 200) {
+                        var data = result.data;
+                        var Status = data.Status
+                        if (Status == 'Created') {
+                            var trackingNumber = data.TrackingNumber
+                            updateTrackingNumber(rec_id, trackingNumber)
+                        } else if (Status == 'CreateFailed') {
+                            var CreateFailedReason = data.CreateFailedReason.ExtendMessage
+                            record.submitFields({
+                                type: 'customrecord_dps_shipping_small_record',
+                                id: rec.id,
+                                values: {
+                                    custrecord_dps_ship_small_status: 4,
+                                    custrecord_dps_push_state_xh: "失败",
+                                    custrecord_dps_push_result_xh: CreateFailedReason
+                                }
+                            });
+                        }
                     }
                 } else {
                     record.submitFields({
@@ -676,8 +712,21 @@ define(['N/record', 'N/search', 'N/log',
                     var shipment_id = result.data.PIC
                     var TrackingNumber = result.data.TrackingNumber
                     var Base64LabelImage = result.data.Base64LabelImage
-                    log.audit('Base64LabelImage', Base64LabelImage);
-                    submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage)
+                    var fileObj = file.create({
+                        name: Moment().format("YYYYMMDDHHmmssSSS") + ".png",
+                        fileType: file.Type.PNGIMAGE,
+                        contents: Base64LabelImage,
+                        description: 'Endicia面单',
+                        encoding: file.Encoding.UTF8,
+                        isOnline: true
+                    });
+                    // 保存文件 folder表示文件柜里面的文件夹的id
+                    fileObj.folder = 2078;
+                    var fileId = fileObj.save();
+                    fileObj = file.load({
+                        id: fileId
+                    });
+                    submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, "https://6188472-sb1.app.netsuite.com" + fileObj.url)
                 } else {
                     record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',
@@ -693,7 +742,7 @@ define(['N/record', 'N/search', 'N/log',
         }
     }
 
-    function submitIdAndTackingNumber(id, shipment_id, trackingNumber, image) {
+    function submitIdAndTackingNumber(id, shipment_id, trackingNumber, image, labelId, labelAddr) {
         var values = {
             custrecord_dps_ship_small_status: 3,
             custrecord_dps_push_state_xh: "成功",
@@ -702,6 +751,8 @@ define(['N/record', 'N/search', 'N/log',
         if (shipment_id) values.custrecord_dps_ship_small_logistics_orde = shipment_id
         if (trackingNumber) values.custrecord_dps_ship_small_trackingnumber = trackingNumber
         if (image) values.custrecord_dps_fulfill_record_xh_img = image
+        if (labelId) values.custrecord_record_fulfill_xh_label_id = labelId
+        if (labelAddr) values.custrecord_record_fulfill_xh_label_addr = labelAddr
         record.submitFields({
             type: 'customrecord_dps_shipping_small_record',
             id: id,

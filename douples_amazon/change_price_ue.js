@@ -9,7 +9,7 @@
  * 否则  提交审批
  * 
  */
-define(["N/log", "N/search", "N/record", "N/workflow", "N/email", "./Helper/core.min"],
+define(["N/log", "N/search", "N/record", "N/workflow", "N/email", "./Helper/core.min2"],
 
 function(log, search, record, workflow, email, core) {
     /**
@@ -83,8 +83,18 @@ function(log, search, record, workflow, email, core) {
     			sublistId: 'recmachcustrecord_change_price_pl_parentrecord',
     			fieldId: 'custrecord_change_price_pl_account',
     			line:i
-    		});
-    		log.audit("acc_id-"+(i+1), acc_id);
+			});
+			var currency
+			log.audit("acc_id-"+(i+1), acc_id);
+			search.create({
+				type:"customrecord_aio_account",
+				filters:[{name:"internalidnumber",operator:"equalto",values:acc_id}],
+				columns:[{name:"custrecord_aio_currency"}]
+			}).run().each(function(e){
+				currency=e.getText(e.columns[0])
+			})
+			 
+			log.audit("currency-"+currency);
     		//货品sku
     		var item_sku = newrec_line.getSublistValue({
     			sublistId: 'recmachcustrecord_change_price_pl_parentrecord',
@@ -134,10 +144,10 @@ function(log, search, record, workflow, email, core) {
     		
     		var pitem = '';
     		search.create({
-    			type: 'customrecord_aio_products_listing',
+    			type: 'customrecord_aio_amazon_mfn_listing',
     			filters: [
-    				{ name: 'custrecord_aio_p_acc_id',  operator:'is', values: acc_id },
-    				{ name: 'custrecord_aio_p_seller_sku',  operator:'is', values: item_sku },
+    				{ name: 'custrecord_aio_mfn_l_listing_acc_id',  operator:'is', values: acc_id },
+    				{ name: 'custrecord_aio_mfn_l_seller_sku',  operator:'is', values: item_sku },
     			]
     		}).run().each(function (result) {
     			pitem = result.id;
@@ -156,7 +166,8 @@ function(log, search, record, workflow, email, core) {
     		});
     		
     		
-    		if( Number(new_price) < old_price1 || Number(new_price) > old_price2 ){    			
+    		if( false ){    			
+    		// if( Number(new_price) < old_price1 || Number(new_price) > old_price2 ){    			
     			log.audit("x",new_price);
 
     			record.submitFields({
@@ -192,12 +203,13 @@ function(log, search, record, workflow, email, core) {
 	    			/**
 	    			 * 调用上传数据接口
 	    			 */
-	    			core.amazon.uploadPrice(account_id, rows);
+					var rs =core.amazon.uploadPrice(account_id, rows,currency)
+					log.audit("rs:::::::",rs);
 	    			// log.audit("upload_1","success");
 	    			
-	        		var pitem1 = record.load({ type: 'customrecord_aio_products_listing', id: pitem });
+	        		var pitem1 = record.load({ type: 'customrecord_aio_amazon_mfn_listing', id: pitem });
 	        		log.audit("pitem1",pitem1);
-	    			pitem1.setValue({ fieldId: 'custrecord_aio_p_price', value: new_price });
+	    			pitem1.setValue({ fieldId: 'custrecord_aio_mfn_l_price', value: new_price });
 	    			var idx = pitem1.save();
 	    			log.audit("idx",idx);
 	    				    			
@@ -208,18 +220,24 @@ function(log, search, record, workflow, email, core) {
     			log.audit("y",new_price);
     			
     			lowerCount++;
-    			log.audit("lowerCount",lowerCount);
+				log.audit("lowerCount",lowerCount);
+				log.audit("rows：：：",rows);
     			/**
     			 * 调用上传数据接口
     			 */
-    			core.amazon.uploadPrice(account_id, rows);
-    			
-    			var pitem2 = record.load({ type: 'customrecord_aio_products_listing', id: pitem });
+				try {
+					var rs = core.amazon.uploadPrice(account_id, rows,currency);
+    			log.audit("rs:::::::",rs);
+    			var pitem2 = record.load({ type: 'customrecord_aio_amazon_mfn_listing', id: pitem });
     			log.audit("pitem2",pitem2);
-    			pitem2.setValue({ fieldId: 'custrecord_aio_p_price', value: new_price });
+    			pitem2.setValue({ fieldId: 'custrecord_aio_mfn_l_price', value: new_price });
     			
     			var idy = pitem2.save();
     			log.audit("idy",idy);
+				} catch (error) {
+					log.error("出错了",error)
+				}
+    			
     			
     			
 //    			// 数据上传完成,给申请人发送邮件

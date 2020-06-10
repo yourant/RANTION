@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-07 09:41:37
- * @LastEditTime   : 2020-06-08 20:46:35
+ * @LastEditTime   : 2020-06-08 20:45:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \douples_amazon\amazon.orderup_mp1.js
@@ -30,6 +30,9 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         var acc = runtime.getCurrentScript().getParameter({
             name: 'custscript_tr_account'
         });
+        var orderid = runtime.getCurrentScript().getParameter({
+            name: 'custscript_oid'
+        });
         var idform = runtime.getCurrentScript().getParameter({
             name: 'custscript_id_from1'
         });
@@ -51,29 +54,31 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 {
                     name: "custrecord_aio_cache_status",
                     operator: "is",
-                    values: "Shipped"
+                    values: "Unshipped"
                 },
-                {
-                    name: "custrecord_trandate_amazonorder",
-                    operator: "within",
-                    values: ["1/5/2020", "1/6/2020"]
-                },
+                // {
+                //     name: "custrecord_trandate_amazonorder",
+                //     operator: "within",
+                //     values: ["1/5/2020", "1/6/2020"]
+                // },
                 // {
                 //     name: "custrecord_dds111",
                 //     operator: "isnot",
                 //     values: "没有sku对应"
                 // },
-                {
-                    name: "custrecord_aio_cache_order_id",
-                    operator: "is",
-                    values: "405-0236604-0538770"
-                },
                 // {
                 //     name: "custrecord_dps_cache_fulfillment_channel",
                 //     operator: "is",
                 //     values: "MFN"
                 // }
             ];
+            if(orderid){
+                filters.push({
+                    name: "custrecord_aio_cache_order_id",
+                    operator: "is",
+                    values: orderid
+                });
+            }
             if (idform) {
                 filters.push({
                     name: "internalidnumber",
@@ -776,6 +781,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 log.debug('12set skuid', 'skuid:' + skuid + ', cid:' + cid)
 
 
+
+
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'item',
@@ -1300,41 +1307,9 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
         var o_name = o.shipping_address.name ? o.shipping_address.name : (o.buyer_name ? o.buyer_name : (o.buyer_email.split('@')[0]))
 
-        try {
-            var files = [{
-                    name: 'name',
-                    operator: 'is',
-                    values: o_name
-                },
-                {
-                    name: 'custrecord_cc_country',
-                    operator: 'is',
-                    values: o.shipping_address.country_code
-                },
-            ]
-            if (o.shipping_address.address_line1)
-                files.push({
-                    name: 'custrecord_cc_addr1',
-                    operator: 'is',
-                    values: o.shipping_address.address_line1
-                })
-            search.create({
-                type: 'customrecord_customer_contact',
-                filters: files
-
-            }).run().each(function (rec) {
-                c_id = rec.id;
-                return false;
-            });
-
-        } catch (error) {
-            log.audit('search error', error)
-        }
 
         if (o.shipping_address && o.buyer_email) {
-
             var names
-
             if (o.shipping_address.name) {
                 names = o.shipping_address.name.split(' ').filter(function (n) {
                     return n != '';

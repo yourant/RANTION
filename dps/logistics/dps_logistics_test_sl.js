@@ -10,24 +10,37 @@ define(['./jetstar/dps_logistics_request.js',
     function (jetstar, openapi, yanwen, endicia, Moment, http, record, search, file, xml, redirect, serverWidget) {
 
         function onRequest(context) {
-            var boxSkuArray = new Array()
-            search.create({
-                type: 'item',
-                filters: [
-                    { name: 'locationquantityonhand', operator: 'GREATERTHAN', values: 0 },
-                    { name: 'inventorylocation', operator: 'is', values: '227' }
-                ],
-                columns: [
-                    { name: 'locationquantityonhand' }
-                ]
-            }).run().each(function (rec) {
-                boxSkuArray.push({
-                    item: rec.id,
-                    count: rec.getValue('locationquantityonhand')
-                })
-                return true;
+            var fileObj = file.load({
+                id: '9418'
             });
-            context.response.write(JSON.stringify(boxSkuArray))
+            context.response.write(fileObj.url)
+            return
+            // search.create({
+            //     type: 'purchaseorder',
+            //     filters: [
+            //         { name: "mainline", operator: "is", values: ["F"] },
+            //         { name: "taxline", operator: "is", values: ["F"] },
+            //         { name: "item", operator: "noneof", values: ["@NONE@"] },
+            //         { name: "type", operator: "anyof", values: ["PurchOrd"] },
+            //         { name: "custbody_dps_type", operator: "anyof", values: ["2"] },
+            //         { name: "subsidiary", operator: "is", values: ['5'] },
+            //         { name: "item", operator: "anyof", values: ['39165'] }
+            //     ],
+            //     columns: [
+            //         { name: "datecreated", label: "日期", type: "date", sort: "DESC" },//0
+            //         { name: "subsidiary", label: "子公司", type: "select" },//1
+            //         { name: "custbody_dps_type", label: "采购订单类型", type: "select" },//2
+            //         { name: "line", label: "行Id", type: "integer" },//3
+            //         { name: "item", label: "货品名称", type: "select" },//4
+            //         { name: "quantity", label: "采购数量", type: "float" },//5
+            //         { name: "custcoltransferable_quantity", label: "可调拨数量", type: "float" },//6
+            //         { name: "custcol_transferred_quantity", label: "已调拨数量", type: "float" },//7
+            //         { name: "custcol_realted_transfer_detail", label: "关联调拨单号", type: "select" }//8
+            //     ]
+            // }).run().each(function (rec) {
+            //     context.response.write(rec.id)
+            //     return true
+            // });
             // 捷士测试
             // jetstarApi.init(http)
             // var reqParam = jetstarApi.Create(rec)
@@ -110,7 +123,7 @@ define(['./jetstar/dps_logistics_request.js',
             //     isInline: true
             // })
             // var param = yanwenApi.Create()
-            // endiciaApi.init(http, xml)
+            endiciaApi.init(http, xml, search)
             //生成标签
             // var param = endiciaApi.GetPostageLabel()
             // var fileObj = file.create({
@@ -129,7 +142,9 @@ define(['./jetstar/dps_logistics_request.js',
             // var param = endiciaApi.RefundLabel('S000045454','CJ501214385US')
             // context.response.write(JSON.stringify(param))
             // 购买运费
-            // var param = endiciaApi.BuyPostage('S0123213a4', 300)
+            var orderId = Math.random() * 1000000 + 100000
+            var param = endiciaApi.BuyPostage(orderId.toFixed(0), 100)
+            context.response.write(JSON.stringify(param))
             // var param = endiciaApi.CalculatePostageRate({
             //     MailClass: 'Priority',
             //     WeightOz: '32',

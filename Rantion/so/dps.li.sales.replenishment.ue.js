@@ -36,7 +36,7 @@ define(['N/runtime'], function (runtime) {
         if (!push_wms && createdfrom) {
             form.addButton({
                 id: 'custpage_dps_li_wms_button',
-                label: '推送WMS',
+                label: '推送WMS1',
                 functionName: "createNewSo(" + createdfrom + ',' + bf_cur.id + ',' + 2 + ")"
             });
         }

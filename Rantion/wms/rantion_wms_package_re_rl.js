@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-06-08 20:15:00
+ * @LastEditTime   : 2020-06-08 20:05:25
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -188,7 +188,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
                         log.debug('Number(addNum) + Number(boxNum)', Number(addNum) + Number(boxNum));
                         objRecord.setValue({
                             fieldId: 'custrecord_dps_total_number',
-                            value: (Number(addNum) + Number(boxNum)).toFixed(0)
+                            value: Number(addNum) + Number(boxNum)
                         });
 
                         objRecord.setValue({

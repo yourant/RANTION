@@ -260,7 +260,8 @@ var jetstarApi = {
                             var line = rec.getLineCount({ sublistId: subKey })
                             var itemIdArray = new Array()
                             for (var i = 0; i < line; i++) {
-                                itemIdArray.push(rec.getSublistValue({ sublistId: subKey, fieldId: subItemKey, line: i }))
+                                var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: subItemKey, line: i })
+                                if (itemId) itemIdArray.push(itemId)
                             }
                             if (itemIdArray.length > 0) {
                                 var columns = new Array()
@@ -459,7 +460,7 @@ var jetstarApi = {
 var JetStarSmallDict = {
     service: { key_ns: "custrecord_dps_ship_small_channelservice", help: "服务类型代码，通过get_service 可以查看。必填", getType: "value", require: true, parseType: "customrecord_logistics_service", parseId: "custrecord_ls_service_code" },
     store_id: { key_ns: "", help: "店铺名称，默认为空", require: false, getType: "text" },//custrecord_dps_ship_small_account 先不传
-    client_reference: { key_ns: "custrecord_dps_ship_platform_order_numbe", help: "客户订单号", require: false, getType: "value" },
+    client_reference: { key_ns: "custrecord_dps_ship_order_number", help: "客户订单号", require: false, getType: "value" },
     parcel_count: { key_ns: "custrecord_dps_total_number", help: "箱子总数。必填", require: true, getType: "value" },
     export_scc: { key_ns: "custrecord_dps_separate", help: "是否单独报关，0 否，1 是", require: false, getType: "text", format: { "是": "1", "否": "0" } },
     vat_number: { key_ns: "", help: "vat 号", require: false, getType: "value" },

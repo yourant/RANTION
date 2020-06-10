@@ -378,24 +378,22 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                 { name: 'transferlocation', operator: 'anyof', values: location },
                 { name: 'mainline', operator: 'is', values: ['F'] },
                 { name: 'taxline', operator: 'is', values: ['F'] },
-                { name: 'shipping', operator: 'is', values: ['F'] }
+                { name: 'shipping', operator: 'is', values: ['F'] },
+                { name: 'transactionlinetype', operator: 'is', values: 'RECEIVING' }
             ],
             columns: [
-                //'custbodyexpected_arrival_time',
                 'item',
-                'expectedreceiptdate',
+                'custbodyexpected_arrival_time',
                 'quantity',
                 'transferlocation'
-                // { name: 'internalid', join: 'item', summary: 'GROUP' },
-                // { name: 'formulanumeric', formula: 'quantity', summary: 'SUM' }
             ]
         }).run().each(function (result) {
             log.debug('result',result.id);
-            log.debug('custbodyexpected_arrival_time',result.getValue('expectedreceiptdate'));
+            log.debug('custbodyexpected_arrival_time',result.getValue('custbodyexpected_arrival_time'));
             SKUIds.map(function(line){
                 if(line.item_sku == result.getValue('item') && line.location == result.getValue('transferlocation')){
-                    if(result.getValue('expectedreceiptdate')){
-                        var item_date = format.parse({ value:result.getValue('expectedreceiptdate'), type: format.Type.DATE});
+                    if(result.getValue('custbodyexpected_arrival_time')){
+                        var item_date = format.parse({ value:result.getValue('custbodyexpected_arrival_time'), type: format.Type.DATE});
                         var item_time = weekofday(item_date);
                         transit_num.push({
                             item_id : result.getValue('item'),
@@ -409,9 +407,25 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             return true;
         });
         log.debug('transit_num',transit_num);
-        var need_transit_num = [];
+        var b = [];//记录数组a中的id 相同的下标
         if(transit_num.length > 0){
-            var po_no = [];
+            for(var i = 0; i < transit_num.length;i++){
+                for(var j = transit_num.length-1;j>i;j--){
+                    if(transit_num[i].item_id == transit_num[j].item_id && transit_num[i].item_time == transit_num[j].item_time){
+                        transit_num[i].item_quantity = (transit_num[i].item_quantity*1 + transit_num[j].item_quantity*1).toString()
+                        b.push(j)
+                    }
+                }
+            }
+            for(var k = 0; k<b.length;k++){
+                transit_num.splice(b[k],1)
+            }
+        }
+
+        log.debug('transit_num1',transit_num);
+        var need_transit_num = [];
+        var po_no = [];
+        if(transit_num.length > 0){
             for (var i = 0; i < transit_num.length; i++) {
                 if (po_no.indexOf(transit_num[i]['item_id']) === -1) {
                     need_transit_num.push({
@@ -438,8 +452,8 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         log.debug('need_transit_num',need_transit_num);
 
         if(need_transit_num.length > 0){
-            for(var i = 0; i < SKUIds.length; i++){
-                for(var a = 0; a < need_transit_num.length; a++){
+            for(var a = 0; a < need_transit_num.length; a++){
+                for(var i = 0; i < SKUIds.length; i++){
                     if(SKUIds[i]['item_sku'] == need_transit_num[a]['item_id']){
                         item_data.push({
                             item_sku: SKUIds[i]['item_sku'],
@@ -452,13 +466,42 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                             data_type_text: '在途量',
                             transit_no: need_transit_num[a]['lineItems']
                         });
+                    }else{
+                        if(po_no.indexOf(SKUIds[i]['item_sku']) == -1){
+                            item_data.push({
+                                item_sku: SKUIds[i]['item_sku'],
+                                item_sku_text: SKUIds[i]['item_sku_name'],
+                                item_name: SKUIds[i]['item_name'],
+                                account: SKUIds[i]['forecast_account'],
+                                account_text: SKUIds[i]['forecast_account_name'],
+                                site: SKUIds[i]['forecast_site'],
+                                data_type: '2',
+                                data_type_text: '在途量',
+                                transit_no: 0
+                            });
+                            po_no.push(SKUIds[i]['item_sku']);
+                        }
                     }
                 }
             }
+        }else{
+            SKUIds.map(function(line){
+                item_data.push({
+                    item_sku: line.item_sku,
+                    item_sku_text: line.item_sku_name,
+                    item_name: line.item_name,
+                    account: line.forecast_account,
+                    account_text: line.forecast_account_name,
+                    site: line.forecast_site,
+                    data_type: '2',
+                    data_type_text: '在途量',
+                    transit_no: 0
+                });
+            })
         }
         
         //库存量
-        var location_quantity = [];
+        var location_quantity = [],temporary_arr = [];
         search.create({
             type: 'item', 
             filters: [
@@ -475,8 +518,9 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                     location_quantity.push({
                         item_id : rec.id,
                         difference_qt : rec.getValue('locationquantityavailable')*1,
-                    })
+                    });
                 }
+                temporary_arr.push(rec.id);
             });
             return true;
         });
@@ -497,9 +541,38 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                             data_type_text: '库存量',
                             location_no: location_quantity[a]['difference_qt']
                         });
+                    }else{
+                        if(temporary_arr.indexOf(SKUIds[i]['item_sku']) == -1){
+                            item_data.push({
+                                item_sku: SKUIds[i]['item_sku'],
+                                item_sku_text: SKUIds[i]['item_sku_name'],
+                                item_name: SKUIds[i]['item_name'],
+                                account: SKUIds[i]['forecast_account'],
+                                account_text: SKUIds[i]['forecast_account_name'],
+                                site: SKUIds[i]['forecast_site'],
+                                data_type: '3',
+                                data_type_text: '库存量',
+                                location_no: 0
+                            });
+                            temporary_arr.push(SKUIds[i]['item_sku']);
+                        }
                     }
                 }
             }
+        }else{
+            SKUIds.map(function(line){
+                item_data.push({
+                    item_sku: line.item_sku,
+                    item_sku_text: line.item_sku_name,
+                    item_name: line.item_name,
+                    account: line.forecast_account,
+                    account_text: line.forecast_account_name,
+                    site: line.forecast_site,
+                    data_type: '3',
+                    data_type_text: '库存量',
+                    location_no: 0
+                });
+            })
         }
 
         //店铺净需求
@@ -513,6 +586,16 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                 site: line.forecast_site,
                 data_type: '4',
                 data_type_text: '店铺净需求'
+            });
+            item_data.push({
+                item_sku: line.item_sku,
+                item_sku_text: line.item_sku_name,
+                item_name: line.item_name,
+                account: line.forecast_account,
+                account_text: line.forecast_account_name,
+                site: line.forecast_site,
+                data_type: '5',
+                data_type_text: '修改净需求量'
             });
         })
 
@@ -566,9 +649,12 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         var sublist = form.addSublist({ id: 'custpage_sublist', type: ui.SublistType.LIST, label: '店铺供需', tab: 'custpage_tab' });
         sublist.helpText = "店铺供需结果";
         sublist.addField({ id: 'custpage_store_name', label: '店铺名', type: ui.FieldType.TEXT });
+        sublist.addField({ id: 'custpage_store_name_id', label: '店铺id', type: ui.FieldType.TEXT }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         sublist.addField({ id: 'custpage_item_sku', label: 'sku', type: ui.FieldType.TEXT });
+        sublist.addField({ id: 'custpage_item_sku_id', label: 'sku_id', type: ui.FieldType.TEXT }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         sublist.addField({ id: 'custpage_item_name', label: '产品名称', type: ui.FieldType.TEXT });
         sublist.addField({ id: 'custpage_data_type', label: '数据类型', type: ui.FieldType.TEXT });
+        sublist.addField({ id: 'custpage_data_type_id', label: '数据类型id', type: ui.FieldType.TEXT }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         for (var index = 1; index <= 52; index++) {
             var sub_filed = 'custpage_quantity_week' + index;
             var Label = 'W' + index;
@@ -578,25 +664,29 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         log.debug('createLineData result',result);
         var zl = 0, data_arr = [];
         for (var z = 0; z < SKUIds.length; z++) {
-            var need1_zl = 0 , need2_zl = 0, need3_zl = 0,need4_zl = 0;
+            var need1_zl, need2_zl, need3_zl;
             for(var a = 0; a < result.length; a++){
                 if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
                     sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl }); 
-                    sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });  
+                    sublist.setSublistValue({ id: 'custpage_store_name_id', value: result[a]['account'], line: zl }); 
+                    sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl }); 
+                    sublist.setSublistValue({ id: 'custpage_item_sku_id', value: result[a]['item_sku'], line: zl });    
                     sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
                     sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
+                    sublist.setSublistValue({ id: 'custpage_data_type_id', value: result[a]['data_type'], line: zl }); 
 
                     if(result[a]['data_type'] == 1){//需求量
                         for (var index = 1; index <= 52; index++) {
                             var sub_filed = 'custpage_quantity_week' + index;
                             if(result[a]['quantity_week'+index]){
-                                sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  //data_type_text  //净需求量
+                                sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});
+                            }else{
+                                sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
                             }
                         }
                         need1_zl = zl;
                         zl++;
                     }
-                    
                     
                     for (var i = 1; i < week_start; i++) {
                         week[i].updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
@@ -611,15 +701,24 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                     if(result[a]['data_type'] == 2){//在途量
                         var transit_no = result[a]['transit_no'];
                         for (var i = week_start; i <= week_end; i++) { 
+                            var sub_filed;
                             if(transit_no.length > 0){
+                                var line_arr = [];
                                 transit_no.map(function(l){
+                                    sub_filed = 'custpage_quantity_week' + i;
                                     if(l.item_time == i){
-                                        var sub_filed = 'custpage_quantity_week' + i;
-                                        sublist.setSublistValue({ id: sub_filed, value: l.item_quantity.toString(), line: zl});  
+                                        sublist.setSublistValue({ id: sub_filed, value: l.item_quantity.toString(), line: zl}); 
                                     }
+                                    line_arr.push(l.item_time);
                                 })
+                                if(line_arr.indexOf(i) == -1){
+                                    sub_filed = 'custpage_quantity_week' + i;
+                                    sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
+                                }
+                            }else{
+                                sub_filed = 'custpage_quantity_week' + i;
+                                sublist.setSublistValue({ id: sub_filed, value: '0', line: zl}); 
                             }
-                            
                         }
                         need2_zl = zl;
                         zl++;
@@ -633,33 +732,42 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                 if(result[a]['location_no']){
                                     sublist.setSublistValue({ id: sub_filed, value: result[a]['location_no'].toString(), line: zl});
                                     need_no = result[a]['location_no'];
+                                }else{
+                                    sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
                                 }
                             }else{
-                                if(result[a]['location_no']){
-                                    var need_sub_filed = 'custpage_quantity_week' + (i - 1);
-                                    var x1 = need_no;
-                                    var x2 = sublist.getSublistValue({ id : need_sub_filed, line: need2_zl});
-                                    var x3 = sublist.getSublistValue({ id : need_sub_filed, line: need1_zl});
-                                    need_no = Number(x1)+Number(x2)-x3;
-                                    sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
-                                }
+                                var need_sub_filed = 'custpage_quantity_week' + (i - 1);
+                                var x1 = need_no;
+                                var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need2_zl}) : 0;
+                                var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need1_zl}) : 0;
+                                need_no = -(x3 - (Number(x1)+Number(x2)));
+                                sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
+                                // if(result[a]['location_no']){
+                                //     var need_sub_filed = 'custpage_quantity_week' + (i - 1);
+                                //     var x1 = need_no;
+                                //     var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need2_zl}) : 0;
+                                //     var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need1_zl}) : 0;
+                                //     need_no = -(x3 - (Number(x1)+Number(x2)));
+                                //     sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
+                                // }else{
+                                //     sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
+                                // }
                             }
-                            
                         }
                         need3_zl = zl;
                         zl++;
                     }
 
-                    if(result[a]['data_type'] == 4){//店铺净需求
+                    if(result[a]['data_type'] == 4 || result[a]['data_type'] == 5){//店铺净需求4  //修改净需求量5
                         var arr_list = [], data_josn = {};
                         data_josn.item_sku = result[a]['item_sku'];
                         data_josn.account_id = result[a]['account'];
                         for (var i = week_start; i <= week_end; i++) { 
                             var sub_filed = 'custpage_quantity_week' + i;
-                            var x1 = sublist.getSublistValue({ id : sub_filed, line: need1_zl});
-                            var x2 = sublist.getSublistValue({ id : sub_filed, line: need2_zl});
-                            var x3 = sublist.getSublistValue({ id : sub_filed, line: need3_zl});
-                            var x4 = Number(x3)+Number(x2)-x1;
+                            var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need1_zl}) : 0;
+                            var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0;
+                            var x3 = need3_zl || need3_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need3_zl}) : 0;
+                            var x4 = x1-(Number(x3)+Number(x2));
                             sublist.setSublistValue({ id: sub_filed, value: x4.toString(), line: zl});
                             arr_list.push({
                                 week: i,
@@ -668,12 +776,12 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                         }
                         data_josn.item = arr_list;
                         data_arr.push(data_josn);
-                        need4_zl = zl;
                         zl++;
                     }
                 }
             }
         }
+
         return data_arr;
     }
 

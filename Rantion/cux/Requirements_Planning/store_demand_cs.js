@@ -9,17 +9,11 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/url'], function(url) {
-    var rec;
-    var report_Suitelet;
+define(['N/url', 'N/ui/dialog', 'N/https'], function(url, dialog, https) {
+    var rec,sublistId = 'custpage_sublist';
 
     function pageInit(context) {
         rec = context.currentRecord; //当前记录
-
-        report_Suitelet = url.resolveScript({
-            scriptId: 'customscript_store_demand_sl',
-            deploymentId: 'customdeploy_store_demand_sl'
-        });
     }
 
     function saveRecord(context) {
@@ -34,9 +28,46 @@ define(['N/url'], function(url) {
         }
         return true
     }
-
+    
     function fieldChanged(context) {
-        
+        var cur = context.currentRecord;
+        var fieldId = context.fieldId;
+        var data_type_id = cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_data_type_id'});
+        if(fieldId != 'custpage_account_store' && fieldId != 'custpage_site' && fieldId != 'custpage_item' && fieldId != 'custpage_date_from' && fieldId != 'custpage_date_to' && data_type_id != 5){    
+            function success(result) { console.log('Success with value: ' + result); window.location.reload(true);}
+            function failure(reason) { console.log('Failure: ' + reason) }
+    
+            dialog.alert({
+                title: '提示',
+                message: '不允许进行修改！' 
+            }).then(success).catch(failure);
+            return;
+        }else{
+            var data = [];
+            var item_week = fieldId.replace(/custpage_quantity_week/, "custrecord_quantity_week");
+            data.push({
+                item_id: cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_item_sku_id'}),
+                item_account: cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_store_name_id'}),
+                item_quantity: cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: fieldId}),
+                item_week: item_week
+            })
+            var link = url.resolveScript({
+                scriptId : 'customscript_modified_quantity_rl',
+                deploymentId:'customdeploy_modified_quantity_rl'
+            });
+            var header = {
+                "Content-Type":"application/json;charset=utf-8",
+                "Accept":"application/json"
+            }
+            var body = {
+                data : data
+            }
+            https.post({
+                url : link,
+                body : body,
+                headers : header
+            })
+        }
     }
 
     function postSourcing(context) {
@@ -44,7 +75,7 @@ define(['N/url'], function(url) {
     }
 
     function lineInit(context) {
-        
+
     }
 
     function validateDelete(context) {

@@ -17,44 +17,44 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
     function setModuleXMLValue(INV, xmlID) {
 
         log.debug('setModuleXMLValue INV: ' + INV, xmlID);
+        var seaT1 = new Date().getTime()
+      // 创建一个对象，用于赋值
+      var printData = new Object();
+      printData = setInvValue(INV, xmlID, printData);
+      printData = setBoxValue(INV, xmlID, printData);
+      printData = setDeclarationValue(INV, xmlID, printData);
+      printData = setContractValue(INV, xmlID, printData);
+      printData = setElemValue(INV, xmlID, printData);
 
-        // 创建一个对象，用于赋值
-        var printData = new Object();
-        printData = setInvValue(INV, xmlID, printData);
-        printData = setBoxValue(INV, xmlID, printData);
-        printData = setDeclarationValue(INV, xmlID, printData);
-        printData = setContractValue(INV, xmlID, printData);
-        printData = setElemValue(INV, xmlID, printData);
+      printData = setUSValue(INV, xmlID, printData);
+      log.audit( "搜索这些耗时1: " ,new Date().getTime() - seaT1)
 
-        printData = setUSValue(INV, xmlID, printData);
+      // 获取模板内容,写全路径或者内部ID
+      var model = file.load({
+          id: xmlID
+      }).getContents();
 
+      var seaT2 = new Date().getTime()
+      // 处理数据
+      var template = Handlebars.compile(model);
+      var xml_1 = template(printData);
+      log.audit( "搜索这些耗时2: " ,new Date().getTime() - seaT2)
 
-        // 获取模板内容,写全路径或者内部ID
-        var model = file.load({
-            id: xmlID
-        }).getContents();
-
-        // 处理数据
-        var template = Handlebars.compile(model);
-        var xml_1 = template(printData);
-
-
-        var nowDate = new Date();
-        nowDate = nowDate.toISOString();
-        var fileObj = file.create({
-            name: "报关资料-" + INV + '-' + nowDate + ".xls",
-            fileType: file.Type.EXCEL,
-            contents: encode.convert({
-                string: xml_1,
-                inputEncoding: encode.Encoding.UTF_8,
-                outputEncoding: encode.Encoding.BASE_64
-            }),
-            encoding: file.Encoding.UTF8,
-            isOnline: true
-        });
-
-        return fileObj || false;
-
+      var seaT3 = new Date().getTime();
+      var nowDate = new Date().toISOString();
+      var fileObj = file.create({
+          name: "报关资料-" + INV + '-' + nowDate + ".xls",
+          fileType: file.Type.EXCEL,
+          contents: encode.convert({
+              string: xml_1,
+              inputEncoding: encode.Encoding.UTF_8,
+              outputEncoding: encode.Encoding.BASE_64
+          }),
+          encoding: file.Encoding.UTF8,
+          isOnline: true
+      });
+      log.audit( "搜索这些耗时3: " ,new Date().getTime() - seaT3)
+      return fileObj || false;
     }
 
     /**
@@ -67,6 +67,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         var itemInfo = [],
             limit = 3999;
         var inv_number, contract, date, shipping_port, inv_to, destination;
+        //搜索报关资料记录
         search.create({
             type: 'customrecord_dps_customs_invoice',
             filters: [{

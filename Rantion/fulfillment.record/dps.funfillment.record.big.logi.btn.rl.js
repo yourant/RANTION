@@ -1,10 +1,10 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-05-11 16:58:14
+ * @LastEditTime   : 2020-06-09 01:09:59
  * @LastEditors    : Li
  * @Description    : 
- * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.rl.js
+ * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
@@ -17,7 +17,8 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
     'SuiteScripts/dps/logistics/openapi/dps_openapi_request.js',
     'SuiteScripts/dps/logistics/yanwen/dps_yanwen_request.js',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
-    'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml"],
+    'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml"
+],
     function (http, https, log, record, search, jetstar, openapi, yanwen, endicia, Moment, file, xml) {
 
         function _post(context) {
@@ -38,6 +39,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 case 'TrackingNumber':
                     log.debug('TrackingNumber', action);
                     return trakingNumber(recordID);
+
+                case 'GetLabel':
+                    log.debug('GetLabel', action);
+                    return GetLabel(recordID);
 
                 default:
                     return false;
@@ -77,23 +82,30 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         record.submitFields({
                             type: 'customrecord_dps_shipping_record',
                             id: rec.id,
-                            values: { custrecord_dps_push_state: "失败", custrecord_dps_shipping_rec_status: 4, custrecord_dps_push_result: result.msg }
+                            values: {
+                                custrecord_dps_push_state: "失败",
+                                custrecord_dps_shipping_rec_status: 4,
+                                custrecord_dps_push_result: result.msg
+                            }
                         });
                     }
                     break
             }
-            if (!result) result = { code: 500, msg: "未知错误" }
+            if (!result) result = {
+                code: 500,
+                msg: "未知错误"
+            }
             return result
         }
 
         function trakingNumber(rec_id) {
             var rec = record.load({
-                type: "customrecord_dps_shipping_small_record",
+                type: "customrecord_dps_shipping_record",
                 id: rec_id
             });
-            var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
+            var channel = rec.getText("custrecord_dps_shipping_r_channel_dealer")
             var result
-            var shipment_id = rec.getValue("custrecord_dps_ship_small_logistics_orde")
+            var shipment_id = rec.getValue("custrecord_dps_ship_platform_order_dh")
             switch (channel) {
                 case "捷士":
                     jetstarApi.init(http, search)
@@ -104,12 +116,20 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     }
                     break
             }
-            if (!result) result = { code: 500, msg: "未知错误" }
+            if (!result) result = {
+                code: 500,
+                msg: "未知错误"
+            }
             return result
         }
 
         function submitIdAndTackingNumber(id, shipment_id, trackingNumber) {
-            var values = { custrecord_dps_push_state: "成功", custrecord_dps_push_result: "", custrecord_dps_shipping_rec_status: 3 }
+            // var values = { custrecord_dps_push_state: "成功", custrecord_dps_push_result: "", custrecord_dps_shipping_rec_status: 3 }
+            var values = {
+                custrecord_dps_push_state: "成功",
+                custrecord_dps_push_result: "",
+                custrecord_dps_shipping_rec_status: 3,
+            }
             if (shipment_id) values.custrecord_dps_shipping_rec_logistics_no = shipment_id
             if (trackingNumber) values.custrecord_dps_ship_small_trackingnumber = trackingNumber
             record.submitFields({
@@ -162,6 +182,39 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 return --limit > 0;
             });
 
+        }
+
+
+        function GetLabel(rec_id) {
+            var rec = record.load({
+                type: "customrecord_dps_shipping_record",
+                id: rec_id
+            });
+            var channel = rec.getText("custrecord_dps_shipping_r_channel_dealer")
+            var result
+            var shipment_id = rec.getValue("custrecord_dps_shipping_rec_logistics_no")
+            switch (channel) {
+                case "捷士":
+                    jetstarApi.init(http, search)
+                    result = jetstarApi.GetLabels(shipment_id, '')
+                    if (result.code == 200) {
+                        var single_pdf = result.data.shipment.single_pdf
+                        updateLabel(rec_id, '', single_pdf)
+                    }
+                    break
+            }
+            if (!result) result = { code: 500, msg: "未知错误" }
+            return result
+        }
+
+        function updateLabel(id, labelId, labelAddr) {
+            record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: id,
+                values: {
+                    custrecord_fulfill_dh_label_addr: labelAddr
+                }
+            });
         }
 
         return {

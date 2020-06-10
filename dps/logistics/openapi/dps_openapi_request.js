@@ -107,6 +107,7 @@ var openApi = {
         log.audit('result', result);
         if (result.code == 200) {
             var reqparam = result.data
+            log.audit('token', this.accessToken);
             var response = this.POST(openApi.url.create, reqparam, this.accessToken)
             log.audit('response', response)
             //请求成功
@@ -479,7 +480,7 @@ var openApi = {
     },
     //创建运单的方法
     GetCreateParam: function (rec) {
-        var reqParam = {}
+        var reqParam = { Location: "GZ" }
         for (var key in OpenApiDict) {
             var dict = OpenApiDict[key]
             //发件人与收件人的取值
@@ -515,9 +516,11 @@ var openApi = {
                         var itemNum = {}
                         for (var i = 0; i < line; i++) {
                             var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_item', line: i })
-                            itemIdArray.push(itemId)
-                            //数量获取
-                            itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_shipment_item_quantity', line: i })
+                            if (itemId) {
+                                itemIdArray.push(itemId)
+                                //数量获取
+                                itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_quantity', line: i })
+                            }
                         }
                         if (itemIdArray.length > 0) {
                             var columns = new Array()
@@ -569,34 +572,34 @@ var openApi = {
                     }
                     //获取标签
                     else if (packageKey == "LabelData") {
-                        var labelsArray = new Array()
-                        //后期这里要加入循环 ----开始
-                        var labelsParam = {}
-                        for (labelsKey in packageInfo) {
-                            var labelsInfo = packageInfo[labelsKey]
-                            var key_ns = labelsInfo.key_ns
-                            //获取对应NS系统中的记录的值
-                            if (key_ns) {
-                                // var value = labelsInfo.example
-                                var value = openApi.getRecValue(rec, labelsInfo)
-                                if (!value && labelsInfo.require) {
-                                    return Result.error("获取参数失败，原因：" + labelsInfo.help)
-                                }
-                                labelsParam[labelsKey] = value ? value : ''
-                            }
-                        }
-                        labelsArray.push(labelsParam)
-                        //后期这里要加入循环 ----结束
-                        packageParam[packageKey] = {
-                            Items: labelsArray
-                        }
+                        // var labelsArray = new Array()
+                        // //后期这里要加入循环 ----开始
+                        // var labelsParam = {}
+                        // for (labelsKey in packageInfo) {
+                        //     var labelsInfo = packageInfo[labelsKey]
+                        //     var key_ns = labelsInfo.key_ns
+                        //     //获取对应NS系统中的记录的值
+                        //     if (key_ns) {
+                        //         // var value = labelsInfo.example
+                        //         var value = openApi.getRecValue(rec, labelsInfo)
+                        //         if (!value && labelsInfo.require) {
+                        //             return Result.error("获取参数失败，原因：" + labelsInfo.help)
+                        //         }
+                        //         labelsParam[labelsKey] = value ? value : ''
+                        //     }
+                        // }
+                        // labelsArray.push(labelsParam)
+                        // //后期这里要加入循环 ----结束
+                        // packageParam[packageKey] = {
+                        //     Items: labelsArray
+                        // }
                     } else {
                         var key_ns = packageInfo.key_ns
                         //获取对应NS系统中的记录的值
                         if (key_ns) {
                             // var value = packageInfo.example
                             var value = ""
-                            if (key == "Weight") {
+                            if (packageKey == "Weight") {
                                 value = this.caculateWeight(rec)
                             } else {
                                 value = this.getRecValue(rec, packageInfo)
@@ -635,7 +638,7 @@ var openApi = {
             var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_item', line: i })
             itemIdArray.push(itemId)
             //数量获取
-            itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_shipment_item_quantity', line: i })
+            itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_quantity', line: i })
         }
         var allWeight = 0
         if (itemIdArray.length > 0) {
@@ -718,11 +721,11 @@ var OpenApiDict = {
     Location: { key_ns: "", help: "处理点 如不填则使用商家默认", example: "GZ", require: false, getType: "value" },
     //直发包裹信息
     Package: {
-        PackageId: { key_ns: "custrecord_dps_ship_platform_order_numbe", help: "包裹Id(第三方系统自定义Id，客户+包裹Id 具有唯一性)", example: "SMT23015236489", require: true, getType: "value" },
+        PackageId: { key_ns: "custrecord_dps_ship_order_number", help: "包裹Id(第三方系统自定义Id，客户+包裹Id 具有唯一性)", example: "SMT23015236489", require: true, getType: "value" },
         ServiceCode: { key_ns: "custrecord_dps_ship_small_channelservice", help: "发货服务代码", example: "CUE", require: true, getType: "value", parseType: "customrecord_logistics_service", parseId: "custrecord_ls_service_code" },
         //收货地址，联系人
         ShipToAddress: {
-            Country: { key_ns: "custrecord_dps_recipient_country", help: "国家", example: "US", require: true, getType: "value" },
+            Country: { key_ns: "custrecord_dps_recipient_country", help: "国家", example: "US", require: true, getType: "value", parseType: "customrecord_country_code", parseId: "custrecord_cc_country_code" },
             Province: { key_ns: "custrecord_dps_s_state", help: "省/州", example: "Florida", require: true, getType: "value" },
             City: { key_ns: "custrecord_dps_recipient_city", help: "城市", example: "Coral Springs", require: true, getType: "value" },
             Street1: { key_ns: "custrecord_dps_street1", help: "街道1", example: "9110 NW 21st street", require: true, getType: "value" },
@@ -733,14 +736,14 @@ var OpenApiDict = {
             Email: { key_ns: "", help: "邮箱", example: "23541566@gmail.com", require: false, getType: "value" },
             TaxId: { key_ns: "", help: "收件人税号 巴西税号：自然人税号称为CPF码，格式为CPF:000.000.000.00；法人税号称为CNPJ码，格式为CNPJ:00.000.000/0000-00", example: "", require: false, getType: "value" },
         },
-        Weight: { key_ns: "", help: "重量(g) [取值是向上取整的]", example: "600", require: true, getType: "value" },
+        Weight: { key_ns: "weight", help: "重量(g) [取值是向上取整的]", example: "600", require: true, getType: "value" },
         Length: { key_ns: "", help: "长(cm)", example: "25", require: false, getType: "value" },
         Width: { key_ns: "", help: "宽(cm)", example: "10", require: false, getType: "value" },
         Height: { key_ns: "", help: "高(cm)", example: "20", require: false, getType: "value" },
         //SKU列表
         Skus: {
             Sku: { key_ns: "", help: "商家SKU", example: "bag-y001", require: false, getType: "value", itemType: "item" },
-            Quantity: { key_ns: "custrecord_dps_shipment_item_quantity", help: "数量", example: "1", require: true, getType: "value" },
+            Quantity: { key_ns: "custrecord_dps_ship_small_item_quantity", help: "数量", example: "1", require: true, getType: "value" },
             Weight: { key_ns: "custitem_dps_heavy2", help: "单件重量(g)[取值是向上取整的]", example: "600", require: true, getType: "value", itemType: "item" },
             DeclareValue: { key_ns: "custrecord_dps_declared_value", help: "单件申报价值(USD)", example: "5", require: true, getType: "value" },
             DeclareNameEn: { key_ns: "custitem_dps_skuenglish", help: "英文申报名称", example: "bag", require: true, getType: "value", itemType: "item" },

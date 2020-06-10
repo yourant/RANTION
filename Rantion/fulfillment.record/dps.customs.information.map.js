@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-05 19:59:20
- * @LastEditTime   : 2020-06-08 15:39:27
+ * @LastEditTime   : 2020-06-08 22:53:11
  * @LastEditors    : Li
  * @Description    : 搜索大货发运记录, 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.map.js
@@ -25,11 +25,16 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                     operator: 'anyof',
                     values: '@NONE@'
                 },
-                // {
-                //     name: 'internalid',
-                //     operator: 'anyof',
-                //     values: 1
-                // },
+                {
+                    name: "custrecord_dps_shipping_rec_order_num",
+                    operator: "noneof",
+                    values: ["@NONE@"]
+                },
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: 1088
+                },
             ],
             columns: [
                 'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_shipping_rec_transa_subje',
@@ -120,8 +125,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 return --limit > 0;
             });
 
-            log.debug('qtyTotal', qtyTotal);
-
+            // log.debug('qtyTotal: ' + qtyTotal);
 
             var OccupyTotal = 0;
             search.create({
@@ -164,7 +168,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
 
             });
 
-            log.debug('OccupyTotal', OccupyTotal);
+            log.debug('qtyTotal: ' + qtyTotal, 'OccupyTotal: ' + OccupyTotal);
 
             if (OccupyTotal == qtyTotal) {
                 search.create({
@@ -226,7 +230,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                     ]
                 }).run().each(function (rec) {
 
-                    log.debug('purchaseorder rec.id', rec.id);
+                    // log.debug('purchaseorder rec.id', rec.id);
 
 
                     var transfer_detail = rec.getValue('custcol_realted_transfer_detail');
@@ -293,10 +297,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
 
             }
 
-            log.debug('itemInfo', itemInfo);
+            log.audit('itemInfo: ' + bId, itemInfo);
 
             if (flag && itemInfo.length > 0) {
                 var informaId = createInformation(bId, toNum);
+
+                log.debug('informaId', informaId);
 
                 if (informaId) {
                     // 创建报关发票
@@ -343,7 +349,6 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
         } catch (error) {
             log.error('处理数据失败了', error);
         }
-
 
     }
 

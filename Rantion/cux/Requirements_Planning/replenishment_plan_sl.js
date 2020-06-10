@@ -15,7 +15,7 @@ function(search, ui, moment, format, runtime, record) {
     }
 
     function showResult(method, params, response) {
-        var form = initUI(); //渲染查询条件UI界面
+        var form = initUI(params); //渲染查询条件UI界面
         //设置查询参数默认值
         form.updateDefaultValues({
             custpage_item: params.custpage_item,
@@ -38,9 +38,14 @@ function(search, ui, moment, format, runtime, record) {
     /**
     * 渲染查询结果至页面
     */
-    function initUI() {
+    function initUI(params) {
         var form = ui.createForm({ title: '补货计划查询' });
         form.addSubmitButton({ label: '查询' });
+        form.addButton({
+            id:'button_requisition',
+            label : '生成请购单',
+            functionName:'createRequisitionOrders'
+        });
         form.addTab({ id: 'custpage_tab', label: '查询结果' });
         form.addFieldGroup({ id: 'custpage_search_group', tab: 'custpage_tab', label: '查询条件' });
         // form.addField({ id: 'custpage_store', type: ui.FieldType.SELECT, source: 'item', label: '店铺', container: 'custpage_search_group' });
@@ -49,8 +54,34 @@ function(search, ui, moment, format, runtime, record) {
         form.addField({ id: 'custpage_item', type: ui.FieldType.SELECT, source: 'item', label: 'SKU', container: 'custpage_search_group' });
         form.addField({ id: 'custpage_date_from', type: ui.FieldType.DATE, label: '日期从', container: 'custpage_search_group' });
         form.addField({ id: 'custpage_date_to', type: ui.FieldType.DATE, label: '日期至', container: 'custpage_search_group' });
+        var week_date = form.addField({ id: 'custpage_week_date', type: ui.FieldType.MULTISELECT, label: '选择生成周'});
+        week_date.addSelectOption({
+            value : '',
+            text : ''
+        });
+        if(params.custpage_date_from && params.custpage_date_to){
+            var date_from = format.parse({ value:params.custpage_date_from, type: format.Type.DATE});
+            var week_from = weekofday(date_from);
+            log.audit('week_from',week_from);
+            var date_to = format.parse({ value:params.custpage_date_to, type: format.Type.DATE});
+            var week_to = weekofday(date_to);
+            log.audit('week_to',week_to);
+            for (var i = week_from; i < week_to + 1; i++) {
+                week_date.addSelectOption({
+                    value : i,
+                    text : 'W' + i
+                });
+            }
+        }else{
+            for (var i = 1; i < 53; i++) {
+                week_date.addSelectOption({
+                    value : i,
+                    text : 'W' + i
+                });
+            }
+        }
         initPageChoose(form);
-        //form.clientScriptModulePath = './delivery_schedule_cs';
+        form.clientScriptModulePath = './replenishment_plan_cs';
         return form;
     }
 
@@ -343,69 +374,129 @@ function(search, ui, moment, format, runtime, record) {
                     quantity_week52: rs.getValue(rs.columns[56]),
                 });
             });
-
-            //倒排补货量
-            if(SKUIds.length > 0){
-                var logistics_cycle = 0, procurement_cycle = 0, other_lead_time = 0;
-                SKUIds.map(function(line){
-                    search.create({
-                        type: 'customrecord_supply_chain_lead_time',
-                        filters: [
-                            { name: 'custrecord_aio_sku', operator: 'is', values: line.item_sku },
-                        ],
-                        columns: [
-                            { name: 'custrecord_aio_logistics_cycle'},//物流周期
-                            { name: 'custrecord_aio_procurement_cycle'},//采购周期
-                            { name: 'custrecord_aio_other_lead_time'}//其他提前周期
-                        ]
-                    }).run().each(function (rec) {
-                        logistics_cycle = rec.getValue('custrecord_aio_logistics_cycle');
-                        procurement_cycle = rec.getValue('custrecord_aio_procurement_cycle');
-                        other_lead_time = rec.getValue('custrecord_aio_other_lead_time');
-                        var need_time = Number(procurement_cycle) + Number(other_lead_time);
-                        item_data.push({
-                            item_sku: line.item_sku,
-                            item_sku_text: line.item_sku_name,
-                            item_name: line.item_name,
-                            account: line.forecast_account,
-                            account_text: line.forecast_account_name,
-                            site: line.forecast_site,
-                            data_type: '1',
-                            data_type_text: '倒排补货量',
-                            need_time: need_time
-                        }); 
-
-                        item_data.push({
-                            item_sku: line.item_sku,
-                            item_sku_text: line.item_sku_name,
-                            item_name: line.item_name,
-                            account: line.forecast_account,
-                            account_text: line.forecast_account_name,
-                            site: line.forecast_site,
-                            data_type: '2',
-                            data_type_text: '修改补货量',
-                            need_time: need_time
-                        }); 
-
-                        item_data.push({
-                            item_sku: line.item_sku,
-                            item_sku_text: line.item_sku_name,
-                            item_name: line.item_name,
-                            account: line.forecast_account,
-                            account_text: line.forecast_account_name,
-                            site: line.forecast_site,
-                            data_type: '4',
-                            data_type_text: '补货量',
-                            need_time: need_time
-                        }); 
-                    });
-                })
-            }
-
-            rsJson.result = item_data;
-            rsJson.totalCount = totalCount;
-            rsJson.pageCount = pageCount;
         }
+
+        //倒排补货量
+        var item_arr = []
+        search.create({
+            type: 'item',
+            filters: [
+                { name: 'internalid', operator: 'is', values: skuids },
+            ],
+            columns: [
+                { name: 'othervendor'}
+            ]
+        }).run().each(function (rec) {
+            item_arr.push({
+                item_id: rec.id,
+                vendor_id: rec.getValue('othervendor')
+            })
+            return true;
+        });
+        log.debug('item_arr',item_arr);
+
+        if(item_arr.length > 0){
+            item_arr.map(function(line){
+                SKUIds.map(function(li){
+                    if(line.vendor_id){
+                        search.create({
+                            type: 'customrecordpurchasing_cycle_record',
+                            filters: [
+                                { name: 'custrecordsku_number', operator: 'is', values: line.item_id },
+                                { name: 'custrecord_vendor', operator: 'is', values: line.vendor_id },
+                            ],
+                            columns: [
+                                'custrecord_purchasing_cycle'
+                            ]
+                        }).run().each(function (rec) {
+                            var need_time = Number(rec.getValue('custrecord_purchasing_cycle'));
+                            if(need_time){
+                                if(li.item_sku == line.item_id){
+                                    item_data.push({
+                                        item_sku: li.item_sku,
+                                        item_sku_text: li.item_sku_name,
+                                        item_name: li.item_name,
+                                        account: li.forecast_account,
+                                        account_text: li.forecast_account_name,
+                                        site: li.forecast_site,
+                                        data_type: '1',
+                                        data_type_text: '倒排补货量',
+                                        need_time: need_time
+                                    }); 
+                
+                                    item_data.push({
+                                        item_sku: li.item_sku,
+                                        item_sku_text: li.item_sku_name,
+                                        item_name: li.item_name,
+                                        account: li.forecast_account,
+                                        account_text: li.forecast_account_name,
+                                        site: li.forecast_site,
+                                        data_type: '2',
+                                        data_type_text: '修改补货量',
+                                        need_time: need_time
+                                    }); 
+                
+                                    item_data.push({
+                                        item_sku: li.item_sku,
+                                        item_sku_text: li.item_sku_name,
+                                        item_name: li.item_name,
+                                        account: li.forecast_account,
+                                        account_text: li.forecast_account_name,
+                                        site: li.forecast_site,
+                                        data_type: '4',
+                                        data_type_text: '补货量',
+                                        need_time: need_time
+                                    }); 
+                                }
+                            }
+                        });
+                    }else{
+                        if(li.item_sku == line.item_id){
+                            item_data.push({
+                                item_sku: li.item_sku,
+                                item_sku_text: li.item_sku_name,
+                                item_name: li.item_name,
+                                account: li.forecast_account,
+                                account_text: li.forecast_account_name,
+                                site: li.forecast_site,
+                                data_type: '1',
+                                data_type_text: '倒排补货量',
+                                need_time: ''
+                            }); 
+        
+                            item_data.push({
+                                item_sku: li.item_sku,
+                                item_sku_text: li.item_sku_name,
+                                item_name: li.item_name,
+                                account: li.forecast_account,
+                                account_text: li.forecast_account_name,
+                                site: li.forecast_site,
+                                data_type: '2',
+                                data_type_text: '修改补货量',
+                                need_time: ''
+                            }); 
+        
+                            item_data.push({
+                                item_sku: li.item_sku,
+                                item_sku_text: li.item_sku_name,
+                                item_name: li.item_name,
+                                account: li.forecast_account,
+                                account_text: li.forecast_account_name,
+                                site: li.forecast_site,
+                                data_type: '4',
+                                data_type_text: '补货量',
+                                need_time: ''
+                            }); 
+                        }
+                    }
+                })
+                
+            })
+        }
+
+        rsJson.result = item_data;
+        rsJson.totalCount = totalCount;
+        rsJson.pageCount = pageCount;
         log.debug('rsJson',rsJson);
         return rsJson;
     }
@@ -432,9 +523,12 @@ function(search, ui, moment, format, runtime, record) {
         var sublist = form.addSublist({ id: 'custpage_sublist', type: ui.SublistType.LIST, label: '补货计划', tab: 'custpage_tab' });
         sublist.helpText = "补货计划结果";
         sublist.addField({ id: 'custpage_store_name', label: '店铺名', type: ui.FieldType.TEXT });
+        sublist.addField({ id: 'custpage_store_name_id', label: '店铺id', type: ui.FieldType.TEXT }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         sublist.addField({ id: 'custpage_item_sku', label: 'sku', type: ui.FieldType.TEXT });
+        sublist.addField({ id: 'custpage_item_sku_id', label: 'sku_id', type: ui.FieldType.TEXT }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         sublist.addField({ id: 'custpage_item_name', label: '产品名称', type: ui.FieldType.TEXT });
         sublist.addField({ id: 'custpage_data_type', label: '数据类型', type: ui.FieldType.TEXT });
+        sublist.addField({ id: 'custpage_data_type_id', label: '数据类型id', type: ui.FieldType.TEXT }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         for (var index = 1; index <= 52; index++) {
             var sub_filed = 'custpage_quantity_week' + index;
             var Label = 'W' + index;
@@ -446,19 +540,18 @@ function(search, ui, moment, format, runtime, record) {
         var zl = 0;
         for (var z = 0; z < SKUIds.length; z++) {
             if (result.length > 0) {
-                var arr_list = {}, arr_data = [],need1_zl = 0;
+                var arr_list = {}, arr_data = [],need1_zl;
                 for(var a = 0; a < result.length; a++){
                     if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
                         sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
+                        sublist.setSublistValue({ id: 'custpage_store_name_id', value: result[a]['account'], line: zl });
                         sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });    
+                        sublist.setSublistValue({ id: 'custpage_item_sku_id', value: result[a]['item_sku'], line: zl });
                         sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
                         sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
+                        sublist.setSublistValue({ id: 'custpage_data_type_id', value: result[a]['data_type'], line: zl });
                         if(result[a]['data_type'] == 3){
                             for (var index = 1; index <= 52; index++) {
-                                // sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
-                                // sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });    
-                                // sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
-                                // sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl });  
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 if(result[a]['quantity_week'+index]){
                                     sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  //
@@ -479,11 +572,7 @@ function(search, ui, moment, format, runtime, record) {
                         }
 
                         if(result[a]['data_type'] == 16){
-                            for (var index = week_start; index <= week_end; index++) {
-                                // sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
-                                // sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl });    
-                                // sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
-                                // sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl });  
+                            for (var index = week_start; index <= week_end; index++) {  
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 if(result[a]['quantity_week'+index]){
                                     sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  
@@ -492,7 +581,7 @@ function(search, ui, moment, format, runtime, record) {
                             need1_zl = zl;
                             zl++;
                         }
-                        log.debug('arr_list',arr_list);
+                        
                         if(result[a]['data_type'] == 1 || result[a]['data_type'] == 2 || result[a]['data_type'] == 4){
                             var need_today = new Date(+new Date()+8*3600*1000 - result[a]['need_time']*24*3600*1000);
                             log.debug('need_today',need_today);
@@ -502,25 +591,9 @@ function(search, ui, moment, format, runtime, record) {
                             for (var index = week_start; index <= week_end; index++) {
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 var sub_need =  'custpage_quantity_week' + (Number(index) + Number(cc));
-                                var x1 = sublist.getSublistValue({ id : sub_need, line: need1_zl});
-                                sublist.setSublistValue({ id: sub_filed, value: x1, line: zl});
+                                var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_need, line: need1_zl}) : 0;
+                                sublist.setSublistValue({ id: sub_filed, value: x1.toString(), line: zl});
                             }
-                            // for (var index = 1; index <= 52; index++) {
-                            //     //var sub_filed = 'custpage_quantity_week' + index;
-                            //     var sub_filed = 'custpage_quantity_week' + index;
-                            //     if(arr_list){
-                            //         if(result[a]['item_sku'] == arr_list.item_sku && result[a]['account'] == arr_list.account_id){
-                            //             if(arr_list.arr_data.length > 0){
-                            //                 for(var i = need_week_today - 1; i < arr_list.arr_data.length; i++){
-                            //                     if(arr_list.arr_data[i]){
-                            //                         sublist.setSublistValue({ id: sub_filed, value: arr_list.arr_data[i], line: zl}); 
-                            //                     }
-                            //                 }
-                            //             }
-                            //         }
-                                    
-                            //     }
-                            // }
                             zl++;
                         }
                     }

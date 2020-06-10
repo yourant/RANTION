@@ -9,7 +9,7 @@ define(['N/search', 'N/log', 'N/record', '../../Helper/Moment.min', 'N/runtime']
             var old_arr = [], new_arr = [], need_arr = [];
             var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
             var old_day = moment(new Date(+new Date()+8*3600*1000 - 24*3600*1000).getTime()).format(dateFormat);
-            log.debug('today',today);
+            log.debug('old_day',old_day);
             search.create({
                 type: 'customrecord_demand_forecast_child',
                 filters: [
@@ -21,6 +21,7 @@ define(['N/search', 'N/log', 'N/record', '../../Helper/Moment.min', 'N/runtime']
             });
 
             var today = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
+            log.debug('today',today);
             search.create({
                 type: 'customrecord_demand_forecast_child',
                 filters: [

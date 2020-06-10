@@ -257,6 +257,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
                     var body = JSON.parse(response.body)
                     if (body.code == 500) {
                         alert('重新获取物流跟踪号失败：' + body.msg)
+                        window.location.reload(true);
                     } else {
                         alert('重新获取物流跟踪号成功');
                         window.location.reload(true);
@@ -338,6 +339,60 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
         }
 
 
+        /**
+         * 重新获取物流面单
+         * @param {*} rec_id 
+         */
+        function getLabel(rec_id) {
+
+            var url1 = url.resolveScript({
+                scriptId: 'customscript_dps_wms_logistics_samll_ite',
+                deploymentId: 'customdeploy_dps_wms_logistics_samll_ite',
+                returnExternalUrl: false
+            });
+
+            var header = {
+                "Content-Type": "application/json;charset=utf-8",
+                "Accept": "application/json"
+            };
+
+            var body1 = {
+                action: 'GetLabel',
+                recordID: rec_id
+            };
+            var response;
+
+            var options = {
+                title: "获取物流面单",
+                message: "Press OK or Cancel"
+            };
+
+            function success(result) {
+                if (result) {
+                    response = https.post({
+                        url: url1,
+                        body: body1,
+                        headers: header
+                    });
+                    log.audit('respone', response.body);
+                    var body = JSON.parse(response.body)
+                    if (body.code == 500) {
+                        alert('重新获取物流面单失败：' + body.msg)
+                        window.location.reload(true);
+                    } else {
+                        alert('重新获取物流面单成功');
+                        window.location.reload(true);
+                    }
+                }
+            }
+
+            function failure(reason) {
+                log.debug('reason', reason)
+            }
+            dialog.confirm(options).then(success).catch(failure);
+        }
+
+
 
 
         return {
@@ -354,7 +409,8 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
             reacquireLogistics: reacquireLogistics,
             WMSShipping: WMSShipping,
             getTrackingNumber: getTrackingNumber,
-            showImg: showImg
+            showImg: showImg,
+            getLabel: getLabel
         };
 
     });

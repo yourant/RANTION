@@ -102,13 +102,13 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
         if (no_list.length == 0) {
             var options = {
                 title: "生成交货单",
-                message: '未选择单据！！！'
+                message: '未选择单据！'
             };
             dialog.confirm(options).then(success).catch(failure);
         } else {
             var options = {
                 title: "生成交货单",
-                message: '是否确认生成交货单？？？'
+                message: '是否确认生成交货单？'
             };
             dialog.confirm(options).then(success1).catch(failure);
         }
@@ -170,13 +170,13 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
         if (no_list.length == 0) {
             var options = {
                 title: "生成交货单",
-                message: '未选择单据！！！'
+                message: '未选择单据！'
             };
             dialog.confirm(options).then(success).catch(failure);
         } else {
             var options = {
                 title: "生成交货单",
-                message: '是否确认生成交货单？？？'
+                message: '是否确认生成交货单？'
             };
             dialog.confirm(options).then(success1).catch(failure);
         }
@@ -206,7 +206,7 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
 
         var options = {
             title: "供应商确认",
-            message: '是否确认？？？'
+            message: '是否确认？'
         };
         dialog.confirm(options).then(success).catch(failure);
     }
@@ -254,7 +254,7 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
 
         var options = {
             title: "交货单推送WMS",
-            message: '是否推送WMS？？？'
+            message: '是否推送WMS？'
         };
         dialog.confirm(options).then(success).catch(failure);
     }

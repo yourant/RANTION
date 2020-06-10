@@ -37,6 +37,9 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 case 'TrackingNumber':
                     log.debug('TrackingNumber', action);
                     return trakingNumber(recordID);
+                case 'GetLabel':
+                    log.debug('GetLabel', action);
+                    return GetLabel(recordID);
 
                 default:
                     return false;
@@ -88,13 +91,32 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     openApi.init(http, search, record)
                     var result = openApi.CreateOrders(rec, "small")
                     if (result.code == 200) {
-                        var orderId = rec.getValue("custrecord_dps_ship_platform_order_numbe")
-                        var infoResult = openApi.GetInfo(orderId)
-                        log.audit('infoResult', infoResult);
-                        if (infoResult.code == 200) {
-                            var trackingNumber = infoResult.data.TrackingNumber
-                            var shipment_id = infoResult.data.Ck1PackageId
-                            submitIdAndTackingNumber(rec.id, shipment_id, trackingNumber)
+                        var orderId = rec.getValue("custrecord_dps_ship_order_number")
+                        submitIdAndTackingNumber(rec.id, orderId)
+                        result = openApi.GetInfo(orderId)
+                        log.audit('infoResult', result);
+                        if (result.code == 200) {
+                            var data = result.data;
+                            var Status = data.Status
+                            if (Status == 'Creating') {
+                                result = { code: 500, msg: "订单正在生成，请稍后再试。" }
+                            } else if (Status == 'Created') {
+                                var trackingNumber = data.TrackingNumber
+                                updateTrackingNumber(rec_id, trackingNumber)
+                            } else if (Status == 'CreateFailed') {
+                                var CreateFailedReason = data.CreateFailedReason.ExtendMessage
+                                record.submitFields({
+                                    type: 'customrecord_dps_shipping_small_record',
+                                    id: rec.id,
+                                    values: {
+                                        custrecord_dps_ship_small_status: 4,
+                                        custrecord_dps_push_state_xh: "失败",
+                                        custrecord_dps_push_result_xh: CreateFailedReason
+                                    }
+                                });
+                                result = { code: 500, msg: "订单生成失败：" + CreateFailedReason }
+                            }
+
                         }
                     } else {
                         record.submitFields({
@@ -141,8 +163,22 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     if (result.code == 200) {
                         var shipment_id = result.data.PIC
                         var TrackingNumber = result.data.TrackingNumber
-                        log.audit('shipment_id', shipment_id);
-                        submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber)
+                        var Base64LabelImage = result.data.Base64LabelImage
+                        var fileObj = file.create({
+                            name: Moment().format("YYYYMMDDHHmmssSSS") + ".png",
+                            fileType: file.Type.PNGIMAGE,
+                            contents: Base64LabelImage,
+                            description: 'Endicia面单',
+                            encoding: file.Encoding.UTF8,
+                            isOnline: true
+                        });
+                        // 保存文件 folder表示文件柜里面的文件夹的id
+                        fileObj.folder = 2078;
+                        var fileId = fileObj.save();
+                        fileObj = file.load({
+                            id: fileId
+                        });
+                        submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, "https://6188472-sb1.app.netsuite.com" + fileObj.url)
                     } else {
                         record.submitFields({
                             type: 'customrecord_dps_shipping_small_record',
@@ -184,12 +220,31 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     break
                 case "出口易":
                     openApi.init(http, search, record)
-                    var orderId = rec.getValue("custrecord_dps_ship_platform_order_numbe")
+                    var orderId = rec.getValue("custrecord_dps_ship_order_number")
                     result = openApi.GetInfo(orderId)
                     log.audit('infoResult', result);
                     if (result.code == 200) {
-                        var trackingNumber = result.data.TrackingNumber
-                        updateTrackingNumber(rec_id, trackingNumber)
+                        var data = result.data;
+                        var Status = data.Status
+                        if (Status == 'Creating') {
+                            result = { code: 500, msg: "订单正在生成，请稍后再试。" }
+                        } else if (Status == 'Created') {
+                            var trackingNumber = data.TrackingNumber
+                            updateTrackingNumber(rec_id, trackingNumber)
+                        } else if (Status == 'CreateFailed') {
+                            var CreateFailedReason = data.CreateFailedReason.ExtendMessage
+                            record.submitFields({
+                                type: 'customrecord_dps_shipping_small_record',
+                                id: rec.id,
+                                values: {
+                                    custrecord_dps_ship_small_status: 4,
+                                    custrecord_dps_push_state_xh: "失败",
+                                    custrecord_dps_push_result_xh: CreateFailedReason
+                                }
+                            });
+                            result = { code: 500, msg: "订单生成失败：" + CreateFailedReason }
+                        }
+
                     }
                     break
                 // case "燕文物流":
@@ -221,7 +276,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
             return result
         }
 
-        function submitIdAndTackingNumber(id, shipment_id, trackingNumber) {
+        function submitIdAndTackingNumber(id, shipment_id, trackingNumber, image, labelId, labelAddr) {
             var values = {
                 custrecord_dps_ship_small_status: 3,
                 custrecord_dps_push_state_xh: "成功",
@@ -229,6 +284,9 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
             }
             if (shipment_id) values.custrecord_dps_ship_small_logistics_orde = shipment_id
             if (trackingNumber) values.custrecord_dps_ship_small_trackingnumber = trackingNumber
+            if (image) values.custrecord_dps_fulfill_record_xh_img = image
+            if (labelId) values.custrecord_record_fulfill_xh_label_id = labelId
+            if (labelAddr) values.custrecord_record_fulfill_xh_label_addr = labelAddr
             record.submitFields({
                 type: 'customrecord_dps_shipping_small_record',
                 id: id,
@@ -245,6 +303,70 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 }
             });
         }
+
+        function GetLabel(rec_id) {
+            var rec = record.load({
+                type: "customrecord_dps_shipping_small_record",
+                id: rec_id
+            });
+            var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
+            var result
+            var shipment_id = rec.getValue("custrecord_dps_ship_small_logistics_orde")
+            switch (channel) {
+                case "捷士":
+                    jetstarApi.init(http, search)
+                    result = jetstarApi.GetLabels(shipment_id, '')
+                    if (result.code == 200) {
+                        var single_pdf = result.data.shipment.single_pdf
+                        updateLabel(rec_id, '', single_pdf)
+                    }
+                    break
+                case "出口易":
+                    openApi.init(http, search, record)
+                    var orderId = rec.getValue("custrecord_dps_ship_order_number")
+                    var reqParam = openApi.GetLabels(orderId, 'ClassicLabel', "Address", "", 'PackageId')
+                    if (reqParam.code == "200") {
+                        //切到页面上显示标签
+                        var fileObj = file.create({
+                            name: Moment().format("YYYYMMDDHHmmssSSS") + ".pdf",
+                            fileType: file.Type.PDF,
+                            contents: reqParam.data.Label,
+                            description: '出口易面单',
+                            encoding: file.Encoding.UTF8,
+                            isOnline: true
+                        });
+                        // context.response.writeFile({
+                        //     file: fileObj,
+                        //     isInline: true
+                        // })
+                        // 保存文件 folder表示文件柜里面的文件夹的id
+                        fileObj.folder = 2077;
+                        var fileId = fileObj.save();
+                        result = { code: 200, data: {} }
+                        fileObj = file.load({
+                            id: fileId
+                        });
+                        updateLabel(rec_id, fileId, "https://6188472-sb1.app.netsuite.com" + fileObj.url)
+                    } else {
+                        result = { code: 500, msg: reqParam.msg }
+                    }
+                    break
+            }
+            if (!result) result = { code: 500, msg: "未知错误" }
+            return result
+        }
+
+        function updateLabel(id, labelId, labelAddr) {
+            record.submitFields({
+                type: 'customrecord_dps_shipping_small_record',
+                id: id,
+                values: {
+                    custrecord_record_fulfill_xh_label_id: labelId,
+                    custrecord_record_fulfill_xh_label_addr: labelAddr
+                }
+            });
+        }
+
 
 
         /**

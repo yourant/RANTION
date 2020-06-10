@@ -27,19 +27,19 @@ function(record, search) {
 		try{
 			var product = [];
 			search.create({
-				type: 'customrecord_aio_products_listing',
+				type: 'customrecord_aio_amazon_mfn_listing',
 				filters: [
-					{ name: 'custrecord_aio_p_acc_id',  operator:'is', values: store_name },
-					{ name: 'custrecord_aio_p_status',  operator:'is', values: status },
+					{ name: 'custrecord_aio_mfn_l_listing_acc_id',  operator:'anyof', values: store_name },
+					{ name: 'custrecord_aio_mfn_l_status',  operator:'is', values: status },
 					],
 					columns: [
-						{name:'custrecord_aio_p_acc_id'},
-						{name:'custrecord_aio_p_item_name'},
-						{name:'custrecord_aio_p_seller_sku'},
-						{name:'custrecord_aio_p_asin'},
-						{name:'custrecord_aio_p_product_id'},
-						{name:'custrecord_aio_p_status'},
-						{name:'custrecord_aio_p_price'},
+						{name:'custrecord_aio_mfn_l_listing_acc_id'},
+						{name:'custrecord_aio_mfn_l_item_name'},
+						{name:'custrecord_aio_mfn_l_seller_sku'},
+						{name:'custrecord_aio_mfn_l_asin1'},
+						{name:'custrecord_aio_mfn_l_product_id'},
+						{name:'custrecord_aio_mfn_l_status'},
+						{name:'custrecord_aio_mfn_l_price'},
 						]
 			}).run().each(function (result) {
 				product.push({

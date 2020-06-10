@@ -20,8 +20,10 @@ define(['N/log',
      * @since 2015.2
      */
     function pageInit(scriptContext) {
-        console.log(scriptContext.currentRecord.Type);
-        B();
+
+        huey = record;
+
+
     }
 
     function B() {
@@ -108,12 +110,14 @@ define(['N/log',
             var item_array = item.split(',');
             var account = '';
             console.log(item_array[2]);
+
+
             search.create({
                 type: 'account',
                 filters: [{
                     name: 'acctnumber',
-                    operator: 'EQUALTO',
-                    values: Number(item_array[2])
+                    operator: 'is',
+                    values: 1012.01
                 }],
             }).run().each(function(res) {
                 account = res.id;

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-03 20:27:59
- * @LastEditTime   : 2020-06-04 13:40:23
+ * @LastEditTime   : 2020-06-04 13:40:13
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.rl.js
@@ -41,6 +41,11 @@ define(['../../douples_amazon/Helper/core.min', 'N/record', 'N/search', 'N/log']
             log.error('error', error);
             reJson.msg = 'error: ' + JSON.stringify(error);
         }
+
+
+
+
+
 
         return reJson || false;
 

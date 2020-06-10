@@ -365,9 +365,11 @@ var yanwenApi = {
                 var line = rec.getLineCount({ sublistId: subKey })
                 for (var i = 0; i < line; i++) {
                     var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_item', line: i })
-                    itemIdArray.push(itemId)
-                    //数量获取
-                    itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_shipment_item_quantity', line: i })
+                    if (itemId) {
+                        itemIdArray.push(itemId)
+                        //数量获取
+                        itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_quantity', line: i })
+                    }
                 }
                 if (itemIdArray.length > 0) {
                     var allWeight = yanwenApi.caculateWeight(rec)
@@ -499,7 +501,7 @@ var yanwenApi = {
         var line = rec.getLineCount({ sublistId: subKey })
         var allCount = 0
         for (var i = 0; i < line; i++) {
-            var num = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_shipment_item_quantity', line: i })
+            var num = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_quantity', line: i })
             if (num) allCount += Number(num)
         }
         return allCount
@@ -511,9 +513,11 @@ var yanwenApi = {
         var itemNum = {}
         for (var i = 0; i < line; i++) {
             var itemId = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_item', line: i })
-            itemIdArray.push(itemId)
-            //数量获取
-            itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_shipment_item_quantity', line: i })
+            if (itemId) {
+                itemIdArray.push(itemId)
+                //数量获取
+                itemNum[itemId] = rec.getSublistValue({ sublistId: subKey, fieldId: 'custrecord_dps_ship_small_item_quantity', line: i })
+            }
         }
         var allWeight = 0
         if (itemIdArray.length > 0) {
@@ -640,7 +644,7 @@ var YanWenDict = {
     Epcode: { key_ns: "", help: "运单号", require: false, getType: "value" },
     Userid: { key_ns: "", help: "客户号", require: true, getType: "value" },
     Channel: { key_ns: "custrecord_dps_ship_small_channelservice", help: "发货方式", require: true, getType: "value", parseType: "customrecord_logistics_service", parseId: "custrecord_ls_service_code" },
-    UserOrderNumber: { key_ns: "custrecord_dps_ship_platform_order_numbe", help: "客户订单号", require: false, getType: "value" },
+    UserOrderNumber: { key_ns: "custrecord_dps_ship_order_number", help: "客户订单号", require: false, getType: "value" },
     SendDate: { key_ns: "custrecord_dps_ship_small_shipping_date", help: "发货日期", require: true, getType: "value", changeType: "date" },
     Quantity: { key_ns: "Quantity", help: "货品总数量", require: true, getType: "value" },
     PackageNo: { key_ns: "", help: "包裹号", require: false, getType: "value" },

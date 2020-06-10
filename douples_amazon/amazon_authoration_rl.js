@@ -133,10 +133,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 fieldId: 'custrecord_amazon_last_update_date',
                 text: last_update_date
             });
-            r.setValue({
-                fieldId: 'custrecord_checked_is',
-                value: false
-            });
             var ss = r.save();
             log.debug("11cache save success：", ss)
         } catch (e) {

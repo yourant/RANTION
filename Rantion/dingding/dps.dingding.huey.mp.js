@@ -15,12 +15,13 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
             var endDate = new Date((new Date).toDateString());
             var beginDate = new Date(endDate.getTime() - 57600000);
             url = url + '?' +
-                //'processCodeList=PROC-EF6YCS6WO2-5NM7Y2MXPFWDA00LGYVX1-M4IP76KI-CD1,PROC-AKGK7QZV-IVMTO4NVOXRZB4PMOV5X1-TMIAF0FJ-6,PROC-JFYJVERV-E272C7P4XCJNF0L298HP2-Y558Y5RJ-R' +
-                'processCodeList=PROC-7EB449A0-A953-4DF1-9203-D5429FEE2AFF,PROC-1092FF21-2C38-4CC3-97F4-3A5F91D0DE8E,PROC-ACB6A139-97C2-4A85-ACDB-14DF102BBED8' +
+                'processCodeList=PROC-EF6YCS6WO2-5NM7Y2MXPFWDA00LGYVX1-M4IP76KI-CD1,PROC-AKGK7QZV-IVMTO4NVOXRZB4PMOV5X1-TMIAF0FJ-6,PROC-JFYJVERV-E272C7P4XCJNF0L298HP2-Y558Y5RJ-R' +
+                //'processCodeList=PROC-7EB449A0-A953-4DF1-9203-D5429FEE2AFF,PROC-1092FF21-2C38-4CC3-97F4-3A5F91D0DE8E,PROC-ACB6A139-97C2-4A85-ACDB-14DF102BBED8' +//测试用
                 '&statue=COMPLETED&result=agree&eventType=bpms_instance_change' +
-                '&beginCreateTime=2020-5-27' //+ beginDate.format("yyyy-MM-dd")
-                //+ '&endCreateTime=' + endDate.format("yyyy-MM-dd");
-
+                '&beginCreateTime=2020-5-28'
+                //+ beginDate.format("yyyy-MM-dd")
+                +
+                '&endCreateTime=' + endDate.format("yyyy-MM-dd");
             message = sendRequest(url, token);
             message = JSON.parse(JSON.parse(message.data))
             if (message.code == 0) {
@@ -37,7 +38,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                         //log.error('add-record-fail:', detail.businessId);
                         log.error('add-record-fail-msg-id:', item.processInstanceId);
                     } else {
-                        log.error('add-record-fail-msg-id:', item.processInstanceId);
+                        log.error('add-record-success-msg-id:', item.processInstanceId);
                     }
                 });
             }
@@ -62,6 +63,20 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
     function getProcessinstance(process_instance) {
 
         var go = true;
+
+        //申请日期
+        var create_time = new Date(process_instance.createTime);
+        if (isNaN(create_time.getTime())) {
+            log.error('申请日期');
+            log.error('value_error_create_time', create_time);
+            return false;
+        }
+
+        if (create_time < new Date('2020-5-28')) {
+            log.error('模板修改前记录')
+            return false;
+        }
+
         //#region  数据校验--------------------------------------
         //获取费用报销编码
         var business_id = process_instance.businessId;
@@ -86,7 +101,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
             log.error('had_succee:', business_id)
             return true;
         }
-        //核算主体
+        //交易主体
         var accounting_entity;
         process_instance.formComponentValues.forEach(function(e) {
             if (e.name == '交易主体') {
@@ -94,16 +109,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
             }
         })
         if (accounting_entity == '' || typeof(accounting_entity) == 'undefined') {
-            log.error('核算主体')
-            log.error('value_error_accounting_entity', accounting_entity);
-            return false;
-        }
-
-        //申请日期
-        var create_time = new Date(process_instance.createTime);
-        if (isNaN(create_time.getTime())) {
-            log.error('申请日期');
-            log.error('value_error_create_time', create_time);
+            log.error('交易主体为空')
             return false;
         }
 
@@ -298,12 +304,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                         }],
                                         columns: [
                                             { name: 'custrecord_dps_fee_debitaccount' },
-                                            { name: 'custrecord_dps_fee_type_1' },
+                                            { name: 'custrecord_expense_report_class' },
                                         ],
                                     }).run().each(function(res) {
                                         custrecord_dps_rbsm_detailtype2 = res.id;
                                         custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
-                                        custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_dps_fee_type_1');
+                                        custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
                                     });
                                     if (custrecord_dps_rbsm_detailtype2 == '') {
                                         var new_rbsm_detailtype2 = record.create({
@@ -338,8 +344,13 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                             values: custrecord_dps_o_currency_name
                                         }],
                                     }).run().each(function(res) {
-                                        custrecord_dps_o_currency = res.id;
+                                        custrecord_dps_o_currency = Number(res.id);
                                     });
+                                    if (isNaN(custrecord_dps_o_currency)) {
+                                        go = false;
+                                        log.error('error-custrecord_dps_o_currency', custrecord_dps_o_currency_name)
+                                    }
+
                                     break;
                                 case "人民币金额":
                                     custrecord_dps_rbsm_amount = Number(_e.value);
@@ -515,7 +526,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                 }
                                 if (custrecord_dps_rbsm_department_name == '' || !custrecord_dps_rbsm_department_name) {
                                     go = false;
-                                    log.error('error', 'department_name' + custrecord_dps_rbsm_department_name)
+                                    log.error('error', 'department_name' + custrecord_dps_rbsm_department_name);
                                 }
                                 break;
                             case '费用明细':
@@ -529,12 +540,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                     }],
                                     columns: [
                                         { name: 'custrecord_dps_fee_debitaccount' },
-                                        { name: 'custrecord_dps_fee_type_1' },
+                                        { name: 'custrecord_expense_report_class' },
                                     ],
                                 }).run().each(function(res) {
                                     custrecord_dps_rbsm_detailtype2 = res.id;
                                     custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
-                                    custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_dps_fee_type_1');
+                                    custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
                                 });
                                 if (custrecord_dps_rbsm_detailtype2 == '') {
                                     var new_rbsm_detailtype2 = record.create({
@@ -602,12 +613,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                     }],
                     columns: [
                         { name: 'custrecord_dps_fee_debitaccount' },
-                        { name: 'custrecord_dps_fee_type_1' },
+                        { name: 'custrecord_expense_report_class' },
                     ],
                 }).run().each(function(res) {
                     custrecord_dps_rbsm_detailtype2 = res.id;
                     custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
-                    custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_dps_fee_type_1');
+                    custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
                 });
                 if (custrecord_dps_rbsm_detailtype2 == '') {
                     var new_rbsm_detailtype2 = record.create({
@@ -655,12 +666,15 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 });
 
                 //--设置日记账名称
+
+                /*
                 new_ns_record.setSublistValue({
                     sublistId: ns_sub_id,
                     fieldId: 'entity',
                     value: Number(applicant_name_id),
                     line: i
                 });
+                */
 
                 new_cus_record.setSublistValue({
                     sublistId: sub_id,
@@ -737,7 +751,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         });
         if (accounting_entity_id == '') {
             go = false;
-            log.error('核算主体id不存在', accounting_entity);
+            log.error('交易主体id不存在', accounting_entity);
             return false;
         }
         new_cus_record.setValue({
@@ -893,10 +907,13 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
             var ns_record_id = new_ns_record.save();
         } catch (error) {
             log.error('new_ns_record', error);
-            var j_new_ns_record = new_ns_record.toJSON();
-            var j_new_cus_record = new_cus_record.toJSON();
-            log.error('data-NS', j_new_ns_record.sublists.line);
-            log.error('data', j_new_cus_record.sublists);
+            /*
+                        var j_new_ns_record = new_ns_record.toJSON();
+                        var j_new_cus_record = new_cus_record.toJSON();
+                        log.error('data-NS', j_new_ns_record.sublists.line);
+                        log.error('data', j_new_cus_record.sublists);
+                        */
+            //log.error('entity-id', applicant_name_id);
             return false;
         }
 

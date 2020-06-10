@@ -154,10 +154,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                 text: last_update_date
             });
             r.setValue({
-                fieldId: 'custrecord_checked_is',
-                value: false
-            });
-            r.setValue({
                 fieldId: 'custrecord_dps_cache_fulfillment_channel',
                 value:  order.fulfillment_channel
             });

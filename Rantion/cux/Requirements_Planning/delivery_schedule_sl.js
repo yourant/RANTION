@@ -449,56 +449,111 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             return true
         });
         log.debug('location',location);
-        //自营仓在途量 数据来源采购单
+        //自营仓在途量 数据来源采购单]
+        log.debug('skuids',skuids);
         var operated_warehouse = [];
         search.create({
             type: 'purchaseorder',
             filters: [
-                { join: 'item', name: 'internalid', operator: 'is', values: skuids },
                 { name: 'location', operator: 'anyof', values: location },
-                { name: 'type', operator: 'anyof', values: ['PurchOrd'] },
+                { name: 'item', operator: 'anyof', values: skuids },
                 { name: 'mainline', operator: 'is', values: ['F'] },
                 { name: 'taxline', operator: 'is', values: ['F'] }
             ],
             columns: [
-                { join: 'item', name: 'internalid', summary: 'GROUP' },
-                { name: 'expectedreceiptdate', summary: 'GROUP' },
-                { formula: '{quantity}-{quantityshiprecv}', name: 'formulanumeric', summary: 'SUM' }
+                // { join: 'item', name: 'internalid', summary: 'GROUP' },
+                // { formula: '{quantity}-{quantityshiprecv}', name: 'formulanumeric', summary: 'SUM' },
+                //'expectedreceiptdate'
+                'item',
+                'expectedreceiptdate',
+                'quantity',
+                'quantityshiprecv',
+                'location'
             ]
         }).run().each(function (result) {
-            log.debug('item',result.getValue({ join: 'item', name: 'internalid', summary: 'GROUP' }));
-            log.debug('expectedreceiptdate',result.getValue({ name: 'expectedreceiptdate', summary: 'GROUP' }));
-            log.debug('SUM',result.getValue({ formula: '{quantity}-{quantityshiprecv}', name: 'formulanumeric', summary: 'SUM' }));
-            if(result.getValue({ name: 'expectedreceiptdate', summary: 'GROUP' })){
-                var item_date = format.parse({ value:result.getValue({ name: 'expectedreceiptdate', summary: 'GROUP' }), type: format.Type.DATE});
-                var item_time = weekofday(item_date);
-                operated_warehouse.push({
-                    item_id : result.getValue({ join: 'item', name: 'internalid', summary: 'GROUP' }),
-                    item_date : item_time,
-                    item_quantity : result.getValue({ formula: '{quantity}-{quantityshiprecv}', name: 'formulanumeric', summary: 'SUM' })
+            var need_quantity = result.getValue('quantity') - result.getValue('quantityshiprecv');
+            if(need_quantity != 0){
+                SKUIds.map(function(line){
+                    if(line.item_sku == result.getValue('item')){
+                        if(result.getValue('expectedreceiptdate')){
+                            var item_date = format.parse({ value:result.getValue('expectedreceiptdate'), type: format.Type.DATE});
+                            var item_time = weekofday(item_date);
+                            operated_warehouse.push({
+                                item_id : result.getValue('item'),
+                                item_date : item_time,
+                                item_quantity : need_quantity
+                            })
+                        }
+                    }
                 })
             }
             return true;
         });
         log.debug('operated_warehouse',operated_warehouse);
+        
+        var need_transit_num = [];
+        var b = [];//记录数组a中的id 相同的下标
         if(operated_warehouse.length > 0){
-            SKUIds.map(function(line){
-                operated_warehouse.map(function(li){
-                    if(line.item_sku == li.item_id){
+            for(var i = 0; i < operated_warehouse.length;i++){
+                for(var j = operated_warehouse.length-1;j>i;j--){
+                    if(operated_warehouse[i].item_id == operated_warehouse[j].item_id && operated_warehouse[i].item_date == operated_warehouse[j].item_date){
+                        operated_warehouse[i].item_quantity = (operated_warehouse[i].item_quantity*1 + operated_warehouse[j].item_quantity*1).toString()
+                        b.push(j)
+                    }
+                }
+            }
+            for(var k = 0; k<b.length;k++){
+                operated_warehouse.splice(b[k],1)
+            }
+        }
+
+        log.debug('operated_warehouse1',operated_warehouse);
+        var need_transit_num = [];
+        if(operated_warehouse.length > 0){
+            var po_no = [];
+            for (var i = 0; i < operated_warehouse.length; i++) {
+                if (po_no.indexOf(operated_warehouse[i]['item_id']) === -1) {
+                    need_transit_num.push({
+                        item_id: operated_warehouse[i]['item_id'],
+                        lineItems: [{
+                            item_time: operated_warehouse[i].item_date,
+                            item_quantity: operated_warehouse[i].item_quantity
+                        }]
+                    });
+                } else {
+                    for (var j = 0; j < need_transit_num.length; j++) {
+                        if (need_transit_num[j].item_id == operated_warehouse[i].item_id) {
+                            need_transit_num[j].lineItems.push({
+                                item_time: operated_warehouse[i].item_date,
+                                item_quantity: operated_warehouse[i].item_quantity
+                            });
+                            break;
+                        }
+                    }
+                }
+                po_no.push(operated_warehouse[i]['item_id']);
+            }
+        }
+        log.debug('need_transit_num',need_transit_num);
+
+        if(need_transit_num.length > 0){
+            for(var i = 0; i < SKUIds.length; i++){
+                for(var a = 0; a < need_transit_num.length; a++){
+                    if(SKUIds[i]['item_sku'] == need_transit_num[a]['item_id']){
                         item_data.push({
-                            item_sku: line.item_sku,
-                            item_sku_text: line.item_sku_name,
-                            item_name: line.item_name,
-                            account: line.forecast_account,
-                            account_text: line.forecast_account_name,
-                            site: line.forecast_site,
+                            item_sku: SKUIds[i]['item_sku'],
+                            item_sku_text: SKUIds[i]['item_sku_name'],
+                            item_name: SKUIds[i]['item_name'],
+                            account: SKUIds[i]['forecast_account'],
+                            account_text: SKUIds[i]['forecast_account_name'],
+                            site: SKUIds[i]['forecast_site'],
                             data_type: '4',
                             data_type_text: '自营仓在途量',
-                            operated_warehouse: operated_warehouse[i]
+                            operated_warehouse: need_transit_num[a]['lineItems']
                         });
                     }
-                })
-            })
+                }
+            }
         }else{
             SKUIds.map(function(line){
                 item_data.push({
@@ -637,6 +692,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         sublist.addField({ id: 'custpage_item_sku', label: 'sku', type: ui.FieldType.TEXT });
         sublist.addField({ id: 'custpage_item_name', label: '产品名称', type: ui.FieldType.TEXT });
         sublist.addField({ id: 'custpage_data_type', label: '数据类型', type: ui.FieldType.TEXT });
+        sublist.addField({ id: 'custpage_data_type_id', label: '数据类型id', type: ui.FieldType.TEXT }).updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         for (var index = 1; index <= 52; index++) {
             var sub_filed = 'custpage_quantity_week' + index;
             var Label = 'W' + index;
@@ -647,19 +703,19 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         for (var z = 0; z < SKUIds.length; z++) {
             if (result.length > 0) {
                 var need1_zl, need2_zl, need3_zl,need4_zl;
-                var arr_list = {}, arr_data = [];
                 for(var a = 0; a < result.length; a++){
                     if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
                         sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
                         sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl }); 
                         sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
                         sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
+                        sublist.setSublistValue({ id: 'custpage_data_type_id', value: result[a]['data_type'], line: zl }); 
 
                         if(result[a]['data_type'] == 3){//需求量
                             for (var index = 1; index <= 52; index++) {
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 if(result[a]['quantity_week'+index]){
-                                    sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  //data_type_text  //净需求量
+                                    sublist.setSublistValue({ id: sub_filed, value: Math.abs(result[a]['quantity_week'+index]).toString(), line: zl});  //净需求量
                                 }
                             }
                             need1_zl = zl;
@@ -683,7 +739,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                 for (var i = week_start; i <= week_end; i++) { 
                                     if(operated_no.length > 0){
                                         operated_no.map(function(l){
-                                            if(l.item_date == i){
+                                            if(l.item_time == i){
                                                 var sub_filed = 'custpage_quantity_week' + i;
                                                 sublist.setSublistValue({ id: sub_filed, value: l.item_quantity.toString(), line: zl});  
                                             }
@@ -691,7 +747,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                     }
                                 }
                             }
-                            
                             need2_zl = zl;
                             zl++;
                         }
@@ -708,8 +763,8 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                     if(result[a]['warehouse_quantity']){
                                         var need_sub_filed = 'custpage_quantity_week' + (i - 1);
                                         var x1 = need_no;
-                                        var x2 = sublist.getSublistValue({ id : need_sub_filed, line: need2_zl});
-                                        var x3 = sublist.getSublistValue({ id : need_sub_filed, line: need1_zl});
+                                        var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need2_zl}) : 0;
+                                        var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need1_zl}) : 0;
                                         need_no = Number(x1)+Number(x2)-x3;
                                         sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
                                     }
@@ -719,15 +774,13 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                             zl++;
                         }
 
-                        if(result[a]['data_type'] == 6 || result[a]['data_type'] == 7 || result[a]['data_type'] == 8){//店铺净需求
+                        if(result[a]['data_type'] == 6 || result[a]['data_type'] == 7 || result[a]['data_type'] == 8){
                             var arr_list = [], data_josn = {};
-                            data_josn.item_sku = result[a]['item_sku'];
-                            data_josn.account_id = result[a]['account'];
                             for (var i = week_start; i <= week_end; i++) { 
                                 var sub_filed = 'custpage_quantity_week' + i;
-                                var x1 = sublist.getSublistValue({ id : sub_filed, line: need1_zl});
-                                var x2 = sublist.getSublistValue({ id : sub_filed, line: need2_zl});
-                                var x3 = sublist.getSublistValue({ id : sub_filed, line: need3_zl});
+                                var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need1_zl}) : 0;
+                                var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0;
+                                var x3 = need3_zl || need3_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need3_zl}) : 0;
                                 var x4 = Number(x3)+Number(x2)-x1;
                                 sublist.setSublistValue({ id: sub_filed, value: x4.toString(), line: zl});
                                 arr_list.push({
@@ -735,8 +788,10 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                     item_quantity: x4
                                 });
                             }
-                            data_josn.item = arr_list;
                             if(result[a]['data_type'] == 8){
+                                data_josn.item_sku = result[a]['item_sku'];
+                                data_josn.account_id = result[a]['account'];
+                                data_josn.item = arr_list;
                                 data_arr.push(data_josn);
                             }
                             need4_zl = zl;

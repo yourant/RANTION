@@ -57,13 +57,9 @@ define(['N/record', 'N/search', 'N/log',
                 });
             }
             if (bf_cur.id) {
-                var rec = record.load({
-                    type: "customrecord_dps_shipping_small_record",
-                    id: bf_cur.id
-                });
                 var label = rec.getValue('custrecord_record_fulfill_xh_label_addr')
-                var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
-                if (!label && logistStatus == "成功" && (channel == "出口易" || channel == "捷士")) {
+                var channel = rec.getValue("custrecord_dps_ship_small_channel_dealer")
+                if (!label && logistStatus == "成功" && (channel == "1" || channel == "2")) {
                     form.addButton({
                         id: 'custpage_dps_li_get_label',
                         label: '获取面单',
@@ -610,11 +606,11 @@ define(['N/record', 'N/search', 'N/log',
             type: "customrecord_dps_shipping_small_record",
             id: rec.id
         });
-        var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
+        var channel = rec.getValue("custrecord_dps_ship_small_channel_dealer")
         var result
         log.audit('channel', channel);
         switch (channel) {
-            case "捷士":
+            case "1":
                 jetstarApi.init(http, search)
                 var result = jetstarApi.Create(rec, "small")
                 log.audit('result', result);
@@ -638,7 +634,7 @@ define(['N/record', 'N/search', 'N/log',
                     });
                 }
                 break
-            case "出口易":
+            case "2":
                 openApi.init(http, search, record)
                 var result = openApi.CreateOrders(rec, "small")
                 if (result.code == 200) {
@@ -677,7 +673,7 @@ define(['N/record', 'N/search', 'N/log',
                     });
                 }
                 break
-            case "燕文物流":
+            case "5":
                 yanwenApi.init(http, xml, file, search)
                 var shipdate = rec.getValue("custrecord_dps_ship_small_shipping_date")
                 var now
@@ -702,7 +698,7 @@ define(['N/record', 'N/search', 'N/log',
                     });
                 }
                 break
-            case "Endicia":
+            case "3":
                 endiciaApi.init(http, xml, search)
                 var now
                 //发运时间  工具类不方便处理 所以在这里

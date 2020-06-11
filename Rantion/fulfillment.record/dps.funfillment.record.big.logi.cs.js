@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-06-10 16:39:13
+ * @LastEditTime   : 2020-06-11 16:22:34
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -206,6 +206,60 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
                     alert('重新WMS发运')
                 } else {
                     alert('重新WMS发运: ' + response.body);
+                    window.location.reload(true);
+                }
+            }
+        }
+
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+
+    }
+    /**
+     * 重新推送标签面单文件
+     * @param {*} rec_id 
+     */
+    function LabelDocument(rec_id) {
+
+        console.log('推送标签面单文件', rec_id);
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_funf_rec_big_shipment',
+            deploymentId: 'customdeploy_dps_funf_rec_big_shipment',
+            returnExternalUrl: false
+        });
+
+        var header = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
+
+        var body1 = {
+            recordID: rec_id,
+            action: "LabelDocument"
+        };
+        log.debug('body1', body1);
+        log.debug('url1', url1);
+        var response;
+
+        var options = {
+            title: "推送标签面单文件",
+            message: "推送标签面单文件?"
+        };
+
+        function success(result) {
+            if (result) {
+                response = https.post({
+                    url: url1,
+                    body: body1,
+                    headers: header
+                });
+                console.log('response.body ', response.body);
+                if (response.body == false) {
+                    alert('推送标签面单文件失败');
+                } else {
+                    alert('推送标签面单文件成功: ' + response.body);
                     window.location.reload(true);
                 }
             }
@@ -502,6 +556,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         reacquireLogistics: reacquireLogistics,
         getTrackingNumber: getTrackingNumber,
         getLabel: getLabel,
-        createInformation: createInformation
+        createInformation: createInformation,
+        LabelDocument: LabelDocument
     }
 });

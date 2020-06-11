@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-10 17:17:55
+ * @LastEditTime   : 2020-06-11 10:17:43
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -181,8 +181,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
                 data["waybillNo"] = rec.id; // 运单号
             });
-            /*
 
+            /*
             data["shippingType"] = shippingType;
             data["aono"] = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
             data["createBy"] = af_rec.getText('owner');

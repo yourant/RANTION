@@ -60,11 +60,11 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 type: "customrecord_dps_shipping_small_record",
                 id: rec_id
             });
-            var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
+            var channel = rec.getValue("custrecord_dps_ship_small_channel_dealer")
             var result
             log.audit('channel', channel);
             switch (channel) {
-                case "捷士":
+                case "1":
                     jetstarApi.init(http, search)
                     var result = jetstarApi.Create(rec, "small")
                     log.audit('result', result);
@@ -87,7 +87,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         });
                     }
                     break
-                case "出口易":
+                case "2":
                     openApi.init(http, search, record)
                     var result = openApi.CreateOrders(rec, "small")
                     if (result.code == 200) {
@@ -130,7 +130,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         });
                     }
                     break
-                case "燕文物流":
+                case "5":
                     yanwenApi.init(http, xml, file, search)
                     var shipdate = rec.getValue("custrecord_dps_ship_small_shipping_date")
                     var now
@@ -154,7 +154,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         });
                     }
                     break
-                case "Endicia":
+                case "3":
                     endiciaApi.init(http, xml, search)
                     var now
                     //发运时间  工具类不方便处理 所以在这里
@@ -206,11 +206,11 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 type: "customrecord_dps_shipping_small_record",
                 id: rec_id
             });
-            var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
+            var channel = rec.getValue("custrecord_dps_ship_small_channel_dealer")
             var result
             var shipment_id = rec.getValue("custrecord_dps_ship_small_logistics_orde")
             switch (channel) {
-                case "捷士":
+                case "1":
                     jetstarApi.init(http, search)
                     result = jetstarApi.GetLabels(shipment_id, '')
                     if (result.code == 200) {
@@ -218,7 +218,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         updateTrackingNumber(rec_id, trackingNumber)
                     }
                     break
-                case "出口易":
+                case "2":
                     openApi.init(http, search, record)
                     var orderId = rec.getValue("custrecord_dps_ship_order_number")
                     result = openApi.GetInfo(orderId)
@@ -309,11 +309,11 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 type: "customrecord_dps_shipping_small_record",
                 id: rec_id
             });
-            var channel = rec.getText("custrecord_dps_ship_small_channel_dealer")
+            var channel = rec.getValue("custrecord_dps_ship_small_channel_dealer")
             var result
             var shipment_id = rec.getValue("custrecord_dps_ship_small_logistics_orde")
             switch (channel) {
-                case "捷士":
+                case "1":
                     jetstarApi.init(http, search)
                     result = jetstarApi.GetLabels(shipment_id, '')
                     if (result.code == 200) {
@@ -321,7 +321,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         updateLabel(rec_id, '', single_pdf)
                     }
                     break
-                case "出口易":
+                case "2":
                     openApi.init(http, search, record)
                     var orderId = rec.getValue("custrecord_dps_ship_order_number")
                     var reqParam = openApi.GetLabels(orderId, 'ClassicLabel', "Address", "", 'PackageId')

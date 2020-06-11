@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-06-09 20:28:20
+ * @LastEditTime   : 2020-06-11 13:40:37
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -17,6 +17,42 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
     function onRequest(context) {
 
         try {
+
+
+            var objRecord = record.transform({
+                fromType: 'transferorder',
+                fromId: 131689,
+                toType: 'itemfulfillment',
+                // isDynamic: true,
+            });
+
+            objRecord.setValue({
+                fieldId: 'shipstatus',
+                value: 'C'
+            });
+
+            var item_ful = objRecord.getLineCount({
+                sublistId: 'item'
+            });
+
+            for (var i = 0; i < item_ful; i++) {
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'location',
+                    line: i,
+                    value: 1607
+                });
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'quantity',
+                    line: i,
+                    value: 1
+                });
+            }
+
+            var objRecord_id = objRecord.save();
+            log.debug('objRecord_id', objRecord_id);
+
 
 
             /*

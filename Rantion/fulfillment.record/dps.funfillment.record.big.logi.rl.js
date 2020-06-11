@@ -1,9 +1,9 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-21 11:00:39
- * @LastEditTime   : 2020-06-10 19:54:32
+ * @LastEditTime   : 2020-06-11 16:29:59
  * @LastEditors    : Li
- * @Description    : 获取 shipmentID
+ * @Description    : 获取 shipmentID, 生成报关资料, 推送 标签面单文件
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -401,27 +401,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         if (action == 'createInformation') {
 
             try {
-                record.submitFields({
-                    type: 'customrecord_dps_shipping_record',
-                    id: recordId,
-                    values: {
-                        // custrecord_dps_shipping_rec_information: informaId,
-                        custrecord_dps_customs_information: '创建报关资料失败,映射关系中找不到关联的采购订单'
-                    }
-                });
-            } catch (error) {
-                log.debug('保存出错了', error);
-            }
-
-
-            try {
 
                 var order_num, recordId, statusText,
                     statusId, subText, subId,
-                    ship_tran_abno, information;
+                    ship_tran_abno, af_rec = context.newRecord,
+                    information, type = context.type,
+                    legalname, gross_margin
 
                 search.create({
-                    type: 'customrecord_dps_shipping_record',
+                    type: "customrecord_dps_shipping_record",
                     filters: [{
                         name: 'internalid',
                         operator: 'is',
@@ -430,11 +418,28 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     columns: [
                         'custrecord_dps_shipping_rec_status', 'custrecord_dps_shipping_rec_transa_subje',
                         'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_ship_tran_abno',
-                        'custrecord_dps_shipping_rec_information'
+                        'custrecord_dps_shipping_rec_information',
+                        'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_shipping_rec_transa_subje',
+                        {
+                            name: 'custrecord_gross_margin',
+                            join: 'custrecord_dps_shipping_rec_transa_subje'
+                        }, // 交易主体的毛利率
+                        {
+                            name: 'legalname',
+                            join: 'custrecord_dps_shipping_rec_transa_subje'
+                        }, // 交易主体 法定名称
                     ]
                 }).run().each(function (rec) {
+                    legalname = rec.getValue({
+                        name: 'legalname',
+                        join: 'custrecord_dps_shipping_rec_transa_subje'
+                    });
+                    gross_margin = rec.getValue({
+                        name: 'custrecord_gross_margin',
+                        join: 'custrecord_dps_shipping_rec_transa_subje'
+                    });
                     recordId = rec.id;
-                    statusText = rec.getValue('custrecord_dps_shipping_rec_status');
+                    statusText = rec.getText('custrecord_dps_shipping_rec_status');
                     statusId = rec.getValue('custrecord_dps_shipping_rec_status');
 
                     subText = rec.getText('custrecord_dps_shipping_rec_transa_subje');
@@ -461,7 +466,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                         if (informaId) {
                             // 创建报关发票
-                            var invId = informationValue.createCusInv(info, informaId);
+                            var invId = informationValue.createCusInv(info, informaId, gross_margin);
 
                             log.debug('invId', invId);
 
@@ -470,11 +475,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             log.debug('boxId', boxId);
 
                             // 创建报关合同
-                            var conId = informationValue.createContract(info, informaId, subId);
+                            var conId = informationValue.createContract(info, informaId, subId, legalname, gross_margin);
                             log.debug('conId', conId);
 
                             // 创建报关单
-                            var decId = informationValue.createDeclaration(info, informaId);
+                            var decId = informationValue.createDeclaration(info, informaId, gross_margin, legalname);
                             log.debug('decId', decId);
 
                             // 创建报关要素
@@ -538,6 +543,136 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             }
 
 
+        }
+
+        if (action == "LabelDocument") {
+            // NsCallbackForUpdateBoxRequestDto {
+            //     aono(string): 调拨单号,
+            //     boxLabelPath(string): 箱外标签文件路径,
+            //     logisticsChannelCode(string): 物流渠道服务编号,
+            //     logisticsChannelName(string): 物流渠道服务名称,
+            //     logisticsLabelPath(string): 物流面单文件路径,
+            //     logisticsProviderCode(string): 物流渠道商编号,
+            //     logisticsProviderName(string): 物流渠道商名称
+            // }
+
+            var fileId, service_code, channelservice, channel_dealer, channel_dealer_id, aono, Label, tranType;
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recordID
+                }],
+                columns: [{
+                        name: "url",
+                        join: "file"
+                    },
+                    {
+                        name: 'custrecord_ls_service_code',
+                        join: 'custrecord_dps_shipping_r_channelservice'
+                    }, // 渠道服务代码
+                    'custrecord_dps_shipping_r_channelservice', // 渠道服务
+                    'custrecord_dps_shipping_r_channel_dealer', //渠道商
+                    'custrecord_dps_shipping_rec_order_num', // 调拨单号
+                    'custrecord_dps_ship_record_tranor_type', // 调拨单类型
+                ]
+            }).run().each(function (rec) {
+                tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
+                aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                fileId = rec.getValue({
+                    name: "url",
+                    join: "file"
+                });
+                service_code = rec.getValue({
+                    name: 'custrecord_ls_service_code',
+                    join: 'custrecord_dps_shipping_r_channelservice'
+                });
+                channelservice = rec.getText('custrecord_dps_shipping_r_channelservice');
+                channel_dealer = rec.getText('custrecord_dps_shipping_r_channel_dealer');
+                channel_dealer_id = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
+                Label = rec.getValue('custrecord_fulfill_dh_label_addr'); // 面单地址
+            })
+
+            if (Label) {
+                // 存在面单文件
+                var url = 'https://';
+                if (tranType == 1 && fileId) {
+                    var account = runtime.accountId;
+                    log.debug("Account ID for the current user: ", runtime.accountId);
+                    if (account.indexOf('_SB1') > -1) {
+                        var ac = account.replace('_SB1', '');
+                        url += ac + '-sb1.app.netsuite.com';
+                    } else {
+                        url += account + '.app.netsuite.com';
+                    }
+                    url += fileId;
+                }
+                log.debug('url', url);
+
+                var data = {
+                    aono: aono, // 调拨单号
+                    boxLabelPath: url, // 箱外标签文件路径,
+                    logisticsChannelCode: service_code, // (string): 物流渠道服务编号,
+                    logisticsChannelName: channelservice, //(string): 物流渠道服务名称,
+                    logisticsLabelPath: Label, //(string): 物流面单文件路径,
+                    logisticsProviderCode: channel_dealer, //(string): 物流渠道商编号,
+                    logisticsProviderName: channel_dealer, //(string): 物流渠道商名称
+                };
+
+                var token = getToken();
+                if (token) {
+                    var headerInfo = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'access_token': token
+                    };
+                    var response = http.post({
+                        url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                        headers: headerInfo,
+                        body: JSON.stringify(data)
+                    });
+                    log.debug('response', JSON.stringify(response));
+                    retdata = JSON.parse(response.body);
+                    var code;
+                    log.audit('retdata', retdata);
+                    if (response.code == 200) {
+                        // 调用成功
+                        if (retdata.code == 0) {
+                            var id = record.submitFields({
+                                type: 'customrecord_dps_shipping_record',
+                                id: recordID,
+                                values: {
+                                    custrecord_dps_shipping_rec_status: 19,
+                                    custrecord_dps_shipping_rec_wms_info: JSON.stringify(retdata.data)
+                                }
+                            });
+                        } else {
+                            var id = record.submitFields({
+                                type: 'customrecord_dps_shipping_record',
+                                id: recordID,
+                                values: {
+                                    custrecord_dps_shipping_rec_status: 20,
+                                    custrecord_dps_shipping_rec_wms_info: JSON.stringify(retdata.data)
+                                }
+                            });
+                        }
+                        code = retdata.code;
+                    } else {
+                        code = -1;
+                        var id = record.submitFields({
+                            type: 'customrecord_dps_shipping_record',
+                            id: recordID,
+                            values: {
+                                // custrecord_dps_shipping_rec_status: 19,
+                                custrecord_dps_shipping_rec_wms_info: 'Token 失效了'
+                            }
+                        });
+                    }
+
+                    log.debug('code', code);
+                }
+            }
         }
 
 

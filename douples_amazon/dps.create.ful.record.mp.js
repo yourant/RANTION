@@ -1,7 +1,8 @@
 /*
  * @Author         : Li
+ * @Version        : 1.0
  * @Date           : 2020-05-14 20:36:32
- * @LastEditTime   : 2020-06-11 11:28:59
+ * @LastEditTime   : 2020-06-11 19:01:40
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \douples_amazon\dps.create.ful.record.mp.js
@@ -41,12 +42,12 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
                     //     operator: 'anyof',
                     //     values: ['2']
                     // },
-                    {
-                        name: "isinactive",
-                        join: "custbody_order_locaiton",
-                        operator: "is",
-                        values: true
-                    }
+                    // {
+                    //     name: "isinactive",
+                    //     join: "custbody_order_locaiton",
+                    //     operator: "is",
+                    //     values: true
+                    // }
                 ]
             }).run().each(function (rec) {
                 order.push(rec.id);
@@ -58,15 +59,39 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
 
         function map(context) {
             try {
+                var flag = true;
                 var soid = context.value;
                 log.debug('创建发运记录', 'soid:' + soid);
-                // 创建发运记录
-                var create_ful_rec_id = createFulfillmentRecord(soid, 'value');
-                log.debug('创建发运记录成功', 'create_ful_rec_id:' + create_ful_rec_id);
-                if (create_ful_rec_id) {
-                    // 物流匹配
-                    log.debug('物流匹配', 'soid:' + soid + ', create_ful_rec_id:' + create_ful_rec_id);
-                    createLogisticsStrategy(soid, create_ful_rec_id);
+                search.create({
+                    type: 'salesorder',
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: soid
+                    }],
+                    columns: [{
+                        name: "isinactive",
+                        join: "custbody_order_locaiton",
+                    }]
+                }).run().each(function (rec) {
+                    flag = rec.getValue({
+                        name: "isinactive",
+                        join: "custbody_order_locaiton",
+                    })
+                })
+
+                if (!flag) {
+                    // 创建发运记录
+                    var create_ful_rec_id = createFulfillmentRecord(soid, 'value');
+                    log.debug('创建发运记录成功', 'create_ful_rec_id:' + create_ful_rec_id);
+                    if (create_ful_rec_id) {
+                        // 物流匹配
+                        log.debug('物流匹配', 'soid:' + soid + ', create_ful_rec_id:' + create_ful_rec_id);
+                        createLogisticsStrategy(soid, create_ful_rec_id);
+                    } else {
+                        log.debug('对应的店铺已经非活动', '不创建小货发运记录');
+                    }
+
                 }
             } catch (error) {
                 log.error('创建发运记录 error', error);

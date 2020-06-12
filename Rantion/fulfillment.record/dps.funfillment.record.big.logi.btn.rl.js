@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-06-11 16:37:23
+ * @LastEditTime   : 2020-06-12 10:29:34
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
@@ -133,7 +133,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
         return result
     }
 
-    function submitIdAndTackingNumber(id, shipment_id, trackingNumber) {
+    function submitIdAndTackingNumber(id, shipment_id, trackingNumber,labeladdr) {
         // var values = { custrecord_dps_push_state: "成功", custrecord_dps_push_result: "", custrecord_dps_shipping_rec_status: 3 }
         var values = {
             custrecord_dps_push_state: "成功",

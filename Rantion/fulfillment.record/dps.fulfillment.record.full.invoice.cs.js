@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:43:21
- * @LastEditTime   : 2020-05-28 16:27:10
+ * @LastEditTime   : 2020-06-11 16:57:06
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.cs.js
@@ -189,7 +189,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
 
             var options = {
                 title: "重新获取物流运单号",
-                message: "Press OK or Cancel"
+                message: "重新获取物流运单号?"
             };
 
             function success(result) {
@@ -243,7 +243,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
 
             var options = {
                 title: "重新获取物流运单号",
-                message: "Press OK or Cancel"
+                message: "重新获取物流运单号?"
             };
 
             function success(result) {
@@ -302,8 +302,8 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
             var response;
 
             var options = {
-                title: "重新WMS发运",
-                message: "Press OK or Cancel"
+                title: "WMS发运",
+                message: "WMS发运?"
             };
 
             function success(result) {
@@ -314,9 +314,9 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
                         headers: header
                     });
                     if (response.body == false) {
-                        alert('重新WMS发运')
+                        alert('WMS发运失败')
                     } else {
-                        alert('重新WMS发运: ' + response.body);
+                        alert('WMS发运成功: ' + response.body);
                         window.location.reload(true);
                     }
                 }
@@ -364,7 +364,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
 
             var options = {
                 title: "获取物流面单",
-                message: "Press OK or Cancel"
+                message: "获取物流面单?"
             };
 
             function success(result) {

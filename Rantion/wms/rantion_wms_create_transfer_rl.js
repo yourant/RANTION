@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-11 10:17:43
+ * @LastEditTime   : 2020-06-12 15:04:44
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -29,7 +29,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         var token = getToken();
         if (token) {
             var data = {};
-            var tranType;
+            var tranType, fbaAccount;
 
             search.create({
                 type: 'customrecord_dps_shipping_record',
@@ -119,6 +119,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 data["declareCurrency"] = rec.getText('custrecord_dps_declare_currency_dh');
 
                 data["declarePrice"] = Number(rec.getValue('custrecord_dps_declared_value_dh'));
+                fbaAccount = rec.getValue('custrecord_dps_shipping_rec_account');
                 data["fbaAccount"] = rec.getText('custrecord_dps_shipping_rec_account');
 
                 data["countBubbleBase"] = Number(rec.getValue({
@@ -171,49 +172,21 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 // 3 跨仓调拨
                 // 4 移库
 
+                var waybillNo;
+
                 if (type1 == 1) {
                     type = 20;
                     data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+                    waybillNo = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
                 } else {
                     data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
+                    waybillNo = rec.getValue('custrecord_dps_shipping_rec_shipments');
                 }
                 data["type"] = type;
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
-                data["waybillNo"] = rec.id; // 运单号
+                data["waybillNo"] = waybillNo; // 运单号
             });
 
-            /*
-            data["shippingType"] = shippingType;
-            data["aono"] = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
-            data["createBy"] = af_rec.getText('owner');
-
-            data["declareCurrency"] = af_rec.getText('custrecord_dps_shipping_rec_currency');
-            // data["declareCurrency"] = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
-
-            // data["declarePrice"] = 1;
-            data["declarePrice"] = af_rec.getValue('custrecord_dps_declared_value_dh');
-            data["fbaAccount"] = af_rec.getValue('custrecord_dps_shipping_rec_account');
-
-            data["logisticsChannelCode"] = af_rec.getValue('custrecord_dps_shipping_r_channelservice');
-            data["logisticsChannelName"] = af_rec.getText('custrecord_dps_shipping_r_channelservice');
-            // data["logisticsLabelPath"] = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
-
-            data["logisticsProviderCode"] = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer');
-            data["logisticsProviderName"] = af_rec.getText('custrecord_dps_shipping_r_channelservice');
-            data["shipment"] = af_rec.getValue('custrecord_dps_shipping_rec_shipments');
-            data["sourceWarehouseCode"] = af_rec.getValue('custrecord_dps_shipping_rec_location');
-            data["sourceWarehouseName"] = af_rec.getText('custrecord_dps_shipping_rec_location');
-
-            data["targetWarehouseCode"] = af_rec.getValue('custrecord_dps_shipping_rec_to_location');
-            data["targetWarehouseName"] = af_rec.getText('custrecord_dps_shipping_rec_to_location');
-            data["taxFlag"] = 1;
-            data["tradeCompanyCode"] = af_rec.getValue('custrecord_dps_shipping_rec_transa_subje');
-            data["tradeCompanyName"] = af_rec.getText('custrecord_dps_shipping_rec_transa_subje');
-
-            data["type"] = type;
-            // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
-            data["waybillNo"] = af_rec.getText('custrecord_dps_shipping_rec_logistics_no');
-            */
             var taxamount;
             var item_info = [];
             var subli_id = 'recmachcustrecord_dps_shipping_record_parentrec';
@@ -404,10 +377,16 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 search.create({
                     type: 'customrecord_dps_amazon_seller_sku',
                     filters: [{
-                        name: "custrecord_dps_amazon_ns_sku",
-                        operator: 'anyof',
-                        values: itemArr
-                    }],
+                            name: "custrecord_dps_amazon_ns_sku",
+                            operator: 'anyof',
+                            values: itemArr
+                        },
+                        {
+                            name: 'custrecord_dps_amazon_sku_account',
+                            operator: 'anyof',
+                            values: fbaAccount
+                        }
+                    ],
                     columns: [{
                             name: "custrecord_dps_amazon_sku_number",
                         },
@@ -448,6 +427,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     });
                     return --new_limit > 0;
                 });
+
+                log.debug('newItemInfo', newItemInfo);
 
                 data['allocationDetailCreateRequestDtos'] = newItemInfo;
             } else {

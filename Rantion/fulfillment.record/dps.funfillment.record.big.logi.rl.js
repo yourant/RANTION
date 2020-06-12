@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-21 11:00:39
- * @LastEditTime   : 2020-06-11 16:29:59
+ * @LastEditTime   : 2020-06-11 19:40:38
  * @LastEditors    : Li
  * @Description    : 获取 shipmentID, 生成报关资料, 推送 标签面单文件
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -79,15 +79,16 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     search.create({
                         type: 'customrecord_dps_amazon_seller_sku',
                         filters: [{
-                            name: 'custrecord_dps_amazon_ns_sku',
-                            operator: 'anyof',
-                            values: nsItem
-                            // },
-                            // {
-                            //     name: 'custrecord_dps_store',
-                            //     operator: 'anyof',
-                            //     values: rec_account
-                        }],
+                                name: 'custrecord_dps_amazon_ns_sku',
+                                operator: 'anyof',
+                                values: nsItem
+                            },
+                            {
+                                name: 'custrecord_dps_amazon_sku_account',
+                                operator: 'anyof',
+                                values: rec_account
+                            }
+                        ],
                         columns: [
                             'custrecord_dps_amazon_sku_number'
                         ]
@@ -307,7 +308,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     type: 'customrecord_dps_shipping_record',
                                     id: recordID,
                                     values: {
-                                        custrecord_dps_shipping_rec_status: 16,
+                                        custrecord_dps_shipping_rec_status: 11,
                                         custrecord_dps_shipment_info: JSON.stringify(response1)
                                     }
                                 });
@@ -316,7 +317,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     type: 'customrecord_dps_shipping_record',
                                     id: recordID,
                                     values: {
-                                        // custrecord_dps_shipping_rec_status: 16,
+                                        custrecord_dps_shipping_rec_status: 16,
                                         custrecord_dps_shipment_info: '创建入库件成功'
                                     }
                                 });
@@ -355,7 +356,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 type: 'customrecord_dps_shipping_record',
                                 id: recordID,
                                 values: {
-                                    // custrecord_dps_shipping_rec_status: 18,
+                                    custrecord_dps_shipping_rec_status: 11,
                                     custrecord_dps_shipment_info: JSON.stringify(rep)
                                 }
                             });

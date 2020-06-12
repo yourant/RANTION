@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-06-11 12:10:19
+ * @LastEditTime   : 2020-06-11 23:20:01
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -18,25 +18,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
     }
 
     function _post(context) {
-
-
-        // {
-        //     "deliveryTime": "2020-06-01 19:01:44",
-        //     "abno": "AB200601000002",
-        //     "aono": "103411",
-        //     "containerNo": "123",
-        //     "boxQty": 1,
-        //     "volume": 1000.00,
-        //     "weight": 321.00,
-        //     "storageList": [{
-        //         "sku": "1101",
-        //         "type": 2,
-        //         "barcode": "1101",
-        //         "positionCode": "AAAD6610101",
-        //         "qty": 1
-        //     }],
-        //     "delivery": true
-        // }
 
 
         // AllocationMasterResultNsDto {
@@ -60,6 +41,25 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         // }
 
 
+        // {
+        //     "deliveryTime": "2020-06-01 19:01:44",
+        //     "abno": "AB200601000002",
+        //     "aono": "103411",
+        //     "containerNo": "123",
+        //     "boxQty": 1,
+        //     "volume": 1000.00,
+        //     "weight": 321.00,
+        //     "storageList": [{
+        //         "sku": "1101",
+        //         "type": 2,
+        //         "barcode": "1101",
+        //         "positionCode": "AAAD6610101",
+        //         "qty": 1
+        //     }],
+        //     "delivery": true
+        // }
+
+
         log.audit('context', context);
         var data = context;
         // for (var i = 0, len = date.length; i < len; i++) {
@@ -78,31 +78,15 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 status = temp.status,
                 volume = temp.volume,
                 weight = temp.weight,
-                abno = temp.abno,
-                storageList = temp.storageList;
+                storageList = temp.storageList,
+                abno = temp.abno;
             var aono_id = searchFulRec(aono);
+
             if (aono_id) {
                 var l_rec = record.load({
                     type: 'customrecord_dps_shipping_record',
                     id: aono_id
                 });
-
-                var tranNo = l_rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
-
-                var subsidiary = l_rec.getValue('custrecord_dps_shipping_rec_transa_subje');
-
-                for (var i = 0, len = storageList.length; i < len; i++) {
-                    // StorageResultNsDto {
-                    //     barcode(string): 条码 装箱条码 / SKU,
-                    //     positionCode(string): 库位编号,
-                    //     qty(integer): 数量,
-                    //     sku(string): SKU,
-                    //     type(integer): 类型 1: 已装箱 2: 未装箱
-                    // }
-
-                    var temp = storageList[i];
-                    var locationId = searchLocationCode(temp.positionCode, subsidiary)
-                }
 
                 l_rec.setValue({
                     fieldId: 'custrecord_dps_total_number',
@@ -117,6 +101,27 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                     fieldId: 'custrecord_dps_ship_small_weight',
                     value: weight
                 });
+
+                var tranNO = l_rec.getValue('custrecord_dps_shipping_rec_order_num');
+
+                for (var i = 0, len = storageList.length; i < len; i++) {
+                    var LoId = searchLocationCode(storageList[i].positionCode); // 只能修改一次,不可修改多次,履行多次出错
+                    if (LoId) {
+                        var transferorderId = record.submitFields({
+                            type: 'transferorder',
+                            id: tranNO,
+                            values: {
+                                location: LoId
+                            },
+                            options: {
+                                enableSourcing: false,
+                                ignoreMandatoryFields: true
+                            }
+                        });
+                        log.debug('transferorderId', transferorderId);
+                        break;
+                    }
+                }
 
                 var cn_no = searchLoadingInformation(containerNo);
                 if (cn_no) {
@@ -159,7 +164,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                     value: pickno
                 });
 
-
                 l_rec.setValue({
                     fieldId: 'custrecord_dps_shipping_rec_status',
                     value: 6
@@ -167,7 +171,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
                 var l_rec_id = l_rec.save();
 
-
+                itemfulfillment(l_rec, tranNO);
 
                 log.audit('发运记录更新完成', l_rec_id);
 
@@ -188,12 +192,94 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
         // }
 
-
-
-
         return JSON.stringify(retjson);
     }
 
+
+    /**
+     * 履行库存转移单
+     * @param {*} rec 
+     */
+    function itemfulfillment(rec, link, itemList) {
+
+        var objRecord = record.transform({
+            fromType: 'transferorder',
+            fromId: link,
+            toType: 'itemfulfillment',
+            // isDynamic: true,
+        });
+
+        objRecord.setValue({
+            fieldId: 'shipstatus',
+            value: 'C'
+        });
+
+        var item_ful = objRecord.getLineCount({
+            sublistId: 'item'
+        });
+
+        log.audit('item_ful: ', item_ful);
+
+        var line_num = [];
+        for (var i = 0; i < item_ful; i++) {
+            var totalQty = 0;
+            var treItem = objRecord.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'item',
+                line: i,
+            });
+
+            for (var j = 0, len = itemList.length; j < len; j++) {
+                var a = itemList[j];
+                if (a.sku == treItem) {
+                    totalQty += qty;
+                }
+            }
+
+            objRecord.setSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantity',
+                line: i,
+                value: totalQty
+            });
+
+            objRecord.setSublistValue({
+                sublistId: 'item',
+                fieldId: 'itemreceive',
+                value: true,
+                line: i
+            });
+
+
+        }
+        var objRecord_id = objRecord.save();
+        log.debug('objRecord_id', objRecord_id);
+        var itemreceipt_id;
+
+        if (objRecord_id /* && tranor_type == 3 */ ) {
+            itemreceipt_id = itemreceipt(link);
+            log.debug('itemreceipt_id', itemreceipt_id);
+        }
+
+        return
+    }
+
+    /**
+     * 接受库存转移单的货品
+     * @param {*} rec 
+     */
+    function itemreceipt(link) {
+        var objRecord = record.transform({
+            fromType: 'transferorder',
+            fromId: link,
+            toType: 'itemreceipt',
+            // isDynamic: true,
+        });
+
+        var obj_id = objRecord.save();
+
+        return obj_id || false;
+    }
 
     /**
      * 根据柜号搜索对应的装柜记录
@@ -238,207 +324,25 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         return ful_id || false;
     }
 
-
-
     /**
-     * 履行库存转移单
-     * @param {*} rec 
+     * 根据仓库编号搜索对应的地点
+     * @param {*} LoCode 
      */
-    function itemfulfillment(rec, link, itemList, subsidiary) {
-
-
-        var locationArr = [];
-        var objRecord = record.transform({
-            fromType: 'transferorder',
-            fromId: link,
-            toType: 'itemfulfillment',
-            // isDynamic: true,
-        });
-
-        objRecord.setValue({
-            fieldId: 'shipstatus',
-            value: 'C'
-        });
-
-        // StorageResultNsDto {
-        //     barcode(string): 条码 装箱条码 / SKU,
-        //     positionCode(string): 库位编号,
-        //     qty(integer): 数量,
-        //     sku(string): SKU,
-        //     type(integer): 类型 1: 已装箱 2: 未装箱
-        // }
-
-        var len = itemList.length;
-        for (var i = 0; i < len; i++) {
-            var temp = itemList[i];
-            var loId = searchLocationCode(locationCode, subsidiary);
-
-            if (loId) {
-
-            } else {
-
-            }
-
-
-
-        }
-
-        var numLines = rec.getLineCount({
-            sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link'
-        });
-        var item_ful = objRecord.getLineCount({
-            sublistId: 'item'
-        });
-
-        log.audit('numLines: ' + numLines, 'item_ful: ' + item_ful);
-
-        var line_num = [];
-        for (var i = 0; i < numLines; i++) {
-
-            var ful_item = rec.getSublistValue({
-                sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                fieldId: 'custrecord_dps_ship_box_item',
-                line: i,
-            });
-
-            log.debug('ful_item', ful_item);
-            for (var j = 0; j < item_ful; j++) {
-                var ful_quantity = 0;
-
-                var obj_item = objRecord.getSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'item',
-                    line: j,
-                });
-
-                log.debug('obj_item == ful_item', obj_item == ful_item);
-                ful_quantity = rec.getSublistValue({
-                    sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                    fieldId: 'custrecord_dps_ship_box_quantity',
-                    line: i,
-                });
-
-
-                log.debug('obj_item', obj_item);
-                if (obj_item == ful_item) {
-
-                    log.debug('obj_item == ful_item', obj_item == ful_item);
-                    ful_quantity = rec.getSublistValue({
-                        sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                        fieldId: 'custrecord_dps_ship_box_quantity',
-                        line: i,
-                    });
-
-                    ful_quantity += ful_quantity;
-                    log.debug('ful_quantity', ful_quantity);
-
-                    line_num.push(i);
-                    objRecord.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'quantity',
-                        line: j,
-                        value: ful_quantity
-                    });
-
-                    objRecord.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'itemreceive',
-                        value: true,
-                        line: j
-                    });
-                }
-            }
-        }
-        var objRecord_id = objRecord.save();
-        log.debug('objRecord_id', objRecord_id);
-        var itemreceipt_id;
-
-        var tranor_type = rec.getValue('custrecord_dps_ship_record_tranor_type');
-        if (objRecord_id /* && tranor_type == 3 */ ) {
-            itemreceipt_id = itemreceipt(link);
-            log.debug('itemreceipt_id', itemreceipt_id);
-        }
-
-        var load_af_rec = record.load({
-            type: rec.type,
-            id: rec.id
-        });
-
-        for (var z = 0; z < line_num.length; z++) {
-            load_af_rec.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                fieldId: 'custrecord_dps_ship_box_itemfulfillment',
-                value: objRecord_id,
-                line: line_num[z]
-            });
-            if (itemreceipt_id) {
-                load_af_rec.setSublistValue({
-                    sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                    fieldId: 'custrecord_dps_ship_box_itemreceipt',
-                    value: itemreceipt_id,
-                    line: line_num[z]
-                });
-            }
-            load_af_rec.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                fieldId: 'custrecord_dps_ship_box_ship_ns',
-                value: true,
-                line: line_num[z]
-            });
-        }
-        var load_af_rec_id = load_af_rec.save();
-        log.debug('load_af_rec_id', load_af_rec_id);
-
-        return
-    }
-
-    /**
-     * 接受库存转移单的货品
-     * @param {*} rec 
-     */
-    function itemreceipt(link) {
-        var objRecord = record.transform({
-            fromType: 'transferorder',
-            fromId: link,
-            toType: 'itemreceipt',
-            // isDynamic: true,
-        });
-
-        var obj_id = objRecord.save();
-
-        return obj_id || false;
-    }
-
-    /**
-     * 根据仓库编号搜索NS对应的地点
-     * @param {*} locationCode 
-     * @param {*} subsidiary 
-     */
-    function searchLocationCode(locationCode, subsidiary) {
-
+    function searchLocationCode(LoCode) {
         var locationId;
-        if (locationCode && subsidiary) {
-            search.create({
-                type: 'location',
-                filters: [{
-                        name: 'custrecord_dps_wms_location',
-                        operator: 'is',
-                        values: locationCode
-                    },
-                    {
-                        name: 'subsidiary',
-                        operator: 'anyof',
-                        values: subsidiary
-                    }
-                ]
-            }).run().each(function (rec) {
-                locationId = rec.id;
-            });
-        }
+        search.create({
+            type: 'location',
+            filters: [{
+                name: 'custrecord_dps_wms_location',
+                operator: 'startswith',
+                values: LoCode
+            }]
+        }).run().each(function (rec) {
+            locationId = rec.id;
+        });
 
         return locationId || false;
     }
-
 
     function _put(context) {
 

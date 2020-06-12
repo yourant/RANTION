@@ -94,7 +94,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             startDate = report_start_date;
                             endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
                             // startDate = '2020-05-01T00:00:00.000Z';
-                            endate = '2020-06-10T02:00:00.000Z';
+                            // endate = '2020-06-10T10:00:00.000Z';
                             log.debug(report_type, "startDate:" + startDate + "   endate:" + endate);
 
                             core.amazon.requestReport(account, report_type, {

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-01 11:38:58
+ * @LastEditTime   : 2020-06-11 17:49:34
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -57,8 +57,8 @@ define(['N/record', 'N/search', 'N/log',
                 });
             }
             if (bf_cur.id) {
-                var label = rec.getValue('custrecord_record_fulfill_xh_label_addr')
-                var channel = rec.getValue("custrecord_dps_ship_small_channel_dealer")
+                var label = bf_cur.getValue('custrecord_record_fulfill_xh_label_addr')
+                var channel = bf_cur.getValue("custrecord_dps_ship_small_channel_dealer")
                 if (!label && logistStatus == "成功" && (channel == "1" || channel == "2")) {
                     form.addButton({
                         id: 'custpage_dps_li_get_label',
@@ -78,21 +78,13 @@ define(['N/record', 'N/search', 'N/log',
 
     function afterSubmit(context) {
         log.debug('type', context.type);
-
-        // 1 未发运， 等待获取物流单号
-        // 2 匹配物流失败， 手动处理
-        // 3 已获取物流单号， 等待发运
-        // 4 获取物流信息失败
-        // 5 已获取物流跟踪单号
-        // 6 WMS已发运
-        // 7 WMS已部分发运
-        // 8 WMS发运失败
-        // 9 未发运， 等待获取Shipment
-        // 10 已获取Shipment号， 等待装箱
-        // 11 申请Shipment失败
-        // 12 WMS已装箱
-        // 13 WMS已部分装箱
-        // 14 已推送WMS
+        // 1	未发运，等待获取物流单号	2	匹配物流失败，手动处理		3	已获取物流单号，等待发运
+        // 4	获取物流信息失败			6	WMS已发运					7	WMS已部分发运
+        // 8	WMS发运失败					9	未发运，等待获取Shipment	10	已获取Shipment，等待装箱
+        // 11	申请Shipment失败			12	WMS已装箱					13	WMS已部分装箱
+        // 14	已推送WMS					15	已创建入库计划				16	已创建入库件
+        // 17	已获取标签					18	已更新入库件				19	已推送 标签文件
+        // 20	推送标签文件至 WMS 失败		21	等待获取物流面单			22	获取标签文件失败
 
         var af_rec = context.newRecord;
         var type = context.type;
@@ -113,7 +105,7 @@ define(['N/record', 'N/search', 'N/log',
             // 获取渠道服务
             var small_channelservice = l_af_rec.getValue('custrecord_dps_ship_small_channelservice');
 
-            // TODO 根据渠道商来判断推送哪一个物流接口
+            // 根据渠道商来判断推送哪一个物流接口
             if (channel_dealer && small_channelservice) {
                 pushOrder(l_af_rec);
             }
@@ -161,6 +153,7 @@ define(['N/record', 'N/search', 'N/log',
                         values: af_rec.id
                     }],
                     columns: [
+                        'custrecord_record_fulfill_xh_label_addr', // 面单路径URL
 
                         'custrecord_dps_ship_samll_location', // 发运仓库
                         {
@@ -228,7 +221,7 @@ define(['N/record', 'N/search', 'N/log',
                         join: 'custrecord_dps_ship_small_channelservice'
                     }); //  '物流渠道服务编号';
                     data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
-                    // data["logisticsLabelPath"] = '物流面单文件路径';
+                    data["logisticsLabelPath"] = rec.getValue('custrecord_record_fulfill_xh_label_addr'); // 物流面单文件路径 ,
                     data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';
                     data["logisticsProviderName"] = rec.getText('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商名称';
                     data["mobilePhone"] = rec.getValue('custrecord_dps_ship_small_phone'); //'移动电话';
@@ -244,7 +237,7 @@ define(['N/record', 'N/search', 'N/log',
                     // data["shopCode"] = '平台编号';
 
                     data["shopName"] = rec.getValue('custrecord_dps_ship_small_account'); //'店铺名称';
-                    data["sourceNo"] = rec.getValue('custrecord_dps_ship_platform_order_numbe'); //'来源单号';
+                    data["sourceNo"] = rec.getValue('custrecord_dps_ship_order_number'); //'来源单号';
                     data["sourceType"] = 10; //'来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整';
                     // data["telephone"] = '固定电话';
                     // data["trackingNo"] = '最终跟踪号';
@@ -257,7 +250,8 @@ define(['N/record', 'N/search', 'N/log',
                         name: 'custrecord_dps_wms_location_name',
                         join: 'custrecord_dps_ship_samll_location'
                     }); //'仓库名称';
-                    data["waybillNo"] = rec.id;
+                    data["waybillNo"] = rec.getValue('custrecord_dps_ship_small_logistics_orde');
+
 
                 });
 
@@ -461,15 +455,15 @@ define(['N/record', 'N/search', 'N/log',
         search.create({
             type: 'salesorder',
             filters: [{
-                name: 'poastext',
-                operator: 'is',
-                values: poastext
-            },
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: true
-            }
+                    name: 'poastext',
+                    operator: 'is',
+                    values: poastext
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                }
             ],
             columns: [
                 'location'
@@ -495,16 +489,16 @@ define(['N/record', 'N/search', 'N/log',
         search.create({
             type: 'customrecord_dps_amazon_seller_sku',
             filters: [{
-                name: 'custrecord_dps_amazon_sku_number',
-                operator: 'is',
-                values: sku
-            } //sku
+                    name: 'custrecord_dps_amazon_sku_number',
+                    operator: 'is',
+                    values: sku
+                } //sku
                 , { // 存在货品非活动的情况
-                name: 'isinactive',
-                join: 'custrecord_dps_amazon_ns_sku',
-                operator: 'is',
-                values: false
-            }
+                    name: 'isinactive',
+                    join: 'custrecord_dps_amazon_ns_sku',
+                    operator: 'is',
+                    values: false
+                }
             ],
             columns: [
                 'custrecord_dps_amazon_ns_sku'
@@ -615,13 +609,14 @@ define(['N/record', 'N/search', 'N/log',
                 var result = jetstarApi.Create(rec, "small")
                 log.audit('result', result);
                 if (result.code == 200) {
+                    var trackingNumber, single_pdf;
                     var shipment_id = result.data.shipment_id
                     var labelresult = jetstarApi.GetLabels(shipment_id, '')
                     if (labelresult.code == 200) {
-                        var trackingNumber = labelresult.data.shipment.tracking_number
-                        var single_pdf = labelresult.data.shipment.single_pdf
-                        submitIdAndTackingNumber(rec.id, shipment_id, trackingNumber, '', '', single_pdf)
+                        trackingNumber = labelresult.data.shipment.tracking_number
+                        single_pdf = labelresult.data.shipment.single_pdf
                     }
+                    submitIdAndTackingNumber(rec.id, shipment_id, trackingNumber, '', '', single_pdf)
                 } else {
                     record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',
@@ -740,11 +735,13 @@ define(['N/record', 'N/search', 'N/log',
 
     function submitIdAndTackingNumber(id, shipment_id, trackingNumber, image, labelId, labelAddr) {
         var values = {
-            custrecord_dps_ship_small_status: 3,
+            // custrecord_dps_ship_small_status: 3,
             custrecord_dps_push_state_xh: "成功",
             custrecord_dps_push_result_xh: ""
         }
-        if (shipment_id) values.custrecord_dps_ship_small_logistics_orde = shipment_id
+        if (shipment_id) {
+            values.custrecord_dps_ship_small_logistics_orde = shipment_id
+        }
         if (trackingNumber) values.custrecord_dps_ship_small_trackingnumber = trackingNumber
         if (image) values.custrecord_dps_fulfill_record_xh_img = image
         if (labelId) values.custrecord_record_fulfill_xh_label_id = labelId

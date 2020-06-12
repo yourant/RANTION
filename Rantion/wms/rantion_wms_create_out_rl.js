@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-08 15:06:19
+ * @LastEditTime   : 2020-06-11 17:57:21
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -188,7 +188,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         name: 'custrecord_dps_wms_location_name',
                         join: 'custrecord_dps_ship_samll_location'
                     }); //'仓库名称';
-                    data["waybillNo"] = rec.id;
+                    data["waybillNo"] = rec.getValue('custrecord_dps_ship_small_logistics_orde');
 
                 });
 

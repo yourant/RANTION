@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-06-11 23:20:01
+ * @LastEditTime   : 2020-06-12 18:19:43
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -104,23 +104,37 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
                 var tranNO = l_rec.getValue('custrecord_dps_shipping_rec_order_num');
 
+                var LoId, positionCode;
                 for (var i = 0, len = storageList.length; i < len; i++) {
-                    var LoId = searchLocationCode(storageList[i].positionCode); // 只能修改一次,不可修改多次,履行多次出错
+                    positionCode = storageList[i].positionCode;
+                    LoId = searchLocationCode(storageList[i].positionCode, aono_id); // 只能修改一次,不可修改多次,履行多次出错
                     if (LoId) {
-                        var transferorderId = record.submitFields({
-                            type: 'transferorder',
-                            id: tranNO,
-                            values: {
-                                location: LoId
-                            },
-                            options: {
-                                enableSourcing: false,
-                                ignoreMandatoryFields: true
-                            }
-                        });
-                        log.debug('transferorderId', transferorderId);
                         break;
                     }
+                }
+
+                if (LoId) {
+                    var transferorderId = record.submitFields({
+                        type: 'transferorder',
+                        id: tranNO,
+                        values: {
+                            location: LoId
+                        },
+                        options: {
+                            enableSourcing: false,
+                            ignoreMandatoryFields: true
+                        }
+                    });
+                    log.debug('transferorderId', transferorderId);
+                } else {
+                    log.debug('调拨单回传处理出错了', 'NS找不到对应的库位' + positionCode);
+                    retjson.code = 3;
+                    retjson.data = {
+                        msg: '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode
+                    };
+                    retjson.msg = 'error';
+
+                    return JSON.stringify(retjson);
                 }
 
                 var cn_no = searchLoadingInformation(containerNo);
@@ -171,7 +185,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
                 var l_rec_id = l_rec.save();
 
-                itemfulfillment(l_rec, tranNO);
+                itemfulfillment(l_rec, tranNO, storageList);
 
                 log.audit('发运记录更新完成', l_rec_id);
 
@@ -182,15 +196,13 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 retjson.msg = 'success';
             }
         } catch (error) {
-
+            log.debug('调拨单回传处理出错 error', error);
             retjson.code = 3;
             retjson.data = {
-                msg: 'NS error'
+                msg: 'NS error: ' + error.message
             };
             retjson.msg = 'error';
         }
-
-        // }
 
         return JSON.stringify(retjson);
     }
@@ -209,6 +221,54 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
             // isDynamic: true,
         });
 
+        var poItem = [],
+            limit = 3999,
+            itendup;
+
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: link
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                },
+
+            ],
+            columns: [
+                'item', 'quantity'
+            ]
+        }).run().each(function (rec) {
+
+            for (var i = 0, leni = itemList.length; i < leni; i++) {
+                var a = itemList[i],
+                    asku = a.sku;
+                if (asku == rec.getText('item') && rec.getValue('quantity') > 0) {
+                    var it = {
+                        itemId: rec.getValue('item'),
+                        itemName: rec.getText('item'),
+                        qty: a.qty
+                    }
+                    poItem.push(it);
+                }
+
+            }
+
+            return --limit > 0;
+
+        });
+
+        log.debug('poItem', poItem);
+
         objRecord.setValue({
             fieldId: 'shipstatus',
             value: 'C'
@@ -220,21 +280,28 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
         log.audit('item_ful: ', item_ful);
 
-        var line_num = [];
         for (var i = 0; i < item_ful; i++) {
             var totalQty = 0;
-            var treItem = objRecord.getSublistValue({
+            var treItem = objRecord.getSublistText({
                 sublistId: 'item',
                 fieldId: 'item',
                 line: i,
             });
 
-            for (var j = 0, len = itemList.length; j < len; j++) {
-                var a = itemList[j];
-                if (a.sku == treItem) {
+            log.debug('treItem', treItem);
+
+            for (var j = 0, len = poItem.length; j < len; j++) {
+                var a = poItem[j];
+
+                if (treItem == a.itemId) {
+                    var qty = a.qty;
                     totalQty += qty;
+                    log.debug('totalQty: ' + totalQty, 'qty: ' + qty);
                 }
+
             }
+
+            log.debug('totalQty', totalQty);
 
             objRecord.setSublistValue({
                 sublistId: 'item',
@@ -250,7 +317,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 line: i
             });
 
-
         }
         var objRecord_id = objRecord.save();
         log.debug('objRecord_id', objRecord_id);
@@ -261,7 +327,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
             log.debug('itemreceipt_id', itemreceipt_id);
         }
 
-        return
+        return itemreceipt_id || false;
     }
 
     /**
@@ -280,6 +346,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
         return obj_id || false;
     }
+
 
     /**
      * 根据柜号搜索对应的装柜记录
@@ -328,18 +395,50 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
      * 根据仓库编号搜索对应的地点
      * @param {*} LoCode 
      */
-    function searchLocationCode(LoCode) {
+    function searchLocationCode(LoCode, recId) {
         var locationId;
+
+        var subsidiaryId;
+
+        search.create({
+            type: 'customrecord_dps_shipping_record',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: recId
+            }],
+            columns: [
+                'custrecord_dps_shipping_rec_transa_subje'
+            ]
+        }).run().each(function (rec) {
+            subsidiaryId = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
+        });
+
+        log.debug('subsidiaryId', subsidiaryId);
+
         search.create({
             type: 'location',
             filters: [{
-                name: 'custrecord_dps_wms_location',
-                operator: 'startswith',
-                values: LoCode
-            }]
+                    name: 'custrecord_dps_wms_location',
+                    operator: 'startswith',
+                    values: LoCode
+                },
+                {
+                    name: 'subsidiary',
+                    operator: 'anyof',
+                    values: subsidiaryId
+                },
+                {
+                    name: 'isinactive',
+                    operator: 'is',
+                    values: false
+                }
+            ]
         }).run().each(function (rec) {
             locationId = rec.id;
         });
+
+        log.debug('locationId', locationId);
 
         return locationId || false;
     }

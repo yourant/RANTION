@@ -1,120 +1,73 @@
 /*
  * @Author         : Li
  * @Version        : 1.0
- * @Date           : 2020-05-14 20:36:32
- * @LastEditTime   : 2020-06-15 14:34:53
+ * @Date           : 2020-06-12 19:57:07
+ * @LastEditTime   : 2020-06-15 14:35:06
  * @LastEditors    : Li
  * @Description    : 
- * @FilePath       : \douples_amazon\dps.create.ful.record.mp.js
+ * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
-
 /**
- * @NApiVersion 2.x
- * @NScriptType MapReduceScript
+ *@NApiVersion 2.x
+ *@NScriptType Restlet
  */
-define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calculation.js',
+define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
     'N/record', 'N/search', 'N/log'
 ], function (config, costCal, record, search, log) {
 
-    function getInputData() {
-        var limit = 3999,
-            order = [];
-        search.create({
-            type: 'salesorder',
-            filters: [{
-                    name: 'mainline',
-                    operator: 'is',
-                    values: true
-                }, // 是否生成小货发运记录
-                {
-                    name: 'custbody_dps_so_create_ful_record',
-                    operator: 'is',
-                    values: true
-                }, // 关联的小货发运记录为空
-                {
-                    name: 'custbody_dps_small_fulfillment_record',
-                    operator: 'anyof',
-                    values: '@NONE@'
-                },
-                // { name: 'location', operator: 'noneof', values: '@NONE@'},
-                // {
-                //     name: 'custbody_order_type_fulfillment',
-                //     operator: 'anyof',
-                //     values: ['2']
-                // },
-                // {
-                //     name: "isinactive",
-                //     join: "custbody_order_locaiton",
-                //     operator: "is",
-                //     values: true
-                // }
-            ]
-        }).run().each(function (rec) {
-            order.push(rec.id);
-            return --limit > 0;
-        });
-        log.debug('可处理订单数量', order.length);
-        return order;
-    }
 
-    function map(context) {
+    function _post(context) {
+
+        log.debug('typrof context', typeof (context));
+
+        log.debug('context', context);
+
+        var recordID = context.recordID;
+
+        log.debug('recordID', recordID);
+
+        var reJson = {},
+            itemArr = {};
+
         try {
-            var flag = true,
-                fla = false,
-                soid = context.value;
-            log.debug('创建发运记录', 'soid:' + soid);
-            search.create({
-                type: 'salesorder',
-                filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: soid
-                }],
-                columns: [{
-                    name: "isinactive",
-                    join: "custbody_order_locaiton",
-                }]
-            }).run().each(function (rec) {
-                flag = rec.getValue({
-                    name: "isinactive",
-                    join: "custbody_order_locaiton",
-                });
-            });
 
-            // 判断货品是否有货
-            // var itemArr = searchItemSO(soid);
-            // var fla = searchLocation(itemArr);
+            // itemArr = searchItemSO(recordID);
+            // var flag = searchLocation(itemArr);
 
-            // 判断当前销售订单是否有延交订单
-            var fla = qtyBackOrdered(soid);
-            log.debug('fla', fla);
+            var flag = qtyBackOrdered(recordID);
 
             log.debug('searchLocation flag', flag);
 
-            if (!flag && fla) {
+            // flag = false;
+            if (flag) {
+
                 // 创建发运记录
-                var create_ful_rec_id = createFulfillmentRecord(soid, 'value');
+                var create_ful_rec_id = createFulfillmentRecord(recordID, 'value');
                 log.debug('创建发运记录成功', 'create_ful_rec_id:' + create_ful_rec_id);
                 if (create_ful_rec_id) {
+                    reJson.msg = '小货发运记录： ' + create_ful_rec_id;
                     // 物流匹配
-                    log.debug('物流匹配', 'soid:' + soid + ', create_ful_rec_id:' + create_ful_rec_id);
-                    createLogisticsStrategy(soid, create_ful_rec_id);
+                    log.debug('物流匹配', 'recordID:' + recordID + ', create_ful_rec_id:' + create_ful_rec_id);
+                    createLogisticsStrategy(recordID, create_ful_rec_id);
                 } else {
-                    log.debug('对应的店铺已经非活动', '不创建小货发运记录');
+                    log.debug('创建发运记录失败了', '');
+                    reJson.code = 3;
+                    reJson.msg = '创建发运记录失败了 ';
                 }
-
+            } else {
+                reJson.code = 2;
+                reJson.msg = '货品库存不足';
             }
+
         } catch (error) {
-            log.error('创建发运记录 error', error);
+            log.error('创建小货发运记录失败了', error);
+            reJson.code = 5;
+            reJson.msg = error.message;
         }
-    }
 
-    function reduce(context) {
-
-    }
-
-    function summarize(summary) {
+        log.debug('reJson', reJson);
+        return reJson;
 
     }
 
@@ -240,8 +193,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
                 }
             ],
             columns: [
-                'inventorylocation',
-                'locationquantityavailable'
+                'inventorylocation'
             ]
         }).run().each(function (rec) {
             var item = rec.id,
@@ -262,8 +214,11 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             return --limit > 0;
         });
 
+        log.debug('searchLocation flag', flag);
+
         return flag;
     }
+
 
     /**
      * 生成发运记录, 关联销售订单
@@ -1291,9 +1246,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
     }
 
     return {
-        getInputData: getInputData,
-        map: map,
-        reduce: reduce,
-        summarize: summarize
+
+        post: _post
     }
 });

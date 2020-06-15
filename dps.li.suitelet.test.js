@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-06-11 13:40:37
+ * @LastEditTime   : 2020-06-12 16:02:14
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -19,6 +19,15 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
         try {
 
 
+            var obj = record.load({
+                type: 'inventorytransfer',
+                id: 117702
+            });
+
+            log.debug('obj', obj);
+
+
+            /*
             var objRecord = record.transform({
                 fromType: 'transferorder',
                 fromId: 131689,

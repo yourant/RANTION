@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-13 11:23:25
+ * @LastEditTime   : 2020-06-15 17:25:46
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -16,8 +16,8 @@ define(['N/record', 'N/search', 'N/log',
     'SuiteScripts/dps/logistics/openapi/dps_openapi_request.js',
     'SuiteScripts/dps/logistics/yanwen/dps_yanwen_request.js',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
-    'SuiteScripts/dps/logistics/common/Moment.min', 'N/http', 'N/file', "N/xml"
-], function (record, search, log, jetstar, openapi, yanwen, endicia, Moment, http, file, xml) {
+    'SuiteScripts/dps/logistics/common/Moment.min', 'N/http', 'N/file', "N/xml", 'N/runtime'
+], function (record, search, log, jetstar, openapi, yanwen, endicia, Moment, http, file, xml, runtime) {
 
     function beforeLoad(context) {
 
@@ -140,12 +140,25 @@ define(['N/record', 'N/search', 'N/log',
             }
             if (rec_status == 3) {
 
+                // var Laf_rec = record.load({
+                //     type: af_rec.type,
+                //     id: af_rec.id
+                // });
+
+                var soId = af_rec.getValue('custrecord_dps_ship_small_salers_order');
+
+                log.debug('soId', soId);
+
+                var fla = qtyBackOrdered(soId);
+
+                log.debug('fla', fla);
+
                 // 已获取物流跟踪单号, 直接推送 WMS
 
                 var message = {};
                 // 获取token
                 var token = getToken();
-                if (token) {
+                if (token && fla) {
                     var data = {};
                     // 业务数据填写至data即可
                     // 参数模板 (参数类型，是否必填)
@@ -257,7 +270,6 @@ define(['N/record', 'N/search', 'N/log',
                         }); //'仓库名称';
                         data["waybillNo"] = rec.getValue('custrecord_dps_ship_small_logistics_orde');
 
-
                     });
 
 
@@ -331,8 +343,15 @@ define(['N/record', 'N/search', 'N/log',
                     // 发送请求
                     message = sendRequest(token, [data]);
                 } else {
-                    message.code = 1;
-                    message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
+                    if (!fla) {
+                        message.code = 3;
+                        message.data = {
+                            msg: '库存不足,无法发运'
+                        }
+                    } else {
+                        message.code = 1;
+                        message.data = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
+                    }
                 }
                 var flag, temp;
 
@@ -365,6 +384,41 @@ define(['N/record', 'N/search', 'N/log',
         }
 
 
+    }
+
+    /**
+     * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
+     * @param {*} soId 
+     * @returns {Boolean} true || false
+     */
+    function qtyBackOrdered(soId) {
+        var flag = true;
+        var backOrder = 0;
+
+        var soObj = record.load({
+            type: 'salesorder',
+            id: soId
+        });
+        var numLines = soObj.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            var backQty = soObj.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantitybackordered',
+                line: i
+            });
+            backOrder += Number(backQty);
+        }
+        log.debug('backOrder', backOrder);
+
+        if (backOrder > 0) {
+            flag = false;
+        }
+
+        return flag;
     }
 
 
@@ -723,7 +777,22 @@ define(['N/record', 'N/search', 'N/log',
                     fileObj = file.load({
                         id: fileId
                     });
-                    submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, "https://6188472-sb1.app.netsuite.com" + fileObj.url)
+
+                    var url = 'https://';
+                    var account = runtime.accountId;
+                    log.debug("Account ID for the current user: ", runtime.accountId);
+                    if (account.indexOf('_SB1') > -1) {
+                        var ac = account.replace('_SB1', '');
+                        url += ac + '-sb1.app.netsuite.com';
+                    } else {
+                        url += account + '.app.netsuite.com';
+                    }
+                    url += fileObj.url;
+
+
+                    log.debug('url', url);
+
+                    submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, url)
                 } else {
                     record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',

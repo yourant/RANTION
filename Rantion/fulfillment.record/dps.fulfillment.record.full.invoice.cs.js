@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:43:21
- * @LastEditTime   : 2020-06-11 16:57:06
+ * @LastEditTime   : 2020-06-15 17:37:49
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.cs.js
@@ -316,7 +316,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
                     if (response.body == false) {
                         alert('WMS发运失败')
                     } else {
-                        alert('WMS发运成功: ' + response.body);
+                        alert(response.body);
                         window.location.reload(true);
                     }
                 }

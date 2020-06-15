@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-12 19:56:55
- * @LastEditTime   : 2020-06-15 10:40:21
+ * @LastEditTime   : 2020-06-15 15:52:23
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.cs.js
@@ -99,6 +99,7 @@ define(['N/search', 'N/url', 'N/ui/dialog', 'N/log', 'N/https', '../Helper/sweet
                             message: body.msg
                         });
                     }
+                    window.location.reload(true);
                 });
             },
             allowOutsideClick: false,

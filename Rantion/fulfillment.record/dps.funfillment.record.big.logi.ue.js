@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-12 15:30:57
+ * @LastEditTime   : 2020-06-15 14:58:54
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -1097,6 +1097,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     name: 'custrecord_ls_service_code',
                     join: 'custrecord_dps_shipping_r_channelservice'
                 }, // 渠道服务代码
+                'custrecord_dps_shipment_label_file', // 装运标签文件
                 'custrecord_dps_shipping_r_channelservice', // 渠道服务
                 'custrecord_dps_shipping_r_channel_dealer', //渠道商
                 'custrecord_dps_shipping_rec_order_num', // 调拨单号
@@ -1106,10 +1107,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         }).run().each(function (rec) {
             tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
             aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
-            fileId = rec.getValue({
-                name: "url",
-                join: "file"
-            });
+            fileId = rec.getValue('custrecord_dps_shipment_label_file');
+            // fileId = rec.getValue({
+            //     name: "url",
+            //     join: "file"
+            // });
             service_code = rec.getValue({
                 name: 'custrecord_ls_service_code',
                 join: 'custrecord_dps_shipping_r_channelservice'
@@ -1118,7 +1120,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             channel_dealer = rec.getText('custrecord_dps_shipping_r_channel_dealer');
             channel_dealer_id = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
             Label = rec.getValue('custrecord_fulfill_dh_label_addr'); // 面单地址
-        })
+        });
 
 
         log.debug('Label: ' + rec_status, Label);
@@ -1126,6 +1128,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             // 存在面单文件
             var url = 'https://';
             if (tranType == 1 && fileId) {
+                var fileObj = file.load({
+                    id: fileId
+                });
                 var account = runtime.accountId;
                 log.debug("Account ID for the current user: ", runtime.accountId);
                 if (account.indexOf('_SB1') > -1) {
@@ -1134,7 +1139,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 } else {
                     url += account + '.app.netsuite.com';
                 }
-                url += fileId;
+                url += fileObj.url;
             }
             log.debug('url', url);
 

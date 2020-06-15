@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-14 20:36:32
- * @LastEditTime   : 2020-06-15 14:34:53
+ * @LastEditTime   : 2020-06-15 16:19:27
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \douples_amazon\dps.create.ful.record.mp.js
@@ -1244,7 +1244,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             }); // 计费重量
             so.setValue({
                 fieldId: 'custbody_dps_estimate_freight',
-                value: resultObj.costamount
+                value: resultObj.costamount.toFixed(2)
             }); // 预估运费
             so.save();
             ful.setValue({
@@ -1257,7 +1257,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             }); // 渠道服务
             ful.setValue({
                 fieldId: 'custrecord_dps_ship_small_estimatedfreig',
-                value: resultObj.costamount
+                value: resultObj.costamount.toFixed(2)
             }); // 预估运费
             ful.setValue({
                 fieldId: 'custrecord_dps_ship_small_status',

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-11 17:57:21
+ * @LastEditTime   : 2020-06-15 17:47:31
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -20,10 +20,12 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
     function _post(context) {
         var message = {};
+        var SOFlag = true;
         // 获取token
         var token = getToken();
         if (token) {
             var data = {};
+
             // 业务数据填写至data即可
             // 参数模板 (参数类型，是否必填)
 
@@ -73,16 +75,18 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             // 销售订单
             if (sourceType == 10) {
 
+                var soLink;
+
                 // 业务数据填写至data即可
                 // 参数模板 (参数类型，是否必填)
 
 
                 log.audit('sourceType: ' + sourceType, 'recordID: ' + context.recordID);
 
-                var af_rec = record.load({
-                    type: 'customrecord_dps_shipping_small_record',
-                    id: context.recordID
-                });
+                // var af_rec = record.load({
+                //     type: 'customrecord_dps_shipping_small_record',
+                //     id: context.recordID
+                // });
 
                 search.create({
                     type: 'customrecord_dps_shipping_small_record',
@@ -145,6 +149,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     ]
                 }).run().each(function (rec) {
 
+                    soLink = rec.getValue('custrecord_dps_ship_small_salers_order');
+
                     // data["address"] =    //'地址';
                     data["city"] = rec.getValue('custrecord_dps_recipient_city'); // '城市';
                     data["country"] = rec.getText('custrecord_dps_recipient_country'); // '国家';
@@ -191,6 +197,11 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     data["waybillNo"] = rec.getValue('custrecord_dps_ship_small_logistics_orde');
 
                 });
+
+
+                SOFlag = qtyBackOrdered(soLink)
+
+                log.debug('SOFlag', SOFlag);
 
 
                 var limit = 3999,
@@ -280,22 +291,50 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
             }
 
-            // 发送请求
-            message = sendRequest(token, [data]);
+
+            log.debug('SOFlag', SOFlag)
+            if (sourceType == 10) {
+
+                log.debug('属于销售订单' + SOFlag, sourceType);
+                // 发送请求
+                if (SOFlag) {
+                    message = sendRequest(token, [data]);
+                }
+            } else {
+                log.debug('属于不销售订单属于其他类型', sourceType);
+                // 发送请求
+                message = sendRequest(token, [data]);
+            }
+
         } else {
             message.code = 1;
             message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
         }
 
         if (sourceType == 10) {
-            var flag;
+            var flag, str;
 
-            log.debug('message.data.code', message.data.code);
-            if (message.data.code != 0) {
-                flag = 8;
+            if (SOFlag) {
+
+                log.debug('message.data.code', message.data.code);
+                if (message.data.code != 0) {
+                    flag = 8;
+                    str = JSON.stringify(message.data);
+                } else {
+                    flag = 14;
+                    str = JSON.stringify(message.data);
+                }
+
             } else {
-                flag = 14;
+                str = '库存不足,无法发运';
+                flag = 8;
+
+                message.code = 5;
+                message.data = {
+                    msg: '库存不足,无法发运'
+                };
             }
+
 
             log.debug('推送WMS flag', flag);
             var id = record.submitFields({
@@ -303,7 +342,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 id: context.recordID,
                 values: {
                     custrecord_dps_ship_small_status: flag,
-                    custrecord_dps_ship_small_wms_info: message.data
+                    custrecord_dps_ship_small_wms_info: str
                 }
             });
 
@@ -320,6 +359,43 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
     function _delete(context) {
 
     }
+
+
+    /**
+     * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
+     * @param {*} soId 
+     * @returns {Boolean} true || false
+     */
+    function qtyBackOrdered(soId) {
+        var flag = true;
+        var backOrder = 0;
+
+        var soObj = record.load({
+            type: 'salesorder',
+            id: soId
+        });
+        var numLines = soObj.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            var backQty = soObj.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantitybackordered',
+                line: i
+            });
+            backOrder += Number(backQty);
+        }
+        log.debug('backOrder', backOrder);
+
+        if (backOrder > 0) {
+            flag = false;
+        }
+
+        return flag;
+    }
+
 
 
     /**

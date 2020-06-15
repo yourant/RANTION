@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-04 17:54:10
+ * @LastEditTime   : 2020-06-15 16:57:41
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -82,6 +82,11 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         'custrecord_line_boxes_number', //箱数
                         'custrecord_item_quantity', //交货数量
                         'custrecord_outstanding_quantity', //剩余交货数量
+
+                        'custrecord_ddoi_high', //(number): 高,
+                        'custrecord_ddoi_long', //(number): 长,
+                        'custrecord_ddoi_width', // (number): 宽
+
                         {
                             name: "custitem_dps_spucoding",
                             join: "custrecord_item_sku"
@@ -197,7 +202,16 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                             value: 'L'
                         }
                     ];
+
+
+                    var boxInfo = {
+                        height: rec.getValue('custrecord_ddoi_high'), //(number): 高,
+                        length: rec.getValue('custrecord_ddoi_long'), //(number): 长,
+                        width: rec.getValue('custrecord_ddoi_width'), // (number): 宽
+                    };
+
                     item_arr.push({
+                        boxInfo: boxInfo,
                         boxNum: rec.getValue({
                             name: "custrecord_line_boxes_number"
                         }),

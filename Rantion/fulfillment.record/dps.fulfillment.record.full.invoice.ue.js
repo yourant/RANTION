@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-15 17:25:46
+ * @LastEditTime   : 2020-06-16 17:17:37
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -27,7 +27,7 @@ define(['N/record', 'N/search', 'N/log',
             var bf_cur = context.newRecord;
 
             var small_status = bf_cur.getValue('custrecord_dps_ship_small_status');
-            if (small_status == 4) {
+            if (small_status == 4 || small_status == 2) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '重新获取物流渠道',
@@ -355,7 +355,7 @@ define(['N/record', 'N/search', 'N/log',
                 }
                 var flag, temp;
 
-                log.debug('typeof(message): ' + typeof (message), message)
+                log.debug('typeof(message): ' + typeof (message), message);
                 try {
                     temp = JSON.s(message.data);
                 } catch (error) {
@@ -816,11 +816,15 @@ define(['N/record', 'N/search', 'N/log',
         }
         if (shipment_id) {
             values.custrecord_dps_ship_small_logistics_orde = shipment_id
+            values.custrecord_dps_ship_small_status = 3
         }
         if (trackingNumber) values.custrecord_dps_ship_small_trackingnumber = trackingNumber
         if (image) values.custrecord_dps_fulfill_record_xh_img = image
         if (labelId) values.custrecord_record_fulfill_xh_label_id = labelId
-        if (labelAddr) values.custrecord_record_fulfill_xh_label_addr = labelAddr
+        if (labelAddr) {
+            values.custrecord_record_fulfill_xh_label_addr = labelAddr
+            values.custrecord_dps_ship_small_status = 3
+        }
         record.submitFields({
             type: 'customrecord_dps_shipping_small_record',
             id: id,

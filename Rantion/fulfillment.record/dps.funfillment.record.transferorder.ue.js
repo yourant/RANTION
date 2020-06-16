@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-12 12:07:23
+ * @LastEditTime   : 2020-06-16 15:55:37
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -141,6 +141,67 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         } else {
             log.debug('else status', orderstatus);
         }
+    }
+
+
+    /**
+     * 
+     * @param {*} tranId 
+     */
+    function TransferBackOrder(tranId) {
+
+        var traBackOre = 0,
+            flag = false;
+        var tranObj = record.load({
+            type: 'transferorder',
+            id: tranId
+        });
+
+        var numLines = tranObj.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+        }
+
+
+
+    }
+
+    /**
+     * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
+     * @param {*} recType 
+     * @param {*} recId 
+     * @returns {Boolean} true || false
+     */
+    function qtyBackOrdered(recType, recId) {
+        var flag = true;
+        var backOrder = 0;
+
+        var recObj = record.load({
+            type: recType,
+            id: recId
+        });
+        var numLines = recObj.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            var backQty = recObj.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantitybackordered',
+                line: i
+            });
+            backOrder += Number(backQty);
+        }
+        log.debug('backOrder', backOrder);
+        if (backOrder > 0) {
+            // 延交订单数量大于 0
+            flag = false;
+        }
+        return flag;
     }
 
 

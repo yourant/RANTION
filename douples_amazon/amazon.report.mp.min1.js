@@ -66,7 +66,10 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 name: 'custscript_restriction'
             });
             log.audit("RESTRICTION", restr);
-
+            //店铺
+            var stroe = runtime.getCurrentScript().getParameter({
+                name: 'custscript_store_report'
+            })
             var startDate, endate;
 
             var sum = 0,acc_arrys=[];
@@ -78,7 +81,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             }
             // core.amazon.getReportAccountList().map(function (account) {
                 acc_arrys.map(function (account) {
-                    if(account.id !=5)return
+                    if(account.id !=stroe && stroe) return
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {
                     log.audit("account:" + account.id, marketplace);
@@ -93,7 +96,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         } else {
                             startDate = report_start_date;
                             endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
-                            // startDate = '2020-05-01T00:00:00.000Z';
+                            startDate = '2020-06-01T00:00:00.000Z';
                             // endate = '2020-06-10T10:00:00.000Z';
                             log.debug(report_type, "startDate:" + startDate + "   endate:" + endate);
 

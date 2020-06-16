@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-12 19:57:07
- * @LastEditTime   : 2020-06-15 16:18:27
+ * @LastEditTime   : 2020-06-16 14:19:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.rl.js
@@ -228,7 +228,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
      */
     function createFulfillmentRecord(soid, sku) {
         var location, api_content, tranid, otherrefnum, account, marketplaceid, amount,
-            first_name, cc_country, cc_state, cc_ctiy, cc_zip, cc_addr1, cc_addr2, cc_phone_number;
+            first_name, cc_country, cc_state, cc_ctiy, cc_zip, cc_addr1, cc_addr2, cc_phone_number, recName;
         var item_arr = [],
             limit = 3999;
         search.create({
@@ -294,9 +294,21 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                 {
                     name: 'custrecord_cc_phone_number',
                     join: 'custbody_dps_order_contact'
-                }
+                },
+                {
+                    name: 'name',
+                    join: 'custbody_dps_order_contact'
+                },
+                {
+                    name: 'custbody_sotck_account'
+                }, // 发货店铺
             ]
         }).run().each(function (rec) {
+
+            recName = rec.getValue({
+                name: 'name',
+                join: 'custbody_dps_order_contact'
+            });
             amount = rec.getValue('amount');
             location = rec.getValue('location');
             var info = {
@@ -312,7 +324,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             api_content = rec.getValue('custbody_aio_api_content');
             tranid = rec.getValue('tranid');
             otherrefnum = rec.getValue('otherrefnum');
-            account = rec.getValue('custbody_aio_account');
+            account = rec.getValue('custbody_sotck_account');
             marketplaceid = rec.getValue('custbody_aio_marketplaceid');
             first_name = rec.getValue({
                 name: 'custrecord_cc_first_name',
@@ -446,13 +458,18 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             fieldId: 'custrecord_dps_street2',
             value: cc_addr2 ? cc_addr2 : ''
         });
+
+
+        var strName1;
+        var strName = recName ? recName : first_name;
         // 目的地
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_ship_small_destination',
-            value: first_name + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country
-        });
-        if (first_name) {
-            first_name += ',';
+        // ful_create_rec.setValue({
+        //     fieldId: 'custrecord_dps_ship_small_destination',
+        //     value: strName + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country
+        // });
+        if (strName) {
+            strName1 = strName;
+            strName += ',';
         }
         if (cc_addr1) {
             cc_addr1 += ',';
@@ -470,14 +487,14 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             cc_state += ',';
         }
         // 收件人地址
-        ful_create_rec.setValue({
-            fieldId: 'custrecord_dps_addressee_address',
-            value: first_name + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
-        });
+        // ful_create_rec.setValue({
+        //     fieldId: 'custrecord_dps_addressee_address',
+        //     value: strName + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
+        // });
         // 收件人 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_recipient',
-            value: first_name
+            value: strName1
         });
         // 联系电话 
         ful_create_rec.setValue({
@@ -785,7 +802,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                 join: 'item'
             }));
             order.weight = order.weight + weight;
-            SKUs.push(jsonstr);
+            SKUs.push(jsonstr.skuid);
             return true;
         });
         order.lwh = order.long + order.wide + order.high;
@@ -1221,7 +1238,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         } else {
             ful.setValue({
                 fieldId: 'custrecord_dps_ship_small_status',
-                value: 3
+                value: 2
             }); // 匹配状态，失败
         }
         ful.setValue({

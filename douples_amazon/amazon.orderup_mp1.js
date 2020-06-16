@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-07 09:41:37
- * @LastEditTime   : 2020-06-08 20:45:10
+ * @LastEditTime   : 2020-06-16 10:48:12
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \douples_amazon\amazon.orderup_mp1.js
@@ -54,13 +54,13 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 {
                     name: "custrecord_aio_cache_status",
                     operator: "is",
-                    values: "Unshipped"
+                    values: "shipped"
                 },
-                // {
-                //     name: "custrecord_trandate_amazonorder",
-                //     operator: "within",
-                //     values: ["1/5/2020", "1/6/2020"]
-                // },
+                {
+                    name: "custrecord_amazon_last_update_date",
+                    operator: "onorafter",
+                    values: "12/6/2020"
+                },
                 // {
                 //     name: "custrecord_dds111",
                 //     operator: "isnot",
@@ -72,7 +72,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 //     values: "MFN"
                 // }
             ];
-            if(orderid){
+            if (orderid) {
                 filters.push({
                     name: "custrecord_aio_cache_order_id",
                     operator: "is",
@@ -1314,9 +1314,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 names = o.shipping_address.name.split(' ').filter(function (n) {
                     return n != '';
                 });
-            }
-
-            if (o.buyer_name) {
+            } else if (o.buyer_name) {
                 names = o.buyer_name.split(' ').filter(function (n) {
                     return n != '';
                 });
@@ -1339,7 +1337,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             });
             c.setValue({
                 fieldId: 'custrecord_cc_last_name',
-                value: names[1]
+                value: names[names.length - 1]
             });
             // c.setValue({ fieldId: 'custrecord_cc_phone_number', value: data.default_address.phone });
             c.setValue({

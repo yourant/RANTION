@@ -23,36 +23,20 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
 
             var orderJson = {},
                 total = 0;
-
+                var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_store' });
+                log.debug("acc:"+acc)
+                  var fils = []
+                  fils.push(search.createFilter({ name: 'custrecord_aio_marketplace', operator: "anyof", values: "1" }));/* amazon */
+                  fils.push(search.createFilter({ name: 'custrecord_aio_seller_id', operator: "isnotempty"}));/* amazon */
+                  fils.push(search.createFilter({ name: 'custrecord_aio_dev_account', operator: "noneof",values:"@NONE@"}));/* amazon */
+                  fils.push(search.createFilter({ name: 'isinactive', operator: "is",values:false}));/* amazon */
+                  fils.push(search.createFilter({ name: 'custrecord_dps_get_report', operator: "is",values:true}));/* amazon */
+                  acc ? fils.push(search.createFilter({ name: 'internalidnumber', operator: search.Operator.EQUALTO, values: acc })) : ""
+                  log.debug("filters", JSON.stringify(fils))
             // 搜索店铺
             search.create({
                 type: 'customrecord_aio_account',
-                filters: [{
-                        name: 'custrecord_aio_marketplace',
-                        operator: 'anyof',
-                        values: 1 /* amazon */
-                    },
-                    {
-                        name: 'custrecord_aio_seller_id',
-                        operator: 'isnotempty'
-                    },
-                    /*{ name: 'custrecord_aio_mws_auth_token', operator: 'isnotempty' },*/
-                    {
-                        name: 'custrecord_aio_dev_account',
-                        operator: 'noneof',
-                        values: '@NONE@'
-                    },
-                    {
-                        name: 'isinactive',
-                        operator: 'is',
-                        values: false
-                    },
-                    {
-                        name: 'custrecord_dps_get_report',
-                        operator: 'is',
-                        values: true
-                    }
-                ],
+                filters: fils,
                 columns: [{
                         name: 'custrecord_aio_enabled_sites'
                     } // 站点信息
@@ -175,7 +159,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
 
                     // 获取自定义时间 的财务报告
                     // TODO
-                    report_start_date = "2020-04-01T00:00:00.000Z"
+                    report_start_date = "2020-06-01T00:00:00.000Z"
                     // 设置请求报告的开始时间
                     h.setValue({
                         fieldId: 'custrecord_dps_financetype_startdate',

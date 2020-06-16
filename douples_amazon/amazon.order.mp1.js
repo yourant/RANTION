@@ -17,7 +17,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             });
             log.debug("request_date", request_date)
             core.amazon.getAccountList().map(function (account) {
-                if(account.id !=12)  return
                 last_updated_after = "2020-06-01T00:00:00.000Z";
                 // last_updated_before = "2020-03-10T23:59:59.999Z";
                 if (account.enabled_sites == 'AmazonUS') {
@@ -271,22 +270,22 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     // 美国站点
                     log.audit("acc_id " + acc_id, "美国站点");
 
-                    last_update_date = "2020-06-01T00:00:00.000Z";
+                    last_update_date = "2020-06-12T00:00:00.000Z";
                 } else if (enabled_sites == 'AmazonUK') {
                     // 英国站点
                     log.audit("acc_id " + acc_id, "英国站点");
 
-                    last_update_date = "2020-06-01T00:00:00.000Z";
+                    last_update_date = "2020-06-12T00:00:00.000Z";
                 } else if (enabled_sites == 'AmazonDE' || enabled_sites == 'AmazonES' || enabled_sites == 'AmazonFR' || enabled_sites == 'AmazonIT') {
                     // 欧洲站点
                     log.audit("acc_id " + acc_id, "欧洲站点");
 
-                    last_update_date = "2020-06-01T00:00:00.000Z";
+                    last_update_date = "2020-06-12T00:00:00.000Z";
                 } else {
                     // 其他站点
                     log.audit("acc_id " + acc_id, "其他站点");
 
-                    last_update_date = "2020-06-01T00:00:00.000Z";
+                    last_update_date = "2020-06-12T00:00:00.000Z";
                 }
 
             }
@@ -458,7 +457,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                             log.debug("last_after:" + last_after, "last_before:" + last_before + ",marketplace_id：" + auth.marketplace_id)
                             content = core.amazon.mwsRequestMaker(auth, 'ListOrders', '2013-09-01', {
                                 'MarketplaceId.Id.1': auth.marketplace_id,
-                                'FulfillmentChannel.Channel.1': "MFN",
+                                // 'FulfillmentChannel.Channel.1': "MFN",
                                 'LastUpdatedAfter': last_after,
                                 'LastUpdatedBefore': last_before
                                 // 'CreatedAfter': last_after,
@@ -468,7 +467,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                             log.debug("auth", auth)
                             content = core.amazon.mwsRequestMaker(auth, 'ListOrders', '2013-09-01', {
                                 'MarketplaceId.Id.1': auth.marketplace_id,
-                                'FulfillmentChannel.Channel.1': "MFN",
+                                // 'FulfillmentChannel.Channel.1': "MFN",
                                 'LastUpdatedAfter': last_updated_after,
                                 // 'LastUpdatedAfter': "2019-12-20T18:33:09.806Z",
                                 // 'CreatedAfter': "2019-12-20T18:33:09.806Z",

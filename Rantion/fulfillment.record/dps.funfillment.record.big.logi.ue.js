@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-15 14:58:54
+ * @LastEditTime   : 2020-06-16 16:50:15
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -1122,8 +1122,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             Label = rec.getValue('custrecord_fulfill_dh_label_addr'); // 面单地址
         });
 
-
-        log.debug('Label: ' + rec_status, Label);
+        log.debug('Label: ', Label);
         if (Label) {
             // 存在面单文件
             var url = 'https://';

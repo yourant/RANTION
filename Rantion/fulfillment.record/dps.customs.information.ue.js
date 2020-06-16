@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 13:58:40
- * @LastEditTime   : 2020-06-10 16:32:44
+ * @LastEditTime   : 2020-06-16 15:13:14
  * @LastEditors    : Li
  * @Description    : 应用于大货发运记录, WMS 发运产生 报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.ue.js
@@ -83,7 +83,7 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
 
                 log.debug('information', information);
                 var flag = false;
-                if ((statusId == 6 || statusText == 'WMS已发运') && !information) { // 状态为 WMS已发运 并且 关联的报关资料
+                if ((statusId == 6 || statusText == 'WMS已发运' || statusId == 12 || statusText == 'WMS已装箱') && !information) { // 状态为 WMS已发运 并且 关联的报关资料
 
                     var info = informationValue.searchPOItem(order_num);
                     log.debug('info', info);

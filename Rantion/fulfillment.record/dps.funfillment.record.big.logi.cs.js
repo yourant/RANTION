@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-06-12 10:22:47
+ * @LastEditTime   : 2020-06-11 16:22:34
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -225,8 +225,8 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
 
         console.log('推送标签面单文件', rec_id);
         var url1 = url.resolveScript({
-            scriptId: 'customscript_dps_wms_call_back_box_rl',
-            deploymentId: 'customscript_dps_wms_call_back_box_rl',
+            scriptId: 'customscript_dps_funf_rec_big_shipment',
+            deploymentId: 'customdeploy_dps_funf_rec_big_shipment',
             returnExternalUrl: false
         });
 

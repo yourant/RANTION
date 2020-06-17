@@ -15,14 +15,20 @@ function(search, ui, moment, format, runtime, record) {
     }
 
     function showResult(method, params, response) {
+
+        log.debug("method:"+method,"params:"+JSON.stringify(params))
+        log.debug("response:",JSON.stringify(response))
+        log.debug("SKUIds:",JSON.stringify(SKUIds))
+
         var form = initUI(params); //渲染查询条件UI界面
         //设置查询参数默认值
         form.updateDefaultValues({
+            custpage_account_store: params.custpage_account_store,
             custpage_item: params.custpage_item,
             custpage_date_from: params.custpage_date_from,
             custpage_date_to: params.custpage_date_to
         });
-    
+   
         var action = params.action;
         if (method == 'POST') {
             params.custpage_now_page = 1;
@@ -54,6 +60,8 @@ function(search, ui, moment, format, runtime, record) {
         form.addField({ id: 'custpage_item', type: ui.FieldType.SELECT, source: 'item', label: 'SKU', container: 'custpage_search_group' });
         form.addField({ id: 'custpage_date_from', type: ui.FieldType.DATE, label: '日期从', container: 'custpage_search_group' });
         form.addField({ id: 'custpage_date_to', type: ui.FieldType.DATE, label: '日期至', container: 'custpage_search_group' });
+          
+        //？？？？
         var week_date = form.addField({ id: 'custpage_week_date', type: ui.FieldType.MULTISELECT, label: '选择生成周'});
         week_date.addSelectOption({
             value : '',
@@ -61,11 +69,11 @@ function(search, ui, moment, format, runtime, record) {
         });
         if(params.custpage_date_from && params.custpage_date_to){
             var date_from = format.parse({ value:params.custpage_date_from, type: format.Type.DATE});
-            var week_from = weekofday(date_from);
-            log.audit('week_from',week_from);
+            var week_from = weekofday(date_from);  //判断这一天属于今年的第几周
+            // log.audit('week_from',week_from);
             var date_to = format.parse({ value:params.custpage_date_to, type: format.Type.DATE});
-            var week_to = weekofday(date_to);
-            log.audit('week_to',week_to);
+            var week_to = weekofday(date_to);   //判断这一天属于今年的第几周
+            // log.audit('week_to',week_to);
             for (var i = week_from; i < week_to + 1; i++) {
                 week_date.addSelectOption({
                     value : i,
@@ -123,8 +131,8 @@ function(search, ui, moment, format, runtime, record) {
         }
         var date_from = format.parse({ value:params.custpage_date_from, type: format.Type.DATE});
         var date_to = format.parse({ value:params.custpage_date_to, type: format.Type.DATE});
-        log.debug('getSearchData date_from',date_from);
-        log.debug('getSearchData date_to',date_to);
+        // log.debug('getSearchData date_from',date_from);
+        // log.debug('getSearchData date_to',date_to);
         if (date_from > date_to) {
             throw "请先输入正确的时间范围";
         }
@@ -137,7 +145,15 @@ function(search, ui, moment, format, runtime, record) {
         var result = rsJson.result;
         var totalCount = rsJson.totalCount;
         var pageCount = rsJson.pageCount;
-        createLineData(form, result, date_from, date_to); //创建行数据
+        var need_result = createLineData(form, result, date_from, date_to); //创建行数据
+        log.debug('need_result ',need_result);
+        if(need_result){
+            try{
+                createOrUpdateData(need_result, date_from, date_to)
+            }catch(e){
+                log.debug('e',e);
+            }
+        }
         // 设置数据选择列表、当前页、总页数到界面
         setPageInfo(form, nowPage, totalCount, pageCount, pageSize, result);
         return form;
@@ -191,6 +207,10 @@ function(search, ui, moment, format, runtime, record) {
             // item = true;
             filters_sku = [{ name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: item }];
         }
+        if(account){
+            filters_sku .push({ name: 'custrecord_demand_forecast_account', operator: 'anyof', values: account }) 
+        }
+        //查询需求预测
         search.create({
             type: 'customrecord_demand_forecast',
             filters: filters_sku,
@@ -212,13 +232,13 @@ function(search, ui, moment, format, runtime, record) {
             skuids.push(rec.getValue(rec.columns[0]))
             return --limit > 0;
         });
-        log.debug('SKUIds',SKUIds);
+      
 
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
-        log.debug('dateFormat',dateFormat);
+        // log.debug('dateFormat',dateFormat);
         var today = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
-        log.debug('today',today);
-
+        // log.debug('today',today);
+      //搜索店铺净需求，确认交货
         var filters = [
             { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["3","16"] },
             { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
@@ -230,8 +250,8 @@ function(search, ui, moment, format, runtime, record) {
         if (site) {
             filters.push({ name: "custrecord_demand_forecast_site", operator: "anyof", values: site });
         }
-        log.debug('filters',filters);
-        //店铺净需求量
+        log.debug('00000000000filters',filters);
+        //店铺净需求量 ，来源于需求预测表
         var mySearch_delivery_schedule = search.create({
             type: "customrecord_demand_forecast",
             filters: filters,
@@ -308,6 +328,7 @@ function(search, ui, moment, format, runtime, record) {
             rsJson.totalCount = totalCount;
             rsJson.pageCount = pageCount;
         } else {
+            //查询结果
             pageData_delivery_schedule.fetch({
                 index: Number(nowPage-1)
             }).data.forEach(function (rs) {
@@ -375,7 +396,6 @@ function(search, ui, moment, format, runtime, record) {
                 });
             });
         }
-
         //倒排补货量
         var item_arr = []
         search.create({
@@ -393,12 +413,16 @@ function(search, ui, moment, format, runtime, record) {
             })
             return true;
         });
-        log.debug('item_arr',item_arr);
+        log.debug('item_arr查出来的货品数据：',item_arr);
+        log.debug('SKUIds 查出来的货品数据：',SKUIds);
 
         if(item_arr.length > 0){
             item_arr.map(function(line){
+
                 SKUIds.map(function(li){
+                    //如果供应商存在
                     if(line.vendor_id){
+                        log.debug("存在供应商,搜索采购周期记录")
                         search.create({
                             type: 'customrecordpurchasing_cycle_record',
                             filters: [
@@ -406,7 +430,7 @@ function(search, ui, moment, format, runtime, record) {
                                 { name: 'custrecord_vendor', operator: 'is', values: line.vendor_id },
                             ],
                             columns: [
-                                'custrecord_purchasing_cycle'
+                                'custrecord_purchasing_cycle'  //采购周期
                             ]
                         }).run().each(function (rec) {
                             var need_time = Number(rec.getValue('custrecord_purchasing_cycle'));
@@ -497,7 +521,7 @@ function(search, ui, moment, format, runtime, record) {
         rsJson.result = item_data;
         rsJson.totalCount = totalCount;
         rsJson.pageCount = pageCount;
-        log.debug('rsJson',rsJson);
+        log.debug(' rsJson',rsJson);
         return rsJson;
     }
 
@@ -508,17 +532,17 @@ function(search, ui, moment, format, runtime, record) {
     function createLineData(form, result, date_from, date_to) {
         var week = {};
         var today = new Date(+new Date()+8*3600*1000);
-        log.debug('today',today);
+        // log.debug('today',today);
         var week_today = weekofday(today);
-        log.debug('week_today',week_today);
+        // log.debug('week_today',week_today);
         var week_start = weekofday(date_from);
-        log.audit('week_start',week_start);
+        // log.audit('week_start',week_start);
         var week_end = weekofday(date_to);
-        log.audit('week_end',week_end);
+        // log.audit('week_end',week_end);
         
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
         var today_l = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
-        log.debug('today_l',today_l);
+        // log.debug('today_l',today_l);
 
         var sublist = form.addSublist({ id: 'custpage_sublist', type: ui.SublistType.LIST, label: '补货计划', tab: 'custpage_tab' });
         sublist.helpText = "补货计划结果";
@@ -535,13 +559,16 @@ function(search, ui, moment, format, runtime, record) {
             week_ = sublist.addField({ id: sub_filed, label: Label, type: ui.FieldType.INTEGER });
             week[index] = week_;
         }
-        log.debug('createLineData result',result);
-        log.debug('SKUIds',SKUIds);
-        var zl = 0;
+        // log.debug('createLineData result:'+result.length,result);
+        // log.debug('SKUIds :'+SKUIds.length,SKUIds);
+
+        var zl = 0, data_arr = [];
+        var re_zl
         for (var z = 0; z < SKUIds.length; z++) {
             if (result.length > 0) {
                 var arr_list = {}, arr_data = [],need1_zl;
                 for(var a = 0; a < result.length; a++){
+                   
                     if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
                         sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
                         sublist.setSublistValue({ id: 'custpage_store_name_id', value: result[a]['account'], line: zl });
@@ -550,6 +577,7 @@ function(search, ui, moment, format, runtime, record) {
                         sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
                         sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
                         sublist.setSublistValue({ id: 'custpage_data_type_id', value: result[a]['data_type'], line: zl });
+                        //店铺净需求
                         if(result[a]['data_type'] == 3){
                             for (var index = 1; index <= 52; index++) {
                                 var sub_filed = 'custpage_quantity_week' + index;
@@ -559,8 +587,8 @@ function(search, ui, moment, format, runtime, record) {
                             }
                             zl++;
                         }
-                        
-                        
+                          
+                        log.debug("wewek: ",week)
                         for (var i = 1; i < week_start; i++) {
                             week[i].updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
                         }
@@ -570,36 +598,82 @@ function(search, ui, moment, format, runtime, record) {
                         for (var i = week_start; i <= week_end; i++) {
                             week[i].updateDisplayType({displayType:ui.FieldDisplayType.ENTRY});
                         }
-
+                         
+                        // 确认交货量
                         if(result[a]['data_type'] == 16){
                             for (var index = week_start; index <= week_end; index++) {  
+                           
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 if(result[a]['quantity_week'+index]){
+                                    log.debug("zl "+zl,result[a]['quantity_week'+index])
                                     sublist.setSublistValue({ id: sub_filed, value: result[a]['quantity_week'+index], line: zl});  
                                 }
                             }
                             need1_zl = zl;
                             zl++;
                         }
-                        
-                        if(result[a]['data_type'] == 1 || result[a]['data_type'] == 2 || result[a]['data_type'] == 4){
+                         //倒排补货量
+                        if(result[a]['data_type'] == 1){
                             var need_today = new Date(+new Date()+8*3600*1000 - result[a]['need_time']*24*3600*1000);
                             log.debug('need_today',need_today);
                             var need_week_today = weekofday(need_today);
                             log.debug('need_week_today',need_week_today);
-                            var cc = week_today - need_week_today;
+                            var cc = week_today - need_week_today; //这一周减去需求周
+                             // 52 行
                             for (var index = week_start; index <= week_end; index++) {
+                                // log.debug("第"+index+"周")
+                                var sub_filed = 'custpage_quantity_week' + index;
+                                var sub_need =  'custpage_quantity_week' + (Number(index) + Number(cc)+1);
+                            
+                                var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_need, line: need1_zl}) : 0;
+                                //x1在不选店铺的情况下是空的
+                                log.debug("need1_zl："+need1_zl,x1)
+                                if(x1)
+                                sublist.setSublistValue({ id: sub_filed, value: x1 ? x1.toString() : '0', line: zl})
+                            }
+                            re_zl =zl
+                            zl++;
+                        }
+                        //修改补货量，补货量
+                        if(result[a]['data_type'] == 2 || result[a]['data_type'] == 4){
+                            var arr_list = [], data_josn = {};
+                            var need_today = new Date(+new Date()+8*3600*1000 - result[a]['need_time']*24*3600*1000);
+                            log.debug('need_today',need_today);
+                            var need_week_today = weekofday(need_today);
+                            log.debug('need_week_today',need_week_today);
+                            var cc = week_today - need_week_today; //这一周减去需求周
+                             // 52 行
+                            for (var index = week_start; index <= week_end; index++) {
+                                // log.debug("第"+index+"周")
                                 var sub_filed = 'custpage_quantity_week' + index;
                                 var sub_need =  'custpage_quantity_week' + (Number(index) + Number(cc));
-                                var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_need, line: need1_zl}) : 0;
-                                sublist.setSublistValue({ id: sub_filed, value: x1.toString(), line: zl});
+                            
+                                var x1 = re_zl || re_zl == 0 ? sublist.getSublistValue({ id : sub_need, line: re_zl}) : 0;
+                                //x1在不选店铺的情况下是空的
+                                log.debug("re_zl"+re_zl,x1)
+                                if(x1)
+                                sublist.setSublistValue({ id: sub_filed, value: x1 ? x1.toString() : '0', line: zl})
+                                arr_list.push({
+                                    week: index,
+                                    item_quantity: x1
+                                });
                             }
+
+                            if(result[a]['data_type'] == 4 ){
+                                data_josn.item_sku = result[a]['item_sku'];
+                                data_josn.account_id = result[a]['account'];
+                                data_josn.data_type = result[a]['data_type'];
+                                data_josn.item = arr_list;
+                                data_arr.push(data_josn);
+                            }
+
                             zl++;
                         }
                     }
                 }
             }
         }
+        return data_arr;
     }
 
     /**
@@ -647,7 +721,86 @@ function(search, ui, moment, format, runtime, record) {
 
         return (days + 2);
     }
-
+  //保存或更新补货量
+  function createOrUpdateData(need_result, date_from, date_to){
+    var week_start = weekofday(date_from);
+    var week_end = weekofday(date_to);
+    var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+    var today = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
+    need_result.map(function(line){
+        var bill_id,data_type;
+        if(line.data_type == 4){
+            data_type = 9;  //补货量
+        }
+        search.create({
+            type: 'customrecord_demand_forecast_child',
+            filters: [
+                { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
+                { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id },
+                { name: 'custrecord_demand_forecast_l_date', operator: 'on', values: today},
+                { name: 'custrecord_demand_forecast_l_data_type', operator: 'anyof', values: data_type}
+            ]
+        }).run().each(function (rec) {
+            bill_id = rec.id;
+        });
+        log.debug('bill_id',bill_id);
+        var child_bill_data;
+        if(bill_id){
+            child_bill_data = record.load({type: 'customrecord_demand_forecast_child',id: bill_id});
+            for(var i = week_start; i < week_end+1; i++){
+                line.item.map(function(li){
+                    if(i == li.week){
+                        var field_name = 'custrecord_quantity_week' + i;
+                         //拿到更新前的数量
+                         var number1 = child_bill_data.getValue("field_name");
+                         //比较前后数量,记录差异情况
+                         var defer = number1 - li.item_quantity
+                         if(defer!=0){
+                              //记录交货计划建议处理情况
+                              SetDeferRec(line,today,field_name,defer,"21") 
+                         }
+                        child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
+                    }
+                })   
+            }
+            child_bill_data.save();
+        }else{
+            var need_today = new Date(+new Date()+8*3600*1000);
+            var forecast_id;
+            search.create({
+                type: 'customrecord_demand_forecast',
+                filters: [
+                    { name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
+                    { name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id }
+                ]
+            }).run().each(function (rec) {
+                forecast_id = rec.id;
+            });
+            log.debug('forecast_id',forecast_id);
+            child_bill_data = record.create({ type: 'customrecord_demand_forecast_child' });
+            child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_date', value: need_today });
+            child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_data_type', value: data_type});
+            child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_parent', value: forecast_id});
+            for(var i = week_start; i < week_end+1; i++){
+                line.item.map(function(li){
+                    if(i == li.week){
+                        var field_name = 'custrecord_quantity_week' + i;
+                        //    //拿到更新前的数量
+                        //    var number1 = child_bill_data.getValue("field_name");
+                        //    //比较前后数量,记录差异情况
+                        //    var defer = number1 - li.item_quantity
+                        //    if(defer!=0){
+                        //         //记录交货计划建议处理情况
+                        //         SetDeferRec(line,today,field_name,defer,"21") 
+                        //    }
+                        child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
+                    }
+                })   
+            }
+            child_bill_data.save();
+        }
+    })
+}
     return {
         onRequest: onRequest
     }

@@ -56,6 +56,13 @@ define(['N/log', 'N/record', 'N/search'], function(log, record, search) {
                 fieldId: 'payment',
                 value: set_payment,
             });
+
+            huey = record.load({
+                type: "account",
+                id: 327
+
+            })
+
         } else if (scriptContext.mode == 'edit') {
             o_i_payment = Number(objRecord.getValue('payment'));
             console.log('edit', o_i_payment);

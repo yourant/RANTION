@@ -49,6 +49,7 @@ define(['N/url', 'N/ui/dialog', 'N/https'], function(url, dialog, https) {
                 item_id: cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_item_sku_id'}),
                 item_account: cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_store_name_id'}),
                 item_quantity: cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: fieldId}),
+                item_type: data_type_id,
                 item_week: item_week
             })
             var link = url.resolveScript({

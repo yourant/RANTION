@@ -2,8 +2,8 @@
  *@NApiVersion 2.x
  *@NScriptType Suitelet
  */
-define(["N/search", "N/record", "N/http", '../Helper/logistics_cost_calculation.js', '../Helper/location_preferred.js', '../../douples_amazon/Helper/Moment.min.js'], 
-function (search, record, http, costCal, loactionPre, moment) {
+define(["N/search", "N/record", "N/http", '../Helper/logistics_cost_calculation.js', '../Helper/location_preferred.js', '../../douples_amazon/Helper/Moment.min.js', 'N/format', 'N/runtime'], 
+function (search, record, http, costCal, loactionPre, moment, format, runtime) {
 
     function onRequest(context) {
         var response = context.response;
@@ -11,8 +11,123 @@ function (search, record, http, costCal, loactionPre, moment) {
         // var idid = '2732';
         // createLogisticsStrategy(soid, idid);
 
-        var str1 = "采购订单号：{PONumber}".format({'PONumber':'PO2006100001'});
-        response.write(str1);
+        // var str1 = "采购订单号：{PONumber}".format({'PONumber':'PO2006100001'});
+        try {
+            var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+            var date =  format.parse({
+                value: (moment(new Date().getTime()).format(dateFormat)),
+                type: format.Type.DATETIME
+            });
+            var nowPage = 1; // 查询页
+            var pageSize = 3000; // 每页数量
+            var sku_data = {};
+            var mySearch = search.create({
+                type: 'customrecord_rsf_daily_sales',
+                filters: [
+                    // { name: 'startdate', join: 'custrecord_rsf_month', operator: 'onorafter', values: now_date },
+                    // { name: 'enddate', join: 'custrecord_rsf_month', operator: 'onorbefore', values: now_date },
+                    { name: 'enddate', join: 'custrecord_rsf_month', operator: 'onorafter', values: date },
+                    { name: 'closed', join: 'custrecord_rsf_month', operator: 'is', values: false }
+                ],
+                columns : [
+                    'custrecord_rsf_item', 'custrecord_rsf_store', 'custrecord_rsf_sales', 'custrecord_rsf_sales_alter',
+                    { name: 'startdate', join: 'custrecord_rsf_month' }
+                ]
+            });
+            var pageData = mySearch.runPaged({
+                pageSize: pageSize
+            });
+            var totalCount = pageData.count; // 总数
+            var pageCount = pageData.pageRanges.length; // 页数
+            for (var index = 1; index <= pageCount; index++) {
+                nowPage = index;
+                pageData.fetch({
+                    index: Number(nowPage - 1)
+                }).data.forEach(function (result) {
+                    var monthStartDate =  format.parse({
+                        value: result.getValue({ name: 'startdate', join: 'custrecord_rsf_month' }),
+                        type: format.Type.DATE
+                    });
+                    var store = result.getValue('custrecord_rsf_store');
+                    var item = result.getValue('custrecord_rsf_item');
+                    var monthQty = Number(result.getValue('custrecord_rsf_sales_alter')) > 0 ? 
+                        Number(result.getValue('custrecord_rsf_sales_alter')) : Number(result.getValue('custrecord_rsf_sales'));
+                    var monthWeekDate = splitMonthToWeek(monthStartDate, monthQty);
+                    var key = item + '_' + store + '_' + monthStartDate.getFullYear();
+                    var skudata = sku_data[key];
+                    var weeks = monthWeekDate['weeks'];
+                    // {"23":{"qty":4382},"24":{"qty":4382},"25":{"qty":4382},"26":{"qty":4382},"27":{"qty":1238},"weeks":{["23","24","25","26"]}}
+                    if (skudata) {
+                        for (var index = 0; index < weeks.length; index++) {
+                            var weekno = weeks[index];
+                            if (skudata['week_no'][weekno]) {
+                                skudata['week_no'][weekno] = Number(skudata['week_no'][weekno]) + Number(monthWeekDate[weekno].qty);
+                            } else if (Number(monthWeekDate[weekno].qty) > 0) {
+                                skudata['week_no'][weekno] = Number(monthWeekDate[weekno].qty);
+                            }
+                        }
+                    } else {
+                        var json = {};
+                        json.item = item;
+                        json.store = store;
+                        json.year = monthStartDate.getFullYear();
+                        var ws = {};
+                        for (var index = 0; index < weeks.length; index++) {
+                            var weekno = weeks[index];
+                            ws[weekno] = Number(monthWeekDate[weekno].qty);
+                        }
+                        json.week_no = ws;
+                        sku_data[key] = json;
+                    }
+                    return true;
+                });
+            }
+            response.write(JSON.stringify(sku_data));
+        } catch (error) {
+            log.debug('error', JSON.stringify(error));
+        }
+    }
+
+    function splitMonthToWeek(monthStartDate, skuqty) {
+        var firstDay = new Date(monthStartDate.getFullYear(), monthStartDate.getMonth(), 1);
+        var monthDays = new Date(monthStartDate.getFullYear(), monthStartDate.getMonth() + 1, 0).getDate();
+        var day_qty_a = Math.floor(skuqty / monthDays);
+        var day_qty_l = skuqty - (day_qty_a * (monthDays - 1));
+        var week_data = {};
+        var weeks_no = [];
+        for (var index = 0; index < monthDays; index++) {
+            var qty = day_qty_a;
+            if ((index + 1) == monthDays) {
+                qty = day_qty_l;
+            }
+            // if (qty > 0) {
+                var day = new Date(firstDay.getTime() + (24 * 60 * 60 * 1000 * index));
+                var weeknum = getWeek(day);
+                var data = week_data[weeknum];
+                if (data) {
+                    data.qty = data.qty + qty;
+                } else {
+                    var json = {};
+                    json.qty = qty;
+                    week_data[weeknum] = json;
+                    weeks_no.push(weeknum);
+                }
+            // }
+        }
+        week_data['weeks'] = weeks_no;
+        return week_data;
+    }
+
+    function getWeek(day) {
+        var d1 = new Date(day);
+        var d2 = new Date(day);
+        d2.setMonth(0);
+        d2.setDate(1);
+        var numweekf = d2.getDay();
+        var rq = d1.getTime() - d2.getTime() + (24 * 60 * 60 * 1000 * numweekf);
+        var days = Math.ceil(rq / (24 * 60 * 60 * 1000));
+        var num = Math.ceil(days / 7);
+        return num;
     }
 
     String.prototype.format = function() {

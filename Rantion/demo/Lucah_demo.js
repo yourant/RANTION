@@ -10,8 +10,12 @@
  *@NScriptType Suitelet
  */
 define(["N/format", "N/runtime", 'N/search', 'N/record',"../../douples_amazon/Helper/interfunction.min","N/xml",
-        "../../douples_amazon/Helper/core.min","../../douples_amazon/Helper/CryptoJS.min","N/encode","N/https"],
-  function (format, runtime, search, record,interfun,xml,core,cryptoJS,encode,https) {
+        "../../douples_amazon/Helper/core.min","../../douples_amazon/Helper/CryptoJS.min","N/encode","N/https"
+        , "../../douples_amazon/Helper/Moment.min"
+    ],
+  function (format, runtime, search, record,interfun,xml,core,cryptoJS,encode,https
+    ,moment
+    ) {
     
 
 // 已知格林威治时间，换算本地正确时间
@@ -33,35 +37,20 @@ define(["N/format", "N/runtime", 'N/search', 'N/record',"../../douples_amazon/He
         var response = context.response;
         var request = context.request;
         var St = new Date().getTime()
-         
         // var rs = getOrderAndCreateCache(4,4, "206-1383689-3656328")
-        var rec_id
-        // rec_id = record.load({type:"location",id:652})
-        search.create({
-            type:"location",
-            filters:[
-                {name:"internalidnumber",operator:"equalto",values:652}
-            ],columns:[
-                {name:"custrecord_aio_contact_information"},
-                {name:"custrecord_aio_sender_address"},
-                {name:"custrecord_aio_sender_city"},
-                {name:"custrecord_aio_country_sender"},
-                {name:"custrecord_aio_sender_address_code"},
-                {name:"custrecord_aio_sender_name"},
-                {name:"custrecord_aio_sender_state"}
-            ]
-        }).run().each(function(e){
-            for(key in receiptInfo_corr){
-                response.write(JSON.stringify(e.getValue(receiptInfo_corr[key])) +", ================="+receiptInfo_corr[key] +"\n")
-            }
-            rec_id = e.id
-        })
-        response.write(JSON.stringify(rec_id))
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+        var today1 = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
+       
+        var today2 = new Date(+new Date()+8*3600*1000)
+        log.debug("today1",today1)
+        log.debug("today2",today2)
+        response.write(today1+"  ====== \n")
+        response.write(JSON.stringify(today2)+"  ====== \n")
         log.debug("耗时：",new Date().getTime() - St)
     }
 
 
-
+ 
     function getSubmitList(feedId,auth){
         log.error('检查参数typeof(feedId)','---'+typeof(feedId));
         var param = {};

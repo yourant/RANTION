@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
+define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, log, runtime) {
 
     function _get(context) {
         
@@ -108,12 +108,12 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                 if(location_list.length > 0){
                     var filters = [];
                     filters.push({ name: 'inventorylocation', operator: 'anyof', values: location_list });
-                    filters.push({ name: 'internalid', operator: 'is', values: item_arr });
+                    filters.push({ name: 'internalid', operator: 'anyof', values: item_arr });
                     search.create({
                         type: 'item',
                         filters: filters,
                         columns : [ 
-                            'name', 'locationquantityonhand',
+                            'name', 'locationquantityonhand','inventorylocation'
                         ]
                     }).run().each(function (rec) {
                         location_list_result.push({
@@ -121,6 +121,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                             item_inventory: rec.getValue('locationquantityonhand'),
                             subsidiary: l.subsidiary,
                             location: line,
+                            detailed_location: rec.getValue('inventorylocation'),
                             transfer_location: l.transfer_location
                         })
                         return true;
@@ -153,6 +154,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                         subsidiary: location_list_result[i].subsidiary,
                         transfer_location: location_list_result[i].transfer_location,
                         location: location_list_result[i].location,
+                        detailed_location: location_list_result[i].detailed_location,
                         item_inventory: location_list_result[i].item_inventory
                     }]
                 });
@@ -163,6 +165,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                             subsidiary: location_list_result[i].subsidiary,
                             transfer_location: location_list_result[i].transfer_location,
                             location: location_list_result[i].location,
+                            detailed_location: location_list_result[i].detailed_location,
                             item_inventory: location_list_result[i].item_inventory
                         });
                         break;
@@ -223,6 +226,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                     week_date: line.week_date,
                     price_no: price_no ? price_no : ''
                 })
+                log.debug('new_item1',new_item);
             });
         });
         log.debug('new_item',new_item);
@@ -373,6 +377,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                         t_ord.setValue({ fieldId: 'custbodyactual_target_subsidiary', value: l.target_subsidiary });
                         t_ord.setValue({ fieldId: 'custbody_actual_target_warehouse', value: l.target_warehouse });
                         t_ord.setValue({ fieldId: 'custbody_dps_transferor_type', value: 1 });
+                        t_ord.setValue({ fieldId: 'employee', value: runtime.getCurrentUser().id });
                         l.lineItems.map(function (lia) {
                             t_ord.selectNewLine({ sublistId: 'item' });
                             t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'item', value: lia.item_id });
@@ -386,7 +391,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                                 throw "Error inserting item line: " + lia.item_id + ", abort operation!" + err;
                             }
                         });
-                        var t_ord_id = t_ord.save();
+                        var t_ord_id =t_ord.save();
                         ord_len.push(t_ord_id);
                     })
                 })

@@ -28,6 +28,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
     
         //设置查询参数默认值
         form.updateDefaultValues({
+            custpage_account_store: params.custpage_account_store,
             custpage_item: params.custpage_item,
             custpage_date_from: params.custpage_date_from,
             custpage_date_to: params.custpage_date_to
@@ -93,64 +94,75 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
 
     //保存或更新店铺净需求信息
     function createOrUpdateData(need_result, date_from, date_to){
-        var week_start = weekofday(date_from);
-        var week_end = weekofday(date_to);
-        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
-        var today = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
-        need_result.map(function(line){
-            var bill_id;
-            search.create({
-                type: 'customrecord_demand_forecast_child',
-                filters: [
-                    { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
-                    { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id },
-                    { name: 'custrecord_demand_forecast_l_date', operator: 'on', values: today},
-                    { name: 'custrecord_demand_forecast_l_data_type', operator: 'anyof', values: 3}
-                ]
-            }).run().each(function (rec) {
-                bill_id = rec.id;
-            });
-            log.debug('bill_id',bill_id);
-            var child_bill_data;
-            if(bill_id){
-                child_bill_data = record.load({type: 'customrecord_demand_forecast_child',id: bill_id});
-                for(var i = week_start; i < week_end+1; i++){
-                    line.item.map(function(li){
-                        if(i == li.week){
-                            var field_name = 'custrecord_quantity_week' + i;
-                            child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
-                        }
-                    })   
+        try{
+            var week_start = weekofday(date_from);
+            var week_end = weekofday(date_to);
+            var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+            var today = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
+            need_result.map(function(line){
+                var bill_id;
+                var data_type;
+                if(line.data_type == 2){
+                    data_type = 11;
+                }else if(line.data_type == 5){
+                    data_type = 3;
                 }
-                child_bill_data.save();
-            }else{
-                var need_today = new Date(+new Date()+8*3600*1000);
-                var forecast_id;
                 search.create({
-                    type: 'customrecord_demand_forecast',
+                    type: 'customrecord_demand_forecast_child',
                     filters: [
-                        { name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
-                        { name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id }
+                        { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
+                        { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id },
+                        { name: 'custrecord_demand_forecast_l_date', operator: 'on', values: today},
+                        { name: 'custrecord_demand_forecast_l_data_type', operator: 'anyof', values: data_type}
                     ]
                 }).run().each(function (rec) {
-                    forecast_id = rec.id;
+                    bill_id = rec.id;
                 });
-                log.debug('forecast_id',forecast_id);
-                child_bill_data = record.create({ type: 'customrecord_demand_forecast_child' });
-                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_date', value: need_today });
-                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_data_type', value: 3});
-                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_parent', value: forecast_id});
-                for(var i = week_start; i < week_end+1; i++){
-                    line.item.map(function(li){
-                        if(i == li.week){
-                            var field_name = 'custrecord_quantity_week' + i;
-                            child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
-                        }
-                    })   
+                log.debug('bill_id',bill_id);
+                var child_bill_data;
+                if(bill_id){
+                    child_bill_data = record.load({type: 'customrecord_demand_forecast_child',id: bill_id});
+                    for(var i = week_start; i < week_end+1; i++){
+                        line.item.map(function(li){
+                            if(i == li.week){
+                                var field_name = 'custrecord_quantity_week' + i;
+                                child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
+                            }
+                        })   
+                    }
+                    child_bill_data.save();
+                }else{
+                    var need_today = new Date(+new Date()+8*3600*1000);
+                    var forecast_id;
+                    search.create({
+                        type: 'customrecord_demand_forecast',
+                        filters: [
+                            { name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: line.item_sku },
+                            { name: 'custrecord_demand_forecast_account', operator: 'anyof', values: line.account_id }
+                        ]
+                    }).run().each(function (rec) {
+                        forecast_id = rec.id;
+                    });
+                    log.debug('forecast_id',forecast_id);
+                    child_bill_data = record.create({ type: 'customrecord_demand_forecast_child' });
+                    child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_date', value: need_today });
+                    child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_data_type', value: data_type});
+                    child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_parent', value: forecast_id});
+                    for(var i = week_start; i < week_end+1; i++){
+                        line.item.map(function(li){
+                            if(i == li.week){
+                                var field_name = 'custrecord_quantity_week' + i;
+                                child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
+                            }
+                        })   
+                    }
+                    child_bill_data.save();
                 }
-                child_bill_data.save();
-            }
-        })
+            })
+        }catch(e){
+            log.debug('e',e);
+        }
+        
     }
 
     /**
@@ -171,6 +183,9 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         if (item) {
             // item = true;
             filters_sku = [{ name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: item }];
+        }
+        if(account){
+            filters_sku .push({ name: 'custrecord_demand_forecast_account', operator: 'anyof', values: account }) 
         }
         search.create({
             type: 'customrecord_demand_forecast',
@@ -369,6 +384,8 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         }
         log.debug('item_data',item_data);
         log.debug('location',location);
+
+  
         //在途量 (数据源：to单)
         var transit_num = [];
         search.create({
@@ -525,7 +542,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             return true;
         });
         log.debug('location_quantity',location_quantity);
-
+ 
         if(location_quantity.length > 0){
             for(var i = 0; i < SKUIds.length; i++){
                 for(var a = 0; a < location_quantity.length; a++){
@@ -574,31 +591,30 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                 });
             })
         }
-
-        //店铺净需求
-        SKUIds.map(function(line){
-            item_data.push({
-                item_sku: line.item_sku,
-                item_sku_text: line.item_sku_name,
-                item_name: line.item_name,
-                account: line.forecast_account,
-                account_text: line.forecast_account_name,
-                site: line.forecast_site,
-                data_type: '4',
-                data_type_text: '店铺净需求'
-            });
-            item_data.push({
-                item_sku: line.item_sku,
-                item_sku_text: line.item_sku_name,
-                item_name: line.item_name,
-                account: line.forecast_account,
-                account_text: line.forecast_account_name,
-                site: line.forecast_site,
-                data_type: '5',
-                data_type_text: '修改净需求量'
-            });
-        })
-
+       //店铺净需求
+       SKUIds.map(function(line){
+        item_data.push({
+            item_sku: line.item_sku,
+            item_sku_text: line.item_sku_name,
+            item_name: line.item_name,
+            account: line.forecast_account,
+            account_text: line.forecast_account_name,
+            site: line.forecast_site,
+            data_type: '4',
+            data_type_text: '店铺净需求'
+        });
+        item_data.push({
+            item_sku: line.item_sku,
+            item_sku_text: line.item_sku_name,
+            item_name: line.item_name,
+            account: line.forecast_account,
+            account_text: line.forecast_account_name,
+            site: line.forecast_site,
+            data_type: '5',
+            data_type_text: '修改净需求量'
+        });
+    })
+      
         log.debug('item_data',item_data);
         rsJson.result = item_data;
         rsJson.totalCount = totalCount;
@@ -687,7 +703,29 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                         need1_zl = zl;
                         zl++;
                     }
-                    
+                    if(result[a]['data_type'] == 4 || result[a]['data_type'] == 5){//店铺净需求4  //修改净需求量5
+                        var arr_list = [], data_josn = {};
+                        data_josn.item_sku = result[a]['item_sku'];
+                        data_josn.account_id = result[a]['account'];
+                        data_josn.data_type = result[a]['data_type'];
+                        for (var i = week_start; i <= week_end; i++) { 
+                            var sub_filed = 'custpage_quantity_week' + i;
+                            var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need1_zl}) : 0;
+                            var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0;
+                            var x3 = need3_zl || need3_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need3_zl}) : 0;
+                            var x4 = x1-(Number(x3)+Number(x2));
+                            sublist.setSublistValue({ id: sub_filed, value: x4.toString(), line: zl});
+                            arr_list.push({
+                                week: i,
+                                item_quantity: x4
+                            });
+                        }
+                        data_josn.item = arr_list;
+                        if(result[a]['data_type'] == 5){
+                            data_arr.push(data_josn);
+                        }
+                        zl++;
+                    }
                     for (var i = 1; i < week_start; i++) {
                         week[i].updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
                     }
@@ -699,14 +737,20 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                     }
 
                     if(result[a]['data_type'] == 2){//在途量
+                        var arr_list = [], data_josn = {};
+                        data_josn.item_sku = result[a]['item_sku'];
+                        data_josn.account_id = result[a]['account'];
+                        data_josn.data_type = result[a]['data_type'];
                         var transit_no = result[a]['transit_no'];
                         for (var i = week_start; i <= week_end; i++) { 
                             var sub_filed;
                             if(transit_no.length > 0){
                                 var line_arr = [];
+                                var quan_item = 0;
                                 transit_no.map(function(l){
                                     sub_filed = 'custpage_quantity_week' + i;
                                     if(l.item_time == i){
+                                        quan_item = l.item_quantity;
                                         sublist.setSublistValue({ id: sub_filed, value: l.item_quantity.toString(), line: zl}); 
                                     }
                                     line_arr.push(l.item_time);
@@ -715,11 +759,21 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                     sub_filed = 'custpage_quantity_week' + i;
                                     sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
                                 }
+                                arr_list.push({
+                                    week: i,
+                                    item_quantity: quan_item
+                                });
                             }else{
                                 sub_filed = 'custpage_quantity_week' + i;
                                 sublist.setSublistValue({ id: sub_filed, value: '0', line: zl}); 
+                                arr_list.push({
+                                    week: i,
+                                    item_quantity: 0
+                                });
                             }
                         }
+                        data_josn.item = arr_list;
+                        data_arr.push(data_josn);
                         need2_zl = zl;
                         zl++;
                     }
@@ -742,42 +796,13 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                 var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need1_zl}) : 0;
                                 need_no = -(x3 - (Number(x1)+Number(x2)));
                                 sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
-                                // if(result[a]['location_no']){
-                                //     var need_sub_filed = 'custpage_quantity_week' + (i - 1);
-                                //     var x1 = need_no;
-                                //     var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need2_zl}) : 0;
-                                //     var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need1_zl}) : 0;
-                                //     need_no = -(x3 - (Number(x1)+Number(x2)));
-                                //     sublist.setSublistValue({ id: sub_filed, value: need_no.toString(), line: zl});
-                                // }else{
-                                //     sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
-                                // }
                             }
                         }
                         need3_zl = zl;
                         zl++;
                     }
 
-                    if(result[a]['data_type'] == 4 || result[a]['data_type'] == 5){//店铺净需求4  //修改净需求量5
-                        var arr_list = [], data_josn = {};
-                        data_josn.item_sku = result[a]['item_sku'];
-                        data_josn.account_id = result[a]['account'];
-                        for (var i = week_start; i <= week_end; i++) { 
-                            var sub_filed = 'custpage_quantity_week' + i;
-                            var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need1_zl}) : 0;
-                            var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0;
-                            var x3 = need3_zl || need3_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need3_zl}) : 0;
-                            var x4 = x1-(Number(x3)+Number(x2));
-                            sublist.setSublistValue({ id: sub_filed, value: x4.toString(), line: zl});
-                            arr_list.push({
-                                week: i,
-                                item_quantity: x4
-                            });
-                        }
-                        data_josn.item = arr_list;
-                        data_arr.push(data_josn);
-                        zl++;
-                    }
+                 
                 }
             }
         }

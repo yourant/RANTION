@@ -13,7 +13,7 @@ define(['N/search', 'N/log', 'N/record', '../../douples_amazon/Helper/core.min.j
         });
 
 
-        //盘盈
+        //盘盈1
         var surplus = [];
         //盘亏
         var losses = [];

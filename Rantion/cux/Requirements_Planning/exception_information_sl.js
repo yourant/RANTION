@@ -18,6 +18,7 @@ function(search, ui, moment, format, runtime, record) {
         var form = initUI(); //渲染查询条件UI界面
         //设置查询参数默认值
         form.updateDefaultValues({
+            custpage_account_store: params.custpage_account_store,
             custpage_item: params.custpage_item,
             custpage_date_from: params.custpage_date_from,
             custpage_date_to: params.custpage_date_to
@@ -159,6 +160,9 @@ function(search, ui, moment, format, runtime, record) {
         if (item) {
             // item = true;
             filters_sku = [{ name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: item }];
+        }
+        if(account){
+            filters_sku .push({ name: 'custrecord_demand_forecast_account', operator: 'anyof', values: account }) 
         }
         search.create({
             type: 'customrecord_demand_forecast',

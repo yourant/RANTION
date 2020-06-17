@@ -10,7 +10,17 @@ define(['N/search', 'N/record'], function (search, record) {
 
 
     function beforeSubmit(context) {
-
+        var newRec = context.newRecord;
+        var line = newRec.getLineCount({ sublistId: 'item' })
+        for (var i = 0; i < line; i++) {
+            var quantity = newRec.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i })
+            newRec.setSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcol_dps_unocc_po_quantity',
+                value: quantity,
+                line: i
+            });
+        }
     }
 
 
@@ -230,6 +240,8 @@ define(['N/search', 'N/record'], function (search, record) {
             var poRec = purchaseNeedSaveJson[key]
             poRec.save()
         }
+        //开始计算用掉了多少数量，然后再更新TO货品行数据
+        refreshItemCount(itemJson, ToId)
     }
 
     /**
@@ -266,7 +278,7 @@ define(['N/search', 'N/record'], function (search, record) {
         //之前没有未占完的情况
         else {
             var linkRec = record.create({ type: 'customrecord_realted_transfer_head', isDynamic: false });
-            linkRec.setValue({ fieldId: 'name', value: 'PO:' + poRec.id + ":" + (PoLine + 1) })
+            linkRec.setValue({ fieldId: 'name', value: 'PO:' + poRec.getValue('tranid') + ":" + (PoLine + 1) })
             linkRec.setSublistValue({
                 sublistId: 'recmachcustrecord__realted_transfer_head',
                 fieldId: 'custrecord_transfer_code',
@@ -439,6 +451,40 @@ define(['N/search', 'N/record'], function (search, record) {
 
         }
         return poRec;
+    }
+
+    //计算并更新未占用的数量
+    function refreshItemCount(itemJson, ToId) {
+        var toRec = record.load({
+            type: 'transferorder',
+            id: ToId
+        });
+        var line = toRec.getLineCount({ sublistId: 'item' })
+        var hasChange;
+        for (var key in itemJson) {
+            //占用完后剩余的数量
+            var remainCount = itemJson[key]
+            for (var i = 0; i < line; i++) {
+                var item = toRec.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i })
+                if (item == key) {
+                    var quantity = Number(toRec.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i }))
+                    if (quantity) {
+                        if (quantity > remainCount) {
+                            toRec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', value: remainCount, line: i });
+                            itemJson[key] = 0
+                            hasChange = true
+                        } else {
+                            remainCount = remainCount - quantity
+                            itemJson[key] = remainCount
+                        }
+                    }
+                }
+
+            }
+        }
+        if (hasChange) {
+            toRec.save()
+        }
     }
 
     /**

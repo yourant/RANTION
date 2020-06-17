@@ -10,10 +10,11 @@ define(['./jetstar/dps_logistics_request.js',
     function (jetstar, openapi, yanwen, endicia, Moment, http, record, search, file, xml, redirect, serverWidget) {
 
         function onRequest(context) {
-            var fileObj = file.load({
-                id: '9418'
-            });
-            context.response.write(fileObj.url)
+            var sear = search.load({
+                id: 'customsearch184'
+            })
+            log.audit('filters',sear.filters);
+            log.audit('columns',sear.columns);
             return
             // search.create({
             //     type: 'purchaseorder',

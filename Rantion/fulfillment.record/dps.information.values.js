@@ -148,6 +148,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             value: informaId
         });
         var subId = 'recmachcustrecord_dps_c_i_item_link';
+        var total_amount = 0; //报关发票总金额
         for (var i = 0, len = itemInfo.length; i < len; i++) {
             var temp = itemInfo[i];
             inv.setSublistValue({
@@ -189,6 +190,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             var newRate = Number(temp.rate) * num / cur_rate;
 
             log.debug('newRate', newRate);
+            
             // FIXME 发票的单价, 有待处理
             inv.setSublistValue({
                 sublistId: subId,
@@ -196,15 +198,40 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 line: i,
                 value: newRate
             });
+
             inv.setSublistValue({
                 sublistId: subId,
                 fieldId: 'custrecord_dps_customs_inv_item_amount',
                 line: i,
                 value: newRate * Number(temp.qty)
             });
+            total_amount += (newRate * Number(temp.qty))
         }
+        log.debug("总金额:",total_amount)
+        inv.setValue({
+            fieldId: 'custrecord_dps_cus_inv_total_amount',
+            value: total_amount
+        });
+
         var inv_id = inv.save();
-        return inv_id || false;
+        var currency_id
+        search.create({
+            type: 'currency',
+            filters: [{
+                name: "symbol",
+                operator: 'is',
+                values: "USD"
+            }]
+        }).run().each(function (e) {
+            currency_id = e.id
+            return true
+        })
+        var rs = {
+            inv_id:inv_id,
+            total_amount:total_amount,
+            currency:currency_id,
+        }
+        return rs || false;
     }
 
 

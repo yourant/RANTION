@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript
  */
-define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record, http) {
+define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, record, http) {
 
     function getInputData() {
         var message = {};
@@ -32,7 +32,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 getProcessinstance(detail);
                 return;
                 */
-                message.data.forEach(function(item, i) {
+                message.data.forEach(function (item, i) {
                     var detail = JSON.parse(item.detail);
                     if (!getProcessinstance(detail)) {
                         //log.error('add-record-fail:', detail.businessId);
@@ -54,7 +54,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         return;
     }
 
-    function reduce(context) {}
+    function reduce(context) { }
 
     function summarize(summary) {
 
@@ -80,7 +80,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         //#region  数据校验--------------------------------------
         //获取费用报销编码
         var business_id = process_instance.businessId;
-        if (business_id == '' || typeof(business_id) == 'undefined') {
+        if (business_id == '' || typeof (business_id) == 'undefined') {
             log.error('value_error_business_id', business_id);
             return false;
         }
@@ -93,7 +93,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 operator: 'is',
                 values: business_id
             }],
-        }).run().each(function(res) {
+        }).run().each(function (res) {
             go = false;
         });
 
@@ -103,12 +103,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         }
         //交易主体
         var accounting_entity;
-        process_instance.formComponentValues.forEach(function(e) {
+        process_instance.formComponentValues.forEach(function (e) {
             if (e.name == '交易主体') {
                 accounting_entity = e.value;
             }
         })
-        if (accounting_entity == '' || typeof(accounting_entity) == 'undefined') {
+        if (accounting_entity == '' || typeof (accounting_entity) == 'undefined') {
             log.error('交易主体为空')
             return false;
         }
@@ -116,7 +116,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         //报销人
         var applicant_name = process_instance.title;
         applicant_name = applicant_name.substring(0, applicant_name.indexOf('提交的'));
-        if (applicant_name == '' || typeof(applicant_name) == 'undefined') {
+        if (applicant_name == '' || typeof (applicant_name) == 'undefined') {
             log.error('报销人');
             log.error('value_error_applicant_name', applicant_name);
             return false;
@@ -131,11 +131,11 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
 
             var _o_total;
             var cny_total;
-            process_instance.formComponentValues.forEach(function(e) {
+            process_instance.formComponentValues.forEach(function (e) {
                 if (e.name == '报销明细') {
                     var ext_value = JSON.parse(e.extValue);
                     detail = JSON.parse(e.value);
-                    ext_value.statValue.forEach(function(e) {
+                    ext_value.statValue.forEach(function (e) {
                         if (e.label == "原币金额") {
                             _o_total = e.num
                         }
@@ -151,7 +151,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
             total_amount = _o_total;
             total_amount = -1;
         } else if (process_instance.title.indexOf('其他') > 0 || process_instance.title.indexOf('备用金') > 0) {
-            process_instance.formComponentValues.forEach(function(e) {
+            process_instance.formComponentValues.forEach(function (e) {
                 if (e.name == '原币金额') {
                     total_amount = e.value;
                 } else if (e.name == '人民币金额') {
@@ -162,7 +162,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 total_amount = CNY_total_amount;
             }
         }
-        if (total_amount == '' || typeof(total_amount) == 'undefined') {
+        if (total_amount == '' || typeof (total_amount) == 'undefined') {
             log.error('人民币金额');
             log.error('value_error_total_amount', total_amount);
             go = false;
@@ -171,7 +171,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         //付款日期
 
         var _paydate = '';
-        process_instance.formComponentValues.forEach(function(e) {
+        process_instance.formComponentValues.forEach(function (e) {
             if (e.name == '付款日期') {
                 _paydate = e.value.replace('-', '/').replace('-', '/');
             }
@@ -187,7 +187,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
 
         //其他备注
         var remark;
-        process_instance.formComponentValues.forEach(function(e) {
+        process_instance.formComponentValues.forEach(function (e) {
             if (e.name == '备注') {
                 remark = e.value == "null" ? '' : e.value;
             }
@@ -195,13 +195,13 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
 
         //付款银行类型
         var pay_bank_type;
-        process_instance.formComponentValues.forEach(function(e) {
-            if (typeof(e.name) != 'undefined' && e.name.indexOf('付款账号') != -1) {
+        process_instance.formComponentValues.forEach(function (e) {
+            if (typeof (e.name) != 'undefined' && e.name.indexOf('付款账号') != -1) {
                 if (e.value != "null")
                     pay_bank_type = e.value;
             }
         });
-        if (pay_bank_type == '' || typeof(pay_bank_type) == 'undefined') {
+        if (pay_bank_type == '' || typeof (pay_bank_type) == 'undefined') {
             log.error('付款银行类型')
             log.error('value_error_pay_bank_type', pay_bank_type);
             return false;
@@ -209,7 +209,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
 
         //遍历报销明细
         if (process_instance.title.indexOf('费用报销') > 0) {
-            if (typeof(detail) == 'undefined' || detail.length == 0) {
+            if (typeof (detail) == 'undefined' || detail.length == 0) {
                 log.error('detail_error', '缺乏报销明细');
                 return false;
             }
@@ -224,7 +224,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 operator: 'is',
                 values: applicant_name
             }],
-        }).run().each(function(res) {
+        }).run().each(function (res) {
             applicant_name_id = res.id;
         });
         if (applicant_name_id == '') {
@@ -251,7 +251,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
         if (process_instance.title.indexOf('费用报销') > 0) {
             custrecord_dps_rbsm_type = 1;
             total_amount = 0;
-            detail.forEach(function(e, i) {
+            detail.forEach(function (e, i) {
                 if (go) {
                     var item = e.rowValue;
                     var custrecord_dps_rbsm_detailtype1 = '';
@@ -265,8 +265,8 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                     var custrecord_dps_rbsm_purpose = '';
                     var custrecord_dps_o_amount = '';
 
-                    item.forEach(function(_e) {
-                        if (typeof(_e.value) == 'undefined' || _e.value == '' || _e.value == 'null') {
+                    item.forEach(function (_e) {
+                        if (typeof (_e.value) == 'undefined' || _e.value == '' || _e.value == 'null') {
                             log.error('detail_value_error', _e)
                             go = false;
                         }
@@ -274,8 +274,18 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                             switch (_e.label.replace(/\d/g, '')) {
                                 case "受益/管控部门":
                                     custrecord_dps_rbsm_department_name = _e.value;
-                                    if (Array.isArray(custrecord_dps_rbsm_department_name)) {
-                                        custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name.join();
+                                    if (Array.isArray(custrecord_dps_rbsm_department_name) && custrecord_dps_rbsm_department_name.length > 0) {
+                                        custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name[0];
+                                        search.create({
+                                            type: 'department',
+                                            filters: [{
+                                                name: 'name',
+                                                operator: 'is',
+                                                values: custrecord_dps_rbsm_department_name
+                                            }],
+                                        }).run().each(function (res) {
+                                            custrecord_dps_rbsm_department = res.id;
+                                        });
                                     } else {
                                         search.create({
                                             type: 'department',
@@ -284,7 +294,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                                 operator: 'is',
                                                 values: custrecord_dps_rbsm_department_name
                                             }],
-                                        }).run().each(function(res) {
+                                        }).run().each(function (res) {
                                             custrecord_dps_rbsm_department = res.id;
                                         });
                                     }
@@ -306,7 +316,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                             { name: 'custrecord_dps_fee_debitaccount' },
                                             { name: 'custrecord_expense_report_class' },
                                         ],
-                                    }).run().each(function(res) {
+                                    }).run().each(function (res) {
                                         custrecord_dps_rbsm_detailtype2 = res.id;
                                         custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
                                         custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
@@ -343,7 +353,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                             operator: 'is',
                                             values: custrecord_dps_o_currency_name
                                         }],
-                                    }).run().each(function(res) {
+                                    }).run().each(function (res) {
                                         custrecord_dps_o_currency = Number(res.id);
                                     });
                                     if (isNaN(custrecord_dps_o_currency)) {
@@ -503,8 +513,8 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
 
             var custrecord_dps_rbsm_purpose = '';
             var custrecord_dps_o_amount = '';
-            process_instance.formComponentValues.forEach(function(e) {
-                if (typeof(e.name) != 'undefined' && e.value != 'null') {
+            process_instance.formComponentValues.forEach(function (e) {
+                if (typeof (e.name) != 'undefined' && e.value != 'null') {
                     var name = e.name.replace(/\d/g, '');
                     if (go) {
                         switch (name) {
@@ -520,7 +530,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                             operator: 'is',
                                             values: custrecord_dps_rbsm_department_name
                                         }],
-                                    }).run().each(function(res) {
+                                    }).run().each(function (res) {
                                         custrecord_dps_rbsm_department = res.id;
                                     });
                                 }
@@ -542,7 +552,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                         { name: 'custrecord_dps_fee_debitaccount' },
                                         { name: 'custrecord_expense_report_class' },
                                     ],
-                                }).run().each(function(res) {
+                                }).run().each(function (res) {
                                     custrecord_dps_rbsm_detailtype2 = res.id;
                                     custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
                                     custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
@@ -580,7 +590,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                                         operator: 'is',
                                         values: custrecord_dps_o_currency_name
                                     }],
-                                }).run().each(function(res) {
+                                }).run().each(function (res) {
                                     custrecord_dps_o_currency = res.id;
                                 });
                                 break;
@@ -615,7 +625,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                         { name: 'custrecord_dps_fee_debitaccount' },
                         { name: 'custrecord_expense_report_class' },
                     ],
-                }).run().each(function(res) {
+                }).run().each(function (res) {
                     custrecord_dps_rbsm_detailtype2 = res.id;
                     custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
                     custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
@@ -746,7 +756,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 operator: 'contains',
                 values: accounting_entity
             }],
-        }).run().each(function(res) {
+        }).run().each(function (res) {
             accounting_entity_id = res.id;
         });
         if (accounting_entity_id == '') {
@@ -799,7 +809,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
             value: Number(total_amount)
         });
 
-        if (typeof(detail) == 'undefined') {
+        if (typeof (detail) == 'undefined') {
             detail = { length: 1 }
         }
 
@@ -867,7 +877,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
                 values: pay_bank_type
             }],
             columns: ['custrecord_dps_bank_debitaccount']
-        }).run().each(function(res) {
+        }).run().each(function (res) {
             pay_bank_type_id = res.id;
             ns_pay_bank_type_id = res.getValue('custrecord_dps_bank_debitaccount')
         });
@@ -938,7 +948,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
             type: 'customrecord_wms_token',
             filters: [{ name: 'internalid', operator: 'anyof', values: 1 }],
             columns: ['custrecord_wtr_token']
-        }).run().each(function(result) {
+        }).run().each(function (result) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;
@@ -981,7 +991,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function(search, log, record
     }
 })
 
-Date.prototype.format = function(fmt) {
+Date.prototype.format = function (fmt) {
     var o = {
         "M+": this.getMonth() + 1, //月份 
         "d+": this.getDate(), //日 

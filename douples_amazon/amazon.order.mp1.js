@@ -17,6 +17,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             });
             log.debug("request_date", request_date)
             core.amazon.getAccountList().map(function (account) {
+                if(account.id != 118) return 
                 last_updated_after = "2020-06-01T00:00:00.000Z";
                 // last_updated_before = "2020-03-10T23:59:59.999Z";
                 if (account.enabled_sites == 'AmazonUS') {
@@ -51,11 +52,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                 if (request_date) {
 
                     // 设置统一时间
-                    last_updated_after ="2020-01-01T00:00:00.000Z";
-                    // last_updated_before = "2020-06-01T00:00:00.000Z";
+                    last_updated_after ="2020-06-01T00:00:00.000Z";
+                    last_updated_before = "2020-06-12T00:00:00.000Z";
 
                     log.audit('request_date', request_date)
-                    var ssd = core1.handleit(account.id, last_updated_after, "")
+                    var ssd = core1.handleit(account.id, last_updated_after, last_updated_before)
                     if (ssd)
                         ssd.map(function (order) {
                             orders.push(order);

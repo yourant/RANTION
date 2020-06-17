@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-03 15:34:35
- * @LastEditTime   : 2020-06-12 10:28:11
+ * @LastEditTime   : 2020-06-17 11:36:26
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_callbackbox_rl.js
@@ -36,7 +36,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
         var recordID = context.recordID;
         var message = {};
-        var fileId, service_code, channelservice, channel_dealer, channel_dealer_id, aono, Label, tranType;
+        var fileId, service_code, channelservice, channel_dealer, channel_dealer_id, aono, Label, tranType, waybillNo;
         search.create({
             type: 'customrecord_dps_shipping_record',
             filters: [{
@@ -56,8 +56,11 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 'custrecord_dps_shipping_r_channel_dealer', //渠道商
                 'custrecord_dps_shipping_rec_order_num', // 调拨单号
                 'custrecord_dps_ship_record_tranor_type', // 调拨单类型
+                'custrecord_dps_shipping_rec_logistics_no', // 物流运单号
             ]
         }).run().each(function (rec) {
+
+            waybillNo = rec.getValue('custrecord_dps_shipping_rec_logistics_no');
             tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
             aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
             fileId = rec.getValue({
@@ -98,6 +101,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 logisticsLabelPath: Label, //(string): 物流面单文件路径,
                 logisticsProviderCode: channel_dealer, //(string): 物流渠道商编号,
                 logisticsProviderName: channel_dealer, //(string): 物流渠道商名称
+                waybillNo: waybillNo
             };
 
             var token = getToken();

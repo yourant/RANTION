@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-16 16:50:15
+ * @LastEditTime   : 2020-06-17 14:07:52
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -176,7 +176,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             try {
                 var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
                 if (rec_status == 6 || rec_status == 7) { // 陆行对应的库存转移订单  6	WMS已发运  7	WMS已部分发运
-                    itemfulfillment(af_rec, tra_order_link);
+
+                    // try {
+                    //     itemfulfillment(af_rec, tra_order_link);
+                    // } catch (error) {
+                    //     log.debug('尝试陆行订单出错', error)
+                    // }
                 }
                 var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
                 if (rec_status == 3 || rec_status == 10) { //3	已获取物流单号，等待发运    10	已获取Shipment，等待装箱
@@ -1081,7 +1086,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         //     logisticsProviderName(string): 物流渠道商名称
         // }
 
-        var fileId, service_code, channelservice, channel_dealer, channel_dealer_id, aono, Label, tranType;
+        var fileId, service_code, channelservice, channel_dealer, channel_dealer_id, aono, Label, tranType, waybillNo;
         search.create({
             type: af_rec.type,
             filters: [{
@@ -1102,9 +1107,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 'custrecord_dps_shipping_r_channel_dealer', //渠道商
                 'custrecord_dps_shipping_rec_order_num', // 调拨单号
                 'custrecord_dps_ship_record_tranor_type', // 调拨单类型
-                'custrecord_fulfill_dh_label_addr', // 面单地址
+                'custrecord_fulfill_dh_label_addr', // 面单地址,
+                'custrecord_dps_shipping_rec_logistics_no', // 物流运单号
             ]
         }).run().each(function (rec) {
+
+            waybillNo = rec.getValue('custrecord_dps_shipping_rec_logistics_no');
+
             tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
             aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
             fileId = rec.getValue('custrecord_dps_shipment_label_file');
@@ -1150,6 +1159,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 logisticsLabelPath: Label, //(string): 物流面单文件路径,
                 logisticsProviderCode: channel_dealer, //(string): 物流渠道商编号,
                 logisticsProviderName: channel_dealer, //(string): 物流渠道商名称
+                waybillNo: waybillNo
             };
 
             var token = getToken();

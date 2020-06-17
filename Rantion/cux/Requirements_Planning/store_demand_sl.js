@@ -102,9 +102,9 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             need_result.map(function(line){
                 var bill_id;
                 var data_type;
-                if(line.data_type == 2){
+                if(line.data_type == 2){  //在途
                     data_type = 11;
-                }else if(line.data_type == 5){
+                }else if(line.data_type == 5){  //修改净需求
                     data_type = 3;
                 }
                 search.create({
@@ -628,6 +628,11 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
     function initUI() {
         var form = ui.createForm({ title: '店铺供需查询' });
         form.addSubmitButton({ label: '查询' });
+        form.addButton({ 
+            id:'button_export',
+            label : '导出（测试）',
+            functionName:'ExportDemandPlan'  
+        });
         form.addTab({ id: 'custpage_tab', label: '查询结果' });
         form.addFieldGroup({ id: 'custpage_search_group', tab: 'custpage_tab', label: '查询条件' });
         // form.addField({ id: 'custpage_store', type: ui.FieldType.SELECT, source: 'item', label: '店铺', container: 'custpage_search_group' });

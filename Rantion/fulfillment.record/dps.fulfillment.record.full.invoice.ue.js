@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-16 17:17:37
+ * @LastEditTime   : 2020-06-17 15:42:09
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -145,7 +145,23 @@ define(['N/record', 'N/search', 'N/log',
                 //     id: af_rec.id
                 // });
 
-                var soId = af_rec.getValue('custrecord_dps_ship_small_salers_order');
+
+                var soId;
+                soId = af_rec.getValue('custrecord_dps_ship_small_salers_order');
+                search.create({
+                    type: af_rec.type,
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: af_rec.id
+                    }],
+                    columns: [
+                        'custrecord_dps_ship_small_salers_order'
+                    ]
+                }).run().each(function (rec) {
+                    soId = rec.getValue('custrecord_dps_ship_small_salers_order');
+                })
+
 
                 log.debug('soId', soId);
 

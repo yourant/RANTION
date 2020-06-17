@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-06-10 20:26:09
+ * @LastEditTime   : 2020-06-17 10:25:02
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -190,7 +190,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             var newRate = Number(temp.rate) * num / cur_rate;
 
             log.debug('newRate', newRate);
-            
+
             // FIXME 发票的单价, 有待处理
             inv.setSublistValue({
                 sublistId: subId,
@@ -207,7 +207,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             });
             total_amount += (newRate * Number(temp.qty))
         }
-        log.debug("总金额:",total_amount)
+        log.debug("总金额:", total_amount)
         inv.setValue({
             fieldId: 'custrecord_dps_cus_inv_total_amount',
             value: total_amount
@@ -225,11 +225,13 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
         }).run().each(function (e) {
             currency_id = e.id
             return true
-        })
+        });
+
+
         var rs = {
-            inv_id:inv_id,
-            total_amount:total_amount,
-            currency:currency_id,
+            inv_id: inv_id,
+            total_amount: total_amount,
+            currency: currency_id,
         }
         return rs || false;
     }

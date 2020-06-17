@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-06-12 16:02:14
+ * @LastEditTime   : 2020-06-17 20:34:32
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -18,13 +18,87 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
 
         try {
 
+            var ship_to_country_code = "",
+                address_id = {},
+                label_prep_preference = "SELLER_LABEL",
+                items = [],
+                shipping_rec_location,
+                lim = 3999,
+                lim2 = 3999,
+                sub_id = 'recmachcustrecord_dps_shipping_record_parentrec';
 
-            var obj = record.load({
-                type: 'inventorytransfer',
-                id: 117702
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: 1154
+                }],
+                columns: [{
+                        name: "custrecord_dps_shipping_record_item",
+                        join: "custrecord_dps_shipping_record_parentrec"
+                    },
+                    {
+                        name: "custrecord_dps_ship_record_item_quantity",
+                        join: "custrecord_dps_shipping_record_parentrec"
+                    },
+                    {
+                        name: 'custrecord_cc_country_code',
+                        join: 'custrecord_dps_recipient_country_dh'
+                    },
+                    'custrecord_dps_shipping_rec_location', // 仓库
+                    'custrecord_dps_shipping_rec_account', // 店铺
+                ]
+            }).run().each(function (rec) {
+                shipping_rec_location = rec.getValue('custrecord_dps_shipping_rec_location');
+                rec_account = rec.getValue('custrecord_dps_shipping_rec_account');
+
+                var nsItem = rec.getValue({
+                    name: "custrecord_dps_shipping_record_item",
+                    join: "custrecord_dps_shipping_record_parentrec"
+                });
+                log.debug('nsItem', nsItem);
+                ship_to_country_code = rec.getValue({
+                    name: 'custrecord_cc_country_code',
+                    join: 'custrecord_dps_recipient_country_dh'
+                });
+                var SellerSKU;
+
+                search.create({
+                    type: 'customrecord_dps_amazon_seller_sku',
+                    filters: [{
+                            name: 'custrecord_dps_amazon_ns_sku',
+                            operator: 'anyof',
+                            values: nsItem
+                        },
+                        {
+                            name: 'custrecord_dps_amazon_sku_account',
+                            operator: 'anyof',
+                            values: rec_account
+                        }
+                    ],
+                    columns: [
+                        'custrecord_dps_amazon_sku_number'
+                    ]
+                }).run().each(function (rec) {
+                    SellerSKU = rec.getText('custrecord_dps_amazon_sku_number');
+                    return --lim2 > 0;
+                });
+
+                var info = {
+                    SellerSKU: SellerSKU, // 这里使用固定 seller SKU 替代一下
+                    ASIN: '',
+                    Condition: '',
+                    Quantity: Number(rec.getValue({
+                        name: "custrecord_dps_ship_record_item_quantity",
+                        join: "custrecord_dps_shipping_record_parentrec"
+                    })),
+                    QuantityInCase: '',
+                }
+                items.push(info);
+                return --lim > 0;
             });
 
-            log.debug('obj', obj);
 
 
             /*

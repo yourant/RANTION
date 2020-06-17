@@ -9,7 +9,8 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/url', 'N/ui/dialog', 'N/https'], function(url, dialog, https) {
+define(['N/url', 'N/ui/dialog', 'N/https',"N/currentRecord","N/runtime","N/format",'../../Helper/Moment.min'], 
+function(url, dialog, https,currentRecord,runtime,format,moment) {
     var rec,sublistId = 'custpage_sublist';
 
     function pageInit(context) {
@@ -162,7 +163,113 @@ define(['N/url', 'N/ui/dialog', 'N/https'], function(url, dialog, https) {
             }
         return str.join("&");
     }
+  
 
+
+
+
+
+
+    function ExportDemandPlan(){
+        var sublistId = 'custpage_sublist';
+        var curr = currentRecord.get();
+        var date_from = format.parse({ value:curr.getValue('custpage_date_from'), type: format.Type.DATE});
+        var week_from = weekofday(date_from);
+        var date_to = format.parse({ value:curr.getValue('custpage_date_to'), type: format.Type.DATE});
+        var week_to = weekofday(date_to);
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+        var today = moment(new Date().getTime()).format(dateFormat),quantity;
+        var weekArray=new Array(),lines=new Array(), lineComObj =new Object(),dataObjs = new Object();
+        var len = curr.getLineCount({sublistId:sublistId});
+        console.log("子列表长度: "+len,today);
+        if(len >0){
+            var week;
+            for(var i = 0; i < len; i++){
+                var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
+               
+                weekArray =[],dataObjs = {};
+                store_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name',line:i});
+                sku = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku',line:i});
+                item_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_name',line:i});
+                data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
+           
+                 
+                for(var a = week_from; a < week_to + 1; a++){
+                    week ="W"+ a;
+                    weekArray.push({week : week,qty:curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week'+a,line:i})});
+                    
+                }
+              
+                lines.push({ store_name:store_name, sku:sku, item_name:item_name,data_type:data_type,weekArray:weekArray});
+            }
+            console.log("+ItemDatas: ",JSON.stringify(lines));
+            lineComObj["lines"] = lines;
+            lineComObj["weekArrayHead"] = weekArray;
+            console.log("+lineComObj: ",JSON.stringify(lineComObj));
+            var link = url.resolveScript({
+                scriptId : 'customscript_lucah_demo_sl',
+                deploymentId:'customdeploy_lucah_demo_sl',
+                params:{
+                    lineComObj:JSON.stringify(lineComObj)
+                },
+                returnExternalUrl: true
+            });
+             
+            window.open(link)
+        }else{
+            alert("无数据")
+        }
+        
+        
+       
+    }
+
+
+  /**
+     * 判断某一日属于这一年的第几周
+     * @param {*} data 
+     */
+    function weekofday(data) {
+        // log.debug('data',data);
+        // var value = format.parse({value:data, type: format.Type.DATE});
+        // log.debug('value',value);
+        // var value = moment(value1).format('YYYY/MM/DD');
+        // log.debug('value',value);
+        // var dt = new Date(value);
+        var dt = data;
+        // log.debug('dt',dt);
+        var y = dt.getFullYear();
+        // log.debug('y',y);
+        var start = "1/1/" + y;
+
+        // log.debug('start',start);
+
+        start = new Date(start);
+        
+        // log.debug('start_1',start);
+
+        starts = start.valueOf();
+
+        // log.debug('starts',starts);
+
+        startweek = start.getDay();
+
+        // log.debug('startweek',startweek);
+
+        dtweek = dt.getDay();
+
+        // log.debug('dtweek',dtweek);
+
+        var days = Math.round((dt.valueOf() - start.valueOf()) / (24 * 60 * 60 * 1000)) - (7 - startweek) - dt.getDay() - 1 ;
+        
+        // log.debug('days',days);
+
+        days = Math.floor(days / 7);
+
+        // log.debug('days_1',days);
+
+        return (days + 2);
+    }
     return {
         pageInit: pageInit,
         saveRecord: saveRecord,
@@ -173,6 +280,7 @@ define(['N/url', 'N/ui/dialog', 'N/https'], function(url, dialog, https) {
         validateDelete: validateDelete,
         validateInsert: validateInsert,
         validateLine: validateLine,
-        sublistChanged: sublistChanged
+        sublistChanged: sublistChanged,
+        ExportDemandPlan: ExportDemandPlan
     }
 });

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-06-12 18:19:43
+ * @LastEditTime   : 2020-06-17 14:04:56
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -183,9 +183,9 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                     value: 6
                 });
 
+                itemfulfillment(l_rec, tranNO, storageList);
                 var l_rec_id = l_rec.save();
 
-                itemfulfillment(l_rec, tranNO, storageList);
 
                 log.audit('发运记录更新完成', l_rec_id);
 

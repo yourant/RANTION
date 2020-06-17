@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-15 17:47:31
+ * @LastEditTime   : 2020-06-17 15:52:22
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -97,6 +97,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     }],
                     columns: [
 
+                        'custrecord_record_fulfill_xh_label_addr', // 面单路径URL
+
                         'custrecord_dps_ship_samll_location', // 发运仓库	
                         {
                             name: 'custrecord_dps_wms_location',
@@ -165,7 +167,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         join: 'custrecord_dps_ship_small_channelservice'
                     }); //  '物流渠道服务编号';
                     data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
-                    // data["logisticsLabelPath"] = '物流面单文件路径';
+                    data["logisticsLabelPath"] = rec.getValue('custrecord_record_fulfill_xh_label_addr'); // 物流面单文件路径 ,
                     data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';
                     data["logisticsProviderName"] = rec.getText('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商名称';
                     data["mobilePhone"] = rec.getValue('custrecord_dps_ship_small_phone'); //'移动电话';
@@ -276,7 +278,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             // 采购退货单
             else if (sourceType == 20) {
 
-                data = context.data;
+                data = JSON.parse(context.data);
+                log.debug('data20:', data);
             }
             // 调拨单
             else if (sourceType == 30) {
@@ -303,7 +306,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             } else {
                 log.debug('属于不销售订单属于其他类型', sourceType);
                 // 发送请求
-                message = sendRequest(token, [data]);
+                message = sendRequest(token, data);
             }
 
         } else {
@@ -437,7 +440,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             body: JSON.stringify(data)
         });
 
-        log.debug('data20:', data);
         log.debug('response', JSON.stringify(response));
         retdata = JSON.parse(response.body);
         if (response.code == 200) {

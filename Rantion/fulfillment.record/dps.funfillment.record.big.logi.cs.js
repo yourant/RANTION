@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-06-11 16:22:34
+ * @LastEditTime   : 2020-06-17 16:32:16
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -313,7 +313,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
                 if (response.body == false) {
                     alert('获取shipment失败');
                 } else {
-                    alert('获取shipment成功: ' + response.body);
+                    alert(response.body);
                     window.location.reload(true);
                 }
             }
@@ -528,7 +528,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
                 if (response.body == false) {
                     alert('生成报关资料失败');
                 } else {
-                    alert('生成报关资料: ' + response.body);
+                    alert(response.body);
                     window.location.reload(true);
                 }
             }

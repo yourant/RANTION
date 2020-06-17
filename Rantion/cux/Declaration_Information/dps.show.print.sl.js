@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-25 22:21:51
- * @LastEditTime   : 2020-06-03 15:11:52
+ * @LastEditTime   : 2020-06-17 17:05:13
  * @LastEditors    : Li
  * @Description    : 搜索报关相关记录, 打印
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.show.print.sl.js
@@ -205,9 +205,9 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
 
 
         var invNO, flag = false;
-        log.debug("tran_order:",tran_order)
+        log.debug("tran_order:", tran_order)
         if (tran_order) {
-            log.debug("tran_order:存在，现在搜索报关资料记录",tran_order)
+            log.debug("tran_order:存在，现在搜索报关资料记录", tran_order)
             var bigRec, dec_info, declaration_status, print_status;
             search.create({
                 type: 'customrecord_customs_declaration_informa',
@@ -217,9 +217,14 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
                     values: tran_order
                 }],
                 columns: [
-                    'custrecord_fulfillment_record', 'custrecord_declaration_status', 'custrecord_print_status'
+                    'custrecord_fulfillment_record', 'custrecord_declaration_status', 'custrecord_print_status',
+                    {
+                        name: 'custrecord_dps_shipping_rec_information',
+                        join: "custrecord_fulfillment_record"
+                    }, // 获取报关资料关联的发运记录
                 ]
             }).run().each(function (rec) {
+                var infoId = rec
                 bigRec = rec.getValue('custrecord_fulfillment_record');
                 dec_info = rec.id;
                 declaration_status = rec.getText('custrecord_declaration_status');
@@ -227,7 +232,7 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
             });
 
             log.debug('bigRec', bigRec);
-            
+
 
             if (dec_info) {
                 log.debug('dec_info 存在，显示打印标签', dec_info);
@@ -260,11 +265,11 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
                         value: print_status,
                         line: i
                     });
-    
+
                 }
             }
 
-           
+
         } else {
 
             var line = form.getSublist({
@@ -277,7 +282,11 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
                 type: 'customrecord_customs_declaration_informa',
                 filters: [],
                 columns: [
-                    'custrecord_fulfillment_record', 'custrecord_declaration_status', 'custrecord_print_status', 'custrecord_transfer_order'
+                    'custrecord_fulfillment_record', 'custrecord_declaration_status', 'custrecord_print_status', 'custrecord_transfer_order',
+                    {
+                        name: 'custrecord_dps_shipping_rec_information',
+                        join: "custrecord_fulfillment_record"
+                    }, // add 报关资料对应的发运记录 2020-06-17T08:56:01.154Z
                 ]
             }).run().each(function (rec) {
                 bigRec = rec.getValue('custrecord_fulfillment_record');
@@ -285,29 +294,34 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
                 declaration_status = rec.getText('custrecord_declaration_status');
                 print_status = rec.getText('custrecord_print_status');
 
-                line.setSublistValue({
-                    id: 'custpage_transferorder',
-                    value: rec.getValue('custrecord_transfer_order'),
-                    line: i
+                var infoId = rec.getValue({
+                    name: 'custrecord_dps_shipping_rec_information',
+                    join: "custrecord_fulfillment_record"
                 });
+                if (rec.id == infoId) {
+                    line.setSublistValue({
+                        id: 'custpage_transferorder',
+                        value: rec.getValue('custrecord_transfer_order'),
+                        line: i
+                    });
 
-                line.setSublistValue({
-                    id: 'custpage_customs_information',
-                    value: dec_info,
-                    line: i
-                });
-                line.setSublistValue({
-                    id: 'custpage_declaration_status',
-                    value: declaration_status,
-                    line: i
-                });
-                line.setSublistValue({
-                    id: 'custpage_print_status',
-                    value: print_status,
-                    line: i
-                });
-
-                ++i;
+                    line.setSublistValue({
+                        id: 'custpage_customs_information',
+                        value: dec_info,
+                        line: i
+                    });
+                    line.setSublistValue({
+                        id: 'custpage_declaration_status',
+                        value: declaration_status,
+                        line: i
+                    });
+                    line.setSublistValue({
+                        id: 'custpage_print_status',
+                        value: print_status,
+                        line: i
+                    });
+                    ++i;
+                }
                 return --limit > 0;
             });
 

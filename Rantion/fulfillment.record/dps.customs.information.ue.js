@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 13:58:40
- * @LastEditTime   : 2020-06-16 15:13:14
+ * @LastEditTime   : 2020-06-17 16:10:52
  * @LastEditors    : Li
  * @Description    : 应用于大货发运记录, WMS 发运产生 报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.ue.js
@@ -83,7 +83,13 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
 
                 log.debug('information', information);
                 var flag = false;
-                if ((statusId == 6 || statusText == 'WMS已发运' || statusId == 12 || statusText == 'WMS已装箱') && !information) { // 状态为 WMS已发运 并且 关联的报关资料
+
+                if (!information) {
+                    // if ((statusId == 6 || statusText == 'WMS已发运' ||
+                    //         statusId == 12 || statusText == 'WMS已装箱' ||
+                    //         statusId == 10 || statusText == "已获取Shipment，等待装箱" ||
+                    //         statusId == 8 || statusText == "WMS发运失败") &&
+                    //     !information) { // 状态为 WMS已发运 并且 关联的报关资料
 
                     var info = informationValue.searchPOItem(order_num);
                     log.debug('info', info);
@@ -125,7 +131,9 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
                                 id: recordId,
                                 values: {
                                     custrecord_dps_shipping_rec_information: informaId,
-                                    custrecord_dps_customs_information: '创建报关资料成功'
+                                    custrecord_dps_customs_information: '创建报关资料成功',
+                                    custrecord_dps_declared_value_dh: invId.total_amount,
+                                    custrecord_dps_declare_currency_dh: invId.currency
                                 }
                             });
                         } else {
@@ -155,7 +163,6 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
 
         } catch (error) {
             log.error('生成报关资料,出错了', error);
-
             record.submitFields({
                 type: 'customrecord_dps_shipping_record',
                 id: recordId,

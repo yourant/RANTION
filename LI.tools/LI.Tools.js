@@ -2,15 +2,57 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 16:01:14
- * @LastEditTime   : 2020-06-16 16:40:10
+ * @LastEditTime   : 2020-06-18 20:02:57
  * @LastEditors    : Li
  * @Description    : 练习
  * @FilePath       : \LI.tools\LI.Tools.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
-define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
+define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log, url) {
 
+
+
+    /**
+     * 获取记录的url, 处理变成新建记录的URL
+     * @param {*} recType 
+     */
+    function toRecord(recType) {
+        var output = url.resolveRecord({
+            recordType: recType,
+            recordId: 6,
+            isEditMode: true
+        });
+
+        var a = output.split("&id=");
+        var url = a[0];
+
+        return url || false;
+    }
+
+    function searchCurrencyExchangeRates(recCurrency) {
+
+        var exchangerate;
+
+        search.create({
+            type: 'currency',
+            filters: [{
+                name: "symbol",
+                operator: "startswith",
+                values: recCurrency,
+            }],
+            columns: [
+                "exchangerate"
+            ]
+        }).run().each(function (rec) {
+            exchangerate = rec.getValue('exchangerate')
+        });
+
+        log.debug('searchCurrencyExchangeRates exchangerate', exchangerate);
+
+        return exchangerate || false;
+
+    }
 
     var Transaction = {
 

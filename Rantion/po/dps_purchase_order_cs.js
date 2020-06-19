@@ -2,10 +2,10 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], function(currentRecord, url, https, dialog, record) {
+define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record', 'N/search'], function (currentRecord, url, https, dialog, record, search) {
 
     function pageInit(context) {
-        
+
     }
 
     function saveRecord(context) {
@@ -17,15 +17,15 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
     }
 
     function fieldChanged(context) {
-        
+
     }
 
     function postSourcing(context) {
-        
+
     }
 
     function lineInit(context) {
-        
+
     }
 
     function validateDelete(context) {
@@ -41,7 +41,7 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
     }
 
     function sublistChanged(context) {
-        
+
     }
 
     //采购单批量生成交货单
@@ -124,10 +124,30 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
         function success(result) {
             console.log("Success with value " + result);
         }
-
+        var custbody_approve_status;
         function success1(result) {
-            console.log("Success1 with value " + result);
             if (result == true) {
+                search.create({
+                    type: 'purchaseorder',
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: curr.id
+                    }],
+                    columns: [{
+                        name: 'custbody_approve_status'
+                    }]
+                }).run().each(function (rec) {
+                    custbody_approve_status = rec.getValue('custbody_approve_status');
+                    console.log("custbody_approve_status " + custbody_approve_status);
+
+                });
+                if (custbody_approve_status != '8') {
+                    console.log("提示 " + '供应商未确认采购单,无法生成交货单');
+                    dialog.alert({ title: '提示', message: '供应商未确认采购单,无法生成交货单' });
+                    return;
+                }
+                console.log("Success1 with value " + result);
                 var link = url.resolveScript({
                     scriptId: 'customscript_dps_query_purchase_order_rl',
                     deploymentId: 'customdeploy_dps_query_purchase_order_rl'
@@ -146,10 +166,10 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
                     body: body,
                     headers: header
                 })
-                if(JSON.parse(response.body).status == 'success'){
+                if (JSON.parse(response.body).status == 'success') {
                     // window.location.href = 'https://6188472-sb1.app.netsuite.com/app/common/custom/custrecordentrylist.nl?rectype=305';
-                    window.open('https://6188472-sb1.app.netsuite.com/app/common/custom/custrecordentrylist.nl?rectype=305');
-                }else{
+                    window.open('/app/common/custom/custrecordentrylist.nl?rectype=305');
+                } else {
                     dialog.alert({
                         title: JSON.parse(response.body).status,
                         message: JSON.parse(response.body).data
@@ -183,9 +203,16 @@ define(["N/currentRecord", "N/url", "N/https", "N/ui/dialog", 'N/record'], funct
     }
 
     //供应商确定
-    function supplierDetermination() {
+    function supplierDetermination(delivery_date, order_location) {
         var curr = currentRecord.get();
-        console.log(curr.id);
+        if (!delivery_date) {
+            dialog.alert({ title: '提示', message: '交期不能为空！' });
+            return;
+        }
+        if (!order_location) {
+            dialog.alert({ title: '提示', message: '地点不能为空！' });
+            return;
+        }
         function success(result) {
             console.log("Success with value " + result);
             if (result == true) {

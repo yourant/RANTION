@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-12 15:04:44
+ * @LastEditTime   : 2020-06-19 17:40:32
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -130,10 +130,25 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
                 data["logisticsLabelPath"] = 'logisticsLabelPath';
 
-                data["logisticsProviderCode"] = rec.getValue({
-                    name: 'custrecord_ls_service_code',
-                    join: 'custrecord_dps_shipping_r_channelservice'
-                });
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
+                // data["logisticsProviderCode"] = rec.getValue({
+                //     name: 'custrecord_ls_service_code',
+                //     join: 'custrecord_dps_shipping_r_channelservice'
+                // });
+
+
+
+                var channel_dealer = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
+                var channel_dealerText = rec.getText('custrecord_dps_shipping_r_channel_dealer');
+
+                var logiFlag = 1;
+                if (channel_dealer == 6 || channel_dealerText == "Amazon龙舟") {
+                    logiFlag = 0;
+                }
+
+                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
+                // FIXME 需要判断物流渠道是否存在面单文件, 
+                data["logisticsFlag"] = logiFlag;
 
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
 

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-17 15:52:22
+ * @LastEditTime   : 2020-06-18 17:23:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -162,10 +162,14 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     }); //   '国家简码';
                     // data["detailCreateRequestDtos"] = '出库单明细';
                     // data["email"] = '邮箱地址';
-                    data["logisticsChannelCode"] = rec.getValue({
-                        name: 'custrecord_ls_service_code',
-                        join: 'custrecord_dps_ship_small_channelservice'
-                    }); //  '物流渠道服务编号';
+
+                    data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channelservice');;
+
+                    // data["logisticsChannelCode"] = rec.getValue({
+                    //     name: 'custrecord_ls_service_code',
+                    //     join: 'custrecord_dps_ship_small_channelservice'
+                    // }); //  '物流渠道服务编号';
+
                     data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
                     data["logisticsLabelPath"] = rec.getValue('custrecord_record_fulfill_xh_label_addr'); // 物流面单文件路径 ,
                     data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';
@@ -201,7 +205,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 });
 
 
-                SOFlag = qtyBackOrdered(soLink)
+                SOFlag = qtyBackOrdered(soLink);
 
                 log.debug('SOFlag', SOFlag);
 

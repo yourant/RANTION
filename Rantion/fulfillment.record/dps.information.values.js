@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-06-17 10:25:02
+ * @LastEditTime   : 2020-06-19 17:49:49
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -10,6 +10,35 @@
  */
 
 define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record, log, currency) {
+
+
+    /**
+     * 搜索本位币对应货币的汇率
+     * @param {String} recCurrency  货币符号
+     */
+    function searchCurrencyExchangeRates(recCurrency) {
+
+        var exchangerate;
+
+        search.create({
+            type: 'currency',
+            filters: [{
+                name: "symbol",
+                operator: "startswith",
+                values: recCurrency,
+            }],
+            columns: [
+                "exchangerate"
+            ]
+        }).run().each(function (rec) {
+            exchangerate = rec.getValue('exchangerate')
+        });
+
+        log.debug('searchCurrencyExchangeRates exchangerate', exchangerate);
+
+        return exchangerate || false;
+
+    }
 
     /**
      * 根据 货品ID, 获取对应的 SKU
@@ -170,13 +199,23 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 value: temp.name
             });
 
-
-            // 通过 API 直接获取 汇率
-            var cur_rate = currency.exchangeRate({
-                source: 'CNY',
-                target: 'USD',
-                // date: new Date('7/28/2015')
+            // 设置货品采购订单的
+            inv.setSublistValue({
+                sublistId: subId,
+                fieldId: 'custrecord_dps_cus_inv_item_po_price',
+                line: i,
+                value: Number(temp.rate)
             });
+
+
+            var cur_rate = searchCurrencyExchangeRates("USD");
+
+            // // 通过 API 直接获取 汇率
+            // var cur_rate = currency.exchangeRate({
+            //     source: 'CNY',
+            //     target: 'USD',
+            //     // date: new Date('7/28/2015')
+            // });
 
             log.debug('cur_rate', cur_rate);
 
@@ -184,7 +223,6 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             if (gross_margin) {
                 num += Number(gross_margin);
             }
-
 
             log.debug('temp.rate', temp.rate);
             var newRate = Number(temp.rate) * num / cur_rate;
@@ -317,12 +355,14 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 value: temp.qty
             });
 
+            var cur_rate = searchCurrencyExchangeRates("USD");
+
             // 通过 API 直接获取 汇率
-            var cur_rate = currency.exchangeRate({
-                source: 'CNY',
-                target: 'USD',
-                // date: new Date('7/28/2015')
-            });
+            // var cur_rate = currency.exchangeRate({
+            //     source: 'CNY',
+            //     target: 'USD',
+            //     // date: new Date('7/28/2015')
+            // });
 
             log.debug('cur_rate', cur_rate);
 
@@ -437,11 +477,14 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 line: i
             }); // 最终目的国（ 地区） custrecord_dps_customs_decl_item_ori_arr
 
-            var cur_rate = currency.exchangeRate({
-                source: 'CNY',
-                target: 'USD',
-                // date: new Date('7/28/2015')
-            });
+
+            var cur_rate = searchCurrencyExchangeRates("USD");
+
+            // var cur_rate = currency.exchangeRate({
+            //     source: 'CNY',
+            //     target: 'USD',
+            //     // date: new Date('7/28/2015')
+            // });
 
             log.debug('cur_rate', cur_rate);
 

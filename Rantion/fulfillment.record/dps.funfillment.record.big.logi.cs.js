@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-06-17 16:32:16
+ * @LastEditTime   : 2020-06-19 11:59:40
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -97,6 +97,22 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
      * @since 2015.2
      */
     function validateField(scriptContext) {
+
+
+        var field = scriptContext.fieldId;
+        // console.log('field', field);
+        if (field == "custrecord_dps_shipping_rec_shipmentsid") {
+            var channel_dealer = scriptContext.currentRecord.getValue('custrecord_dps_shipping_r_channel_dealer');
+            var shipment = scriptContext.currentRecord.getValue('custrecord_dps_shipping_rec_shipmentsid');
+            if (shipment.indexOf('FBA') != 0 && shipment.length != 12 && channel_dealer == 6 && shipment) {
+                alert('ShipmentId 不符合规则, 以FBA开头,长度为12位');
+                scriptContext.currentRecord.setValue({
+                    fieldId: 'custrecord_dps_shipping_rec_shipmentsid',
+                    value: ""
+                })
+            }
+
+        }
         return true;
     }
 

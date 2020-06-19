@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-03 15:34:35
- * @LastEditTime   : 2020-06-17 11:36:26
+ * @LastEditTime   : 2020-06-18 16:49:47
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_callbackbox_rl.js
@@ -67,10 +67,22 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 name: "url",
                 join: "file"
             });
-            service_code = rec.getValue({
-                name: 'custrecord_ls_service_code',
-                join: 'custrecord_dps_shipping_r_channelservice'
-            });
+            // service_code = rec.getValue({
+            //     name: 'custrecord_ls_service_code',
+            //     join: 'custrecord_dps_shipping_r_channelservice'
+            // });
+
+            data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
+            // data["logisticsProviderCode"] = rec.getValue({
+            //     name: 'custrecord_ls_service_code',
+            //     join: 'custrecord_dps_shipping_r_channelservice'
+            // });
+
+
+            // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
+            // FIXME 需要判断物流渠道是否存在面单文件, 
+            // data["logisticsFlag"] = 1;
+
             channelservice = rec.getText('custrecord_dps_shipping_r_channelservice');
             channel_dealer = rec.getText('custrecord_dps_shipping_r_channel_dealer');
             channel_dealer_id = rec.getValue('custrecord_dps_shipping_r_channel_dealer');

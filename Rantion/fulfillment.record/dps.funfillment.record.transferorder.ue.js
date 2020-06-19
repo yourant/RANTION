@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-17 21:01:18
+ * @LastEditTime   : 2020-06-19 10:06:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -1035,10 +1035,22 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
                 data["logisticsLabelPath"] = 'logisticsLabelPath';
 
-                data["logisticsProviderCode"] = rec.getValue({
-                    name: 'custrecord_ls_service_code',
-                    join: 'custrecord_dps_shipping_r_channelservice'
-                });
+                // data["logisticsProviderCode"] = rec.getValue({
+                //     name: 'custrecord_ls_service_code',
+                //     join: 'custrecord_dps_shipping_r_channelservice'
+                // });
+
+
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
+                // data["logisticsProviderCode"] = rec.getValue({
+                //     name: 'custrecord_ls_service_code',
+                //     join: 'custrecord_dps_shipping_r_channelservice'
+                // });
+
+
+                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
+                // FIXME 需要判断物流渠道是否存在面单文件, 
+                data["logisticsFlag"] = 1;
 
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
 
@@ -1438,6 +1450,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 s = 9;
             } else if (tran_type == 3) { // 3	跨仓调拨
                 s = 3;
+            }
+
+            // 渠道商
+            var channel_dealer = rec.getValue('custbody_dps_transferor_channel_dealer');
+            // 6 Amazon龙舟     1	捷仕
+            if (channel_dealer == 6) {
+                s = 5;
             }
 
             log.debug('s', s);

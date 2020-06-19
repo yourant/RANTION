@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-06 13:57:10
- * @LastEditTime   : 2020-06-06 13:57:11
+ * @LastEditTime   : 2020-06-18 13:48:09
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.map.js
@@ -13,8 +13,8 @@
  * @NApiVersion 2.0
  * @NScriptType MapReduceScript
  */
-define(['N/search', 'N/record', 'N/email', 'N/runtime', 'N/error'],
-    function (search, record, email, runtime, error) {
+define(['N/search', 'N/record', 'N/email', 'N/runtime', 'N/error', 'N/email'],
+    function (search, record, email, runtime, error, email) {
         function handleErrorAndSendNotification(e, stage) {
             log.error('Stage: ' + stage + ' failed', e);
 

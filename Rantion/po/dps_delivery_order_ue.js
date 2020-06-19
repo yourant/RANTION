@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-06-17 19:24:35
+ * @LastEditTime   : 2020-06-18 16:27:47
  * @LastEditors    : Li
  * @Description    :  应用于采购订单,增加按钮
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -50,6 +50,7 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                             name: 'formulanumeric',
                             formula: '{quantity}-{custcol_dps_quantity_delivered}'
                         });
+                        log.debug('it ', it);
                         if (it && it > 0) {
                             flag = false;
                         }
@@ -60,7 +61,9 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                     log.debug('beforeLoad 搜索出错了', error);
                 }
             }
-
+            log.debug('roleId ', roleId);
+            log.debug('flag ', flag);
+            log.debug('vendorRoleId ', config.vendorRoleId);
             if (context.type == 'view' && newRecord.type == 'purchaseorder' && !flag && roleId != config.vendorRoleId) {
                 var form = context.form
                 form.clientScriptModulePath = './dps_purchase_order_cs.js';
@@ -72,12 +75,18 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
             }
 
             if (context.type == 'view' && newRecord.type == 'customrecord_dps_delivery_order' && newRecord.getValue('custrecord_delivery_order_status') == 1 && roleId == config.vendorRoleId) {
+                // var need_data = [];
+                // need_data.push({
+                //     delivery_date: newRecord.getValue('custrecord_delivery_date'),
+                //     order_location: newRecord.getValue('custrecord_dsp_delivery_order_location')
+                // })
+                // log.debug('need_data',need_data);
                 var form = context.form
                 form.clientScriptModulePath = './dps_purchase_order_cs.js';
                 form.addButton({
                     id: 'custpage_determine',
                     label: '供应商确定',
-                    functionName: 'supplierDetermination'
+                    functionName: 'supplierDetermination("' + newRecord.getValue('custrecord_delivery_date') + '", "' + newRecord.getValue('custrecord_dsp_delivery_order_location') + '")'
                 });
             }
 
@@ -237,6 +246,13 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                                     line: lineNumber,
                                     value: quantity - y_qty
                                 });
+                                // 未提交数量
+                                l_po.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'custcol_dps_undelivered_quantity',
+                                    line: lineNumber,
+                                    value: quantity - y_qty
+                                });
                                 flag = true;
                             }
                         }
@@ -278,6 +294,13 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                                     fieldId: 'custcol_dps_quantity_delivered',
                                     line: lineNumber
                                 });
+
+                                var poQty = l_po.getSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'quantity',
+                                    line: lineNumber
+                                    // });
+                                })
                                 // 已交货数量
                                 l_po.setSublistValue({
                                     sublistId: 'item',
@@ -285,6 +308,20 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                                     line: lineNumber,
                                     value: quantity_delivered - diff
                                 });
+                                // // 本次交货数量
+                                // l_po.setSublistValue({
+                                //     sublistId: 'item',
+                                //     fieldId: 'custcol_dps_delivery_quantity',
+                                //     line: lineNumber,
+                                //     value: poQty - (quantity_delivered - diff)
+                                // });
+                                // // 未交货数量
+                                // l_po.setSublistValue({
+                                //     sublistId: 'item',
+                                //     fieldId: 'custcol_dps_undelivered_quantity',
+                                //     line: lineNumber,
+                                //     value: poQty - (quantity_delivered - diff)
+                                // });
                                 flag = true;
                             }
                         }

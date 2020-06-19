@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-06-17 20:34:32
+ * @LastEditTime   : 2020-06-18 14:49:29
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -17,6 +17,36 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
     function onRequest(context) {
 
         try {
+
+
+            function searchCurrencyExchangeRates(recCurrency) {
+
+                var exchangerate;
+
+                search.create({
+                    type: 'currency',
+                    filters: [{
+                        name: "symbol",
+                        operator: "startswith",
+                        values: recCurrency,
+                    }],
+                    columns: [
+                        "exchangerate"
+                    ]
+                }).run().each(function (rec) {
+                    exchangerate = rec.getValue('exchangerate')
+                });
+                log.debug('exchangerate', exchangerate);
+                return exchangerate || false;
+
+            }
+
+
+            var curS = "USD";
+            var ra = searchCurrencyExchangeRates(curS);
+            log.debug('ra', ra);
+
+            /*
 
             var ship_to_country_code = "",
                 address_id = {},

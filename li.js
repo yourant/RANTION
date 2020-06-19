@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-06-17 10:11:33
+ * @LastEditTime   : 2020-06-18 20:45:05
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
@@ -117,4 +117,17 @@ var it = {
     productTitle: "产品标题",
     qty: "",
     sku: "",
+}
+
+function toRecord(recType) {
+    var output = url.resolveRecord({
+        recordType: recType,
+        recordId: 6,
+        isEditMode: true
+    });
+
+    var a = output.split("&id=");
+    var url = a[0];
+
+    return url || false;
 }

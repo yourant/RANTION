@@ -250,13 +250,14 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 objRecord.setValue({ fieldId: 'custrecord_delivery_order_status', value: 4 });
                 var objRecord_id = objRecord.save();
                 if (objRecord_id) {
-                    // record.submitFields({
-                    //     type: "customrecord_dps_delivery_order",
-                    //     id: ret_id,
-                    //     values: {
-                    //         custrecord_delivery_order_status: 4
-                    //     }
-                    // });
+                    record.submitFields({
+                        type: "customrecord_dps_delivery_order",
+                        id: ret_id,
+                        values: {
+                            custrecord_delivery_order_status: 4,
+                            custrecord_dps_warehousing_end: true
+                        }
+                    });
 
                     //生成货品收据
                     var receipt_id = createItemReceipt(objRecord.getValue('custrecord_purchase_order_no'), context.detailList);

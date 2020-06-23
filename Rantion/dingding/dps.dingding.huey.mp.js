@@ -10,7 +10,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         var token = getToken();
         if (token) {
             //dingtalk
-            var url = 'http://47.107.254.110:18082/rantion-user/dingtalkRecord';
+            var url = 'http://47.107.254.110:18082/rantion-dingtalk/dingtalkRecord';
 
             var endDate = new Date((new Date).toDateString());
             var beginDate = new Date(endDate.getTime() - 57600000);
@@ -286,6 +286,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                         }).run().each(function (res) {
                                             custrecord_dps_rbsm_department = res.id;
                                         });
+                                        log.debug('custrecord_dps_rbsm_department_name arr', custrecord_dps_rbsm_department_name);
                                     } else {
                                         search.create({
                                             type: 'department',
@@ -297,6 +298,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                         }).run().each(function (res) {
                                             custrecord_dps_rbsm_department = res.id;
                                         });
+                                        log.debug('custrecord_dps_rbsm_department_name', custrecord_dps_rbsm_department_name);
                                     }
                                     if (custrecord_dps_rbsm_department_name == '' || !custrecord_dps_rbsm_department_name) {
                                         go = false;
@@ -521,7 +523,18 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                             case "受益/管控部门":
                                 custrecord_dps_rbsm_department_name = e.value;
                                 if (Array.isArray(custrecord_dps_rbsm_department_name)) {
-                                    custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name.join();
+                                    custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name[0];
+                                    search.create({
+                                        type: 'department',
+                                        filters: [{
+                                            name: 'name',
+                                            operator: 'is',
+                                            values: custrecord_dps_rbsm_department_name
+                                        }],
+                                    }).run().each(function (res) {
+                                        custrecord_dps_rbsm_department = res.id;
+                                    });
+                                    log.debug('custrecord_dps_rbsm_department_name arr', custrecord_dps_rbsm_department_name);
                                 } else {
                                     search.create({
                                         type: 'department',

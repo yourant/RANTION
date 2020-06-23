@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-05 19:59:20
- * @LastEditTime   : 2020-06-18 15:10:02
+ * @LastEditTime   : 2020-06-08 22:53:11
  * @LastEditors    : Li
  * @Description    : 搜索大货发运记录, 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.map.js
@@ -30,11 +30,11 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                     operator: "noneof",
                     values: ["@NONE@"]
                 },
-                // {
-                //     name: 'internalid',
-                //     operator: 'anyof',
-                //     values: 1088
-                // },
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: 1088
+                },
             ],
             columns: [
                 'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_shipping_rec_transa_subje',
@@ -98,153 +98,257 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
 
         var qtyTotal = 0;
 
-        // function afterSubmit(context) {
-
         try {
 
-            var order_num, recordId, statusText,
-                statusId, subText, subId,
-                ship_tran_abno, af_rec = context.newRecord,
-                information, type = context.type,
-                legalname, gross_margin
-
-            // if (type != 'create' || type != 'delete') {
-
             search.create({
-                type: "customrecord_dps_shipping_record",
+                type: 'customrecord_dps_shipping_record',
                 filters: [{
-                    name: 'internalid',
-                    operator: 'is',
-                    values: bId
+                        name: 'custrecord_dps_shipping_rec_information',
+                        operator: 'anyof',
+                        values: '@NONE@'
+                    },
+                    {
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: bId
+                    },
+                ],
+                columns: [{
+                    name: "custrecord_dps_ship_record_item_quantity",
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                }]
+            }).run().each(function (rec) {
+                qtyTotal += Number(rec.getValue({
+                    name: "custrecord_dps_ship_record_item_quantity",
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                }));
+                return --limit > 0;
+            });
+
+            // log.debug('qtyTotal: ' + qtyTotal);
+
+            var OccupyTotal = 0;
+            search.create({
+                type: 'customrecord_realted_transfer_head',
+                filters: [{
+                    name: "custrecord_transfer_code",
+                    join: "custrecord__realted_transfer_head",
+                    operator: 'anyof',
+                    values: toNum,
                 }],
-                columns: [
-                    'custrecord_dps_shipping_rec_status', 'custrecord_dps_shipping_rec_transa_subje',
-                    'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_ship_tran_abno',
-                    'custrecord_dps_shipping_rec_information',
-                    'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_shipping_rec_transa_subje',
-                    {
-                        name: 'custrecord_gross_margin',
-                        join: 'custrecord_dps_shipping_rec_transa_subje'
-                    }, // 交易主体的毛利率
-                    {
-                        name: 'legalname',
-                        join: 'custrecord_dps_shipping_rec_transa_subje'
-                    }, // 交易主体 法定名称
+                columns: [{
+                        name: 'custrecord_transfer_quantity',
+                        join: 'custrecord__realted_transfer_head'
+                    }, // 数量
                 ]
             }).run().each(function (rec) {
-                legalname = rec.getValue({
-                    name: 'legalname',
-                    join: 'custrecord_dps_shipping_rec_transa_subje'
+
+                log.debug('rec id', rec.id);
+
+                var qty = rec.getValue({
+                    name: 'custrecord_transfer_quantity',
+                    join: 'custrecord__realted_transfer_head'
                 });
-                gross_margin = rec.getValue({
-                    name: 'custrecord_gross_margin',
-                    join: 'custrecord_dps_shipping_rec_transa_subje'
-                });
-                recordId = rec.id;
-                statusText = rec.getText('custrecord_dps_shipping_rec_status');
-                statusId = rec.getValue('custrecord_dps_shipping_rec_status');
 
-                subText = rec.getText('custrecord_dps_shipping_rec_transa_subje');
-                subId = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
+                OccupyTotal += Number(qty);
 
-                order_num = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                var it = {
+                    qty: qty,
+                    toHId: rec.id
+                };
 
-                ship_tran_abno = rec.getValue('custrecord_dps_ship_tran_abno');
-                information = rec.getValue('custrecord_dps_shipping_rec_information');
+                poArr.push(it);
+
+                transfer_head.push(rec.id);
+
+                log.debug('transfer_head', transfer_head);
+
+                flag = true;
+                return --limit1 > 0;
 
             });
 
-            log.debug('statusId: ' + statusId, 'statusText: ' + statusText);
+            log.debug('qtyTotal: ' + qtyTotal, 'OccupyTotal: ' + OccupyTotal);
 
-            log.debug('information', information);
-            var flag = false;
+            if (OccupyTotal == qtyTotal) {
+                search.create({
+                    type: 'purchaseorder',
+                    filters: [{
+                            name: 'mainline',
+                            operator: 'is',
+                            values: false
+                        },
+                        {
+                            name: 'taxline',
+                            operator: 'is',
+                            values: false
+                        },
+                        {
+                            name: 'custcol_realted_transfer_detail',
+                            operator: 'anyof',
+                            values: transfer_head
+                        }
+                    ],
+                    columns: [
+                        'rate', 'item', 'quantity', "taxamount", "custcol_realted_transfer_detail", 'entity',
+                        {
+                            name: 'custitem_dps_declaration_cn',
+                            join: 'item'
+                        },
+                        {
+                            name: 'custitem_dps_brand',
+                            join: 'item'
+                        },
+                        {
+                            name: 'custitem_dps_unit',
+                            join: 'item'
+                        },
+                        {
+                            name: 'custitem_dps_declare',
+                            join: 'item'
+                        },
+                        {
+                            name: 'custitem_dps_customs_code',
+                            join: 'item'
+                        },
+                        {
+                            name: 'custentity_dps_placeofsupply',
+                            join: 'vendor'
+                        }, // 供应商 货源地
+                        {
+                            name: "custentity_vendor_code",
+                            join: 'vendor'
+                        }, // 供应商编码
+                        {
+                            name: "entityid",
+                            join: 'vendor'
+                        }, // 供应商名称
+                        {
+                            name: 'custentity_dps_buyer',
+                            join: 'vendor'
+                        }, // 供应商 采购员
+                    ]
+                }).run().each(function (rec) {
 
-            // if (!information) {
+                    // log.debug('purchaseorder rec.id', rec.id);
 
 
-            var info = informationValue.searchPOItem(order_num);
-            log.debug('info', info);
-            if (info && info.length > 0) {
-                log.debug('存在对应的货品', info.length);
-                // 创建报关资料
-                var informaId = informationValue.createInformation(recordId, order_num);
+                    var transfer_detail = rec.getValue('custcol_realted_transfer_detail');
+                    var qty = 1;
+                    for (var i = 0, len = poArr.length; i < len; i++) {
+                        var temp = poArr[i];
+                        if (temp.toHId == transfer_detail) {
+                            qty = temp.qty;
+                            break;
+                        }
+                    }
+
+                    var it = {
+                        name: rec.getValue({
+                            name: 'custitem_dps_declaration_cn',
+                            join: 'item'
+                        }),
+                        taxamount: rec.getValue('taxamount'),
+                        buyer: rec.getValue({
+                            name: 'custentity_dps_buyer',
+                            join: 'vendor'
+                        }),
+                        vendorId: rec.getValue({
+                            name: "entityid",
+                            join: 'vendor'
+                        }),
+                        vendorCode: rec.getValue({
+                            name: "custentity_vendor_code",
+                            join: 'vendor'
+                        }),
+                        placeofsupply: rec.getValue({
+                            name: 'custentity_dps_placeofsupply',
+                            join: 'vendor'
+                        }),
+                        itemId: rec.getValue('item'),
+                        rate: rec.getValue('rate'),
+                        qty: qty,
+                        declaration: rec.getValue({
+                            name: 'custitem_dps_declaration_cn',
+                            join: 'item'
+                        }),
+                        brand: rec.getText({
+                            name: 'custitem_dps_brand',
+                            join: 'item'
+                        }),
+                        unit: rec.getValue({
+                            name: 'custitem_dps_unit',
+                            join: 'item'
+                        }),
+                        declare: rec.getValue({
+                            name: 'custitem_dps_declare',
+                            join: 'item'
+                        }),
+                        code: rec.getValue({
+                            name: 'custitem_dps_customs_code',
+                            join: 'item'
+                        })
+                    };
+
+                    itemInfo.push(it);
+
+                    return --limit2 > 0;
+                });
+
+            }
+
+            log.audit('itemInfo: ' + bId, itemInfo);
+
+            if (flag && itemInfo.length > 0) {
+                var informaId = createInformation(bId, toNum);
+
                 log.debug('informaId', informaId);
 
                 if (informaId) {
                     // 创建报关发票
-                    var invId = informationValue.createCusInv(info, informaId, gross_margin);
-
+                    var invId = createCusInv(itemInfo, informaId, gross_margin);
                     log.debug('invId', invId);
 
                     // 创建报关装箱
-                    var boxId = informationValue.createBoxRec(info, informaId);
+                    var boxId = createBoxRec(itemInfo, informaId);
                     log.debug('boxId', boxId);
 
                     // 创建报关合同
-                    var conId = informationValue.createContract(info, informaId, subId);
+                    var conId = createContract(itemInfo, informaId, subsidiary, legalname);
                     log.debug('conId', conId);
 
                     // 创建报关单
-                    var decId = informationValue.createDeclaration(info, informaId, gross_margin, legalname);
+                    var decId = createDeclaration(itemInfo, informaId, gross_margin, legalname);
                     log.debug('decId', decId);
 
                     // 创建报关要素
-                    var eleArr = informationValue.CreateElementsOfDeclaration(info, informaId);
+                    var eleArr = CreateElementsOfDeclaration(itemInfo, informaId);
                     log.debug('eleArr', eleArr);
 
-                    // 创建 开票资料
-                    var usbArr = informationValue.createBillInformation(info, informaId, ship_tran_abno);
+                    // 创建 US 开票资料
+                    var usbArr = createUSBillInformation(itemInfo, informaId);
                     log.debug('usbArr', usbArr);
 
-                    // 关联报关资料, 需要全部报关资料产生之后再关联
-                    record.submitFields({
-                        type: 'customrecord_dps_shipping_record',
-                        id: recordId,
-                        values: {
-                            custrecord_dps_shipping_rec_information: informaId,
-                            custrecord_dps_customs_information: '创建报关资料成功',
-                            custrecord_dps_declared_value_dh: invId.total_amount,
-                            custrecord_dps_declare_currency_dh: invId.currency
-                        }
-                    });
-                } else {
-                    record.submitFields({
-                        type: 'customrecord_dps_shipping_record',
-                        id: recordId,
-                        values: {
-                            // custrecord_dps_shipping_rec_information: informaId,
-                            custrecord_dps_customs_information: '创建报关资料失败'
-                        }
-                    });
                 }
-
-            } else {
-                log.debug('不存在对应的货品', '搜索到的货品信息为空');
-                record.submitFields({
+                var box_id = record.submitFields({
                     type: 'customrecord_dps_shipping_record',
-                    id: recordId,
+                    id: bId,
                     values: {
-                        // custrecord_dps_shipping_rec_information: informaId,
-                        custrecord_dps_customs_information: '创建报关资料失败,映射关系中找不到关联的采购订单'
+                        custrecord_dps_shipping_rec_information: informaId
+                    },
+                    options: {
+                        enableSourcing: false,
+                        ignoreMandatoryFields: true
                     }
                 });
+                log.debug('box_id', box_id);
+            } else {
+                log.debug('不存在对应的采购订单', '不创建报关资料');
             }
-            // }
-            // }
 
         } catch (error) {
-            log.error('生成报关资料,出错了', error);
-            record.submitFields({
-                type: 'customrecord_dps_shipping_record',
-                id: recordId,
-                values: {
-                    // custrecord_dps_shipping_rec_information: informaId,
-                    custrecord_dps_customs_information: JSON.stringify(error)
-                }
-            });
+            log.error('处理数据失败了', error);
         }
-
-        // }
 
     }
 

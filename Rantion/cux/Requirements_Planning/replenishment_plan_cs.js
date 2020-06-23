@@ -89,6 +89,8 @@ define(['../../Helper/Moment.min','N/currentRecord', 'N/url', 'N/https', 'N/ui/d
         console.log(week_from + '---------------week_from');
         var date_to = format.parse({ value:curr.getValue('custpage_date_to'), type: format.Type.DATE});
         var week_to = weekofday(date_to);
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+        var today = moment(new Date().getTime()).format(dateFormat);
         console.log(week_to + '------------------------week_to');
         var week_arr = week_date.split(',');
         console.log(week_arr + '------------------------week_arr');
@@ -110,7 +112,8 @@ define(['../../Helper/Moment.min','N/currentRecord', 'N/url', 'N/https', 'N/ui/d
                             item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
                             account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
                             week_date: line,
-                            item_quantity: quantity
+                            item_quantity: quantity,
+                            data_type: 9
                         })
                     }
                 })
@@ -130,7 +133,8 @@ define(['../../Helper/Moment.min','N/currentRecord', 'N/url', 'N/https', 'N/ui/d
                             item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
                             account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
                             week_date: line,
-                            item_quantity: quantity
+                            item_quantity: quantity,
+                            data_type: 7
                         })
                     }
                 })

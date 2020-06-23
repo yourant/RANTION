@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-17 20:10:29
+ * @LastEditTime   : 2020-06-17 19:45:38
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -72,6 +72,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         planQty = 0;
 
                     var inspectionType;
+
                     search.create({
                         type: 'customrecord_dps_delivery_order_item',
                         filters: [{
@@ -150,9 +151,9 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         });
                         boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
                         if (rec.getValue({
-                                name: 'custrecord_delivery_date',
-                                join: 'custrecord_dps_delivery_order_id'
-                            })) {
+                            name: 'custrecord_delivery_date',
+                            join: 'custrecord_dps_delivery_order_id'
+                        })) {
                             var estimateTime = format.parse({
                                 value: rec.getValue({
                                     name: 'custrecord_delivery_date',
@@ -196,13 +197,13 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                         //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
                         var variant_arr = [{
-                                name: 'color',
-                                value: '白色'
-                            },
-                            {
-                                name: 'size',
-                                value: 'L'
-                            }
+                            name: 'color',
+                            value: '白色'
+                        },
+                        {
+                            name: 'size',
+                            value: 'L'
+                        }
                         ];
 
 
@@ -240,30 +241,26 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                             inspectionType: rec.getValue({
                                 name: "custitem_dps_warehouse_check",
                                 join: "custrecord_item_sku"
-                            }) == 1 ? inspectionType : 30
+                            }) == 1 ? null : 30
                         });
                         return true;
                     });
                     data['boxNum'] = boxNum;
                     data['planQty'] = planQty;
-                    data['skuList'] = item_arr;
 
 
-                    if(order_po_no){
-                        
-                    }
                     search.create({
                         type: 'purchaseorder',
                         filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: order_po_no
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: true
-                            }
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: order_po_no
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: true
+                        }
                         ],
                         columns: [
                             'tranid',
@@ -284,6 +281,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         data['pono'] = rec.getValue('tranid'); //采购单号
                         inspectionType = vendor_data.getValue('custentity_supplier_type') == 1 ? 10 : 20; //质检类型
                         data['inspectionType'] = inspectionType;
+
                         data['taxFlag'] = rec.getValue({
                             name: "custrecord_tax_included",
                             join: "subsidiary"
@@ -292,12 +290,16 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         data['tradeCompanyName'] = rec.getText('subsidiary').substr(rec.getText('subsidiary').lastIndexOf(' ') + 1); //交易主体名称
                         return false;
                     });
-
-
                     var order_data = record.load({
                         type: 'purchaseorder',
                         id: order_po_no
                     });
+                    for (var i = 0; i < item_arr.length; i++) {
+                        if (item_arr[i].inspectionType == null) {
+                            item_arr[i].inspectionType = inspectionType;
+                        }
+                    }
+                    data['skuList'] = item_arr;
                     data['purchaser'] = order_data.getText('employee'); //采购员
                     log.debug('data', data);
                     // message.code = 1;
@@ -317,20 +319,20 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     search.create({
                         type: 'returnauthorization',
                         filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: context.id
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: false
-                            },
-                            {
-                                name: 'taxline',
-                                operator: 'is',
-                                values: false
-                            }
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: context.id
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: false
+                        },
+                        {
+                            name: 'taxline',
+                            operator: 'is',
+                            values: false
+                        }
                         ],
                         // sku、价格、数量、客户名称、地点、日期、子公司、退货单号
                         columns: [

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-06-18 14:49:29
+ * @LastEditTime   : 2020-06-22 14:51:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -19,6 +19,17 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
         try {
 
 
+            var da = new Date().getTimezoneOffset();
+            log.audit('da', da);
+
+
+            var daa = new Date(Date.parse(new Date()) + 60 * da * 1000);
+
+            log.debug('daa', daa);
+            log.debug('new Date', new Date());
+
+
+            /*
             function searchCurrencyExchangeRates(recCurrency) {
 
                 var exchangerate;

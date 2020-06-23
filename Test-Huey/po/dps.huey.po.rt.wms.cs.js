@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/https', 'N/record', 'N/url', 'N/ui/dialog'], function(https, record, url, dialog) {
+define(['N/https', 'N/record', 'N/url', 'N/ui/dialog', 'N/search'], function(https, record, url, dialog, search) {
     /**
      * Function to be executed after page is initialized.
      *
@@ -13,7 +13,6 @@ define(['N/https', 'N/record', 'N/url', 'N/ui/dialog'], function(https, record, 
      * @since 2015.2
      */
     function pageInit(scriptContext) {
-
 
     }
 
@@ -224,9 +223,10 @@ define(['N/https', 'N/record', 'N/url', 'N/ui/dialog'], function(https, record, 
                         headers: header
                     });
 
+                    huey = response2;
 
                     var _result = JSON.parse(response2.body)
-                    var _res = JSON.parse(eval(_result.data));
+                    var _res = _result.data;
 
                     alert(_res.code == 0 ? '推送至WMS成功' : _res.msg)
                     console.log(_res);

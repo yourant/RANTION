@@ -217,7 +217,7 @@ function(search, ui, moment, format, runtime, record) {
             columns: [
                 { name: 'custrecord_demand_forecast_item_sku',sort: search.Sort.ASC},
                 { name: 'custrecord_demand_forecast_account'},
-                { name: 'custrecord_demand_forecast_item_name'},
+                { name: 'vendorname',join:"custrecord_demand_forecast_item_sku"},
                 { name: 'custrecord_demand_forecast_site'},
             ]
         }).run().each(function (rec) {
@@ -259,7 +259,7 @@ function(search, ui, moment, format, runtime, record) {
                 { name:'custrecord_demand_forecast_account'},
                 { name:'custrecord_demand_forecast_site'},
                 { name:'custrecord_demand_forecast_item_sku'},
-                { name:'custrecord_demand_forecast_item_name'},
+                { name: 'vendorname',join:"custrecord_demand_forecast_item_sku"},
                 { name:'custrecord_demand_forecast_l_data_type', join: 'custrecord_demand_forecast_parent'},
                 { name:'custrecord_quantity_week1' , join: 'custrecord_demand_forecast_parent'},
                 { name:'custrecord_quantity_week2' , join: 'custrecord_demand_forecast_parent'},
@@ -751,14 +751,7 @@ function(search, ui, moment, format, runtime, record) {
                 line.item.map(function(li){
                     if(i == li.week){
                         var field_name = 'custrecord_quantity_week' + i;
-                         //拿到更新前的数量
-                         var number1 = child_bill_data.getValue("field_name");
-                         //比较前后数量,记录差异情况
-                         var defer = number1 - li.item_quantity
-                         if(defer!=0){
-                              //记录交货计划建议处理情况
-                              SetDeferRec(line,today,field_name,defer,"21") 
-                         }
+                     
                         child_bill_data.setValue({ fieldId: field_name, value: li.item_quantity });
                     }
                 })   
@@ -801,6 +794,98 @@ function(search, ui, moment, format, runtime, record) {
         }
     })
 }
+ /**
+     * 记录建议处理情况
+     * @param {*} line
+     * @param {*} today
+     * @param {*} field_name
+     * @param {*} defer
+     */
+    function SetDeferRec(line, today, field_name, defer, suggestionType) {
+        var forecast_id;
+        search
+            .create({
+                type: "customrecord_demand_forecast",
+                filters: [
+                    {
+                        name: "custrecord_demand_forecast_item_sku",
+                        operator: "anyof",
+                        values: line.item_id,
+                    },
+                    {
+                        name: "custrecord_demand_forecast_account",
+                        operator: "anyof",
+                        values: line.account_id,
+                    },
+                ],
+            })
+            .run()
+            .each(function (rec) {
+                forecast_id = rec.id;
+            });
+        //创建建议处理情况记录
+        var defer_id;
+        search
+            .create({
+                type: "customrecord_demand_forecast_child",
+                filters: [
+                    {
+                        join: "custrecord_demand_forecast_parent",
+                        name: "custrecord_demand_forecast_item_sku",
+                        operator: "anyof",
+                        values: line.item_id,
+                    },
+                    {
+                        join: "custrecord_demand_forecast_parent",
+                        name: "custrecord_demand_forecast_account",
+                        operator: "anyof",
+                        values: line.account_id,
+                    },
+                    {
+                        name: "custrecord_demand_forecast_l_date",
+                        operator: "on",
+                        values: today,
+                    },
+                    {
+                        name: "custrecord_demand_forecast_l_data_type",
+                        operator: "anyof",
+                        values: suggestionType,
+                    },
+                ],
+            })
+            .run()
+            .each(function (rec) {
+                defer_id = record.load({
+                    type: "customrecord_demand_forecast_child",
+                    id: rec.id,
+                });
+            });
+        if (!defer_id)
+            defer_id = record.create({ type: "customrecord_demand_forecast_child" });
+        defer_id.setText({
+            fieldId: "custrecord_demand_forecast_l_date",
+            text: today,
+        });
+        defer_id.setValue({
+            fieldId: "custrecord_demand_forecast_l_data_type",
+            value: suggestionType,
+        });
+        defer_id.setValue({
+            fieldId: "custrecord_demand_forecast_parent",
+            value: forecast_id,
+        });
+        defer_id.setValue({ fieldId: field_name, value: defer });
+        var ss = defer_id.save();
+        log.debug(
+            "建议处理情记录成功 " + ss,
+            "suggestionType:" +
+            suggestionType +
+            ",defer：" +
+            defer +
+            ",field_name：" +
+            field_name
+        );
+    }
     return {
         onRequest: onRequest
     }

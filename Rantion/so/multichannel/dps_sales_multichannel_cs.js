@@ -2,7 +2,8 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(["N/ui/dialog", 'N/https', 'N/url'], function (dialog, https, url) {
+define(["N/ui/dialog", 'N/https', 'N/url',"N/currentRecord"],
+ function (dialog, https, url,currentRecord) {
 
     function pageInit(context) {
 
@@ -45,6 +46,14 @@ define(["N/ui/dialog", 'N/https', 'N/url'], function (dialog, https, url) {
     }
 
     function syncToAmazon(soId) {
+
+        
+        // console.log("原因类型："+JSON.stringify(curr)+"-"+curr.getText("custbody_reason_type"))
+        // if(!curr.getValue("custbody_reason_type")){
+        //     alert("请先选择原因类型")
+        //     return 
+        // }
+      
         function success1(result) {
             if (result == true) {
                 var link = url.resolveScript({
@@ -90,8 +99,11 @@ define(["N/ui/dialog", 'N/https', 'N/url'], function (dialog, https, url) {
     }
 
     function syncCelAmazon(soId) {
+
+
         function success1(result) {
             if (result == true) {
+
                 var link = url.resolveScript({
                     scriptId: 'customscript_dps_sales_multichannel_rl',
                     deploymentId: 'customdeploy_dps_sales_multichannel_rl'

@@ -89,7 +89,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                         }, // POSTEDBEFORE 上次请求的结束时间
                         {
                             name: "custrecord_dps_amazon_finaces_end_date"
-                        },
+                        },//终止时间
                     ]
                 }).run().each(function (rec) {
                     fid = rec.id;
@@ -111,7 +111,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                 // 用于比较请求的结束时间与终止时间, 若请求的结束时间大于终止时间, 则用终止时间作为请求的结束时间
                 if (PBefore && PEndDate) {
                     var bfDateTime = new Date(PBefore),
-                        endDateTime = new Date(PEndDate);
+                        endDateTime = new Date();
 
                     log.debug("bfDateTime - endDateTime", bfDateTime + " ; " + endDateTime)
 

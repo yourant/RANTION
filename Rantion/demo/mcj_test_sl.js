@@ -2,90 +2,35 @@
  *@NApiVersion 2.x
  *@NScriptType Suitelet
  */
-define(["N/search", "N/record", "N/http", '../Helper/logistics_cost_calculation.js', '../Helper/location_preferred.js', '../../douples_amazon/Helper/Moment.min.js', 'N/format', 'N/runtime'], 
-function (search, record, http, costCal, loactionPre, moment, format, runtime) {
+define(["N/search", "N/record", "N/http", 'N/url', 'N/https', '../Helper/logistics_cost_calculation.js', '../Helper/location_preferred.js', '../../douples_amazon/Helper/Moment.min.js', 'N/format', 'N/runtime'], 
+function (search, record, http, url, https, costCal, loactionPre, moment, format, runtime) {
 
     function onRequest(context) {
         var response = context.response;
         // var soid = '103096';
         // var idid = '2732';
         // createLogisticsStrategy(soid, idid);
-
-        // var str1 = "采购订单号：{PONumber}".format({'PONumber':'PO2006100001'});
-        try {
-            var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
-            var date =  format.parse({
-                value: (moment(new Date().getTime()).format(dateFormat)),
-                type: format.Type.DATETIME
-            });
-            var nowPage = 1; // 查询页
-            var pageSize = 3000; // 每页数量
-            var sku_data = {};
-            var mySearch = search.create({
-                type: 'customrecord_rsf_daily_sales',
-                filters: [
-                    // { name: 'startdate', join: 'custrecord_rsf_month', operator: 'onorafter', values: now_date },
-                    // { name: 'enddate', join: 'custrecord_rsf_month', operator: 'onorbefore', values: now_date },
-                    { name: 'enddate', join: 'custrecord_rsf_month', operator: 'onorafter', values: date },
-                    { name: 'closed', join: 'custrecord_rsf_month', operator: 'is', values: false }
-                ],
-                columns : [
-                    'custrecord_rsf_item', 'custrecord_rsf_store', 'custrecord_rsf_sales', 'custrecord_rsf_sales_alter',
-                    { name: 'startdate', join: 'custrecord_rsf_month' }
-                ]
-            });
-            var pageData = mySearch.runPaged({
-                pageSize: pageSize
-            });
-            var totalCount = pageData.count; // 总数
-            var pageCount = pageData.pageRanges.length; // 页数
-            for (var index = 1; index <= pageCount; index++) {
-                nowPage = index;
-                pageData.fetch({
-                    index: Number(nowPage - 1)
-                }).data.forEach(function (result) {
-                    var monthStartDate =  format.parse({
-                        value: result.getValue({ name: 'startdate', join: 'custrecord_rsf_month' }),
-                        type: format.Type.DATE
-                    });
-                    var store = result.getValue('custrecord_rsf_store');
-                    var item = result.getValue('custrecord_rsf_item');
-                    var monthQty = Number(result.getValue('custrecord_rsf_sales_alter')) > 0 ? 
-                        Number(result.getValue('custrecord_rsf_sales_alter')) : Number(result.getValue('custrecord_rsf_sales'));
-                    var monthWeekDate = splitMonthToWeek(monthStartDate, monthQty);
-                    var key = item + '_' + store + '_' + monthStartDate.getFullYear();
-                    var skudata = sku_data[key];
-                    var weeks = monthWeekDate['weeks'];
-                    // {"23":{"qty":4382},"24":{"qty":4382},"25":{"qty":4382},"26":{"qty":4382},"27":{"qty":1238},"weeks":{["23","24","25","26"]}}
-                    if (skudata) {
-                        for (var index = 0; index < weeks.length; index++) {
-                            var weekno = weeks[index];
-                            if (skudata['week_no'][weekno]) {
-                                skudata['week_no'][weekno] = Number(skudata['week_no'][weekno]) + Number(monthWeekDate[weekno].qty);
-                            } else if (Number(monthWeekDate[weekno].qty) > 0) {
-                                skudata['week_no'][weekno] = Number(monthWeekDate[weekno].qty);
-                            }
-                        }
-                    } else {
-                        var json = {};
-                        json.item = item;
-                        json.store = store;
-                        json.year = monthStartDate.getFullYear();
-                        var ws = {};
-                        for (var index = 0; index < weeks.length; index++) {
-                            var weekno = weeks[index];
-                            ws[weekno] = Number(monthWeekDate[weekno].qty);
-                        }
-                        json.week_no = ws;
-                        sku_data[key] = json;
-                    }
-                    return true;
-                });
-            }
-            response.write(JSON.stringify(sku_data));
-        } catch (error) {
-            log.debug('error', JSON.stringify(error));
+        
+        var link = url.resolveScript({
+            scriptId: 'customscript_dps_rt_saleorder_contact_rl',
+            deploymentId: 'customdeploy_dps_rt_saleorder_contact_rl',
+            returnExternalUrl: false
+        });
+        log.debug('link', link);
+        var header = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
         }
+        var body = {
+            market: 'ATVPDKIKX0DER',
+            saleOrderNo: '114-3430247-6162663'
+        }
+        var responseStr = https.post({
+            url: 'https://6188472-sb1.app.netsuite.com'+link,
+            body: body,
+            headers: header
+        });
+        log.debug('responseStr', JSON.stringify(responseStr));
     }
 
     function splitMonthToWeek(monthStartDate, skuqty) {

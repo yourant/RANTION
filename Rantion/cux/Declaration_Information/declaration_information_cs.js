@@ -95,18 +95,18 @@ function(commonTool, search, url, https, dialog) {
                         return false;
                     });
                     search.create({
-                        type: 'customrecord_dps_customs_decl_item',
+                        type: 'customrecord_dps_customs_invoice_item',
                         filters: [
-                            { name: 'custrecord_dps_cu_decl_infomation_link', join: 'custrecord_dps_customs_decla_item_link', operator: 'anyof', values: informationId }
+                            { name: 'custrecord_dps_cus_inv_information', join: 'custrecord_dps_c_i_item_link', operator: 'anyof', values: informationId }
                         ],
                         columns: [
-                            'custrecord_dps_customs_decl_item', 'custrecord_dps_customs_decl_item_qty', 'custrecord_dps_custom_decl_item_un_price'
+                            'custrecord_dps_customs_invoice_item', 'custrecord_dps_customs_invoice_item_qty', 'custrecord_dps_cus_inv_item_po_price'
                         ]
                     }).run().each(function(result) {
                         SKUs.push({
-                            'item': result.getValue('custrecord_dps_customs_decl_item'),
-                            'qty': result.getValue('custrecord_dps_customs_decl_item_qty'),
-                            'price': result.getValue('custrecord_dps_custom_decl_item_un_price')
+                            'item': result.getValue('custrecord_dps_customs_invoice_item'),
+                            'qty': result.getValue('custrecord_dps_customs_invoice_item_qty'),
+                            'price': result.getValue('custrecord_dps_cus_inv_item_po_price')
                         });
                         return true;
                     });

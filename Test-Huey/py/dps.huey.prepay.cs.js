@@ -57,11 +57,57 @@ define(['N/log', 'N/record', 'N/search'], function(log, record, search) {
                 value: set_payment,
             });
 
-            huey = record.load({
-                type: "account",
-                id: 327
+            var account_id = '';
 
+
+            var currency_name = '';
+
+            search.create({
+                type: 'currency',
+                filters: [{
+                    "name": "internalid",
+                    "operator": "is",
+                    "values": objRecord.getValue('currency')
+                }],
+                columns: ["name"]
+            }).run().each(function(res) {
+                currency_name = res.getValue('name');
             })
+
+            console.log(currency_name);
+
+
+            search.create({
+                type: 'account',
+                filters: [{
+                    "name": "subsidiary",
+                    "operator": "is",
+                    "values": objRecord.getValue('subsidiary')
+                }, {
+                    "name": "type",
+                    "operator": "is",
+                    "values": 'Bank'
+                }],
+                columns: ["name"]
+            }).run().each(function(res) {
+
+                if (res.getValue('name').indexOf(currency_name) > -1) {
+                    account_id = res.id;
+                    console.log('load_id:' + account_id);
+                    huey2 = res;
+                    return false;
+                }
+                return true;
+            });
+
+            //huey = record.load({ "type": "account","id": 327})
+
+            if (account_id != '') {
+                objRecord.setValue({
+                    fieldId: 'account',
+                    value: account_id,
+                });
+            }
 
         } else if (scriptContext.mode == 'edit') {
             o_i_payment = Number(objRecord.getValue('payment'));
@@ -97,6 +143,7 @@ define(['N/log', 'N/record', 'N/search'], function(log, record, search) {
                 value: total - o_payment + o_i_payment,
             });
         }
+        console.log(bf_cur.getValue('account'));
     }
 
     /**

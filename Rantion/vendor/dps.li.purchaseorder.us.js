@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-29 16:34:41
+ * @LastEditTime   : 2020-06-22 15:26:28
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -12,7 +12,7 @@
  * @NScriptType UserEventScript
  * @NModuleScope SameAccount
  */
-define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(record, search, runtime, moment) {
+define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (record, search, runtime, moment) {
 
     function beforeLoad(scriptContext) {
 
@@ -42,7 +42,20 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
                 log.debug('numLines', numLines);
                 var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
                 log.debug('dateFormat', dateFormat);
-                var today = moment(new Date().getTime()).format(dateFormat);
+
+                var da = new Date().getTimezoneOffset();
+                log.audit('da', da);
+                var Timezone = 0;
+
+                if (da > 0) { // 时区小于0
+                    Timezone = da + 480;
+                } else { // 时区大于0
+                    Timezone = da + 480;
+                    Timezone = -Timezone;
+                }
+
+                var today = moment(new Date().getTime() + 60 * da * 1000).format(dateFormat);
+                log.debug('today', today);
                 var supplier = newRecord.getValue('entity');
                 log.debug('supplier', supplier);
                 var currency = newRecord.getValue('currency');
@@ -84,11 +97,11 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
                 }
                 log.debug('arr2', arr2);
                 if (arr2.length > 1) {
-                    for (var xx = 0; xx < arr2.length; xx++) {
+                    for (var xx = 0, xxlen = arr2.length; xx < xxlen; xx++) {
                         if (arr2[xx].sign) {
                             continue;
                         } else {
-                            for (var yy = xx + 1; yy < arr2.length; yy++) {
+                            for (var yy = xx + 1, yylen = arr2.length; yy < yylen; yy++) {
                                 if (arr2[yy].sign) {
                                     continue;
                                 } else {
@@ -104,7 +117,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
                     log.debug('合并后', arr2)
                 }
 
-                for (var k = 0; k < arr2.length; k++) {
+                for (var k = 0, klen = arr2.length; k < klen; k++) {
                     var curUnitPrice = 0;
                     var partNo = arr2[k].item;
                     var quantity = arr2[k].quantity;
@@ -146,7 +159,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
 
                     }
 
-                    for (j = 0; j < resultArr.length; j++) {
+                    for (j = 0, rlen = resultArr.length; j < rlen; j++) {
                         log.debug(1)
                         var curquantity = resultArr[j].getValue('custrecord_vmpd_quantity');
                         if (quantity >= curquantity) {
@@ -197,9 +210,9 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
                     });
                 }
 
-                for (var i = 0; i < newRecord.getLineCount({
+                for (var i = 0, lineCount = newRecord.getLineCount({
                         sublistId: 'item'
-                    }); i++) {
+                    }); i < lineCount; i++) {
                     log.debug('i', i)
                     var lineNumber = newRecord.findSublistLineWithValue({
                         sublistId: 'item',
@@ -215,36 +228,38 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
                     });
                     i++
                 }
-            }
+                var sings = [];
+                if (arr2.length > 0) {
+                    for (var m = 0, len = arr2.length; m < len; m++) {
+                        if (sings.indexOf('true') == -1) {
 
-            var sings = [];
-            for (var m = 0; m < arr2.length; m++) {
-                if (sings.indexOf('true') == -1) {
+                            sings.push(arr2[m].sign);
+                        }
+                        if (arr2[m].sign) {
 
-                    sings.push(arr2[m].sign);
-                }
-                if (arr2[m].sign) {
-
-                    log.debug('m' + m, arr2[m].sign);
-                    log.debug('m' + m, arr2);
-                    try {
-                        // var lineNum = newRecord.selectLine({
-                        //     sublistId: 'item',
-                        //     line: m
-                        // });
-                        newRecord.removeLine({
-                            sublistId: 'item',
-                            line: m,
-                            ignoreRecalc: true
-                        });
-                        // newRecord.commitLine({
-                        //     sublistId: 'item'
-                        // });
-                    } catch (error) {
-                        log.debug('e', error);
+                            log.debug('m' + m, arr2[m].sign);
+                            log.debug('m' + m, arr2);
+                            try {
+                                // var lineNum = newRecord.selectLine({
+                                //     sublistId: 'item',
+                                //     line: m
+                                // });
+                                newRecord.removeLine({
+                                    sublistId: 'item',
+                                    line: m,
+                                    ignoreRecalc: true
+                                });
+                                // newRecord.commitLine({
+                                //     sublistId: 'item'
+                                // });
+                            } catch (error) {
+                                log.debug('e', error);
+                            }
+                        }
                     }
                 }
             }
+
         } catch (error) {
             log.error('设置价格出错了', error);
         }
@@ -269,12 +284,10 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
     function getVpmd(supplier, currency, partNo, today, sta, sum) {
 
 
-        log.debug('getVpmd sum', sum);
-        log.audit('sum', sum);
+        log.error('sum', sum);
 
         var limit = 3999;
 
-        // log.debug('getVpmd', supplier, currency, partNo, today, sta, sum);
         var filters = [];
         var flag = false;
         filters.push({
@@ -318,21 +331,13 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
         }
         if (sta == 2) {
 
-            // filters.push({
-            //     name: 'custrecord_dps_vmph_cumulative_total',
-            //     operator: "lessthanorequalto",
-            //     values: sum
-            // });
-
             if (sum > 0) {
-                log.debug('sum > 0');
                 filters.push({
                     name: 'custrecord_dps_vmph_cumulative_total',
                     operator: "lessthanorequalto",
                     values: sum
                 });
             } else {
-                log.debug('sum = 0');
                 filters.push({
                     name: 'custrecord_dps_vmph_cumulative_total',
                     operator: "equalto",
@@ -346,7 +351,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
             });
             flag = true;
         }
-        log.audit('filters', filters);
+        log.error('filters', filters);
         var resultArr = [];
         var add = 0;
 
@@ -354,10 +359,10 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
             type: 'customrecord_vemdor_price_manage_d',
             filters: filters,
             columns: columns
-        }).run().each(function(result) {
+        }).run().each(function (result) {
             resultArr.push(result);
 
-            log.audit('price', result.getValue('custrecord_vmpd_unit_price'));
+            log.error('price', result.getValue('custrecord_vmpd_unit_price'));
             add++;
 
             return flag;
@@ -365,7 +370,6 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
         });
 
         log.debug('getVpmd resultArr', resultArr);
-        // log.debug('add', add);
         return resultArr || false;
 
     }
@@ -434,7 +438,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
             type: 'customrecord_vemdor_price_manage_d',
             filters: filters,
             columns: columns
-        }).run().each(function(result) {
+        }).run().each(function (result) {
             resultArr.push(result);
             ++add;
             // 只取符合条件的第一个价格
@@ -499,7 +503,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function(r
                 name: "quantity",
                 summary: "SUM"
             }]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             total = rec.getValue({
                 name: "quantity",
                 summary: "SUM"

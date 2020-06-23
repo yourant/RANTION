@@ -9,8 +9,8 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['../../Helper/Moment.min','N/url', 'N/ui/dialog', 'N/https',"N/runtime","N/search","N/record"], 
-function(moment,url, dialog, https,runtime,search,record) {
+define(['../../Helper/Moment.min','N/url', 'N/ui/dialog', 'N/https',"N/runtime","N/search","N/record","N/currentRecord","N/format"], 
+function(moment,url, dialog, https,runtime,search,record,currentRecord ,format ) {
     var rec;
     // var report_Suitelet;
     var sublistId = 'custpage_sublist';
@@ -42,7 +42,9 @@ function(moment,url, dialog, https,runtime,search,record) {
     function fieldChanged(context) {
         var cur = context.currentRecord;
         var fieldId = context.fieldId;
+
         var data_type_id = cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_data_type_id'});
+        console.log("data_type_id:"+data_type_id)
         if(fieldId != 'custpage_account_store' && fieldId != 'custpage_site' && fieldId != 'custpage_item' && fieldId != 'custpage_date_from' && fieldId != 'custpage_date_to' && data_type_id != 8  && data_type_id != 9){    
             function success(result) { console.log('Success with value: ' + result); window.location.reload(true);}
             function failure(reason) { console.log('Failure: ' + reason) }
@@ -202,7 +204,6 @@ function(moment,url, dialog, https,runtime,search,record) {
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
         var today = moment(new Date().getTime()).format(dateFormat);
         var item_arr6 =[] ,item_arr5=[]
-        var number1,number2;
         var quantity = 0;
         for(var i = 0; i < curr.getLineCount({sublistId:sublistId}); i++){
             var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type_id',line:i});
@@ -214,8 +215,16 @@ function(moment,url, dialog, https,runtime,search,record) {
                             item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
                             account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
                             week_date: a,
-                            line:i,
+                            line:i-1, //修改量在计划的下一行
                             data_type:16,  // 需求预测数据类型 中的16 -确认交货量
+                            item_quantity: quantity
+                        })
+                        item_arr6.push({
+                            item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
+                            account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
+                            week_date: a,
+                            line:i, 
+                            data_type:15,  //需求预测数据类型 中的15 - 修改量
                             item_quantity: quantity
                         })
                     }
@@ -236,64 +245,28 @@ function(moment,url, dialog, https,runtime,search,record) {
                
         }
         }
-       
-        var bill_id
-        item_arr6.map(function(itls){
-            search.create({
-                type: 'customrecord_demand_forecast_child',
-                filters: [
-                    { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: itls.item_id },
-                    { join: 'custrecord_demand_forecast_parent', name: 'custrecord_demand_forecast_account', operator: 'anyof', values: itls.account_id },
-                    { name: 'custrecord_demand_forecast_l_date', operator: 'on', values: today},
-                    { name: 'custrecord_demand_forecast_l_data_type', operator: 'anyof', values: itls.data_type}
-                ]
-            }).run().each(function (rec) {
-                bill_id = rec.id;
-            });
-            log.debug('bill_id',bill_id);
-            var child_bill_data;
-            if(bill_id){
-                child_bill_data = record.load({type: 'customrecord_demand_forecast_child',id: bill_id});
-                var field_name = 'custrecord_quantity_week' + itls.week_date;
-                child_bill_data.setValue({ fieldId: field_name, value: itls.item_quantity });
-                child_bill_data.save();
-            }else{
-                var need_today = new Date();
-                var forecast_id;
-                search.create({
-                    type: 'customrecord_demand_forecast',
-                    filters: [
-                        { name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: itls.item_id },
-                        { name: 'custrecord_demand_forecast_account', operator: 'anyof', values: itls.account_id }
-                    ]
-                }).run().each(function (rec) {
-                    forecast_id = rec.id;
-                });
-                log.debug('forecast_id',forecast_id);
-                child_bill_data = record.create({ type: 'customrecord_demand_forecast_child' });
-                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_date', value: need_today });
-                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_l_data_type', value: itls.data_type});
-                child_bill_data.setValue({ fieldId: 'custrecord_demand_forecast_parent', value: forecast_id});
-                var field_name = 'custrecord_quantity_week' + itls.week_date;
-                child_bill_data.setValue({ fieldId: field_name, value: itls.item_quantity });
-                child_bill_data.save();
-            }
-              
-            for(var i =0;i<item_arr5.length;i++){
-                //属于同一行，并且同一周
-               if(itls.line == item_arr5[i].line  && itls.week_date ==item_arr5[i].week_date){
-                        //差异情况，修改调拨计划量 - 调拨计划量
-                var fs = Number(itls.item_quantity) - Number(item_arr5[i].item_quantity) 
-                if(fs!=0){
-                    //记录差异情况
-                    // 20 交货计划建议处理情况
-                    SetDeferRec(itls,today,'custrecord_quantity_week' + itls.week_date,fs,20)
-                }
-               }
-        
-            }
+        var link = url.resolveScript({
+            scriptId : 'customscript_allocation_plan_rl',
+            deploymentId:'customdeploy_allocation_plan_rl'
+        });
+        var header = {
+            "Content-Type":"application/json;charset=utf-8",
+            "Accept":"application/json"
+        }
+        var body = {
+            item_arr5 : item_arr5,
+            item_arr6 : item_arr6,
+            today : today,
+            PlanType : ["20","21"],  //交货计划，补货计划 例外信息类型
+        }
 
+        https.post({
+            url : link,
+            body : body,
+            headers : header
         })
+     
+      
        alert("保存成功")
     }
     /**

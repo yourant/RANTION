@@ -119,7 +119,7 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
                     boxes_number: packqty,
                     rate: rate,
                     quantity_delivered: quantity_delivered,
-                    undelivered_quantity: undelivered_quantity,
+                    undelivered_quantity: undelivered_quantity ? undelivered_quantity : 0,
                     delivery_quantity: delivery_quantity
                 });
             }
@@ -236,6 +236,9 @@ define(["N/record", "N/log", 'N/search', "./../Helper/core.min"], function (reco
                     });
                     delivery_ord.setCurrentSublistValue({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id', fieldId: 'custrecord_unit_price', value: li.rate
+                    });
+                    delivery_ord.setCurrentSublistValue({
+                        sublistId: 'recmachcustrecord_dps_delivery_order_id', fieldId: 'custrecord_outstanding_quantity', value: 0
                     });
                     var qu = li.delivery_quantity > 0 ? li.delivery_quantity : outQty;
                     totalAmount += Number(qu) * Number(li.rate);

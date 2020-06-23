@@ -179,42 +179,57 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
         var week_to = weekofday(date_to);
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
         var today = moment(new Date().getTime()).format(dateFormat),quantity;
-        var weekArray=new Array(),lines=new Array(), lineComObj =new Object(),dataObjs = new Object();
+        // var weekArray=new Array(),lines=new Array(), lineComObj =new Object(),dataObjs = new Object();
+        var fils = new Array();
         var len = curr.getLineCount({sublistId:sublistId});
         console.log("子列表长度: "+len,today);
         if(len >0){
-            var week;
-            for(var i = 0; i < len; i++){
-                var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
-               
-                weekArray =[],dataObjs = {};
-                store_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name',line:i});
-                sku = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku',line:i});
-                item_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_name',line:i});
-                data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
            
-                 
-                for(var a = week_from; a < week_to + 1; a++){
-                    week ="W"+ a;
-                    weekArray.push({week : week,qty:curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week'+a,line:i})});
-                    
-                }
-              
-                lines.push({ store_name:store_name, sku:sku, item_name:item_name,data_type:data_type,weekArray:weekArray});
+            // fils["acc"] = curr.getValue("custpage_account_store");
+            // fils["sku"] = curr.getValue("custpage_item");
+            // fils["dateFrom"] = week_from;
+            // fils["dateTo"] = week_to;
+            fils = {
+              "acc": curr.getValue("custpage_account_store"),
+              "sku": curr.getValue("custpage_item"),
+              "dateFrom": week_from,
+              "dateTo": week_to
             }
-            console.log("+ItemDatas: ",JSON.stringify(lines));
-            lineComObj["lines"] = lines;
-            lineComObj["weekArrayHead"] = weekArray;
-            console.log("+lineComObj: ",JSON.stringify(lineComObj));
+            console.log("week:: "+week_to,week_from);
+            // var week;
+            // for(var i = 0; i < len; i++){
+            //     var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
+            //     weekArray =[],dataObjs = {};
+            //     store_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name',line:i});
+            //     sku = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku',line:i});
+            //     item_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_name',line:i});
+            //     data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
+            //     for(var a = week_from; a < week_to + 1; a++){
+            //         week ="W"+ a;
+            //         weekArray.push({week : week,qty:curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week'+a,line:i})});
+            //     }
+            //     lines.push({ store_name:store_name, sku:sku, item_name:item_name,data_type:data_type,weekArray:weekArray});
+            // }
+            // console.log("+ItemDatas: ",JSON.stringify(lines));
+            // lineComObj["lines"] = lines;    
+            // lineComObj["weekArrayHead"] = weekArray;
+            console.log("fils: ",JSON.stringify(fils));
             var link = url.resolveScript({
-                scriptId : 'customscript_lucah_demo_sl',
-                deploymentId:'customdeploy_lucah_demo_sl',
+                scriptId : 'customscript_store_demand_print_sl',
+                deploymentId:'customdeploy_store_demand_print_sl',
                 params:{
-                    lineComObj:JSON.stringify(lineComObj)
+                  fils:JSON.stringify(fils)
                 },
                 returnExternalUrl: true
             });
-             
+        
+       
+  
+          // https.post({
+          //     url : link,
+          //     body : JSON.stringify(lineComObj),
+          //     headers : header
+          // })
             window.open(link)
         }else{
             alert("无数据")
@@ -224,7 +239,135 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
        
     }
 
-
+    
+    function updateData(){
+        var sublistId = 'custpage_sublist';
+        var curr = currentRecord.get();
+        var date_from = format.parse({ value:curr.getValue('custpage_date_from'), type: format.Type.DATE});
+        var week_from = weekofday(date_from);
+        var date_to = format.parse({ value:curr.getValue('custpage_date_to'), type: format.Type.DATE});
+        var week_to = weekofday(date_to);
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+        var today = moment(new Date().getTime()).format(dateFormat);
+        log.debug("today:",today)
+        var item_arr6 =[] ,item_arr5=[]
+        var quantity 
+        for(var i = 0; i < curr.getLineCount({sublistId:sublistId}); i++){
+            var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type_id',line:i});
+            if(data_type == 5 || data_type == 23){ //修改净需求量
+                quantity = 0
+                    for(var a = week_from; a < week_to + 1; a++){
+                            quantity = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week' + a,line:i});
+                        item_arr6.push({
+                            item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
+                            account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
+                            week_date: a,
+                            line:i,
+                            data_type:23,  
+                            item_quantity: quantity
+                        })
+                    }
+            }
+        }
+       
+       // 设置例外信息处理情况
+    var bill_id
+    item_arr6.map(function (itls) {
+      search
+        .create({
+          type: 'customrecord_demand_forecast_child',
+          filters: [
+            {
+              join: 'custrecord_demand_forecast_parent',
+              name: 'custrecord_demand_forecast_item_sku',
+              operator: 'anyof',
+              values: itls.item_id
+            },
+            {
+              join: 'custrecord_demand_forecast_parent',
+              name: 'custrecord_demand_forecast_account',
+              operator: 'anyof',
+              values: itls.account_id
+            },
+            {
+              name: 'custrecord_demand_forecast_l_date',
+              operator: 'on',
+              values: today
+            },
+            {
+              name: 'custrecord_demand_forecast_l_data_type',
+              operator: 'anyof',
+              values: itls.data_type
+            }
+          ]
+        })
+        .run()
+        .each(function (rec) {
+          bill_id = rec.id
+        })
+      log.debug('bill_id', bill_id)
+      var child_bill_data
+      if (bill_id) {
+        child_bill_data = record.load({
+          type: 'customrecord_demand_forecast_child',
+          id: bill_id
+        })
+        var field_name = 'custrecord_quantity_week' + itls.week_date
+        child_bill_data.setValue({
+          fieldId: field_name,
+          value: itls.item_quantity
+        })
+        child_bill_data.save()
+      } else {
+        var forecast_id
+        search
+          .create({
+            type: 'customrecord_demand_forecast',
+            filters: [
+              {
+                name: 'custrecord_demand_forecast_item_sku',
+                operator: 'anyof',
+                values: itls.item_id
+              },
+              {
+                name: 'custrecord_demand_forecast_account',
+                operator: 'anyof',
+                values: itls.account_id
+              }
+            ]
+          })
+          .run()
+          .each(function (rec) {
+            forecast_id = rec.id
+          })
+        log.debug('forecast_id', forecast_id)
+        child_bill_data = record.create({
+          type: 'customrecord_demand_forecast_child'
+        })
+        child_bill_data.setText({
+          fieldId: 'custrecord_demand_forecast_l_date',
+          text: today
+        })
+        child_bill_data.setValue({
+          fieldId: 'custrecord_demand_forecast_l_data_type',
+          value: itls.data_type
+        })
+        child_bill_data.setValue({
+          fieldId: 'custrecord_demand_forecast_parent',
+          value: forecast_id
+        })
+        var field_name = 'custrecord_quantity_week' + itls.week_date
+        child_bill_data.setValue({
+          fieldId: field_name,
+          value: itls.item_quantity
+        })
+        child_bill_data.save()
+      }
+    })
+     
+       alert("保存成功")
+    }
+   
   /**
      * 判断某一日属于这一年的第几周
      * @param {*} data 
@@ -281,6 +424,7 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
         validateInsert: validateInsert,
         validateLine: validateLine,
         sublistChanged: sublistChanged,
-        ExportDemandPlan: ExportDemandPlan
+        ExportDemandPlan: ExportDemandPlan,
+        updateData: updateData
     }
 });

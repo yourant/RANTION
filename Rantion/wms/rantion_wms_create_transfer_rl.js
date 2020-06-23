@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-19 17:40:32
+ * @LastEditTime   : 2020-06-19 16:26:14
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -149,6 +149,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
                 // FIXME 需要判断物流渠道是否存在面单文件, 
                 data["logisticsFlag"] = logiFlag;
+
 
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
 

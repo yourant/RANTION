@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 15:09:31
- * @LastEditTime   : 2020-05-16 14:43:02
+ * @LastEditTime   : 2020-06-19 20:21:26
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\vendor_price_ue1.js
@@ -68,17 +68,20 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
         // 1 单阶梯数量价格
         // 2 累计阶梯数量价格
         var price_type = newRecord.getValue('custrecord_dps_vpmh_price_type');
-        if (status == 6) {
-            // log.debug("in");
-            if (price_type == 1) {
-                forvpmd(newRecord.getValue('id'));
-            } else if (price_type == 2) {
-                CumTotalVendor(newRecord.id, newRecord.type);
-            }
-        }
+        // if (status == 6) {
+        //     // log.debug("in");
+        //     if (price_type == 1) {
+        //         forvpmd(newRecord.getValue('id'));
+        //     } else if (price_type == 2) {
+        //         CumTotalVendor(newRecord.id, newRecord.type);
+        //     }
+        // }
 
         try {
-            if (price_type == 2) {
+            if (price_type == 1) {
+                forvpmdLi(newRecord.id);
+                // forvpmd(newRecord.getValue('id'));
+            } else if (price_type == 2) {
                 CumTotalVendor(newRecord.id, newRecord.type);
             }
 
@@ -86,6 +89,164 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
             log.error('error', error);
         }
     }
+
+
+    function forvpmdLi(id) {
+        var vpmhRec = record.load({
+            type: 'customrecord_vemdor_price_manage_h',
+            id: id
+        });
+
+        var supplier = vpmhRec.getValue('custrecord_vpmh_supplier');
+        var subsidiary = vpmhRec.getValue('custrecord_vpmh_subsidiary');
+        var status = vpmhRec.getValue('custrecord_vmph_check_status');
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+
+        log.debug('status', status);
+
+        var newSublistCount = vpmhRec.getLineCount({
+            sublistId: 'recmachcustrecord_vpmd_link'
+        });
+        log.debug("newSublistCount", newSublistCount);
+
+        // 当前记录的货品货品组
+        var itemArr = [];
+
+        // 循环当前的货品行
+        for (var index = 0; index < newSublistCount; index++) {
+            // 获取当前行的货品
+            var newPartNo = vpmhRec.getSublistValue({
+                sublistId: 'recmachcustrecord_vpmd_link',
+                fieldId: 'custrecord_vpmd_part_no',
+                line: index
+            });
+            // 获取当前行的数量
+            var newQuantity = vpmhRec.getSublistValue({
+                sublistId: 'recmachcustrecord_vpmd_link',
+                fieldId: 'custrecord_vmpd_quantity',
+                line: index
+            });
+            // 获取当前行的货币
+            var newCurrency = vpmhRec.getSublistValue({
+                sublistId: 'recmachcustrecord_vpmd_link',
+                fieldId: 'custrecord_vmpd_currency',
+                line: index
+            });
+
+            // 获取当前行的生效日期
+            var newEffectiveDateStr = vpmhRec.getSublistValue({
+                sublistId: 'recmachcustrecord_vpmd_link',
+                fieldId: 'custrecord_vmpd_effective_date',
+                line: index
+            });
+            // 获取当前行的失效日期
+            var newExpirationDateStr = vpmhRec.getSublistValue({
+                sublistId: 'recmachcustrecord_vpmd_link',
+                fieldId: 'custrecord_vmpd_expiration_date',
+                line: index
+            });
+
+            var newEffDate = format.parse({
+                value: newEffectiveDateStr,
+                type: format.Type.DATE
+            });
+            var newExpDate = format.parse({
+                value: newExpirationDateStr,
+                type: format.Type.DATE
+            });
+
+            // 每一行, 只与下一行货品相同的进行比较与操作
+            for (var j = index + 1; j < newSublistCount; j++) {
+                // 获取当前行的货品
+                var jnewPartNo = vpmhRec.getSublistValue({
+                    sublistId: 'recmachcustrecord_vpmd_link',
+                    fieldId: 'custrecord_vpmd_part_no',
+                    line: j
+                });
+                // 获取当前行的数量
+                var jnewQuantity = vpmhRec.getSublistValue({
+                    sublistId: 'recmachcustrecord_vpmd_link',
+                    fieldId: 'custrecord_vmpd_quantity',
+                    line: j
+                });
+                // 获取当前行的货币
+                var jnewCurrency = vpmhRec.getSublistValue({
+                    sublistId: 'recmachcustrecord_vpmd_link',
+                    fieldId: 'custrecord_vmpd_currency',
+                    line: j
+                });
+
+                // 获取当前行的生效日期
+                var jnewEffectiveDateStr = vpmhRec.getSublistValue({
+                    sublistId: 'recmachcustrecord_vpmd_link',
+                    fieldId: 'custrecord_vmpd_effective_date',
+                    line: j
+                });
+                // 获取当前行的实现日期
+                var jnewExpirationDateStr = vpmhRec.getSublistValue({
+                    sublistId: 'recmachcustrecord_vpmd_link',
+                    fieldId: 'custrecord_vmpd_expiration_date',
+                    line: j
+                });
+
+                var jnewEffDate = format.parse({
+                    value: jnewEffectiveDateStr,
+                    type: format.Type.DATE
+                });
+                var jnewExpDate = format.parse({
+                    value: jnewExpirationDateStr,
+                    type: format.Type.DATE
+                });
+
+                log.debug('(jnewEffDate - newEffDate)', (jnewEffDate - newEffDate));
+                log.debug('开始比较数据: ' + index + " : " + j, jnewPartNo == newPartNo && jnewQuantity == newQuantity && jnewCurrency == newCurrency && (jnewEffDate - newEffDate) > 0)
+                if (jnewPartNo == newPartNo && jnewQuantity == newQuantity && jnewCurrency == newCurrency && (jnewEffDate - newEffDate) > 0) {
+
+
+                    log.debug('开始设置字段的值 当前行: ' + index, format.parse({
+                        value: getNextDate(jnewEffDate, -1, dateFormat),
+                        type: format.Type.DATE
+                    }));
+                    vpmhRec.setSublistValue({
+                        sublistId: 'recmachcustrecord_vpmd_link',
+                        fieldId: 'custrecord_vmpd_expiration_date',
+                        line: index,
+                        value: format.parse({
+                            value: getNextDate(jnewEffDate, -1, dateFormat),
+                            type: format.Type.DATE
+                        })
+                    });
+
+                    // break;
+                }
+                if (jnewPartNo == newPartNo && jnewQuantity == newQuantity && jnewCurrency == newCurrency && (jnewEffDate - newEffDate) < 0) {
+                    log.debug('开始设置字段的值 下一行: ' + j, format.parse({
+                        value: getNextDate(newEffDate, -1, dateFormat),
+                        type: format.Type.DATE
+                    }));
+                    vpmhRec.setSublistValue({
+                        sublistId: 'recmachcustrecord_vpmd_link',
+                        fieldId: 'custrecord_vmpd_expiration_date',
+                        line: j,
+                        value: format.parse({
+                            value: getNextDate(newEffDate, -1, dateFormat),
+                            type: format.Type.DATE
+                        })
+                    });
+                    // break;
+                }
+            }
+
+        }
+
+
+        var vpmhRecId = vpmhRec.save();
+        log.debug('vpmhRecId', vpmhRecId);
+
+        return true;
+    }
+
+
 
     function forvpmd(id) {
         var vpmhRec = record.load({
@@ -105,9 +266,9 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
         });
 
 
-        if (!status) {
-            status = sta;
-        }
+        // if (!status) {
+        //     status = sta;
+        // }
 
         log.debug('status', status);
 
@@ -115,18 +276,23 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
             sublistId: 'recmachcustrecord_vpmd_link'
         });
         log.debug("newSublistCount", newSublistCount);
+
+        // 循环当前的货品行
         for (var index = 0; index < newSublistCount; index++) {
-            log.debug("index" + index, index);
+            // log.debug("index" + index, index);
+            // 获取当前行的货品
             var newPartNo = vpmhRec.getSublistValue({
                 sublistId: 'recmachcustrecord_vpmd_link',
                 fieldId: 'custrecord_vpmd_part_no',
                 line: index
             });
+            // 获取当前行的数量
             var newQuantity = vpmhRec.getSublistValue({
                 sublistId: 'recmachcustrecord_vpmd_link',
                 fieldId: 'custrecord_vmpd_quantity',
                 line: index
             });
+            // 获取当前行的货币
             var newCurrency = vpmhRec.getSublistValue({
                 sublistId: 'recmachcustrecord_vpmd_link',
                 fieldId: 'custrecord_vmpd_currency',
@@ -139,30 +305,31 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
                 newQuantity: newQuantity,
                 newCurrency: newCurrency
             });
-
+            // 获取当前行的生效日期
             var newEffectiveDateStr = vpmhRec.getSublistValue({
                 sublistId: 'recmachcustrecord_vpmd_link',
                 fieldId: 'custrecord_vmpd_effective_date',
                 line: index
             });
+            // 获取当前行的实现日期
             var newExpirationDateStr = vpmhRec.getSublistValue({
                 sublistId: 'recmachcustrecord_vpmd_link',
                 fieldId: 'custrecord_vmpd_expiration_date',
                 line: index
             });
-            // log.debug("date_str","newEffectiveDateStr"+newEffectiveDateStr+"——"+"newEffectiveDateStr"+newEffectiveDateStr);
+            log.debug("date_str", "newEffectiveDateStr" + newEffectiveDateStr + "——" + "newEffectiveDateStr" + newEffectiveDateStr);
             var newEffDate = format.parse({
                 value: newEffectiveDateStr,
                 type: format.Type.DATE
             });
-            var newEffectiveDate = new Date(moment(newEffDate).format('YYYY/MM/DD'));
-            // log.debug("newEffectiveDate",newEffectiveDate);
+            var newEffectiveDate = new Date(moment(newEffDate).format(dateFormat));
+            log.debug("newEffectiveDate", newEffectiveDate);
             var newExpDate = format.parse({
                 value: newExpirationDateStr,
                 type: format.Type.DATE
             });
-            var newExpirationDate = new Date(moment(newExpDate).format('YYYY/MM/DD'));
-            // log.debug("newExpirationDate",newExpirationDate);
+            var newExpirationDate = new Date(moment(newExpDate).format(dateFormat));
+            log.debug("newExpirationDate", newExpirationDate);
 
             log.debug("id", id);
             var mySearch = search.create({
@@ -181,12 +348,14 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
                         operator: "anyof",
                         values: supplier
                     },
-                    {
-                        name: "custrecord_vmph_check_status",
-                        join: "custrecord_vpmd_link",
-                        operator: "anyof",
-                        values: status
-                    },
+
+                    // HACK 
+                    // {
+                    //     name: "custrecord_vmph_check_status",
+                    //     join: "custrecord_vpmd_link",
+                    //     operator: "anyof",
+                    //     values: status
+                    // },
                     {
                         name: "custrecord_vpmd_part_no",
                         operator: 'anyof',
@@ -227,9 +396,10 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
             });
             log.debug("resultArr", resultArr);
             log.debug("resultArr.length", resultArr.length);
-            for (j = 0; j < resultArr.length; j++) {
+            for (j = 0, len = resultArr.length; j < len; j++) {
                 log.debug("j" + j, j);
-                var result = resultArr[j];
+                var result = resultArr[j],
+                    res = resultArr[j + 1];
                 var vpmd_id = result.custrecord_vpmd_id;
                 var vpmdRec = record.load({
                     type: 'customrecord_vemdor_price_manage_d',
@@ -240,13 +410,13 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
                     value: result.custrecord_vmpd_effective_date,
                     type: format.Type.DATE
                 });
-                var oldEffectiveDate = new Date(moment(oldEffDate).format('YYYY/MM/DD'));
+                var oldEffectiveDate = new Date(moment(oldEffDate).format(dateFormat));
 
                 var oldExpDate = format.parse({
                     value: result.custrecord_vmpd_expiration_date,
                     type: format.Type.DATE
                 });
-                var oldExpirationDate = new Date(moment(oldExpDate).format('YYYY/MM/DD'));
+                var oldExpirationDate = new Date(moment(oldExpDate).format(dateFormat));
 
 
                 //新生效日期 >  旧失效日期                新失效日期 < 旧生效日期
@@ -281,7 +451,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
                     log.debug(4);
                     //新生效日期 > 旧生效日期
                     if (newEffectiveDate > oldEffectiveDate) {
-                        log.debug(5);
+                        log.debug(5, "newEffectiveDate: " + newEffectiveDate + "    oldEffectiveDate: " + oldEffectiveDate);
                         vpmdRec.setValue({
                             fieldId: 'custrecord_vmpd_expiration_date',
                             value: format.parse({

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-06-19 17:49:49
+ * @LastEditTime   : 2020-06-22 16:02:31
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -371,12 +371,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 num = Number(num) + Number(gross_margin);
             }
 
-            log.debug('num', num);
+            log.debug('createContract num', num);
 
             log.debug('temp.rate', temp.rate);
             var newRate = Number(temp.rate) * num / cur_rate;
 
-            log.debug('newRate', newRate);
+            log.debug('createContract newRate', newRate);
 
             con.setSublistValue({
                 sublistId: subId,

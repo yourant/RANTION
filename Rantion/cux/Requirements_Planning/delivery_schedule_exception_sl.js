@@ -180,7 +180,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             columns: [
                 { name: 'custrecord_demand_forecast_item_sku',sort: search.Sort.ASC},
                 { name: 'custrecord_demand_forecast_account'},
-                { name: 'custrecord_demand_forecast_item_name'},
+                { name: 'vendorname',join:"custrecord_demand_forecast_item_sku"},
                 { name: 'custrecord_demand_forecast_site'},
             ]
         }).run().each(function (rec) {
@@ -358,6 +358,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                 });
             });
         }
+
  //交货计划建议出来情况
  var filters = [
     { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["20"] },
@@ -445,7 +446,7 @@ var pageData_delivery_schedule = mySearch_delivery_schedule.runPaged({
 var totalCount = pageData_delivery_schedule.count; //总数
 var pageCount = pageData_delivery_schedule.pageRanges.length; //页数
 
-var item_data = [];
+
 if (totalCount == 0 && pageCount ==0) {
     rsJson.result = [];
     rsJson.totalCount = totalCount;
@@ -622,17 +623,18 @@ if (totalCount == 0 && pageCount ==0) {
                           //差异数量 交货情况
                         if(result[a]['data_type'] == 20){
                             for (var i = week_start; i <= week_end; i++) { 
-                                for (var index = 1; index <= 52; index++) {
-                                    var sub_filed = 'custpage_quantity_week' + index;
-                                    var sub_filed2 = 'custpage_quantity_week' + (index +1);
-                                    if(result[a]['quantity_week'+index]){
-                                        var x1 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed2, line: need2_zl}) : 0;
-                                        var x2 = Math.abs(result[a]['quantity_week'+index]) + Number(x1) 
+                                // for (var index = 1; index <= 52; index++) {
+                                    var sub_filed = 'custpage_quantity_week' + i;
+                                    // var sub_filed2 = 'custpage_quantity_week' + (i+1);
+                                    if(result[a]['quantity_week'+i] && i != week_start){
+                                        var x1 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0;
+                                        log.debug("x1 - quantity_week:" +i, x1 +" - "+result[a]['quantity_week'+i])
+                                        var x2 =  Math.round(x1)  + Math.round(result[a]['quantity_week'+i]) 
                                         sublist.setSublistValue({ id: sub_filed, value:x2.toString(), line: zl});
-                                    }else{
+                                    }else {
                                         sublist.setSublistValue({ id: sub_filed, value:"0", line: zl});
                                     }
-                                }
+                                // }
                              
                             }
                             need3_zl = zl;

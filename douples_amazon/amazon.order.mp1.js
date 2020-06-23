@@ -8,16 +8,27 @@
 define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
     "./Helper/Moment.min", "N/log", "N/search", "N/record",  "N/encode", "N/https", "N/xml","./Helper/interfunction.min"
 ], function (format, runtime, core, cryptoJS, moment, log, search, record, encode, https, xml,interfun) {
-
+    var tz = new Date().getTimezoneOffset()
     function getInputData() {
         var orders = []
         try {
-            var request_date = runtime.getCurrentScript().getParameter({
+            var req = runtime.getCurrentScript().getParameter({
                 name: 'custscript_listorder_date'
             });
-            log.debug("request_date", request_date)
+            var request_acc = runtime.getCurrentScript().getParameter({
+                name: 'custscript_amazon_ord_store'
+            });
+            var request_start= runtime.getCurrentScript().getParameter({
+                name: 'custscript_start_date'
+            });
+            var request_end = runtime.getCurrentScript().getParameter({
+                name: 'custscript_end_date'
+            });
+            request_start = new Date(request_start.getTime() - tz*60*1000).toISOString()
+            request_end = new Date(request_end.getTime() - tz*60*1000).toISOString()
+            log.debug("店铺L:"+request_acc,"date end:"+request_end+",date request_start:"+request_start );
             core.amazon.getAccountList().map(function (account) {
-                if(account.id != 118) return 
+                if(account.id != request_acc && request_acc ) return 
                 last_updated_after = "2020-06-01T00:00:00.000Z";
                 // last_updated_before = "2020-03-10T23:59:59.999Z";
                 if (account.enabled_sites == 'AmazonUS') {
@@ -49,21 +60,19 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
 
 
                 // last_updated_before = "2020-03-19T23:59:59.999Z";
-                if (request_date) {
+                if (req) {
 
-                    // 设置统一时间
-                    last_updated_after ="2020-06-01T00:00:00.000Z";
-                    last_updated_before = "2020-06-12T00:00:00.000Z";
-
-                    log.audit('request_date', request_date)
-                    var ssd = core1.handleit(account.id, last_updated_after, last_updated_before)
+                    // // 设置统一时间
+                    // last_updated_after ="2020-06-01T00:00:00.000Z";
+                    // last_updated_before = "2020-06-12T00:00:00.000Z";
+                    var ssd = core1.handleit(account.id, request_start, request_end)
                     if (ssd)
                         ssd.map(function (order) {
                             orders.push(order);
                         })
                 } else {
 
-                    log.audit('else !request_date', account.id)
+                    log.audit(' !request', account.id)
                     core1.handleit(account.id).map(function (order) {
                         orders.push(order);
                     })
@@ -87,6 +96,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
         var order = JSON.parse(context.value)
         log.debug("order:", context.value)
         // ====================进cache==============
+       
         try {
             var r;
             search.create({
@@ -265,30 +275,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             log.debug("field_token", field_token)
 
             if (!last_update_date) {
-
-                // 根据站点来设置拉取的时间
-                if (enabled_sites == 'AmazonUS') {
-                    // 美国站点
-                    log.audit("acc_id " + acc_id, "美国站点");
-
-                    last_update_date = "2020-06-12T00:00:00.000Z";
-                } else if (enabled_sites == 'AmazonUK') {
-                    // 英国站点
-                    log.audit("acc_id " + acc_id, "英国站点");
-
-                    last_update_date = "2020-06-12T00:00:00.000Z";
-                } else if (enabled_sites == 'AmazonDE' || enabled_sites == 'AmazonES' || enabled_sites == 'AmazonFR' || enabled_sites == 'AmazonIT') {
-                    // 欧洲站点
-                    log.audit("acc_id " + acc_id, "欧洲站点");
-
-                    last_update_date = "2020-06-12T00:00:00.000Z";
-                } else {
-                    // 其他站点
-                    log.audit("acc_id " + acc_id, "其他站点");
-
-                    last_update_date = "2020-06-12T00:00:00.000Z";
-                }
-
+                last_update_date = "2020-06-12T00:00:00.000Z";
             }
             if (hid && nextToken) {
                 if (nextToken == '-1') {

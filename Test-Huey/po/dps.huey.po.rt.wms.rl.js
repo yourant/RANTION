@@ -39,7 +39,7 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
             search.create({
                 type: 'item',
                 filters: [{
-                    name: 'internalid',
+                    name: 'itemid',
                     operator: 'is',
                     values: itemid
                 }],
@@ -47,16 +47,16 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
                     'custitem_dps_spucoding', //产品编号
                     'custitem_dps_picture', //图片路径
                     'custitem_dps_ctype', //产品类型 10:成品 20:半成品 30:组合产品 40:包装材料 ,
-                    'custitem_dps_skuchiense', //产品标题
+                    'vendorname', //产品标题
                     //'custitem_dps_skuenglish', //sku
-                    'custitem_dps_variant', //变体规格
+                    'custitem_dps_specifications', //变体规格
                 ]
             }).run().each(function(res) {
                 productCode = res.getValue('custitem_dps_spucoding');
                 productImageUrl = res.getValue('custitem_dps_picture');
-                productTitle = res.getValue('custitem_dps_skuchiense');
+                productTitle = res.getValue('vendorname');
                 productType = res.getValue('custitem_dps_ctype');
-                variants = res.getValue('custitem_dps_variant');
+                variants = res.getValue('custitem_dps_specifications');
             });
 
 
@@ -167,15 +167,30 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
         var sourceNo = v_record.id;
         var remark = v_record.getValue('memo');
 
+        var customrecord_logistics_service_id;
+        var customrecord_logistics_company_id;
+
+        //获取渠道信息
+
+        search.create({
+            type: 'customrecord_logistics_service',
+            filters: [{
+                name: 'name',
+                operator: 'is',
+                values: '货拉拉渠道服务'
+            }],
+            columns: [
+                'custrecord_ls_logistics_company'
+            ]
+        }).run().each(function(res) {
+            customrecord_logistics_service_id = res.id;
+            customrecord_logistics_company_id = res.getValue('custrecord_ls_logistics_company');
+        });
+
+
         //根据wms仓库合并数据生成出库单
         locations.forEach(function(location) {
-            //获取物流渠道商信息
-            var logisticsChannelCode = v_record.getValue('custbody_dps_dhl_po_return');
-            if (logisticsChannelCode == '')
-                logisticsChannelCode = '货拉拉';
-            var logisticsChannelName = logisticsChannelCode;
-            var logisticsProviderCode = logisticsChannelCode;
-            var logisticsProviderName = logisticsChannelCode;
+
 
             OutMasterCreateRequestDto = {
                 sourceType: 20, //来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整,
@@ -185,11 +200,11 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
                 mobilePhone: mobilePhone, //'移动电话', //(string)
                 telephone: telphone, //'固定电话', //(string, optional)
 
-                logisticsChannelCode: logisticsChannelCode, //'物流渠道服务编号', //(string)
-                logisticsChannelName: logisticsChannelName, //'物流渠道服务名称', //(string)
+                logisticsChannelCode: customrecord_logistics_service_id, //'物流渠道服务编号', //(string)
+                logisticsChannelName: '货拉拉渠道服务', //'物流渠道服务名称', //(string)
                 //logisticsLabelPath: logisticsLabelPath, //' 物流面单文件路径', //(string)
-                logisticsProviderCode: logisticsProviderCode, //'物流渠道商编号', //(string)
-                logisticsProviderName: logisticsProviderName, //'物流渠道商名称', //(string)
+                logisticsProviderCode: customrecord_logistics_company_id, //'物流渠道商编号', //(string)
+                logisticsProviderName: '货拉拉', //'物流渠道商名称', //(string)
 
                 sourceNo: sourceNo + '-' + location, //'来源单号', //(string)
                 remark: remark, //'备注', //(string, optional)

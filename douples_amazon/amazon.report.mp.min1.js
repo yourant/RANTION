@@ -26,6 +26,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
         Object.defineProperty(exports, "__esModule", {
             value: true
         });
+        var tz = new Date().getTimezoneOffset()
         /** 检查对应报告类型*/
         var check_if_handle = function (cfg, type) {
             return ((cfg.if_handle_removal_report && (type == core.enums.report_type._GET_FBA_FULFILLMENT_REMOVAL_ORDER_DETAIL_DATA_ || type == core.enums.report_type._GET_FBA_FULFILLMENT_REMOVAL_SHIPMENT_DETAIL_DATA_)) ||
@@ -69,19 +70,34 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             //店铺
             var stroe = runtime.getCurrentScript().getParameter({
                 name: 'custscript_store_report'
-            })
-            var startDate, endate;
-
+            });
+            //自定义开始时间
+            var startdate = runtime.getCurrentScript().getParameter({
+                name: 'custscript_cust_startdate'
+            });
+            //自定义结束时间
+            var startend = runtime.getCurrentScript().getParameter({
+                name: 'custscript_cust_endate'
+            });
+            if(startdate)
+            startdate = new Date(startdate.getTime() - tz*60*1000).toISOString()
+            if(startend)
+            startend = new Date(startend.getTime() - tz*60*1000).toISOString()
+            var startDate, endDate;
+            startdate?startDate = startdate:startDate = report_start_date;
+            startend? endDate = startend:endDate = moment.utc().subtract(1, 'days').endOf('day').toISOString();
+            log.debug(report_type, "startDate:" + startDate + "   endDate:" + endDate);
             var sum = 0,acc_arrys=[];
             //listing可以区分站点
-            if (report_type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_) {
+            if (report_type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_ || report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
                 acc_arrys = core.amazon.getAccountList()
             }else{
                 acc_arrys =  core.amazon.getReportAccountList()
             }
             // core.amazon.getReportAccountList().map(function (account) {
+
                 acc_arrys.map(function (account) {
-                    if(account.id !=stroe && stroe) return
+                if(account.id !=stroe && stroe) return
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {
                     log.audit("account:" + account.id, marketplace);
@@ -89,20 +105,14 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         /** Settlement Report 结算报告 Request */
                         if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
                             sum++;
-                            core.amazon.requestReportFake(account, report_type);
+                            core.amazon.requestReportFake(account, report_type,startDate,endDate);
                             log.audit("requestReportFake", "requestReportFake");
                         } else if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
                             core.amazon.requestReport(account, report_type, {});
                         } else {
-                            startDate = report_start_date;
-                            endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
-                            startDate = '2020-06-01T00:00:00.000Z';
-                            // endate = '2020-06-10T10:00:00.000Z';
-                            log.debug(report_type, "startDate:" + startDate + "   endate:" + endate);
-
                             core.amazon.requestReport(account, report_type, {
                                 'StartDate': startDate,
-                                'EndDate': endate,
+                                'EndDate': endDate,
                                 'MarketplaceIdList.Id.1': account.marketplace,
                                 'ReportOptions': "ShowSalesChannel"
                             });
@@ -125,6 +135,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                                     type: report_type,
                                     line: l,
                                     firstLine: rLines[0],
+                                    site_id: account.site_id
                                 });
                             });
 
@@ -197,6 +208,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 }
 
             });
+
             log.audit('000input', {
                 sum: sum,
                 type: report_type,
@@ -230,7 +242,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
 
             var vArray = JSON.parse(ctx.value);
             log.error('vArray', vArray)
-            var acc_id, id, type, line, firstLine
+            var acc_id, id, type, line, firstLine,site_id
             try {
                 vArray.map(function (v) {
                     log.error("v:", v)
@@ -239,6 +251,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         id = Number(v.id),
                         type = v.type,
                         line = v.line,
+                        site_id = v.site_id,
                         firstLine = v.firstLine;
 
                     line['report-id'] = id;
@@ -525,6 +538,24 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             fieldId: "custrecord_all_salesorder_location",
                             value: Number(v.salesorder_location)
                         });
+                        //sku对应关系，fnsku取库存报告
+                        var sku_corr
+                        search.create({
+                            type:"customrecord_aio_amazon_seller_sku",
+                            filters:[
+                                {name:"custrecord_ass_account" ,operator:"anyof",values:acc_id},
+                                {name:"name" ,operator:"is",values:v.sku}
+                            ],columns:{name:""}
+                        }).run().each(function(e){
+                            sku_corr =  e.id
+                        })
+                        if(!sku_corr){
+                            sku_corr.create({type:"customrecord_aio_amazon_seller_sku"})
+                            sku_corr.setValue({fieldId:"custrecord_ass_account",value:acc_id})
+                            sku_corr.setValue({fieldId:"custrecord_ass_fnsku",value:v.fnsku})
+                            sku_corr.setValue({fieldId:"name",value:v.sku})
+                            sku_corr.save()
+                        }
                     }
                     if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
                         rec.setText({
@@ -541,6 +572,25 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             fieldId: "custrecord_aio_mfn_l_listing_acc_id",
                             value: acc_id
                         });
+                        //sku对应关系，asin sellersku 店铺 站点
+                        var sku_corr
+                        search.create({
+                            type:"customrecord_aio_amazon_seller_sku",
+                            filters:[
+                                {name:"custrecord_ass_account" ,operator:"anyof",values:acc_id},
+                                {name:"name" ,operator:"anyof",values:v["seller-sku"]}
+                            ]
+                        }).run().each(function(e){
+                            sku_corr =  e.id
+                        })
+                        if(!sku_corr){
+                            sku_corr.create({type:"customrecord_aio_amazon_seller_sku"})
+                            sku_corr.setValue({fieldId:"custrecord_ass_account",value:acc_id})
+                            sku_corr.setValue({fieldId:"custrecord_ass_asin",value:v.asin1})
+                            sku_corr.setValue({fieldId:"name",value:v.v["seller-sku"]})
+                            sku_corr.setValue({fieldId:"custrecord_ass_sellersku_site",value:site_id})
+                            sku_corr.save()
+                        }
                     }
                     var ss = rec.save();
                     log.debug('rec.id', ss);

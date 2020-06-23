@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-27 17:29:27
- * @LastEditTime   : 2020-06-18 16:27:47
+ * @LastEditTime   : 2020-06-20 14:02:04
  * @LastEditors    : Li
  * @Description    :  应用于采购订单,增加按钮
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -12,8 +12,8 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
-    function (config, record, runtime, search) {
+define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
+    function (config, record, runtime, search, url) {
 
         var roleId = runtime.getCurrentUser().role;
 
@@ -65,32 +65,39 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
             log.debug('flag ', flag);
             log.debug('vendorRoleId ', config.vendorRoleId);
             if (context.type == 'view' && newRecord.type == 'purchaseorder' && !flag && roleId != config.vendorRoleId) {
+                var output = url.resolveRecord({
+                    recordType: 'customrecord_dps_delivery_order',
+                    recordId: 6,
+                    isEditMode: true
+                });
+                var a = output.split("&id=");
+                var path_url = a[0];
                 var form = context.form
                 form.clientScriptModulePath = './dps_purchase_order_cs.js';
                 form.addButton({
                     id: 'custpage_bills',
                     label: '生成交货单',
-                    functionName: 'createDeliveryBills'
+                    functionName: 'createDeliveryBills("' + path_url + '", "' + newRecord.id + '")'
                 });
             }
 
-            if (context.type == 'view' && newRecord.type == 'customrecord_dps_delivery_order' && newRecord.getValue('custrecord_delivery_order_status') == 1 && roleId == config.vendorRoleId) {
-                // var need_data = [];
-                // need_data.push({
-                //     delivery_date: newRecord.getValue('custrecord_delivery_date'),
-                //     order_location: newRecord.getValue('custrecord_dsp_delivery_order_location')
-                // })
-                // log.debug('need_data',need_data);
-                var form = context.form
-                form.clientScriptModulePath = './dps_purchase_order_cs.js';
-                form.addButton({
-                    id: 'custpage_determine',
-                    label: '供应商确定',
-                    functionName: 'supplierDetermination("' + newRecord.getValue('custrecord_delivery_date') + '", "' + newRecord.getValue('custrecord_dsp_delivery_order_location') + '")'
-                });
-            }
+            // if (context.type == 'view' && newRecord.type == 'customrecord_dps_delivery_order' && newRecord.getValue('custrecord_delivery_order_status') == 1 && roleId == config.vendorRoleId) {
+            //     // var need_data = [];
+            //     // need_data.push({
+            //     //     delivery_date: newRecord.getValue('custrecord_delivery_date'),
+            //     //     order_location: newRecord.getValue('custrecord_dsp_delivery_order_location')
+            //     // })
+            //     // log.debug('need_data',need_data);
+            //     var form = context.form
+            //     form.clientScriptModulePath = './dps_purchase_order_cs.js';
+            //     form.addButton({
+            //         id: 'custpage_determine',
+            //         label: '供应商确定',
+            //         functionName: 'supplierDetermination("' + newRecord.getValue('custrecord_delivery_date') + '", "' + newRecord.getValue('custrecord_dsp_delivery_order_location') + '")'
+            //     });
+            // }
 
-            if (context.type == 'view' && newRecord.type == 'customrecord_dps_delivery_order' && newRecord.getValue('custrecord_delivery_order_status') == 2 && roleId != config.vendorRoleId) {
+            if (context.type == 'view' && newRecord.type == 'customrecord_dps_delivery_order' && newRecord.getValue('custrecord_delivery_order_status') == 5 && roleId != config.vendorRoleId) {
                 var form = context.form
                 form.clientScriptModulePath = './dps_purchase_order_cs.js';
                 form.addButton({
@@ -104,6 +111,9 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
         function beforeSubmit(context) {
             var bf_rec = context.newRecord;
             var type = context.type;
+
+            log.debug('bf_rec type', bf_rec.type)
+            log.debug('context type', context.type)
             try {
                 if (type == 'create' && bf_rec.type == 'purchaseorder') {
                     var len = bf_rec.getLineCount({
@@ -178,6 +188,119 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                             });
                         }
                     }
+
+
+                }
+                if (bf_rec.type == "customrecord_dps_delivery_order" && context.type == "delete") {
+                    log.debug('开始反写数据, 删除记录', "Starts");
+                    var load_rec = record.load({
+                        type: bf_rec.type,
+                        id: bf_rec.id
+                    });
+                    var purchase_order_no = load_rec.getValue('custrecord_purchase_order_no');
+                    var flag = false;
+                    var l_po = record.load({
+                        type: 'purchaseorder',
+                        id: purchase_order_no
+                    });
+
+                    var len = load_rec.getLineCount({
+                        sublistId: 'recmachcustrecord_dps_delivery_order_id'
+                    });
+                    for (var i = 0; i < len; i++) {
+                        var item_sku = load_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_item_sku',
+                            line: i
+                        });
+                        // 交货单 交货数量
+                        var item_quantity = load_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_item_quantity',
+                            line: i
+                        });
+                        // 交货单 原交货数量
+                        var hide_quantity = load_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_hide_quantity',
+                            line: i
+                        });
+
+                        log.debug('hide_quantity', hide_quantity);
+                        if (hide_quantity) {
+                            var lineNumber = l_po.findSublistLineWithValue({
+                                sublistId: 'item',
+                                fieldId: 'item',
+                                value: item_sku
+                            });
+                            var quantity_delivered = l_po.getSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_quantity_delivered',
+                                line: lineNumber
+                            });
+                            var quantity = l_po.getSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'quantity',
+                                line: lineNumber
+                            });
+
+                            var diffQty = 0;
+                            if (hide_quantity == item_quantity) {
+                                diffQty = hide_quantity;
+                            } else {
+                                diffQty = hide_quantity - item_quantity
+                            }
+                            log.debug('diffQty', diffQty);
+                            var y_qty = Number(quantity_delivered) - Number(diffQty);
+                            // 已交货数量
+                            l_po.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_quantity_delivered',
+                                line: lineNumber,
+                                value: y_qty
+                            });
+                            // 本次提交数量
+                            l_po.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_delivery_quantity',
+                                line: lineNumber,
+                                value: quantity - y_qty
+                            });
+                            // 未提交数量
+                            l_po.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_undelivered_quantity',
+                                line: lineNumber,
+                                value: quantity - y_qty
+                            });
+                            flag = true;
+                        }
+                    }
+                    log.debug('flag', flag);
+                    if (flag) {
+
+                        var limit = 3999;
+                        var l_po_id = l_po.save();
+                        log.debug('l_po_id', l_po_id);
+
+                        search.create({
+                            type: 'customrecord_dps_delivery_order_item',
+                            filters: [{
+                                name: 'custrecord_dps_delivery_order_id',
+                                operator: 'anyof',
+                                values: load_rec.id
+                            }]
+                        }).run().each(function (rec) {
+                            record.delete({
+                                type: 'customrecord_dps_delivery_order_item',
+                                id: rec.id
+                            });
+
+                            return --limit > 0;
+                        });
+                    }
+
+                    log.debug('开始反写数据, 删除记录', "End");
                 }
             } catch (error) {
                 log.error('beforeSubmit 设置交货单的值, 出错了', error);
@@ -197,7 +320,7 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                     var len = load_rec.getLineCount({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id'
                     });
-                    if (delivery_order_status == 2 && purchase_order_no) {
+                    if (delivery_order_status == 2 && purchase_order_no && !load_rec.getValue('custrecord_dps_supplier_end')) {
                         var flag = false;
                         var l_po = record.load({
                             type: 'purchaseorder',
@@ -215,6 +338,14 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                                 fieldId: 'custrecord_item_quantity',
                                 line: i
                             });
+
+                            // 交货单 原交货数量
+                            var hide_quantity = load_rec.getSublistValue({
+                                sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                fieldId: 'custrecord_hide_quantity',
+                                line: i
+                            });
+
                             if (item_quantity) {
                                 var lineNumber = l_po.findSublistLineWithValue({
                                     sublistId: 'item',
@@ -231,7 +362,7 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                                     fieldId: 'quantity',
                                     line: lineNumber
                                 });
-                                var y_qty = Number(quantity_delivered) + Number(item_quantity);
+                                var y_qty = Number(quantity_delivered) - Number(hide_quantity) + Number(item_quantity);
                                 // 已交货数量
                                 l_po.setSublistValue({
                                     sublistId: 'item',
@@ -258,8 +389,16 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                         }
                         if (flag) {
                             l_po.save();
+
+                            record.submitFields({
+                                type: "customrecord_dps_delivery_order",
+                                id: newRecord.id,
+                                values: {
+                                    custrecord_dps_supplier_end: true
+                                }
+                            })
                         }
-                    } else if (delivery_order_status == 4 && purchase_order_no) {
+                    } else if (delivery_order_status == 4 && purchase_order_no && !load_rec.getValue('custrecord_dps_warehousing_end')) {
                         var l_po = record.load({
                             type: 'purchaseorder',
                             id: purchase_order_no
@@ -299,7 +438,6 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                                     sublistId: 'item',
                                     fieldId: 'quantity',
                                     line: lineNumber
-                                    // });
                                 })
                                 // 已交货数量
                                 l_po.setSublistValue({
@@ -308,25 +446,106 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search'],
                                     line: lineNumber,
                                     value: quantity_delivered - diff
                                 });
-                                // // 本次交货数量
-                                // l_po.setSublistValue({
-                                //     sublistId: 'item',
-                                //     fieldId: 'custcol_dps_delivery_quantity',
-                                //     line: lineNumber,
-                                //     value: poQty - (quantity_delivered - diff)
-                                // });
-                                // // 未交货数量
-                                // l_po.setSublistValue({
-                                //     sublistId: 'item',
-                                //     fieldId: 'custcol_dps_undelivered_quantity',
-                                //     line: lineNumber,
-                                //     value: poQty - (quantity_delivered - diff)
-                                // });
+                                // 本次交货数量
+                                l_po.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'custcol_dps_delivery_quantity',
+                                    line: lineNumber,
+                                    value: poQty - (quantity_delivered - diff)
+                                });
+                                // 未交货数量
+                                l_po.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'custcol_dps_undelivered_quantity',
+                                    line: lineNumber,
+                                    value: poQty - (quantity_delivered - diff)
+                                });
                                 flag = true;
                             }
                         }
                         if (flag) {
                             l_po.save();
+                            record.submitFields({
+                                type: "customrecord_dps_delivery_order",
+                                id: newRecord.id,
+                                values: {
+                                    custrecord_dps_warehousing_end: true
+                                }
+                            })
+                        }
+                    } else {
+
+                        // 交货数量	custrecord_item_quantity	Integer Number	 	 	Yes
+                        // 原交货数量	custrecord_hide_quantity	Integer Number	 	 	Yes
+
+                        if (context.type == "create") { //  交货单的事件类型为 create
+                            var flag = false;
+                            var l_po = record.load({
+                                type: 'purchaseorder',
+                                id: purchase_order_no
+                            });
+                            for (var i = 0; i < len; i++) {
+                                var item_sku = load_rec.getSublistValue({
+                                    sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                    fieldId: 'custrecord_item_sku',
+                                    line: i
+                                });
+                                // 交货单 交货数量
+                                var item_quantity = load_rec.getSublistValue({
+                                    sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                    fieldId: 'custrecord_item_quantity',
+                                    line: i
+                                });
+                                // 交货单 原交货数量
+                                var hide_quantity = load_rec.getSublistValue({
+                                    sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                    fieldId: 'custrecord_hide_quantity',
+                                    line: i
+                                });
+                                if (hide_quantity) {
+                                    var lineNumber = l_po.findSublistLineWithValue({
+                                        sublistId: 'item',
+                                        fieldId: 'item',
+                                        value: item_sku
+                                    });
+                                    var quantity_delivered = l_po.getSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_dps_quantity_delivered',
+                                        line: lineNumber
+                                    });
+                                    var quantity = l_po.getSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'quantity',
+                                        line: lineNumber
+                                    });
+                                    var y_qty = Number(quantity_delivered) + Number(hide_quantity);
+                                    // 已交货数量
+                                    l_po.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_dps_quantity_delivered',
+                                        line: lineNumber,
+                                        value: y_qty
+                                    });
+                                    // 本次提交数量
+                                    l_po.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_dps_delivery_quantity',
+                                        line: lineNumber,
+                                        value: quantity - y_qty
+                                    });
+                                    // 未提交数量
+                                    l_po.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_dps_undelivered_quantity',
+                                        line: lineNumber,
+                                        value: quantity - y_qty
+                                    });
+                                    flag = true;
+                                }
+                            }
+                            if (flag) {
+                                l_po.save();
+                            }
                         }
                     }
                 }

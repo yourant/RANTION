@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-13 13:52:41
- * @LastEditTime   : 2020-06-17 13:55:17
+ * @LastEditTime   : 2020-06-17 13:54:26
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_rl.js
@@ -84,13 +84,15 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                             {
                                 name: 'custbody_mcf_delivery_method'
                             },
-                            'custbodyfulfillment_stock_so', // MCF fulfillment Order Id
+                            {name:'custbodyfulfillment_stock_so'}, // MCF fulfillment Order Id
+                            {name:'custbody_reason_type'}, //原因类型
+                            {name:'custentity_store_number',join:"customer"},   //12店铺编号
+                            {name:'otherrefnum'}, //原订单号
                         ]
                     }).run().each(function (rec) {
                         delivery_shop = rec.getValue('custbody_sotck_account');
                         order_contact_id = rec.getValue('custbody_dps_order_contact');
                         date_time = rec.getValue('trandate');
-                        order_num = rec.getValue('custbodyfulfillment_stock_so');
                         order_comment = rec.getValue('custbody_mcf_displayable_order_comment');
                         fulfillment_action = rec.getText('custbody_mcf_fulfillment_action');
                         delivery_method = rec.getText('custbody_mcf_delivery_method');
@@ -99,10 +101,35 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                             SellerFulfillmentOrderItemId: rec.getValue('custcol_aio_amazon_msku') ? rec.getValue('custcol_aio_amazon_msku') : '',
                             Quantity: rec.getValue('quantity') ? rec.getValue('quantity') : ''
                         });
+                        order_num = rec.getValue('custbodyfulfillment_stock_so');
+                        reason_type = rec.getValue('custbody_reason_type');
+                        store_num = rec.getValue(rec.columns[12]);
+                        order_id = rec.getValue(rec.columns[13]);
+
                         return true;
                     });
                     log.debug('items', items);
-
+                    if(!reason_type){
+                        return {
+                            code: '失败',
+                            message: "操作失败，请先选择原因类型"
+                        };
+                    }
+                    if(!store_num){
+                        return {
+                            code: '失败',
+                            message: "操作失败，客户信息中的店铺编号不存在"
+                        };
+                    }
+                      if(!order_num){ 
+                          //如果多渠道订单编号不存在，就根据规则生成 ：店铺编号 - 原订单号 - 原因类型
+                          var corr = {
+                              "1":"BF","2":"CF"
+                            }
+                          order_num =store_num +"-"+ order_id+"-"+corr[reason_type]
+                      }
+                      log.debug("order_num:",order_num)
+                   
                     //获取订单联系人地址 
                     var addr = record.load({
                         type: 'customrecord_customer_contact',
@@ -252,6 +279,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                                     id: id,
                                     values: {
                                         custbody_dps_mcf_info: '创建mcf订单成功。RequestId：' + requestId_[0].textContent,
+                                        custbodyfulfillment_stock_so: order_num,
                                         custbody_dps_create_mcf_order: true
                                     },
                                     options: {
@@ -391,6 +419,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                 }
 
             } catch (error) {
+
                 result.code = '失败';
                 result.message = error.message;
             }

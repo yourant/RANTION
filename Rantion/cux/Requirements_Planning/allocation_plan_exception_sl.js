@@ -182,7 +182,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             columns: [
                 { name: 'custrecord_demand_forecast_item_sku',sort: search.Sort.ASC},
                 { name: 'custrecord_demand_forecast_account'},
-                { name: 'custrecord_demand_forecast_item_name'},
+                { name: 'vendorname',join:"custrecord_demand_forecast_item_sku"},
                 { name: 'custrecord_demand_forecast_site'},
             ]
         }).run().each(function (rec) {
@@ -213,7 +213,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         if (site) {
             filters.push({ name: "custrecord_demand_forecast_site", operator: "anyof", values: site });
         }
-        log.debug('0000000001filters',filters);
 
         var mySearch_delivery_schedule = search.create({
             type: "customrecord_demand_forecast",
@@ -284,7 +283,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         });
         var totalCount = pageData_delivery_schedule.count; //总数
         var pageCount = pageData_delivery_schedule.pageRanges.length; //页数
-        log.debug('0000000001pageCount',pageCount);
         var item_data = [];
         if (totalCount == 0 && pageCount ==0) {
             rsJson.result = [];
@@ -358,7 +356,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                 });
             });
         }
-        log.debug('00000000001item_data',item_data);    
         var filters = [
             { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["6","22"] },
             { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
@@ -373,7 +370,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         if (site) {
             filters.push({ name: "custrecord_demand_forecast_site", operator: "anyof", values: site });
         }
-        log.debug('0000000002filters',filters);
 
         var mySearch_delivery_schedule = search.create({
             type: "customrecord_demand_forecast",
@@ -444,7 +440,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         });
         var totalCount = pageData_delivery_schedule.count; //总数
         var pageCount = pageData_delivery_schedule.pageRanges.length; //页数
-        log.debug('0000000002pageCount',pageCount);
       
         if (totalCount == 0 && pageCount ==0) {
             rsJson.result = [];
@@ -518,7 +513,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                 });
             });
         }
-        log.debug('00000000002item_data',item_data);  
 
           //19调拨计划例外信息 ,需要倒排，根据修改计划量倒排，算出建议情况
           var filters = [
@@ -535,7 +529,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         if (site) {
             filters.push({ name: "custrecord_demand_forecast_site", operator: "anyof", values: site });
         }
-        log.debug('0000000001111pageCount',pageCount);
 
         var mySearch_delivery_schedule = search.create({
             type: "customrecord_demand_forecast",
@@ -709,11 +702,11 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         // var today = new Date();
         var today = new Date(+new Date()+8*3600*1000);
         var week_today = weekofday(today);
-        log.debug('week_today',week_today);
+        // log.debug('week_today',week_today);
         var week_start = weekofday(date_from);
-        log.audit('week_start',week_start);
+        // log.audit('week_start',week_start);
         var week_end = weekofday(date_to);
-        log.audit('week_end',week_end);
+        // log.audit('week_end',week_end);
         
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
         // var today_l = moment(new Date().getTime()).format(dateFormat);
@@ -748,7 +741,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                         sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
                         sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 
                         sublist.setSublistValue({ id: 'custpage_data_type_id', value: result[a]['data_type'], line: zl }); 
-                         log.debug("result:"+result[a]['data_type'] , result[a] )
                         //店铺净需求
                         if(result[a]['data_type'] == 3){
                             for (var index = 1; index <= 52; index++) {
@@ -797,19 +789,21 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                         }
                           //差异数量 
                         if(result[a]['data_type'] == 19){
-                            for (var i = week_start; i <= week_end; i++) { 
+                            for (var i = week_start ; i <= week_end; i++) { 
                
-                                for (var index = 1; index <= 52; index++) {
-                                    var sub_filed = 'custpage_quantity_week' + index;
-                                    var sub_filed2 = 'custpage_quantity_week' + (index+1);
-                                    if(result[a]['quantity_week'+index]){
-                                        var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed2, line: need1_zl}) : 0;
-                                        var x2 = Math.abs(result[a]['quantity_week'+index]) + Number(x1) 
+                                // for (var index = 1; index <= 52; index++) {
+                                    var sub_filed = 'custpage_quantity_week' + (i+1);
+                                  
+                                    if(result[a]['quantity_week'+i]){
+                                        var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need1_zl}) : 0;
+                                        log.debug("x1 - quantity_week:" +i, x1 +" - "+result[a]['quantity_week'+i])
+                                        var x2 =  Math.round(x1)  + Math.round(result[a]['quantity_week'+i]) 
                                         sublist.setSublistValue({ id: sub_filed, value:x2.toString(), line: zl});
-                                    }else{
+                                    }else {
+                                        sublist.setSublistValue({ id: "custpage_quantity_week"+week_start, value:"0", line: zl});
                                         sublist.setSublistValue({ id: sub_filed, value:"0", line: zl});
                                     }
-                                }
+                                // }
                              
                             }
                             need3_zl = zl;

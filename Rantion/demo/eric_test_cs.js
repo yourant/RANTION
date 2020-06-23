@@ -76,8 +76,8 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
         // }
         // recordInfo.save();
         var item = record.load({
-            type: 'vendorprepayment',
-            id: 33006
+            type: 'purchaseorder',
+            id: 167619
         })
         console.log(JSON.stringify(item));
         console.log(item);
@@ -87,14 +87,15 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
             filters: [{
                 name: 'internalid',
                 operator: 'anyof',
-                values: 103534
+                values: 167619
             }],
             columns: [{
-                name: 'custbody_dps_type'
+                name: 'custbody_approve_status'
             }]
         }).run().each(function (rec) {
-            var purchaseOrderType = rec.getValue('custbody_dps_type');
-            console.log('purchaseOrderType', purchaseOrderType);
+            var custbody_approve_status = rec.getValue('custbody_approve_status');
+            console.log('custbody_approve_status', custbody_approve_status);
+            console.log('custbody_approve_status', typeof custbody_approve_status);
         });
 
         var filterArr = [];

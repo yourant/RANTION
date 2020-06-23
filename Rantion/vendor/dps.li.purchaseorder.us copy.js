@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-27 14:07:04
- * @LastEditTime   : 2020-05-27 15:44:18
+ * @LastEditTime   : 2020-06-22 13:56:57
  * @LastEditors    : Li
  * @Description    : 应用于采购订单, 用于设置请购单转采购订单, 设置相关字段的值
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.us.js
@@ -19,7 +19,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
     }
 
     function beforeSubmit(scriptContext) {
-        log.debug('beforeSubmit', 'beforeSubmit')
+        log.debug('beforeSubmit', 'beforeSubmit');
 
         var newRecord = scriptContext.newRecord;
         var type = scriptContext.type;
@@ -29,317 +29,232 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
 
         var price_type = newRecord.getValue('custbody_vendor_price_type');
 
-        if (type == 'create' && ui == 'USEREVENT' && price_type == 1) {
-            // var curUnitPrice = 0;
-            // var numLines = newRecord.getLineCount({ sublistId: 'item' });
-            // log.debug('numLines',numLines);
-            // var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
-            // log.debug('dateFormat',dateFormat);
-            // var today = moment(new Date().getTime()).format(dateFormat);
-            // var supplier = newRecord.getValue('entity');
-            // log.debug('supplier',supplier);
-            // var currency = newRecord.getValue('currency');
-            // log.debug('currency',currency);
-            // var trandate = newRecord.getValue('trandate');
-            // log.debug('trandate',trandate);
-            // var date = moment(trandate).format(dateFormat);
-            // log.debug('date',date);
-            // for (var i = 0; i < numLines; i++) {
-            //     var partNo = newRecord.getSublistValue({ 
-            //         sublistId: 'item', 
-            //         fieldId: 'item',
-            //         line: i
-            //     });
-            //     log.debug('partNo',partNo);
-            //     var quantity = newRecord.getSublistValue({ 
-            //         sublistId: 'item', 
-            //         fieldId: 'quantity',
-            //         line: i
-            //     });
-            //     log.debug('quantity',quantity);
+        log.audit('price_type', price_type);
 
-            //     var resultArr = getVpmd(supplier, currency, partNo, date);
-            //     log.debug('resultArr',resultArr);
-            //     for (j = 0; j < resultArr.length; j++) {
-            //         var curquantity = resultArr[j].getValue('custrecord_vmpd_quantity');
-            //         log.debug('curquantity',curquantity);
-            //         if (quantity > curquantity) {
-            //             if ((j + 1) == resultArr.length) {
-            //                 log.debug(1)
-            //                 curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
-            //                 break;
-            //             } else {
-            //                 if (quantity <= resultArr[j + 1].getValue('custrecord_vmpd_quantity')) {
-            //                     log.debug(2)
-            //                     curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
-            //                     break;
-            //                 }
-            //             }
-            //         }
-            //     }
-            //     try {
-            //         log.debug('curUnitPrice',curUnitPrice);
-            //         newRecord.setSublistValue({ 
-            //             sublistId: 'item', 
-            //             fieldId: 'rate', 
-            //             value: curUnitPrice,
-            //             line: i
-            //         });
-            //     } catch (error) {
-            //         log.debug('set error',error);
-            //     }
-            // }
+        try {
+
+            if (type == 'create' && ui == 'USEREVENT' && price_type) {
 
 
-            var numLines = newRecord.getLineCount({
-                sublistId: 'item'
-            });
-            log.debug('numLines', numLines);
-            var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
-            log.debug('dateFormat', dateFormat);
-            var today = moment(new Date().getTime()).format(dateFormat);
-            var supplier = newRecord.getValue('entity');
-            log.debug('supplier', supplier);
-            var currency = newRecord.getValue('currency');
-            log.debug('currency', currency);
-            var trandate = newRecord.getValue('trandate');
-            log.debug('trandate', trandate);
-            var date = moment(trandate).format(dateFormat);
-            log.debug('date', date);
-
-            var arr2 = [];
-            for (var i = 0; i < numLines; i++) {
-                var partNo = newRecord.getSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'item',
-                    line: i
+                var numLines = newRecord.getLineCount({
+                    sublistId: 'item'
                 });
-                log.debug('partNo', partNo);
-                var quantity = newRecord.getSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'quantity',
-                    line: i
-                });
-                log.debug('quantity', quantity);
+                log.debug('numLines', numLines);
+                var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+                log.debug('dateFormat', dateFormat);
+                var today = moment(new Date().getTime()).format(dateFormat);
+                var supplier = newRecord.getValue('entity');
+                log.debug('supplier', supplier);
+                var currency = newRecord.getValue('currency');
+                log.debug('currency', currency);
+                var trandate = newRecord.getValue('trandate');
+                log.debug('trandate', trandate);
+                var date = moment(trandate).format(dateFormat);
+                log.debug('date', date);
 
-                var custcol_sign = newRecord.getSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'custcol_sign',
-                    line: i
-                });
-                log.debug('custcol_sign', custcol_sign);
+                var subsidiary = newRecord.getValue('subsidiary');
 
-                arr2.push({
-                    item: partNo,
-                    quantity: quantity,
-                    sign: custcol_sign
-                });
-            }
-            log.debug('arr2', arr2);
-            if (arr2.length > 1) {
-                for (var xx = 0; xx < arr2.length; xx++) {
-                    if (arr2[xx].sign) {
-                        continue;
-                    } else {
-                        for (var yy = xx + 1; yy < arr2.length; yy++) {
-                            if (arr2[yy].sign) {
-                                continue;
-                            } else {
-                                if (arr2[yy].item == arr2[xx].item) {
-                                    arr2[xx].item = arr2[yy].item;
-                                    arr2[xx].quantity = Number(arr2[yy].quantity) + Number(arr2[xx].quantity);
-                                    arr2[yy].sign = true;
+                var arr2 = [];
+                for (var i = 0; i < numLines; i++) {
+                    var partNo = newRecord.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'item',
+                        line: i
+                    });
+                    log.debug('partNo', partNo);
+                    var quantity = newRecord.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'quantity',
+                        line: i
+                    });
+                    log.debug('quantity', quantity);
+
+                    var custcol_sign = newRecord.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'custcol_sign',
+                        line: i
+                    });
+                    log.debug('custcol_sign', custcol_sign);
+
+                    arr2.push({
+                        item: partNo,
+                        quantity: quantity,
+                        sign: custcol_sign
+                    });
+                }
+                log.debug('arr2', arr2);
+                if (arr2.length > 1) {
+                    for (var xx = 0; xx < arr2.length; xx++) {
+                        if (arr2[xx].sign) {
+                            continue;
+                        } else {
+                            for (var yy = xx + 1; yy < arr2.length; yy++) {
+                                if (arr2[yy].sign) {
+                                    continue;
+                                } else {
+                                    if (arr2[yy].item == arr2[xx].item) {
+                                        arr2[xx].item = arr2[yy].item;
+                                        arr2[xx].quantity = Number(arr2[yy].quantity) + Number(arr2[xx].quantity);
+                                        arr2[yy].sign = true;
+                                    }
                                 }
                             }
                         }
                     }
+                    log.debug('合并后', arr2)
                 }
-                log.debug('合并后', arr2)
-            }
 
-            for (var k = 0; k < arr2.length; k++) {
-                var curUnitPrice = 0;
-                var partNo = arr2[k].item;
-                var quantity = arr2[k].quantity;
-                var sign = arr2[k].sign;
-                var resultArr = getVpmd(supplier, currency, partNo, date);
-                // log.debug('resultArr' + k, resultArr);
-                for (j = 0; j < resultArr.length; j++) {
-                    log.debug(1)
-                    var curquantity = resultArr[j].getValue('custrecord_vmpd_quantity');
-                    if (quantity >= curquantity) {
-                        log.debug(2)
-                        if ((j + 1) == resultArr.length) {
-                            log.debug(3)
-                            curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
-                            break;
-                        } else {
-                            log.debug(4)
-                            if (quantity < resultArr[j + 1].getValue('custrecord_vmpd_quantity')) {
-                                log.debug(5)
+                for (var k = 0; k < arr2.length; k++) {
+                    var curUnitPrice = 0;
+                    var partNo = arr2[k].item;
+                    var quantity = arr2[k].quantity;
+                    var sign = arr2[k].sign;
+
+
+                    if (price_type == 1) {
+                        log.debug('price_type 1', price_type);
+                        resultArr = getVpmd(supplier, currency, partNo, today, price_type, quantity);
+                    } else if (price_type == 2) {
+
+                        var get_arr = getEffectiveDateByItem(supplier, currency, partNo, today);
+                        if (get_arr.length > 0) {
+                            log.debug('get_arr', get_arr);
+                            var effectiveDate;
+                            effectiveDate = get_arr[0].getValue('custrecord_dps_vmph_cumulative_time');
+
+                            if (!effectiveDate) {
+                                var effectiveDate = get_arr[0].getValue('custrecord_vmpd_effective_date');
+                            }
+
+                            log.debug('effectiveDate', effectiveDate);
+                            log.debug("get_arr", get_arr);
+                            // effectiveDate = moment(effectiveDate).format(dateFormat);
+                            sum = getPriceByTotal(supplier, subsidiary, currency, partNo, effectiveDate);
+                        }
+
+                        if (!sum) {
+                            sum = 0;
+                        }
+                        log.debug('sum', sum);
+                        if (sum >= 0) {
+                            sum = Number(sum);
+
+                            log.debug('Number(sum)', Number(sum));
+                            // 采购过相同的货品
+                            resultArr = getVpmd(supplier, currency, partNo, today, price_type, sum);
+                        }
+
+                    }
+
+                    for (j = 0; j < resultArr.length; j++) {
+                        log.debug(1)
+                        var curquantity = resultArr[j].getValue('custrecord_vmpd_quantity');
+                        if (quantity >= curquantity) {
+                            log.debug(2)
+                            if ((j + 1) == resultArr.length) {
+                                log.debug(3)
                                 curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
                                 break;
+                            } else {
+                                log.debug(4)
+                                if (quantity < resultArr[j + 1].getValue('custrecord_vmpd_quantity')) {
+                                    log.debug(5)
+                                    curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
+                                    break;
+                                }
                             }
                         }
+                        log.debug(6)
                     }
-                    log.debug(6)
+                    log.debug('k=', k);
+                    log.debug('sign' + (k + 1), sign);
+                    log.debug('partNo' + (k + 1), partNo);
+                    log.debug('quantity' + (k + 1), quantity);
+                    log.debug('curUnitPrice' + (k + 1), curUnitPrice);
+                    newRecord.setSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'item',
+                        value: partNo,
+                        line: k
+                    });
+                    newRecord.setSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'rate',
+                        value: curUnitPrice,
+                        line: k
+                    });
+                    newRecord.setSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'quantity',
+                        value: quantity,
+                        line: k
+                    });
+                    newRecord.setSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'custcol_sign',
+                        value: sign,
+                        line: k
+                    });
                 }
-                log.debug('k=', k);
-                log.debug('sign' + (k + 1), sign);
-                log.debug('partNo' + (k + 1), partNo);
-                log.debug('quantity' + (k + 1), quantity);
-                log.debug('curUnitPrice' + (k + 1), curUnitPrice);
-                newRecord.setSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'item',
-                    value: partNo,
-                    line: k
-                });
-                newRecord.setSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'rate',
-                    value: curUnitPrice,
-                    line: k
-                });
-                newRecord.setSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'quantity',
-                    value: quantity,
-                    line: k
-                });
-                newRecord.setSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'custcol_sign',
-                    value: sign,
-                    line: k
-                });
+
+                for (var i = 0; i < newRecord.getLineCount({
+                        sublistId: 'item'
+                    }); i++) {
+                    log.debug('i', i)
+                    var lineNumber = newRecord.findSublistLineWithValue({
+                        sublistId: 'item',
+                        fieldId: 'custcol_sign',
+                        value: true
+                    });
+                    log.debug('lineNumber', lineNumber);
+
+                    newRecord.removeLine({
+                        sublistId: 'item',
+                        line: lineNumber,
+                        ignoreRecalc: true
+                    });
+                    i++
+                }
             }
 
-            for (var i = 0; i < newRecord.getLineCount({
-                    sublistId: 'item'
-                }); i++) {
-                log.debug('i', i)
-                var lineNumber = newRecord.findSublistLineWithValue({
-                    sublistId: 'item',
-                    fieldId: 'custcol_sign',
-                    value: true
-                });
-                log.debug('lineNumber', lineNumber);
+            var sings = [];
+            for (var m = 0; m < arr2.length; m++) {
+                if (sings.indexOf('true') == -1) {
 
-                newRecord.removeLine({
-                    sublistId: 'item',
-                    line: lineNumber,
-                    ignoreRecalc: true
-                });
-                i++
+                    sings.push(arr2[m].sign);
+                }
+                if (arr2[m].sign) {
+
+                    log.debug('m' + m, arr2[m].sign);
+                    log.debug('m' + m, arr2);
+                    try {
+                        // var lineNum = newRecord.selectLine({
+                        //     sublistId: 'item',
+                        //     line: m
+                        // });
+                        newRecord.removeLine({
+                            sublistId: 'item',
+                            line: m,
+                            ignoreRecalc: true
+                        });
+                        // newRecord.commitLine({
+                        //     sublistId: 'item'
+                        // });
+                    } catch (error) {
+                        log.debug('e', error);
+                    }
+                }
             }
+        } catch (error) {
+            log.error('设置价格出错了', error);
         }
-
-
-
-        // var sings =[];
-        // for (var m = 0; m < arr2.length; m++) {
-        //     if (sings.indexOf('true') == -1) {
-
-        //         sings.push(arr2[m].sign);
-        //     }
-        //     if (arr2[m].sign) {
-
-        //         log.debug('m'+m,arr2[m].sign);
-        //         log.debug('m'+m,arr2);
-        //         try {
-        //             // var lineNum = newRecord.selectLine({
-        //             //     sublistId: 'item',
-        //             //     line: m
-        //             // });
-        //             newRecord.removeLine({
-        //                 sublistId: 'item',
-        //                 line: m,
-        //                 ignoreRecalc: true
-        //             });
-        //             // newRecord.commitLine({
-        //             //     sublistId: 'item'
-        //             // });
-        //         } catch (error) {
-        //             log.debug('e',error);
-        //         }
-        //     }
-        // }
 
 
     }
 
     function afterSubmit(scriptContext) {
-        log.debug('afterSubmit', 'afterSubmit')
 
-        var newRecord = scriptContext.newRecord;
-        var type = scriptContext.type;
-        log.debug('type', type);
-        var ui = runtime.executionContext;
-        log.debug('ui', ui);
-
-        // if (type == 'create' && ui == 'USEREVENT') {
-
-
-        // try {
-        //     var id = newRecord.save();
-        //     log.debug('id',id);
-        // } catch (error) {
-        //     log.debug('save error',error);
-        // }
-        // }
     }
-
-
-    function getVpmd(supplier, currency, partNo, today) {
-        var filters = [{
-                join: 'custrecord_vpmd_link',
-                name: 'custrecord_vpmh_supplier',
-                operator: 'anyof',
-                values: supplier
-            },
-            {
-                name: "custrecord_vpmd_part_no",
-                operator: 'anyof',
-                values: partNo
-            },
-            {
-                name: "custrecord_vmpd_currency",
-                operator: 'anyof',
-                values: currency
-            },
-            {
-                name: 'custrecord_vmpd_effective_date',
-                operator: 'onorbefore',
-                values: today
-            },
-            {
-                name: 'custrecord_vmpd_expiration_date',
-                operator: 'onorafter',
-                values: today
-            }
-        ];
-        var columns = [{
-                name: 'custrecord_vmpd_quantity',
-                sort: 'ASC'
-            },
-            {
-                name: 'custrecord_vmpd_unit_price'
-            }
-        ];
-        var mySearch = search.create({
-            type: 'customrecord_vemdor_price_manage_d',
-            filters: filters,
-            columns: columns
-        });
-        var resultArr = [];
-        mySearch.run().each(function (result) {
-            resultArr.push(result);
-            return true;
-        });
-        return resultArr;
-    }
-
 
 
     /**
@@ -353,11 +268,13 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
      */
     function getVpmd(supplier, currency, partNo, today, sta, sum) {
 
-        log.error('sum', sum);
+
+        log.debug('getVpmd sum', sum);
+        log.audit('sum', sum);
 
         var limit = 3999;
 
-        // console.log('getVpmd', supplier, currency, partNo, today, sta, sum);
+        // log.debug('getVpmd', supplier, currency, partNo, today, sta, sum);
         var filters = [];
         var flag = false;
         filters.push({
@@ -401,26 +318,30 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         }
         if (sta == 2) {
 
+
             if (sum > 0) {
+                log.debug('sum > 0');
                 filters.push({
                     name: 'custrecord_dps_vmph_cumulative_total',
                     operator: "lessthanorequalto",
                     values: sum
                 });
             } else {
+                log.debug('sum = 0');
                 filters.push({
                     name: 'custrecord_dps_vmph_cumulative_total',
                     operator: "equalto",
                     values: sum
                 });
             }
+
             columns.push({
                 name: 'custrecord_dps_vmph_cumulative_total',
                 sort: 'ASC'
             });
             flag = true;
         }
-        log.error('filters', filters);
+        log.audit('filters', filters);
         var resultArr = [];
         var add = 0;
 
@@ -431,13 +352,15 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         }).run().each(function (result) {
             resultArr.push(result);
 
-            log.error('price', result.getValue('custrecord_vmpd_unit_price'));
+            log.audit('price', result.getValue('custrecord_vmpd_unit_price'));
             add++;
+
+            return flag;
             return --limit > 0;
         });
 
-        console.log('getVpmd resultArr', resultArr);
-        // console.log('add', add);
+        log.debug('getVpmd resultArr', resultArr);
+        // log.debug('add', add);
         return resultArr || false;
 
     }
@@ -512,7 +435,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
             // 只取符合条件的第一个价格
             // return true;
         });
-        console.log('add', add);
+        log.debug('add', add);
         return resultArr || false;
     }
 
@@ -527,7 +450,7 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         var total = 0,
             limit = 3999,
             add = 0;
-        // console.log('total', total);
+        log.debug('getPriceByTotal', vendor, subsidiary, currency, itemId, effectiveDate);
         search.create({
             type: 'purchaseorder',
             filters: [{
@@ -580,10 +503,11 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
             return --limit > 0;
         });
 
-        console.log('total', total, 'add', add);
+        log.debug('total', total, 'add', add);
         return total ? total : 0;
 
     }
+
 
     return {
         beforeLoad: beforeLoad,

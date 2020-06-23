@@ -1,18 +1,9 @@
-/*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-17 19:45:38
- * @LastEditors    : Li
- * @Description    : 
- * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format'], function (search, http, record, moment, format) {
+define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format'],
+function (config, search, http, record, moment, format) {
 
     function _get(context) {
 
@@ -596,7 +587,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
             'access_token': token
         };
         var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/inMaster',
+            url: config.WMS_Debugging_URL + '/inMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });

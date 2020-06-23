@@ -493,13 +493,13 @@ define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search
                 value: newEffectiveDateStr,
                 type: format.Type.DATE
             });
-            var newEffectiveDate = new Date(moment(newEffDate).format('YYYY/MM/DD'));
+            // var newEffectiveDate = new Date(moment(newEffDate).format('YYYY/MM/DD'));
             var newExpDate = format.parse({
                 value: newExpirationDateStr,
                 type: format.Type.DATE
             });
 
-            var newExpirationDate = new Date(moment(newExpDate).format('YYYY/MM/DD'));
+            // var newExpirationDate = new Date(moment(newExpDate).format('YYYY/MM/DD'));
             var newcurrIndex = rec.getCurrentSublistIndex({
                 sublistId: 'recmachcustrecord_vpmd_link'
             });
@@ -555,13 +555,13 @@ define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search
                     value: result.custrecord_vmpd_effective_date,
                     type: format.Type.DATE
                 });
-                var oldEffectiveDate = new Date(moment(oldEffDate).format('YYYY/MM/DD'));
+                // var oldEffectiveDate = new Date(moment(oldEffDate).format('YYYY/MM/DD'));
                 var oldExpDate = format.parse({
                     value: result.custrecord_vmpd_expiration_date,
                     type: format.Type.DATE
                 });
                 var type = result.type;
-                var oldExpirationDate = new Date(moment(oldExpDate).format('YYYY/MM/DD'));
+                // var oldExpirationDate = new Date(moment(oldExpDate).format('YYYY/MM/DD'));
 
                 // 暂先注释 2020-05-15 17:59
                 // if (!(newEffectiveDate >= oldExpirationDate || newExpirationDate <= oldEffectiveDate)) {

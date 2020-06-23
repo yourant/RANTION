@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-17 15:42:09
+ * @LastEditTime   : 2020-06-23 11:58:29
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -11,13 +11,13 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(['N/record', 'N/search', 'N/log',
+define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
     'SuiteScripts/dps/logistics/jetstar/dps_logistics_request.js',
     'SuiteScripts/dps/logistics/openapi/dps_openapi_request.js',
     'SuiteScripts/dps/logistics/yanwen/dps_yanwen_request.js',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
     'SuiteScripts/dps/logistics/common/Moment.min', 'N/http', 'N/file', "N/xml", 'N/runtime'
-], function (record, search, log, jetstar, openapi, yanwen, endicia, Moment, http, file, xml, runtime) {
+], function (config, record, search, log, jetstar, openapi, yanwen, endicia, Moment, http, file, xml, runtime) {
 
     function beforeLoad(context) {
 
@@ -254,12 +254,13 @@ define(['N/record', 'N/search', 'N/log',
                             name: 'custrecord_ls_service_code',
                             join: 'custrecord_dps_ship_small_channelservice'
                         }); //  '物流渠道服务编号';
+
+                        data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice');
                         data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
                         data["logisticsLabelPath"] = rec.getValue('custrecord_record_fulfill_xh_label_addr'); // 物流面单文件路径 ,
                         data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';
                         data["logisticsProviderName"] = rec.getText('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商名称';
                         data["mobilePhone"] = rec.getValue('custrecord_dps_ship_small_phone'); //'移动电话';
-
 
                         // data["platformCode"] = '平台编号';
                         data["platformName"] = rec.getText('custrecord_dps_ship_small_sales_platform'); // '平台名称';
@@ -472,7 +473,7 @@ define(['N/record', 'N/search', 'N/log',
             'access_token': token
         };
         var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/outMaster',
+            url: config.WMS_Debugging_URL + '/outMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });

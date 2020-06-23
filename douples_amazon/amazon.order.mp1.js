@@ -10,7 +10,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
 ], function (format, runtime, core, cryptoJS, moment, log, search, record, encode, https, xml,interfun) {
     var tz = new Date().getTimezoneOffset()
     function getInputData() {
-        var orders = []
+        var orders = [];
         try {
             var req = runtime.getCurrentScript().getParameter({
                 name: 'custscript_listorder_date'
@@ -77,10 +77,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                         orders.push(order);
                     })
 
-                    // log.audit('else !request_date', 123)
-                    // core1.handleit(account.id).map(function (order) {
-                    //     orders.push(order);
-                    // })
                 }
 
             })

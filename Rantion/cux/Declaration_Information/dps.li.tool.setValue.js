@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-26 10:25:55
- * @LastEditTime   : 2020-06-03 15:26:05
+ * @LastEditTime   : 2020-06-23 14:15:55
  * @LastEditors    : Li
  * @Description    :  用于渲染表格
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.li.tool.setValue.js
@@ -13,48 +13,47 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 ], function (file, search, record, log, Handlebars, render, format, xml, encode) {
 
 
-
     function setModuleXMLValue(INV, xmlID) {
 
         log.debug('setModuleXMLValue INV: ' + INV, xmlID);
         var seaT1 = new Date().getTime()
-      // 创建一个对象，用于赋值
-      var printData = new Object();
-      printData = setInvValue(INV, xmlID, printData);
-      printData = setBoxValue(INV, xmlID, printData);
-      printData = setDeclarationValue(INV, xmlID, printData);
-      printData = setContractValue(INV, xmlID, printData);
-      printData = setElemValue(INV, xmlID, printData);
+        // 创建一个对象，用于赋值
+        var printData = new Object();
+        printData = setInvValue(INV, xmlID, printData);
+        printData = setBoxValue(INV, xmlID, printData);
+        printData = setDeclarationValue(INV, xmlID, printData);
+        printData = setContractValue(INV, xmlID, printData);
+        printData = setElemValue(INV, xmlID, printData);
 
-      printData = setUSValue(INV, xmlID, printData);
-      log.audit( "搜索这些耗时1: " ,new Date().getTime() - seaT1)
+        printData = setUSValue(INV, xmlID, printData);
+        log.audit("搜索这些耗时1: ", new Date().getTime() - seaT1)
 
-      // 获取模板内容,写全路径或者内部ID
-      var model = file.load({
-          id: xmlID
-      }).getContents();
+        // 获取模板内容,写全路径或者内部ID
+        var model = file.load({
+            id: xmlID
+        }).getContents();
 
-      var seaT2 = new Date().getTime()
-      // 处理数据
-      var template = Handlebars.compile(model);
-      var xml_1 = template(printData);
-      log.audit( "搜索这些耗时2: " ,new Date().getTime() - seaT2)
+        var seaT2 = new Date().getTime()
+        // 处理数据
+        var template = Handlebars.compile(model);
+        var xml_1 = template(printData);
+        log.audit("搜索这些耗时2: ", new Date().getTime() - seaT2)
 
-      var seaT3 = new Date().getTime();
-      var nowDate = new Date().toISOString();
-      var fileObj = file.create({
-          name: "报关资料-" + INV + '-' + nowDate + ".xls",
-          fileType: file.Type.EXCEL,
-          contents: encode.convert({
-              string: xml_1,
-              inputEncoding: encode.Encoding.UTF_8,
-              outputEncoding: encode.Encoding.BASE_64
-          }),
-          encoding: file.Encoding.UTF8,
-          isOnline: true
-      });
-      log.audit( "搜索这些耗时3: " ,new Date().getTime() - seaT3)
-      return fileObj || false;
+        var seaT3 = new Date().getTime();
+        var nowDate = new Date().toISOString();
+        var fileObj = file.create({
+            name: "报关资料-" + INV + '-' + nowDate + ".xls",
+            fileType: file.Type.EXCEL,
+            contents: encode.convert({
+                string: xml_1,
+                inputEncoding: encode.Encoding.UTF_8,
+                outputEncoding: encode.Encoding.BASE_64
+            }),
+            encoding: file.Encoding.UTF8,
+            isOnline: true
+        });
+        log.audit("搜索这些耗时3: ", new Date().getTime() - seaT3)
+        return fileObj || false;
     }
 
     /**

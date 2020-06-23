@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-06-18 20:45:05
+ * @LastEditTime   : 2020-06-23 11:01:56
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
@@ -130,4 +130,100 @@ function toRecord(recType) {
     var url = a[0];
 
     return url || false;
+}
+
+
+
+
+//生成货品收据
+function createItemReceipt(po_id, item) {
+    var objRecord = record.transform({
+        fromType: 'purchaseorder',
+        fromId: po_id,
+        toType: 'itemreceipt'
+    });
+    var subsidiary = objRecord.getValue('subsidiary');
+    var count = objRecord.getLineCount({
+        sublistId: 'item'
+    });
+
+    var glo_positionCode;
+    item.map(function (line) {
+        for (var i = 0; i < count; i++) {
+            var item_id = objRecord.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'item',
+                line: i
+            });
+            var item_sku;
+            var positionCode = line.detailRecordList[i].positionCode;
+            var type = line.detailRecordList[i].type;
+            var locationid, searchLocation;
+            searchLocation = positionCode;
+            // type (integer): 类型 1:已装箱 2:未装箱
+            if (type == 1) { // 装箱搜索箱号
+                searchLocation = line.detailRecordList[i].barcode;
+            }
+
+            search.create({
+                type: 'location',
+                filters: [{
+                        name: 'custrecord_dps_wms_location',
+                        operator: 'is',
+                        values: searchLocation
+                    },
+                    {
+                        name: 'subsidiary',
+                        operator: 'is',
+                        values: subsidiary
+                    }
+                ],
+                columns: ['internalid']
+            }).run().each(function (result) {
+                locationid = result.getValue('internalid');
+                return false;
+            });
+
+            if (!locationid && type) {
+
+            }
+            search.create({
+                type: 'item',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'is',
+                    values: item_id
+                }],
+                columns: ['itemid']
+            }).run().each(function (rec) {
+                item_sku = rec.getValue('itemid');
+            });
+            objRecord.setSublistValue({
+                sublistId: 'item',
+                fieldId: 'location',
+                value: locationid,
+                line: i
+            });
+            if (item_sku == line.sku) {
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'quantity',
+                    value: line.shelvesQty,
+                    line: i
+                });
+            }
+        }
+    });
+    return objRecord.save();
+}
+
+
+function createBoxLocation(boxName, parentLocationId) {
+    // 5   蓝深贸易有限公司
+    // 3   广州蓝图创拓进出口贸易有限公司
+    // 2   广州蓝深科技有限公司
+
+    var subArr = [2, 3, 5];
+    for ()
+
 }

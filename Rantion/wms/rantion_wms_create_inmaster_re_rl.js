@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-04 15:09:10
+ * @LastEditTime   : 2020-06-23 18:02:58
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -55,7 +55,9 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         } catch (error) {
             log.error('error', error);
             retjson.code = 3;
-            retjson.data = { msg: 'NS 请稍后重试' };
+            retjson.data = {
+                msg: 'NS 请稍后重试'
+            };
             retjson.msg = 'failure';
         }
         return JSON.stringify(retjson);
@@ -69,10 +71,12 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
             var to_id;
             search.create({
                 type: 'customrecord_dps_shipping_record',
-                filters: [
-                    { name: 'custrecord_dps_shipping_rec_order_num', operator: 'is', values: sourceNo }
-                ],
-                columns: [ 'custrecord_transfer_order3' ]
+                filters: [{
+                    name: 'custrecord_dps_shipping_rec_order_num',
+                    operator: 'is',
+                    values: sourceNo
+                }],
+                columns: ['custrecord_transfer_order3']
             }).run().each(function (result) {
                 to_id = result.getValue('custrecord_transfer_order3');
                 return false;
@@ -90,10 +94,12 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 });
                 search.create({
                     type: 'item',
-                    filters: [
-                        { name: 'name', operator: 'is', values: skucodes }
-                    ],
-                    columns: [ 'name', 'internalid' ]
+                    filters: [{
+                        name: 'name',
+                        operator: 'is',
+                        values: skucodes
+                    }],
+                    columns: ['name', 'internalid']
                 }).run().each(function (result) {
                     var code = result.getValue('name');
                     var id = result.getValue('internalid');
@@ -107,14 +113,33 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                     var location, subsidiary;
                     search.create({
                         type: 'transferorder',
-                        filters: [
-                            { name: 'type', operator: 'anyof', values: ['TrnfrOrd'] },
-                            { name: 'internalid', operator: 'is', values: to_id },
-                            { name: 'item', operator: 'anyof', values: skuids },
-                            { name: 'transferorderquantityreceived', operator: 'greaterthan', values: ['0'] },
-                            { name: 'mainline', operator: 'is', values: ['F'] }
+                        filters: [{
+                                name: 'type',
+                                operator: 'anyof',
+                                values: ['TrnfrOrd']
+                            },
+                            {
+                                name: 'internalid',
+                                operator: 'is',
+                                values: to_id
+                            },
+                            {
+                                name: 'item',
+                                operator: 'anyof',
+                                values: skuids
+                            },
+                            {
+                                name: 'transferorderquantityreceived',
+                                operator: 'greaterthan',
+                                values: ['0']
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: ['F']
+                            }
                         ],
-                        columns: [ 'item', 'transferorderquantityreceived', 'transferlocation', 'subsidiary' ]
+                        columns: ['item', 'transferorderquantityreceived', 'transferlocation', 'subsidiary']
                     }).run().each(function (result) {
                         var skuid = result.getValue('item');
                         var sku = trueskus[skuid];
@@ -146,15 +171,33 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                                 toType: record.Type.ITEM_RECEIPT,
                                 fromId: Number(to_id),
                             });
-                            itemReceipt.setValue({ fieldId: 'shipstatus', value: 'C' });
-                            var lineIR = itemReceipt.getLineCount({ sublistId: 'item' });
+                            itemReceipt.setValue({
+                                fieldId: 'shipstatus',
+                                value: 'C'
+                            });
+                            var lineIR = itemReceipt.getLineCount({
+                                sublistId: 'item'
+                            });
                             for (var i = 0; i < lineIR; i++) {
-                                var itemre = itemReceipt.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
+                                var itemre = itemReceipt.getSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'item',
+                                    line: i
+                                });
                                 if (itemre != skuid) {
-                                    itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'itemreceive', value: false, line: i });
+                                    itemReceipt.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: false,
+                                        line: i
+                                    });
                                     continue;
                                 }
-                                qty = itemReceipt.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i });
+                                qty = itemReceipt.getSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'quantity',
+                                    line: i
+                                });
                             }
                             itemReceipt.save();
                             difference = lastQty - qty;
@@ -163,28 +206,69 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                             if (!location || !subsidiary) {
                                 search.create({
                                     type: 'transferorder',
-                                    filters: [
-                                        { name: 'type', operator: 'anyof', values: ['TrnfrOrd'] },
-                                        { name: 'internalid', operator: 'anyof', values: to_id },
-                                        { name: 'mainline', operator: 'is', values: ['T'] }
+                                    filters: [{
+                                            name: 'type',
+                                            operator: 'anyof',
+                                            values: ['TrnfrOrd']
+                                        },
+                                        {
+                                            name: 'internalid',
+                                            operator: 'anyof',
+                                            values: to_id
+                                        },
+                                        {
+                                            name: 'mainline',
+                                            operator: 'is',
+                                            values: ['T']
+                                        }
                                     ],
-                                    columns: [ 'transferlocation', 'subsidiary' ]
+                                    columns: ['transferlocation', 'subsidiary']
                                 }).run().each(function (result) {
                                     location = result.getValue('transferlocation');
                                     subsidiary = result.getValue('subsidiary');
                                     return true;
                                 });
                             }
-                            var rec = record.create({ type: 'inventoryadjustment', isDynamic: false });
-                            rec.setValue({ fieldId: 'subsidiary', value: subsidiary });
+                            var rec = record.create({
+                                type: 'inventoryadjustment',
+                                isDynamic: false
+                            });
+                            rec.setValue({
+                                fieldId: 'subsidiary',
+                                value: subsidiary
+                            });
                             // type 33 盘亏出库，32 盘盈入库
                             var type = difference > 0 ? 32 : 33;
-                            rec.setValue({ fieldId: 'custbody_stock_use_type', value: type });
-                            rec.setValue({ fieldId: 'account', value: getAccount(type) });
-                            rec.setValue({ fieldId: 'custbody_related_transfer_order', value: to_id });
-                            rec.setSublistValue({ sublistId: 'inventory', fieldId: 'item', value: skuid, line: 0 });
-                            rec.setSublistValue({ sublistId: 'inventory', fieldId: 'location', value: location, line: 0 });
-                            rec.setSublistValue({ sublistId: 'inventory', fieldId: 'adjustqtyby', value: difference, line: 0 });
+                            rec.setValue({
+                                fieldId: 'custbody_stock_use_type',
+                                value: type
+                            });
+                            rec.setValue({
+                                fieldId: 'account',
+                                value: getAccount(type)
+                            });
+                            rec.setValue({
+                                fieldId: 'custbody_related_transfer_order',
+                                value: to_id
+                            });
+                            rec.setSublistValue({
+                                sublistId: 'inventory',
+                                fieldId: 'item',
+                                value: skuid,
+                                line: 0
+                            });
+                            rec.setSublistValue({
+                                sublistId: 'inventory',
+                                fieldId: 'location',
+                                value: location,
+                                line: 0
+                            });
+                            rec.setSublistValue({
+                                sublistId: 'inventory',
+                                fieldId: 'adjustqtyby',
+                                value: difference,
+                                line: 0
+                            });
                             rec.save();
                         }
                     }
@@ -203,10 +287,14 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         var account
         search.create({
             type: "customrecord_adjustment_account",
-            filters: [
-                { name: 'custrecord_inventory_types', operator: 'is', values: type }
-            ],
-            columns: [{ name: 'custrecord_adjustment_accounts' }]
+            filters: [{
+                name: 'custrecord_inventory_types',
+                operator: 'is',
+                values: type
+            }],
+            columns: [{
+                name: 'custrecord_adjustment_accounts'
+            }]
         }).run().each(function (e) {
             account = e.getValue('custrecord_adjustment_accounts')
         })
@@ -220,14 +308,23 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
             var ret_id;
             search.create({
                 type: 'customrecord_dps_delivery_order',
-                filters: [{ name: 'name', operator: 'is', values: sourceNo }]
+                filters: [{
+                    name: 'name',
+                    operator: 'is',
+                    values: sourceNo
+                }]
             }).run().each(function (rec) {
                 ret_id = rec.id;
             });
 
             if (ret_id) {
-                var objRecord = record.load({ type: 'customrecord_dps_delivery_order', id: ret_id });
-                var count = objRecord.getLineCount({ sublistId: 'recmachcustrecord_dps_delivery_order_id' });
+                var objRecord = record.load({
+                    type: 'customrecord_dps_delivery_order',
+                    id: ret_id
+                });
+                var count = objRecord.getLineCount({
+                    sublistId: 'recmachcustrecord_dps_delivery_order_id'
+                });
                 if (context.detailList.length > 0) {
                     context.detailList.map(function (line) {
                         for (var i = 0; i < count; i++) {
@@ -247,7 +344,10 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                         }
                     });
                 }
-                objRecord.setValue({ fieldId: 'custrecord_delivery_order_status', value: 4 });
+                objRecord.setValue({
+                    fieldId: 'custrecord_delivery_order_status',
+                    value: 4
+                });
                 var objRecord_id = objRecord.save();
                 if (objRecord_id) {
                     record.submitFields({
@@ -274,34 +374,67 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
     //生成货品收据
     function createItemReceipt(po_id, item) {
-        var objRecord = record.transform({
-            fromType: 'purchaseorder',
-            fromId: po_id,
-            toType: 'itemreceipt'
-        });
-        var subsidiary = objRecord.getValue('subsidiary');
-        var count = objRecord.getLineCount({ sublistId: 'item' });
+
+        // var objRecord = record.transform({
+        //     fromType: 'purchaseorder',
+        //     fromId: po_id,
+        //     toType: 'itemreceipt'
+        // });
+        // var subsidiary = objRecord.getValue('subsidiary');
+        // var count = objRecord.getLineCount({
+        //     sublistId: 'item'
+        // });
+
+        // var glo_positionCode;
+        var objRecord_id;
         item.map(function (line) {
+
+            var objRecord = record.transform({
+                fromType: 'purchaseorder',
+                fromId: po_id,
+                toType: 'itemreceipt'
+            });
+            var subsidiary = objRecord.getValue('subsidiary');
+            var count = objRecord.getLineCount({
+                sublistId: 'item'
+            });
+
+            var glo_positionCode;
+
             for (var i = 0; i < count; i++) {
-                var item_id = objRecord.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
-                var item_sku;
-                var positionCode = line.detailRecordList[0].positionCode;
-                var locationid;
-                search.create({
-                    type: 'location',
-                    filters: [
-                        { name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode },
-                        { name: 'subsidiary', operator: 'is', values: subsidiary }
-                    ],
-                    columns: ['internalid']
-                }).run().each(function (result) {
-                    locationid = result.getValue('internalid');
-                    return false;
+                var item_id = objRecord.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    line: i
                 });
+                var item_sku;
+                var positionCode = line.detailRecordList[i].positionCode;
+                var type = line.detailRecordList[i].type;
+                var locationid, searchLocation;
+                searchLocation = positionCode;
+                // type (integer): 类型 1:已装箱 2:未装箱
+                if (type == 1) { // 装箱搜索箱号
+                    searchLocation = line.detailRecordList[i].barcode;
+                }
+
+                locationid = searchLocationCode(searchLocation, subsidiary);
+
+                if (!locationid && type == 1) { // 库位下的箱子
+                    createBoxLocation(searchLocation);
+                    locationid = searchLocationCode(searchLocation, subsidiary);
+                }
+
+                if (!locationid && type == 2) { // 属于库存, 但不存在
+                    return "对应的库位不存在： " + searchLocation;
+                }
                 search.create({
                     type: 'item',
-                    filters: [{ name: 'internalid', operator: 'is', values: item_id }],
-                    columns: [ 'itemid' ]
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'is',
+                        values: item_id
+                    }],
+                    columns: ['itemid']
                 }).run().each(function (rec) {
                     item_sku = rec.getValue('itemid');
                 });
@@ -320,8 +453,89 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                     });
                 }
             }
+
+            objRecord_id = objRecord.save();
+            log.debug('objRecord_id', objRecord_id);
         });
-        return objRecord.save();
+
+        return objRecord_id;
+    }
+
+
+
+    /**
+     * 搜索对应的地点
+     * @param {s} warCode 
+     * @param {*} Subsidiary 
+     */
+    function searchLocationCode(warCode, Subsidiary) {
+
+        var locationId;
+        search.create({
+            type: 'location',
+            filters: [{
+                    name: "custrecord_dps_warehouse_code",
+                    operator: 'is',
+                    values: warCode
+                },
+                {
+                    name: 'subsidiary',
+                    operator: 'anyof',
+                    values: Subsidiary
+                }
+            ],
+        }).run().each(function (rec) {
+            locationId = rec.id;
+        });
+
+        return locationId || false;
+    }
+
+    /**
+     * 创建箱子
+     * @param {*} boxName 
+     */
+    function createBoxLocation(boxName) {
+
+        // 2 广州蓝深科技有限公司
+        // 3 广州蓝图创拓进出口贸易有限公司
+        // 5 蓝深贸易有限公司
+
+        var subArr = [2, 3, 5];
+
+
+        subArr.forEach(function (sub) {
+
+            var locObj = record.create({
+                type: 'location'
+            });
+            locObj.setValue({
+                fieldId: 'name',
+                value: boxName
+            });
+            locObj.setValue({
+                fieldId: "subsidiary",
+                value: sub
+            });
+            locObj.setValue({
+                fieldId: "custrecord_dps_warehouse_code",
+                value: boxName
+            });
+            locObj.setValue({
+                fieldId: "custrecord_dps_warehouse_name",
+                value: boxName
+            });
+            locObj.setValue({
+                fieldId: "custrecord_wms_location_type",
+                value: 3
+            });
+
+            var locObjId = locObj.save();
+
+            log.debug('locObjId', locObjId);
+
+        });
+
     }
 
     function returnInfo(context) {
@@ -331,19 +545,33 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         var sourceNo = context.sourceNo;
         search.create({
             type: 'returnauthorization',
-            filters: [
-                { name: 'mainline', operator: 'is', values: false },
-                { name: 'taxline', operator: 'is', values: false },
-                { name: 'poastext', operator: 'is', values: sourceNo }
+            filters: [{
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'poastext',
+                    operator: 'is',
+                    values: sourceNo
+                }
             ],
-            columns: [ 'item', 'custcol_dps_trans_order_item_sku' ]
+            columns: ['item', 'custcol_dps_trans_order_item_sku']
         }).run().each(function (rec) {
             ret_id = rec.id;
             sku.push(rec.getValue('custcol_dps_trans_order_item_sku'));
             return --limit > 0;
         });
 
-        var objRecord = record.load({ type: 'returnauthorization', id: ret_id });
+        var objRecord = record.load({
+            type: 'returnauthorization',
+            id: ret_id
+        });
         var detailList = context.detailList;
         for (var i = 0, length = detailList.length; i < length; i++) {
             var re_sku = detailList[i].sku;
@@ -371,7 +599,10 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 }
             }
         }
-        objRecord.setValue({ fieldId: 'orderstatus', value: 'B' });
+        objRecord.setValue({
+            fieldId: 'orderstatus',
+            value: 'B'
+        });
         var objRecord_id = objRecord.save();
         var it = record.transform({
             fromType: 'returnauthorization',

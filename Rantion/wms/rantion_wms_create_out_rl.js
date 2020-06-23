@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-06-18 16:50:55
+ * @LastEditTime   : 2020-06-23 11:57:27
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
@@ -163,7 +163,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     // data["detailCreateRequestDtos"] = '出库单明细';
                     // data["email"] = '邮箱地址';
 
-                    data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channelservice');;
+                    data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice');
 
                     // data["logisticsChannelCode"] = rec.getValue({
                     //     name: 'custrecord_ls_service_code',

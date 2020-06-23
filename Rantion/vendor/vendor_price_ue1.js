@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 15:09:31
- * @LastEditTime   : 2020-06-19 20:21:26
+ * @LastEditTime   : 2020-06-23 15:47:24
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\vendor_price_ue1.js
@@ -26,6 +26,8 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
         var type = context.type;
         var userObj = runtime.getCurrentUser();
         var userName = userObj.id;
+
+        log.debug('type', type);
 
         if (type == context.UserEventType.EDIT) {
 
@@ -68,14 +70,6 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
         // 1 单阶梯数量价格
         // 2 累计阶梯数量价格
         var price_type = newRecord.getValue('custrecord_dps_vpmh_price_type');
-        // if (status == 6) {
-        //     // log.debug("in");
-        //     if (price_type == 1) {
-        //         forvpmd(newRecord.getValue('id'));
-        //     } else if (price_type == 2) {
-        //         CumTotalVendor(newRecord.id, newRecord.type);
-        //     }
-        // }
 
         try {
             if (price_type == 1) {

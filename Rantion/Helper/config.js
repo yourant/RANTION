@@ -18,7 +18,7 @@ define(['N/runtime'], function(runtime) {
     }
     // 正式环境
     if (accountId == 6188472) {
-
+        vendorRoleId = 16;
     }
 
     return {

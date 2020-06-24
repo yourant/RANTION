@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-23 11:58:29
+ * @LastEditTime   : 2020-06-24 17:09:23
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -403,6 +403,273 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
 
     }
 
+
+
+    /**
+     * 
+     * @param {*} af_rec 
+     */
+    function TOWMS(af_rec) {
+
+        // var Laf_rec = record.load({
+        //     type: af_rec.type,
+        //     id: af_rec.id
+        // });
+
+
+        var soId;
+        soId = af_rec.getValue('custrecord_dps_ship_small_salers_order');
+        search.create({
+            type: af_rec.type,
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: af_rec.id
+            }],
+            columns: [
+                'custrecord_dps_ship_small_salers_order'
+            ]
+        }).run().each(function (rec) {
+            soId = rec.getValue('custrecord_dps_ship_small_salers_order');
+        })
+
+
+        log.debug('soId', soId);
+
+        var fla = qtyBackOrdered(soId);
+
+        log.debug('fla', fla);
+
+        // 已获取物流跟踪单号, 直接推送 WMS
+
+        var message = {};
+        // 获取token
+        var token = getToken();
+        if (token && fla) {
+            var data = {};
+            // 业务数据填写至data即可
+            // 参数模板 (参数类型，是否必填)
+
+            search.create({
+                type: 'customrecord_dps_shipping_small_record',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: af_rec.id
+                }],
+                columns: [
+                    'custrecord_record_fulfill_xh_label_addr', // 面单路径URL
+
+                    'custrecord_dps_ship_samll_location', // 发运仓库
+                    {
+                        name: 'custrecord_dps_wms_location',
+                        join: 'custrecord_dps_ship_samll_location'
+                    },
+                    {
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'custrecord_dps_ship_samll_location'
+                    },
+
+                    'custrecord_dps_ship_order_number', //订单号
+                    'custrecord_dps_ship_platform_order_numbe', //平台订单号
+                    'custrecord_dps_ship_small_logistics_orde', //物流运单号
+                    'custrecord_dps_ship_small_trackingnumber', // 物流跟踪单号
+                    'custrecord_dps_ship_small_sales_platform', //销售平台
+                    'custrecord_dps_ship_small_account', //销售店铺
+                    'custrecord_dps_ship_small_destination', //目的地
+                    'custrecord_dps_ship_small_recipient', //收件人
+                    'custrecord_dps_ship_small_phone', //联系电话
+                    'custrecord_dps_ship_small_ship_weight', //发货重量
+                    'custrecord_dps_ship_small_estimatedfreig', //预估运费
+                    'custrecord_dps_ship_small_shipping_date', //发运时间
+                    'custrecord_dps_ship_small_due_date', // 妥投时间
+                    'custrecord_dps_ship_small_channel_dealer', //渠道商
+                    'custrecord_dps_ship_small_channelservice', //渠道服务
+
+                    {
+                        name: 'custrecord_ls_service_code',
+                        join: 'custrecord_dps_ship_small_channelservice'
+                    },
+
+                    'custrecord_dps_ship_small_salers_order', //关联的销售订单
+                    'custrecord_dps_addressee_address', //收件人地址
+                    'custrecord_dps_recipient_city', // 收件人城市
+                    'custrecord_dps_recipient_country', //收件人国家
+                    'custrecord_dps_recipien_code', //收件人地址编码
+                    'custrecord_dps_length', //长度
+                    'custrecord_dps_width', //宽度
+                    'custrecord_dps_highly', //高度
+                    'custrecord_dps_carton_no', //箱号
+                    'custrecord_dps_s_state', //收货人 - 州
+                    'custrecord_dps_street1', //街道1
+                    'custrecord_dps_street2', //街道2
+                    'custrecord_dps_declared_value', //申报价值
+                    'custrecord_dps_declare_currency', //申报币种
+                    {
+                        name: 'custrecord_cc_country_code',
+                        join: 'custrecord_dps_recipient_country'
+                    }, // 国家编码
+                ]
+            }).run().each(function (rec) {
+
+                // data["address"] =    //'地址';
+                data["city"] = rec.getValue('custrecord_dps_recipient_city'); // '城市';
+                data["country"] = rec.getText('custrecord_dps_recipient_country'); // '国家';
+                data["countryCode"] = rec.getValue({
+                    name: 'custrecord_cc_country_code',
+                    join: 'custrecord_dps_recipient_country'
+                }); //   '国家简码';
+                // data["detailCreateRequestDtos"] = '出库单明细';
+                // data["email"] = '邮箱地址';
+                data["logisticsChannelCode"] = rec.getValue({
+                    name: 'custrecord_ls_service_code',
+                    join: 'custrecord_dps_ship_small_channelservice'
+                }); //  '物流渠道服务编号';
+
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice');
+                data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
+                data["logisticsLabelPath"] = rec.getValue('custrecord_record_fulfill_xh_label_addr'); // 物流面单文件路径 ,
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';
+                data["logisticsProviderName"] = rec.getText('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商名称';
+                data["mobilePhone"] = rec.getValue('custrecord_dps_ship_small_phone'); //'移动电话';
+
+                // data["platformCode"] = '平台编号';
+                data["platformName"] = rec.getText('custrecord_dps_ship_small_sales_platform'); // '平台名称';
+                data["postcode"] = rec.getValue('custrecord_dps_recipien_code'); //'邮编';
+                data["province"] = rec.getValue('custrecord_dps_s_state'); //'省份';
+                // data["qty"] = '数量';
+                data["recipient"] = rec.getValue('custrecord_dps_ship_small_recipient'); //'收件人';
+                // data["remark"] = '备注';
+                // data["shopCode"] = '平台编号';
+
+                data["shopName"] = rec.getValue('custrecord_dps_ship_small_account'); //'店铺名称';
+                data["sourceNo"] = rec.getValue('custrecord_dps_ship_order_number'); //'来源单号';
+                data["sourceType"] = 10; //'来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整';
+                // data["telephone"] = '固定电话';
+                // data["trackingNo"] = '最终跟踪号';
+
+                data["warehouseCode"] = rec.getValue({
+                    name: 'custrecord_dps_wms_location',
+                    join: 'custrecord_dps_ship_samll_location'
+                }); //'仓库编号';
+                data["warehouseName"] = rec.getValue({
+                    name: 'custrecord_dps_wms_location_name',
+                    join: 'custrecord_dps_ship_samll_location'
+                }); //'仓库名称';
+                data["waybillNo"] = rec.getValue('custrecord_dps_ship_small_logistics_orde');
+
+            });
+
+
+            var limit = 3999,
+                itemInfo = [];
+            search.create({
+                type: 'customrecord_dps_ship_samll_sku',
+                filters: [{
+                    name: 'custrecord_dps_ship_small_links',
+                    operator: 'anyof',
+                    values: af_rec.id
+                }],
+                columns: [
+                    'custrecord_dps_ship_small_item_quantity', // 数量
+                    'custrecord_dps_ship_small_sku_line', // SKU
+                    'custrecord_dps_ship_small_item_item', // 货品
+                    {
+                        name: 'itemid',
+                        join: 'custrecord_dps_ship_small_item_item'
+                    }, // 货品名称/编号
+                    {
+                        name: 'custitem_dps_declaration_cn',
+                        join: 'custrecord_dps_ship_small_item_item'
+                    }, // 报关中文名称
+                    {
+                        name: 'custitem_dps_picture',
+                        join: 'custrecord_dps_ship_small_item_item'
+                    }, // 货品图片
+
+                ]
+            }).run().each(function (rec) {
+
+                var it = {
+                    productCode: rec.getValue({
+                        name: 'itemid',
+                        join: 'custrecord_dps_ship_small_item_item'
+                    }),
+                    productImageUrl: rec.getValue({
+                        name: 'custitem_dps_picture',
+                        join: 'custrecord_dps_ship_small_item_item'
+                    }),
+                    productTitle: rec.getValue({
+                        name: 'custitem_dps_declaration_cn',
+                        join: 'custrecord_dps_ship_small_item_item'
+                    }),
+                    // productType: '',
+                    qty: Number(rec.getValue('custrecord_dps_ship_small_item_quantity')),
+                    sku: rec.getValue({
+                        name: 'itemid',
+                        join: 'custrecord_dps_ship_small_item_item'
+                    })
+                };
+
+                itemInfo.push(it);
+
+                return --limit > 0;
+
+            });
+
+            data["detailCreateRequestDtos"] = itemInfo; //'出库单明细';
+
+
+            for (var key in data) {
+                if (data[key] === '') {
+                    delete data[key]
+                }
+            }
+
+            log.debug('delete data[key]', data);
+
+            // 发送请求
+            message = sendRequest(token, [data]);
+        } else {
+            if (!fla) {
+                message.code = 3;
+                message.data = {
+                    msg: '库存不足,无法发运'
+                }
+            } else {
+                message.code = 1;
+                message.data = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
+            }
+        }
+        var flag, temp;
+
+        log.debug('typeof(message): ' + typeof (message), message);
+        try {
+            temp = JSON.s(message.data);
+        } catch (error) {
+            log.audit('转换对象出错了', error);
+            temp = message.data;
+        }
+
+        log.audit('temp', temp);
+        log.audit('temp.code', temp.code);
+        if (temp.code == 0) {
+            flag = 14;
+        } else {
+            flag = 8;
+        }
+
+        log.audit('推送 WMS flag', flag);
+        var id = record.submitFields({
+            type: af_rec.type,
+            id: af_rec.id,
+            values: {
+                custrecord_dps_ship_small_status: flag,
+                custrecord_dps_ship_small_wms_info: JSON.stringify(temp)
+            }
+        });
+    }
+
     /**
      * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
      * @param {*} soId 
@@ -473,7 +740,8 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
             'access_token': token
         };
         var response = http.post({
-            url: config.WMS_Debugging_URL + '/outMaster',
+            url: 'http://47.107.254.110:18082/rantion-wms/outMaster',
+            // url: config.WMS_Debugging_URL + '/outMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });
@@ -693,7 +961,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                         trackingNumber = labelresult.data.shipment.tracking_number
                         single_pdf = labelresult.data.shipment.single_pdf
                     }
-                    submitIdAndTackingNumber(rec.id, shipment_id, trackingNumber, '', '', single_pdf)
+                    submitIdAndTackingNumber(rec, rec.id, shipment_id, trackingNumber, '', '', single_pdf)
                 } else {
                     record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',
@@ -711,7 +979,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                 var result = openApi.CreateOrders(rec, "small")
                 if (result.code == 200) {
                     var orderId = rec.getValue("custrecord_dps_ship_order_number")
-                    submitIdAndTackingNumber(rec.id, orderId)
+                    submitIdAndTackingNumber(rec, rec.id, orderId)
                     result = openApi.GetInfo(orderId)
                     log.audit('infoResult', result);
                     if (result.code == 200) {
@@ -757,7 +1025,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                     var shipment_id = result.data.Epcode
                     var YanwenNumber = result.data.YanwenNumber
                     log.audit('shipment_id', shipment_id);
-                    submitIdAndTackingNumber(rec.id, shipment_id, YanwenNumber)
+                    submitIdAndTackingNumber(rec, rec.id, shipment_id, YanwenNumber)
                 } else {
                     record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',
@@ -809,7 +1077,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
 
                     log.debug('url', url);
 
-                    submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, url)
+                    submitIdAndTackingNumber(rec, rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, url)
                 } else {
                     record.submitFields({
                         type: 'customrecord_dps_shipping_small_record',
@@ -825,7 +1093,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
         }
     }
 
-    function submitIdAndTackingNumber(id, shipment_id, trackingNumber, image, labelId, labelAddr) {
+    function submitIdAndTackingNumber(rec, id, shipment_id, trackingNumber, image, labelId, labelAddr) {
         var values = {
             // custrecord_dps_ship_small_status: 3,
             custrecord_dps_push_state_xh: "成功",
@@ -847,6 +1115,8 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
             id: id,
             values: values
         });
+
+        TOWMS(rec);
     }
 
 

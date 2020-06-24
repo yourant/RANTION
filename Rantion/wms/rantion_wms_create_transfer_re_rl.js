@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-06-23 12:09:44
+ * @LastEditTime   : 2020-06-24 16:04:52
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -65,7 +65,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         // for (var i = 0, len = date.length; i < len; i++) {
 
         var retjson = {};
-
         try {
 
             var temp = data;
@@ -133,6 +132,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                         msg: '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode
                     };
                     retjson.msg = 'error';
+                    retjson.msg = '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode;
 
                     return JSON.stringify(retjson);
                 }
@@ -183,7 +183,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                     value: 6
                 });
 
-                log.debug('开始陆行')
                 itemfulfillment(l_rec, tranNO, storageList);
                 var l_rec_id = l_rec.save();
 

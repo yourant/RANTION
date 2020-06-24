@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-23 20:01:18
+ * @LastEditTime   : 2020-06-23 19:55:20
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -554,6 +554,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }
                 });
             }
+
+
+
         }
 
     }

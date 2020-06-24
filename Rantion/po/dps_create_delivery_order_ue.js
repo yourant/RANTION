@@ -1,10 +1,20 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-06-19 20:47:14
+ * @LastEditTime   : 2020-06-24 15:16:12
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\po\dps_create_delivery_order_ue.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
 define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format', 'N/http'], function (runtime, search, record, aio, format, http) {
     function beforeLoad(context) {
-        
+
         if (context.type == 'create') {
             var request = context.request;
             var bill_id = request.parameters.bill_id;
@@ -20,19 +30,34 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                 var poNumber = 'LN' + need_date;
                 search.create({
                     type: 'customrecord_dps_delivery_schedule',
-                    filters: [{ name: 'custrecord_delivery_schedule_date', operator: 'is', values: need_date }]
+                    filters: [{
+                        name: 'custrecord_delivery_schedule_date',
+                        operator: 'is',
+                        values: need_date
+                    }]
                 }).run().each(function (result) {
                     recid = result.id;
                 });
                 if (!recid) {
                     existPoNumber = 1;
-                    extRecord = record.create({ type: 'customrecord_dps_delivery_schedule' });
-                    extRecord.setValue({ fieldId: 'custrecord_delivery_schedule_date', value: need_date });
-                    extRecord.setValue({ fieldId: 'custrecord_delivery_schedule_num', value: existPoNumber });
+                    extRecord = record.create({
+                        type: 'customrecord_dps_delivery_schedule'
+                    });
+                    extRecord.setValue({
+                        fieldId: 'custrecord_delivery_schedule_date',
+                        value: need_date
+                    });
+                    extRecord.setValue({
+                        fieldId: 'custrecord_delivery_schedule_num',
+                        value: existPoNumber
+                    });
                     //extRecord.save();
                     poNumber = poNumber + '000' + existPoNumber;
                 } else {
-                    extRecord = record.load({ type: 'customrecord_dps_delivery_schedule', id: recid });
+                    extRecord = record.load({
+                        type: 'customrecord_dps_delivery_schedule',
+                        id: recid
+                    });
                     existPoNumber = Number(extRecord.getValue('custrecord_delivery_schedule_num')) + 1;
                     if (existPoNumber < 10) {
                         poNumber = poNumber + '000' + existPoNumber;
@@ -73,9 +98,15 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                     var box_long, box_high, box_wide, mpq, box_volume, volume, item_name;
                     search.create({
                         type: 'item',
-                        filters: [
-                            { name: 'internalid', operator: 'is', values: soRec.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i }) }
-                        ],
+                        filters: [{
+                            name: 'internalid',
+                            operator: 'is',
+                            values: soRec.getSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'item',
+                                line: i
+                            })
+                        }],
                         columns: [
                             'internalid', 'custitem_dps_box_long', 'custitem_dps_box_high', 'custitem_dps_box_wide', 'custitem_dps_mpq', 'itemid'
                         ]
@@ -92,7 +123,11 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                         item_name = result.getValue('itemid');
                     });
 
-                    amount_price += Number(soRec.getSublistValue({ sublistId: 'item', fieldId: 'amount', line: i }));
+                    amount_price += Number(soRec.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'amount',
+                        line: i
+                    }));
                     var delivery_quantity = soRec.getSublistValue({
                         sublistId: 'item',
                         fieldId: 'custcol_dps_delivery_quantity',
@@ -249,19 +284,34 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
             var poNumber = 'LN' + need_date;
             search.create({
                 type: 'customrecord_dps_delivery_schedule',
-                filters: [{ name: 'custrecord_delivery_schedule_date', operator: 'is', values: need_date }]
+                filters: [{
+                    name: 'custrecord_delivery_schedule_date',
+                    operator: 'is',
+                    values: need_date
+                }]
             }).run().each(function (result) {
                 recid = result.id;
             });
             if (!recid) {
                 existPoNumber = 1;
-                extRecord = record.create({ type: 'customrecord_dps_delivery_schedule' });
-                extRecord.setValue({ fieldId: 'custrecord_delivery_schedule_date', value: need_date });
-                extRecord.setValue({ fieldId: 'custrecord_delivery_schedule_num', value: existPoNumber });
+                extRecord = record.create({
+                    type: 'customrecord_dps_delivery_schedule'
+                });
+                extRecord.setValue({
+                    fieldId: 'custrecord_delivery_schedule_date',
+                    value: need_date
+                });
+                extRecord.setValue({
+                    fieldId: 'custrecord_delivery_schedule_num',
+                    value: existPoNumber
+                });
                 extRecord.save();
                 poNumber = poNumber + '000' + existPoNumber;
             } else {
-                extRecord = record.load({ type: 'customrecord_dps_delivery_schedule', id: recid });
+                extRecord = record.load({
+                    type: 'customrecord_dps_delivery_schedule',
+                    id: recid
+                });
                 existPoNumber = Number(extRecord.getValue('custrecord_delivery_schedule_num')) + 1;
                 if (existPoNumber < 10) {
                     poNumber = poNumber + '000' + existPoNumber;
@@ -280,16 +330,24 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
             };
         }
 
-        if(context.type != 'create' && context.type != 'delete' && context.type != 'copy'){
+        if (context.type != 'create' && context.type != 'delete' && context.type != 'copy') {
             var newRecord = context.newRecord;
             var delivery_order = record.load({
                 type: 'customrecord_dps_delivery_order',
                 id: newRecord.id
             });
+
+            // 1	待确认
+            // 2	供应商已确认
+            // 3	已推WMS
+            // 4	WMS已入库
+            // 5	推送WMS失败
+            // 6	品控确认
+
             log.debug('delivery_order', delivery_order);
             log.debug('custrecord_delivery_order_status', delivery_order.getValue('custrecord_delivery_order_status'));
             log.debug('custrecord_dps_wms_end', delivery_order.getValue('custrecord_dps_wms_end'));
-            if (delivery_order.getValue('custrecord_delivery_order_status') == 5 && !delivery_order.getValue('custrecord_dps_wms_end')) {
+            if (delivery_order.getValue('custrecord_delivery_order_status') == 6 && !delivery_order.getValue('custrecord_dps_wms_end')) {
                 log.debug('newRecord.id', newRecord.id);
                 var item_arr = [],
                     order_po_no = 0,
@@ -311,11 +369,11 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                         'custrecord_line_boxes_number', //箱数
                         'custrecord_item_quantity', //交货数量
                         'custrecord_outstanding_quantity', //剩余交货数量
-    
+
                         'custrecord_ddoi_high', //(number): 高,
                         'custrecord_ddoi_long', //(number): 长,
                         'custrecord_ddoi_width', // (number): 宽
-    
+
                         {
                             name: "custitem_dps_spucoding",
                             join: "custrecord_item_sku"
@@ -377,9 +435,9 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                     });
                     boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
                     if (rec.getValue({
-                        name: 'custrecord_delivery_date',
-                        join: 'custrecord_dps_delivery_order_id'
-                    })) {
+                            name: 'custrecord_delivery_date',
+                            join: 'custrecord_dps_delivery_order_id'
+                        })) {
                         var estimateTime = format.parse({
                             value: rec.getValue({
                                 name: 'custrecord_delivery_date',
@@ -423,22 +481,22 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                     }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                     //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
                     var variant_arr = [{
-                        name: 'color',
-                        value: '白色'
-                    },
-                    {
-                        name: 'size',
-                        value: 'L'
-                    }
+                            name: 'color',
+                            value: '白色'
+                        },
+                        {
+                            name: 'size',
+                            value: 'L'
+                        }
                     ];
-    
-    
+
+
                     var boxInfo = {
                         height: rec.getValue('custrecord_ddoi_high'), //(number): 高,
                         length: rec.getValue('custrecord_ddoi_long'), //(number): 长,
                         width: rec.getValue('custrecord_ddoi_width'), // (number): 宽
                     };
-    
+
                     item_arr.push({
                         boxInfo: boxInfo,
                         boxNum: rec.getValue({
@@ -474,19 +532,19 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                 data['boxNum'] = boxNum;
                 data['planQty'] = planQty;
                 data['skuList'] = item_arr;
-    
+
                 search.create({
                     type: 'purchaseorder',
                     filters: [{
-                        name: 'internalid',
-                        operator: 'anyof',
-                        values: order_po_no
-                    },
-                    {
-                        name: 'mainline',
-                        operator: 'is',
-                        values: true
-                    }
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: order_po_no
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: true
+                        }
                     ],
                     columns: [
                         'tranid',
@@ -521,15 +579,38 @@ define(['N/runtime', 'N/search', 'N/record', "./../Helper/core.min", 'N/format',
                 });
                 data['purchaser'] = order_data.getText('employee');
                 log.debug('data', data);
-                message = sendRequest(token, data);
-                log.debug('message', message);
-                if (message.data.code == 0) {
+                if (token) {
+                    message = sendRequest(token, data);
+                    log.debug('message', message);
+                    if (message.data.code == 0) {
+                        record.submitFields({
+                            type: 'customrecord_dps_delivery_order',
+                            id: newRecord.id,
+                            values: {
+                                custrecord_delivery_order_status: 3,
+                                custrecord_dps_wms_end: true,
+                                custrecord_dps_delivery_wms_info: JSON.stringify(message.data)
+                            }
+                        });
+                    } else {
+                        record.submitFields({
+                            type: 'customrecord_dps_delivery_order',
+                            id: newRecord.id,
+                            values: {
+                                custrecord_delivery_order_status: 5,
+                                custrecord_dps_wms_end: false,
+                                custrecord_dps_delivery_wms_info: JSON.stringify(message.data)
+                            }
+                        });
+                    }
+                } else {
                     record.submitFields({
                         type: 'customrecord_dps_delivery_order',
                         id: newRecord.id,
                         values: {
-                            custrecord_delivery_order_status: 3,
-                            custrecord_dps_wms_end: true
+                            custrecord_delivery_order_status: 5,
+                            custrecord_dps_wms_end: false,
+                            custrecord_dps_delivery_wms_info: "WMS token 无效了"
                         }
                     });
                 }

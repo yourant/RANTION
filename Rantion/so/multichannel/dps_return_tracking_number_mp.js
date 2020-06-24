@@ -1,3 +1,13 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-05-14 16:29:26
+ * @LastEditTime   : 2020-06-23 20:13:41
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\so\multichannel\dps_return_tracking_number_mp.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript

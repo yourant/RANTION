@@ -1,50 +1,39 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-05-15 15:10:25
+ * @LastEditTime   : 2020-06-24 11:36:22
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\vendor\vendor_price_cs1.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search'],
-    function (moment, format, dialog, record, search) {
+define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search', 'N/log'],
+    function (moment, format, dialog, record, search, log) {
 
         var rec;
         var se = [];
         var vc = [];
 
         function pageInit(context) {
+
             rec = context.currentRecord;
+            // console.log('rec', rec);
 
-            // console.log('customform',rec.getValue('customform'))
+            log.debug('rec', rec);
+
             getVendorInfo();
-            // var remove_tax_code = rec.getSublistField({
-            //     sublistId: 'recmachcustrecord_vpmd_link',
-            //     fieldId: 'custrecord_vmpd_tax_code',
-            //     line: 0
-            // });
-            // console.log('remove_tax_code',remove_tax_code)
-            // var line = rec.getLineCount({
-            //     sublistId: 'recmachcustrecord_vpmd_link'
-            // });
-            // console.log('line',line);
-            // for (var i = 0; i < line; i++) {
-            //     console.log(1);
 
-            //     var remove_tax_code = rec.getSublistField({
-            //         sublistId: 'recmachcustrecord_vpmd_link',
-            //         fieldId: 'custrecord_vmpd_tax_code',
-            //         line: i
-            //     });
-            //     console.log('remove_tax_code',remove_tax_code);
-            //     remove_tax_code.removeSelectOption({ value: null, }); 
-            // }
-
-            // var remove_tax_code = rec.getField({ fieldId: 'custrecord_vmpd_tax_code' });
-            // console.log('remove_tax_code',remove_tax_code);
-            // remove_tax_code.removeSelectOption({
-            //     value: null,
-            // }); 
         }
 
         function saveRecord(context) {
             var subsidiarys = rec.getValue('custrecord_vpmh_subsidiary');
+            log.debug('subsidiarys', subsidiarys);
+            // alert('subsidiarys: ' + subsidiarys);
             if (subsidiarys == '') {
                 dialog.alert({
                     title: '提示',
@@ -53,6 +42,8 @@ define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search
                 return false;
             } else {
                 var flag = checkArr(se, subsidiarys);
+                // alert('flag: ' + flag);
+                log.debug('flag', flag);
                 if (!flag) {
                     dialog.alert({
                         title: '提示',
@@ -60,6 +51,8 @@ define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search
                     });
                     return false;
                 }
+
+                // return true;
             }
             return true;
         }
@@ -188,7 +181,7 @@ define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search
                         }
                     }
                 } catch (error) {
-                    console.log(JSON.stringify(error));
+                    log.debug(JSON.stringify(error));
                 }
                 if (resultArr.length > 0) {
                     rec.setCurrentSublistValue({
@@ -228,8 +221,6 @@ define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search
                     if (rate == undefined) {
                         rate = 0;
                     }
-
-                    // console.log('rate',rate);
 
                     if (unit_price) {
                         // console.log('unit_price', unit_price);
@@ -346,6 +337,7 @@ define(['../Helper/Moment.min', 'N/format', 'N/ui/dialog', 'N/record', 'N/search
                     sublistId: 'recmachcustrecord_vpmd_link',
                     fieldId: 'custrecord_vmpd_tax_code'
                 });
+                // console.log('custrecord_vmpd_tax_code', tax_code);
                 var unit_price_1 = rec.getCurrentSublistValue({
                     sublistId: 'recmachcustrecord_vpmd_link',
                     fieldId: 'custrecord_vmpd_unit_price'

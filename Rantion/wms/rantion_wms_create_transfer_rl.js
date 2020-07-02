@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-28 20:36:57
+ * @LastEditTime   : 2020-07-02 15:50:12
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -255,7 +255,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     },
 
                     {
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     }, // 产品重量(cm),
                     {
@@ -357,16 +357,16 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     })),
 
                     productLength: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 
                     productWeight: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
                     productWidth: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 

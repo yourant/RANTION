@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-02 11:25:29
+ * @LastEditTime   : 2020-07-02 15:48:09
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -21,7 +21,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 ], function (record, search, core, log, http, jetstar, openapi, yanwen, endicia, Moment, file, xml, runtime) {
 
     function beforeLoad(context) {
-
 
         var type = context.type;
 
@@ -298,6 +297,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 'custrecord_aio_sender_address', // 地址1
                                 'custrecord_aio_sender_name', // 发件人
                                 'custrecord_aio_sender_address_code', // 邮编
+
                                 {
                                     name: 'custrecord_cc_country_code',
                                     join: 'custrecord_aio_country_sender'
@@ -515,7 +515,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 log.debug('response1', response1);
 
                             } else {
-
                                 log.audit('不属于数组', rep);
 
                                 var id = record.submitFields({
@@ -997,7 +996,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     },
 
                     {
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     }, // 产品重量(cm),
                     {
@@ -1081,16 +1080,16 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     })),
 
                     productLength: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 
                     productWeight: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
                     productWidth: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 

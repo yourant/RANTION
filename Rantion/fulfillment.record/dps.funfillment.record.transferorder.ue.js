@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-01 16:25:50
+ * @LastEditTime   : 2020-07-02 15:47:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -879,7 +879,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     },
 
                     {
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     }, // 产品重量(cm),
                     {
@@ -981,16 +981,16 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     })),
 
                     productLength: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 
                     productWeight: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
                     productWidth: Number(rec.getValue({
-                        name: 'custitem_dps_weight',
+                        name: 'custitem_dps_heavy2',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 

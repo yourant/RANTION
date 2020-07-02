@@ -2,12 +2,44 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-07-01 20:24:07
+ * @LastEditTime   : 2020-07-02 17:50:39
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
+
+
+/**
+ * 
+ * @param {*} recType 
+ * @param {*} recId 
+ */
+function fulTranOrder(recType, recId) {
+
+    var copyId = copyTransactionRec(recType, recId);
+    log.debug('copyId', copyId);
+
+    if (copyId) {
+
+        var itful, itrec, recIdFul, itRec;
+        var recIdFul = itemfulfillment(recId);
+        log.debug('recIdFul', recIdFul);
+        if (recIdFul) {
+            itRec = itemreceipt(recIdFul);
+            log.debug('itRec', itRec);
+        }
+        var itful = itemfulfillment(copyId);
+        log.debug('itful', itful);
+        if (itful) {
+            itrec = itemreceipt(recId);
+            log.debug('itrec', itrec);
+        }
+
+    }
+}
+
+
 
 
 function submitMapReduceDeployment() {

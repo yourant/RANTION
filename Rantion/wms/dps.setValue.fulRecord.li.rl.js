@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-01 19:21:16
- * @LastEditTime   : 2020-07-02 10:37:23
+ * @LastEditTime   : 2020-07-02 16:50:04
  * @LastEditors    : Li
  * @Description    : 更改调拨单的状态为 WMS已装箱
  * @FilePath       : \Rantion\wms\dps.setValue.fulRecord.li.rl.js
@@ -12,7 +12,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/https', 'N/url', 'N/task', 'N/search'], function (record, https, url, task, search) {
+define(['N/record', 'N/https', 'N/url', 'N/task', 'N/search', 'N/log'], function (record, https, url, task, search, log) {
 
     function _get(context) {
 
@@ -23,8 +23,11 @@ define(['N/record', 'N/https', 'N/url', 'N/task', 'N/search'], function (record,
         var retJson = {};
         try {
 
+            log.debug('context', context);
+
             var aono = context.aono;
 
+            log.debug('aono', aono);
             var bigRec = searchTranRec(aono);
 
             if (bigRec) {
@@ -37,12 +40,15 @@ define(['N/record', 'N/https', 'N/url', 'N/task', 'N/search'], function (record,
                 });
 
                 retJson.code = 0;
-                retJson.msg = "成功";
+                retJson.data = "调拨单号对应的发运记录处理成功";
+                retJson.msg = "success";
 
                 log.debug('更改发运记录状态成功, id', id);
             } else {
+                log.debug('调拨单号对应的发运记录不存在', "调拨单号对应的发运记录不存在");
                 retJson.code = 1;
-                retJson.msg = "调拨单号对应的发运记录不存在";
+                retJson.data = "调拨单号对应的发运记录不存在";
+                retJson.msg = "unknown";
             }
 
             // submitMapReduceDeployment(context);
@@ -50,7 +56,8 @@ define(['N/record', 'N/https', 'N/url', 'N/task', 'N/search'], function (record,
 
             log.error('error', error);
             retJson.code = 5;
-            retJson.msg = error.message;
+            retJson.data = error.message;
+            retJson.msg = "error";
         }
 
         return retJson

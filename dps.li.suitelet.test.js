@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-01 20:12:00
+ * @LastEditTime   : 2020-07-02 17:24:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -277,10 +277,39 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
         }
 
 
-
+        var startTime, endTime;
         try {
 
+            startTime = new Date().getTime();
+            log.debug('startTime', startTime);
 
+            var recType = "transferorder",
+                recId = 18316;
+
+            var copyId = copyTransactionRec(recType, recId);
+
+            log.debug('copyId', copyId);
+
+            if (copyId) {
+
+                var itful, itrec, recIdFul;
+                var itful = itemfulfillment(recId);
+                log.debug('recIdFul', recIdFul);
+                var itful = itemfulfillment(copyId);
+                log.debug('itful', itful);
+                if (itful) {
+                    itrec = itemreceipt(recId);
+                    log.debug('itrec', itrec);
+                }
+
+            }
+            endTime = new Date().getTime();
+            log.debug('endTime', endTime);
+
+            log.debug('endTime - startTime', endTime - startTime)
+
+
+            /*
 
             var form = serverWidget.createForm({
                 title: 'Simple Form'
@@ -297,36 +326,6 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
             context.response.writePage({
                 pageObject: form
             });
-
-
-            /*
-
-            var startTime = new Date().getTime();
-            log.debug('startTime', startTime);
-
-
-            var recType = "transferorder",
-                recId = 6423;
-
-            var copyId = copyTransactionRec(recType, recId);
-
-            log.debug('copyId', copyId);
-
-            if (copyId) {
-
-                var itful, itrec;
-                var itful = itemfulfillment(recId);
-                log.debug('itful', itful);
-                if (itful) {
-                    itrec = itemreceipt(recId);
-                    log.debug('itrec', itrec);
-                }
-
-            }
-            var endTime = new Date().getTime();
-            log.debug('endTime', endTime);
-
-            log.debug('endTime - startTime', endTime - startTime)
 
 
 

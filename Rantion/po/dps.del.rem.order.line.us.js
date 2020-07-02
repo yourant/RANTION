@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-20 11:42:12
- * @LastEditTime   : 2020-06-20 11:52:28
+ * @LastEditTime   : 2020-07-02 14:00:54
  * @LastEditors    : Li
  * @Description    : 应用于交货单的货品行, 用于处理交货单货品行删除或者取消关联的记录
  * @FilePath       : \Rantion\po\dps.del.rem.order.line.us.js
@@ -62,13 +62,20 @@ define(['N/log', 'N/record', 'N/search'], function (log, record, search) {
                 ]
             }).run().each(function (rec) {
 
-                var flag = false;
-                var l_po = record.load({
-                    type: 'purchaseorder',
-                    id: rec.getValue('custrecord_purchase_order_no')
-                });
+                var po_id = rec.getValue("custrecord_purchase_order_no");
+                if (po_id) {
 
-                if (oldHideQty) {
+                }
+                var flag = false;
+                var l_po;
+
+                if (oldHideQty && po_id) {
+
+                    l_po = record.load({
+                        type: 'purchaseorder',
+                        id: po_id
+                    });
+
                     var lineNumber = l_po.findSublistLineWithValue({
                         sublistId: 'item',
                         fieldId: 'item',

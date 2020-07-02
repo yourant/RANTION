@@ -2,13 +2,155 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-06-23 11:01:56
+ * @LastEditTime   : 2020-07-01 20:24:07
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
+
+function submitMapReduceDeployment() {
+
+    var mapReduceScriptId = 'customscript_test_mapreduce_script';
+    log.audit('mapreduce id: ', mapReduceScriptId);
+
+    var mrTask = task.create({
+        taskType: task.TaskType.MAP_REDUCE,
+        scriptId: mapReduceScriptId,
+        deploymentId: 'customdeploy_test_mapreduce_script'
+    });
+
+    var mrTaskId = mrTask.submit();
+
+}
+
+
+
+[{
+    "aono": "6730",
+    "boxNo": "001",
+    "detailModels": [{
+        "asin": "",
+        "boxNo": "001",
+        "fnsku": "",
+        "msku": "",
+        "productCode": "",
+        "productImageUrl": "",
+        "productTitle": "",
+        "productType": 10,
+        "qty": 10,
+        "sku": "903014"
+    }],
+    "height": 50.00,
+    "length": 50.00,
+    "weight": 5.00,
+    "width": 50.00
+}]
+
+
+
+
+
+/**
+ * 复制一个单据, 并设置相关相关字段的值
+ * @param {String} recType 记录类型
+ * @param {Number} recId 记录Id
+ * @returns {*} objRecordId || false, 若新记录ID存在, 返回新纪录ID, 否则返回 false
+ */
+function copyTransactionRec(recType, recId) {
+
+    var newLocation, newTLocation, objRecordId;
+    var objRecord = record.copy({
+        type: recType,
+        id: recId,
+        isDynamic: true,
+        // defaultValues: {
+        //     entity: 107
+        // }
+    });
+
+    search.create({
+        type: recType,
+        filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: recId
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: true
+            },
+            // {
+            //     name: 'taxline',
+            //     operator: 'is',
+            //     values: true
+            // }
+        ],
+        columns: [
+            "location", // FROM LOCATION
+            "transferlocation", // TO LOCATION
+            "custbody_actual_target_warehouse", // 实际目标仓库
+        ]
+    }).run().each(function (r) {
+        newLocation = r.getValue('transferlocation');
+        newTLocation = r.getValue('custbody_actual_target_warehouse');
+    });
+
+
+    log.debug('newLocation', newLocation);
+    log.debug('newTLocation', newTLocation);
+    if (newLocation && newTLocation && newLocation != newTLocation) {
+        objRecord.setValue({
+            fieldId: 'location',
+            value: newLocation
+        });
+        objRecord.setValue({
+            fieldId: 'transferlocation',
+            value: newTLocation
+        });
+
+        objRecordId = objRecord.save();
+        log.debug('objRecordId', objRecordId);
+    }
+
+    return objRecordId || false;
+}
+
+
+
+
+// var s = "FBA 纸箱编号 1，共 5 个纸箱 - 22.49 磅\n目的地：\nFBA: Kohree LLC\nAmazon.com Services, Inc.\n33333 LBJ FWY\nDallas, TX 75241-7203\n美国\n发货地：\nNextrox\nGuangdong - Guangzhou - 510000\nRoom 605, 9# dongan yuan dongjiao north road\n中国\nUSFBA20200416K-KOHREE-2\nFBA15LX19SCGU000001\nHY0061-HM-FBA\n数量 9\nFBA 纸箱编号 2，共 5 个纸箱 - 22.49 磅\n目的地：\nFBA: Kohree LLC\nAmazon.com Services, Inc.\n33333 LBJ FWY\nDallas, TX 75241-7203\n美国\n发货地：\nNextrox\nGuangdong - Guangzhou - 510000\nRoom 605, 9# dongan yuan dongjiao north road\n中国\nUSFBA20200416K-KOHREE-2\nFBA15LX19SCGU000002\nHY0061-HM-FBA\n数量 9\nFBA 纸箱编号 3，共 5 个纸箱 - 22.49 磅\n目的地：\nFBA: Kohree LLC\nAmazon.com Services, Inc.\n33333 LBJ FWY\nDallas, TX 75241-7203\n美国\n发货地：\nNextrox\nGuangdong - Guangzhou - 510000\nRoom 605, 9# dongan yuan dongjiao north road\n中国\nUSFBA20200416K-KOHREE-2\nFBA15LX19SCGU000003\nHY0061-HM-FBA\n数量 9\nFBA 纸箱编号 4，共 5 个纸箱 - 22.49 磅\n目的地：\nFBA: Kohree LLC\nAmazon.com Services, Inc.\n33333 LBJ FWY\nDallas, TX 75241-7203\n美国\n发货地：\nNextrox\nGuangdong - Guangzhou - 510000\nRoom 605, 9# dongan yuan dongjiao north road\n中国\nUSFBA20200416K-KOHREE-2\nFBA15LX19SCGU000004\nHY0061-HM-FBA\n数量 9\nFBA 纸箱编号 5，共 5 个纸箱 - 22.49 磅\n目的地：\nFBA: Kohree LLC\nAmazon.com Services, Inc.\n33333 LBJ FWY\nDallas, TX 75241-7203\n美国\n发货地：\nNextrox\nGuangdong - Guangzhou - 510000\nRoom 605, 9# dongan yuan dongjiao north road\n中国\nUSFBA20200416K-KOHREE-2\nFBA15LX19SCGU000005\nHY0061-HM-FBA\n数量 9\n"
+
+function getShipToAddr(str) {
+
+    var ShipToAddress = {};
+
+    var newArr = [];
+    var a = s.split("FBA:");
+
+    var b = a[1];
+    var c = b.split("发货地");
+    var d = c[0].split("\n");
+
+
+
+    for (var i = 0, len = d.length; i < len; i++) {
+        if (d[i] == "" || d[i] == undefined || d[i] == null) {
+            continue;
+        }
+        newArr.push(d[i].trim());
+    }
+
+    ShipToAddress.destination = c[0];
+    ShipToAddress.destinationArr = newArr;
+
+    var si = newArr[newArr.length - 2];
+    s2 = si.split(",");
+
+    return newArr || false;
+}
 
 
 var wmsField = [{
@@ -215,15 +357,4 @@ function createItemReceipt(po_id, item) {
         }
     });
     return objRecord.save();
-}
-
-
-function createBoxLocation(boxName, parentLocationId) {
-    // 5   蓝深贸易有限公司
-    // 3   广州蓝图创拓进出口贸易有限公司
-    // 2   广州蓝深科技有限公司
-
-    var subArr = [2, 3, 5];
-    for ()
-
 }

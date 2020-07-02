@@ -4,45 +4,45 @@
  */
 define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','./Helper/interfunction.min'],
   function (search, record, moment, format, runtime,interfun) {
-    const MissingReportType = 4 //Missing report 结算报告Settlement report - Order
+    const MissingReportType = 4 //Missing report ���㱨��Settlement report - Order
     const dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
     const date = format.parse({
       value: (moment(new Date().getTime()).format(dateFormat)),
       type: format.Type.DATE
     });
     const JP_currency = 8
-    const income_fin=363    //应收账款-暂估	 1122.05	
-    const income_settle=361    //应收账款-待结算  1122.03
-    const Fincome_Plat=412	    //预收账款-平台	 2203.03 
-    const Amazon_Plat=622	    //应收账款-平台 Amazon	 1122.04.01
-    const income_Refund=471    //主营业务收入-退款	 6001.06
-    const paymentmethod=7  //银行存款
-    const AR_settle=125    //  AR-待结算  1099
+    const income_fin=363    //Ӧ���˿�-�ݹ�	 1122.05	
+    const income_settle=361    //Ӧ���˿�-������  1122.03
+    const Fincome_Plat=412	    //Ԥ���˿�-ƽ̨	 2203.03 
+    const Amazon_Plat=622	    //Ӧ���˿�-ƽ̨ Amazon	 1122.04.01
+    const income_Refund=471    //��Ӫҵ������-�˿�	 6001.06
+    const paymentmethod=7  //���д��
+    const AR_settle=125    //  AR-������  1099
 
-    //查找已付款的发票，进行冲销
+    //�����Ѹ���ķ�Ʊ�����г���
     function getInputData() {
       try {
         var limit = 100, orders = []
         var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_sotre' });
         var country = runtime.getCurrentScript().getParameter({ name: 'custscript_country_refund' });
-        log.audit("选择的店铺:" + acc, "country:" + country)
+        log.audit("ѡ��ĵ���:" + acc, "country:" + country)
         var fils = [
           // ["custrecord_aio_sett_order_id", "is", "114-1252019-0442666"],
           // "and",
           //["custrecord_aio_sett_report_id.custrecord_aio_origin_account", "anyof", [acc]],
           // ["custrecord_aio_account", "anyof",  acc!="40"?[acc]:["40", "15", "16", "17", "18", "19"]],
           // "and",
-          // ["custrecord_settlement_enddate", "ONORAFTER", "2020年2月2日"], //end date在2月2号之后，所有的
+          // ["custrecord_settlement_enddate", "ONORAFTER", "2020��2��2��"], //end date��2��2��֮�����е�
           // "and",
           ["custrecord_aio_sett_tran_type", "is", "Refund"],
           "and",
-          ["custrecord_settle_is_generate_voucher", "is", false], //未生成凭证
+          ["custrecord_settle_is_generate_voucher", "is", false], //δ����ƾ֤
           "and",
-          ["custrecord_february_undeal", "isnot", "F"],  //post date不是2月份之前
+          ["custrecord_february_undeal", "isnot", "F"],  //post date����2�·�֮ǰ
           "and",
-          ["custrecord_missingorder_settlement", "isnot", "F"],    //如果订单号不是正常的亚马逊单号   3-7-7
+          ["custrecord_missingorder_settlement", "isnot", "F"],    //��������Ų�������������ѷ����   3-7-7
         ]
-        //custrecord_aio_account字段是后面才加进来的，如果是通过API拉取的，要用custrecord_aio_sett_report_id.custrecord_aio_origin_account
+        //custrecord_aio_account�ֶ��Ǻ���żӽ����ģ������ͨ��API��ȡ�ģ�Ҫ��custrecord_aio_sett_report_id.custrecord_aio_origin_account
         if(acc){ 
           fils.push("and")
           fils.push( ["custrecord_aio_sett_report_id.custrecord_aio_origin_account", "anyof", [acc]])
@@ -51,7 +51,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           type: "customrecord_aio_amazon_settlement",
           filters: fils,
           columns: [
-            { name: 'custrecord_aio_sett_id', summary: "GROUP" },     //按 settlement id和单号分组
+            { name: 'custrecord_aio_sett_id', summary: "GROUP" },     //�� settlement id�͵��ŷ���
             { name: 'custrecord_aio_sett_order_id', summary: "GROUP" },
             { name: "custrecord_aio_sett_report_id", summary: "GROUP" },
             { name: "custrecord_aio_sett_merchant_order_id", summary: "GROUP" }
@@ -69,30 +69,30 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
       } catch (e) {
         log.error("get input :error", e)
       }
-      log.audit("待冲销总数", orders.length)
+      log.audit("����������", orders.length)
       return orders;
     }
     function map(context) {
       var err = [];
       var so_id;
       try {
-        log.debug("context.value：", context.value)
+        log.debug("context.value��", context.value)
         var obj = JSON.parse(context.value)
         var orderid = obj.orderid
         var settlmentid = obj.settle_id
         var reportId = obj.reportId
         var merchant_order_id = obj.merchant_order_id
         var entity, orderstatus, subsidiary, currency,settlement_idObj = {},settlement_ids=[], settlmentID = {}, shipsID = {},item_code
-        var cl_date;  //冲销结算时间
+        var cl_date;  //��������ʱ��
         var endDate,postDate,depositDate,incomeaccount;
-        //搜索销售订单获取客户
+        //�������۶�����ȡ�ͻ�
         var postdate_arry = []
-        var postdate_obj = {} ,check_post_date,PT_Arrys=[] //记录下货价和税
+        var postdate_obj = {} ,check_post_date,PT_Arrys=[] //��¼�»��ۺ�˰
         var currency_txt
         var Item_amount=0,m_postdate_obj={},settlement_idArrs=[]
 
         var search_acc ,seller_id,report_acc,report_site,report_subsidiary,report_customer,report_siteId
-        //拿到seller id
+        //�õ�seller id
           search.create({
             type:"customrecord_aio_amazon_report",
             filters:[
@@ -119,7 +119,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           type: record.Type.RETURN_AUTHORIZATION,
           filters: [
             { name: 'poastext', operator: 'is', values: orderid },
-            // { name: 'custbody_order_locaiton', operator: 'noneof', values: ["34","35"] }, //不用店铺过滤，难不成同一份settlementID下面会有两个单号相同的店铺？
+            // { name: 'custbody_order_locaiton', operator: 'noneof', values: ["34","35"] }, //���õ��̹��ˣ��Ѳ���ͬһ��settlementID�����������������ͬ�ĵ��̣�
             {name: "custrecord_aio_sett_id",join:"custbody_origin_settlement",operator: "is" , values:  settlmentid+""  },
             { name: 'mainline', operator: 'is', values: true }
           ],
@@ -142,14 +142,14 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         if (!so_id) {
           // if (false) {
           if (orderid.length == 19  &&orderid.split("-")[0].length ==3) {
-            //正常订单，但是找不到销售订单
-            log.debug("正常订单，但是找不到销售订单")
+            //���������������Ҳ������۶���
+            log.debug("���������������Ҳ������۶���")
             // pr_store = 27  ;  //JPY
             // subsidiary = 85  ;//ETEKCITY Corporation (US)
             // entity = 811606 ; //JPY
             return
           } else {
-               //如果此订单号为非正常的订单号：06fb53d9-3e9d-4c69-b424-64ba8a4f43fe,把此订单号的结算报告记录都搜出了标记为 F
+               //����˶�����Ϊ�������Ķ����ţ�06fb53d9-3e9d-4c69-b424-64ba8a4f43fe,�Ѵ˶����ŵĽ��㱨���¼���ѳ��˱��Ϊ F
           if (settlement_ids.length == 0)
           search.create({
             type: "customrecord_aio_amazon_settlement",
@@ -161,14 +161,14 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
             settlement_ids.push(rec.id)
             return true
           })
-            //如果订单号不是正常的亚马逊单号   3-7-7
+            //��������Ų�������������ѷ����   3-7-7
             log.debug("settlement_ids:", settlement_ids)
             for (var index = 0; index < settlement_ids.length; index++) {
               record.submitFields({
                 type: "customrecord_aio_amazon_settlement",
                 id: settlement_ids[index],
                 values: {
-                  custrecord_missingorder_settlement: "F"   //非正常订单号，不处理
+                  custrecord_missingorder_settlement: "F"   //�����������ţ�������
                 }
               })
             }
@@ -209,7 +209,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
             if (!endDate) {
               endDate = rec.getValue('custrecord_aio_sett_end_date')
               cl_date = interfun.getFormatedDate("", "", endDate) 
-              log.debug("cl_date：",cl_date)
+              log.debug("cl_date��",cl_date)
             }
             postDate = rec.getValue('custrecord_aio_sett_posted_date_time')
             var Tranction_type = rec.getValue('custrecord_aio_sett_tran_type');
@@ -223,14 +223,14 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
             log.debug("check_post_date: " + check_post_date, "postDate: " + postDate + ", endDate: " + endDate)
               
                item_code = rec.getValue('custrecord_aio_sett_order_item_code') 
-              //货品价格和税是收入，不计入冲销
+              //��Ʒ�۸��˰�����룬���������
               if ( !(Tranction_type == "Refund" && Amount_type == "ItemPrice" &&Amount_desc == "Principal" ) ) {
                 settlement_idArrs.push(rec.id)
-                     //Refund会出现两个Tax的情况，这时候要判断Tax大于0的记为费用
+                     //Refund���������Tax���������ʱ��Ҫ�ж�Tax����0�ļ�Ϊ����
                      var month ,mok=false ,pos
                      //getFormatedDate(postDate, endDate, depositDate,startDate)
                      pos =  interfun.getFormatedDate("", "", postDate)  
-                     month = pos.Month  //拿到月
+                     month = pos.Month  //�õ���
                     for (var mo in m_postdate_obj) {
                       if(mo == month ){
                         m_postdate_obj[month].push(pos)
@@ -245,7 +245,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                       m_postdate_obj[month] = postdate_arry
                       settlement_ids =[]
                       settlement_ids.push(rec.id)
-                      settlement_idObj[settlmentid+"-"+month] =settlement_ids  //存储的ID也要根据settlmentid+"-"+month 来分组
+                      settlement_idObj[settlmentid+"-"+month] =settlement_ids  //�洢��IDҲҪ����settlmentid+"-"+month ������
                     }
                 
                  var sek = false, shk = false
@@ -262,7 +262,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                             "Tranction_type": Tranction_type,
                             "Amount_type": Amount_type,
                             "Amount_desc": Amount_desc,
-                            "memo": "结 " + orderid+" 退",
+                            "memo": "�� " + orderid+" ��",
                             "amount": Math.round(parseFloat(amount) * 100) / 100,
                             "field": "credit",
                             "depositDate": depositDate
@@ -271,7 +271,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                           break
                         }
                       }
-                      //如果shipment id 不同，settlmentId相同，增加新的shipment id
+                      //���shipment id ��ͬ��settlmentId��ͬ�������µ�shipment id
                       if (!shk) {
                         shipmentid_Arrys = []
                         shipmentid_Arrys.push({
@@ -279,7 +279,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                           "Tranction_type": Tranction_type,
                           "Amount_type": Amount_type,
                           "Amount_desc": Amount_desc,
-                          "memo": "结 " + orderid+" 退",
+                          "memo": "�� " + orderid+" ��",
                           "amount": Math.round(parseFloat(amount) * 100) / 100,
                           "field": "credit",
                           "depositDate": depositDate
@@ -289,7 +289,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                       break
                     }
                   }
-                  //settlmentId不相同，直接push
+                  //settlmentId����ͬ��ֱ��push
                   if (!sek) {
                     shipmentid_Arrys = []
                     shipsID = {}
@@ -298,7 +298,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                       "Tranction_type": Tranction_type,
                       "Amount_type": Amount_type,
                       "Amount_desc": Amount_desc,
-                      "memo": "结 " + orderid+" 退",
+                      "memo": "�� " + orderid+" ��",
                       "amount": Math.round(parseFloat(amount) * 100) / 100,
                       "field": "credit",
                       "depositDate": depositDate
@@ -309,7 +309,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                 }
         
               } else {
-                // log.debug("记录下不属于FBM的货品金额和税，下次不再搜索")
+                // log.debug("��¼�²�����FBM�Ļ�Ʒ����˰���´β�������")
                 PT_Arrys.push(rec.id)
               }
           return true
@@ -335,16 +335,16 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           }).run().each(function (e) {
             currency = e.id
           })
-          //如果状态是待履行，且存在客户存款
+          //���״̬�Ǵ����У��Ҵ��ڿͻ����
           var so_obj = interfun.SearchSO(orderid,merchant_order_id,search_acc,cl_date.date)
 
           if(so_obj.fulfill ="isrefund"){
-                    //创建客户退款，未发货先退款的情况
+                    //�����ͻ��˿δ�������˿�����
                     var sdk = record.create({type:"customerrefund",isDynamic:true})
                     sdk.setValue({fieldId:"customer",value:so_obj.entity})
-                    sdk.setValue({fieldId:"paymentmethod",value:paymentmethod})  //银行
-                    sdk.setValue({fieldId:"account",value:AR_settle})  //科目
-                    sdk.setValue({fieldId:"aracct",value:Amazon_Plat})  //应收款项客户
+                    sdk.setValue({fieldId:"paymentmethod",value:paymentmethod})  //����
+                    sdk.setValue({fieldId:"account",value:AR_settle})  //��Ŀ
+                    sdk.setValue({fieldId:"aracct",value:Amazon_Plat})  //Ӧ�տ���ͻ�
                     sdk.setValue({fieldId:"currency",value:currency})  
                     sdk.setText({fieldId:"trandate",text:cl_date.date})  
                     var len  = sdk.getLineCount({sublistId:"deposit"})
@@ -356,7 +356,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                       break
                     }
                     var ss = sdk.save()
-                    log.debug("未发货先结算，创建客户存款成功",ss)
+                    log.debug("δ�����Ƚ��㣬�����ͻ����ɹ�",ss)
                     settlement_idArrs.map(function(set_id){
                         record.submitFields({
                             type: "customrecord_aio_amazon_settlement",
@@ -372,10 +372,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           log.debug("settlement_idObj:",JSON.stringify(settlement_idObj))
           for (var key in settlmentID) {
             log.debug("key write:"+key)
-            //检查日记账 re02 是否存在
+            //����ռ��� re02 �Ƿ����
             if(interfun.CheckJO(orderid,key,settlement_idObj[key],"re02")){
               context.write({
-                key: key.split("-")[0] + "." + orderid+"."+key.split("-")[1],  //settl id + orderid+ month 为一组
+                key: key.split("-")[0] + "." + orderid+"."+key.split("-")[1],  //settl id + orderid+ month Ϊһ��
                 value: {
                   "cl_date": cl_date,
                   "subsidiary": subsidiary,
@@ -384,11 +384,11 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
                   "pr_store": pr_store,
                   "shipmentids": settlmentID[key],
                   "settlement_ids": settlement_idObj[key],
-                  "postdate_arry":  m_postdate_obj[key.split("-")[1]],  //按月分组的post date
+                  "postdate_arry":  m_postdate_obj[key.split("-")[1]],  //���·����post date
                   // "rec_id": rec_id,
-                  "search_acc": search_acc,  //用于搜索的店铺
-                  "report_site": report_site,  //站点的名称
-                  "report_siteId": report_siteId,  //站点
+                  "search_acc": search_acc,  //���������ĵ���
+                  "report_site": report_site,  //վ�������
+                  "report_siteId": report_siteId,  //վ��
                 }
               })
             }
@@ -404,7 +404,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         err.push(e.message);
       }
 
-      //创建missorder
+      //����missorder
       if (err.length > 0) {
 
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
@@ -414,7 +414,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         });;
 
         var moId = createSOTRMissingOrder('returnjour', so_id, JSON.stringify(err), date);
-        log.debug("出现错误，已创建missingorder" + moId);
+        log.debug("���ִ����Ѵ���missingorder" + moId);
       }
     }
     
@@ -425,7 +425,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
       var v = context.values
       var settlmentid = context.key.split('.')[0]+"-"+context.key.split('.')[2]  //setllment ID + month
       log.debug(" settlmentid :" + settlmentid, context.key)
-      //找到 shipment id 对应的发票，打上备注，计入款型记录
+      //�ҵ� shipment id ��Ӧ�ķ�Ʊ�����ϱ�ע��������ͼ�¼
       v.map(function (obj) {
 
         var jo_2, jo1_id = []
@@ -445,7 +445,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         var depositDate
         // ===========================================
         var item_codes=[]
-        if(!cl_date) {   //如果取的是post date ，则默认取第一个
+        if(!cl_date) {   //���ȡ����post date ����Ĭ��ȡ��һ��
           cl_date =obj.postdate_arry[0].date
         }
         var shipmentids = obj.shipmentids
@@ -453,7 +453,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         jour.setValue({ fieldId: 'memo', value: "re02" })
         jour.setValue({ fieldId: 'custbody_jour_type', value: "refunds" })
         jour.setValue({ fieldId: 'custbody_jour_orderid', value: orderid })
-        jour.setValue({ fieldId: 'custbody_curr_voucher', value: "退款冲减凭证" })
+        jour.setValue({ fieldId: 'custbody_curr_voucher', value: "�˿���ƾ֤" })
         log.debug("orderid:"+orderid,"settlmentid:"+ settlmentid+"" )
         jour.setValue({ fieldId: 'subsidiary', value: subsidiary })
         jour.setValue({ fieldId: 'custbody_order_locaiton', value: pr_store })
@@ -489,16 +489,16 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
             type: "journalentry",
             filters: fils_fee,
             columns: [
-              { name: "debitfxamount" }, //借（外币
-              { name: "creditfxamount" }, //贷(外币
-              { name: "account" }, //科目
+              { name: "debitfxamount" }, //�裨���
+              { name: "creditfxamount" }, //��(���
+              { name: "account" }, //��Ŀ
               { name: "custbody_relative_finanace_report" }
             ]
           }).run().each(function (jo) {
-            // log.debug('查出的01类凭证' + jo.id, jo.getValue("custbody_relative_finanace_report"))
+            // log.debug('�����01��ƾ֤' + jo.id, jo.getValue("custbody_relative_finanace_report"))
             if (JSON.stringify(jo1_id).indexOf(jo.id) == -1) {
               jo1_id.push(jo.id)
-              //关联的财务报告组
+              //�����Ĳ��񱨸���
               relative_finance.push(jo.getValue("custbody_relative_finanace_report"))
             }
             var acc_jour1 = jo.getValue('account')
@@ -507,14 +507,14 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
             log.debug("account:" + acc_jour1, dam)
               jo1_arrys.push({
                 account: acc_jour1,
-                memo: "冲 " + orderid + " 退",
+                memo: "�� " + orderid + " ��",
                 credit: dam,
                 debit: cam,
               })
             return true;
           })   
-          log.debug("jo1_arrys：",jo1_arrys)  
-             //生成冲
+          log.debug("jo1_arrys��",jo1_arrys)  
+             //���ɳ�
           var jo1_arrys_len = jo1_arrys.length
           for (var i = 0; i < jo1_arrys_len; i++) {
             jour.selectNewLine({ sublistId: 'line' })
@@ -522,15 +522,15 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
             // jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: jo1_arrys[i].memo })
 
             if (jo1_arrys[i].credit) {
-              jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "credit", value: jo1_arrys[i].credit }) //贷
+              jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "credit", value: jo1_arrys[i].credit }) //��
             }
             else {
-              jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "debit", value: jo1_arrys[i].debit }) //借
+              jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "debit", value: jo1_arrys[i].debit }) //��
             }
-            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "custcol_document_type", value: "冲回" })
+            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "custcol_document_type", value: "���" })
             jour.commitLine({ sublistId: 'line' })
           }
-          //生成  结
+          //����  ��
           for (var ke in shipmentids) {
             log.debug("ke:"+ke,shipmentids[ke])
             item_codes.push(ke)
@@ -544,32 +544,32 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
             jour.selectNewLine({ sublistId: 'line' })
             jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'account', value: incc })
             // jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value:  obj.memo })
-            //日本店铺的币种不能有小数
-            jour.setCurrentSublistValue({ sublistId: 'line', fieldId:  obj.field, value: x})//credit 贷
-            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "custcol_document_type", value: "冲回" })
+            //�ձ����̵ı��ֲ�����С��
+            jour.setCurrentSublistValue({ sublistId: 'line', fieldId:  obj.field, value: x})//credit ��
+            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "custcol_document_type", value: "���" })
             jour.commitLine({ sublistId: 'line' })
             }
           })
           }
         
           log.debug("total:DR-CR", DR )
-          // if(CR == 0) {  //如果找不到预估，就按订单号去拉去财务报告，待预估报告生成
+          // if(CR == 0) {  //����Ҳ���Ԥ�����Ͱ�������ȥ��ȥ���񱨸棬��Ԥ����������
           //   interfunction.getFinanceReport(pr_store,orderid,"refunds")
           //   return
           // }
           var s = DR
-          log.debug("差额:", s.toFixed(2))
-          //  122 	应收账款-集团外公司  1341 主营业务收入-集团外公司
+          log.debug("���:", s.toFixed(2))
+          //  122 	Ӧ���˿�-�����⹫˾  1341 ��Ӫҵ������-�����⹫˾
           if (Number(s.toFixed(2)) !=0) {
             jour.selectNewLine({ sublistId: 'line' })
             jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'account', value: income_settle })
-            // jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: "结 "+orderid+" 退" })
-            log.debug("借:", s.toFixed(2))
+            // jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: "�� "+orderid+" ��" })
+            log.debug("��:", s.toFixed(2))
             if(currency == 6)   s =Math.round(s) 
             else  s =Math.round(parseFloat(s) * 100) / 100
-            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "debit", value:s }) //借
-            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "entity", value: entity }) //客户
-            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "custcol_document_type", value: "冲回" })
+            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "debit", value:s }) //��
+            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "entity", value: entity }) //�ͻ�
+            jour.setCurrentSublistValue({ sublistId: 'line', fieldId: "custcol_document_type", value: "���" })
             jour.commitLine({ sublistId: 'line' })
           }
           jour.setValue({ fieldId: 'custbody_amazon_settlementid', value:  settlmentid+""  })
@@ -578,10 +578,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
           log.audit("trandate:", cl_date)
           jour.setText({ fieldId: 'trandate', text:cl_date.date })
            jo_2 = jour.save();
-          log.audit("第二步 success:" + jo_2, cl_date.date)
+          log.audit("�ڶ��� success:" + jo_2, cl_date.date)
          
           log.audit("settlement_ids:", settlement_ids)
-          log.debug("jo1_id：" + typeof (jo1_id), JSON.stringify(jo1_id))
+          log.debug("jo1_id��" + typeof (jo1_id), JSON.stringify(jo1_id))
           log.debug("settlement_ids" + typeof (settlement_ids), JSON.stringify(settlement_ids))
           interfun.relativaJE(jo1_id, jo_2, "", settlement_ids,"")
       
@@ -592,7 +592,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
     }
 
     function summarize(summary) {
-      log.debug("处理完成,summary：",JSON.stringify(summary));
+      log.debug("�������,summary��",JSON.stringify(summary));
     }
 
     function delJour(ordid) {
@@ -606,7 +606,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
         try {
           if (e.getValue("memomain") == "re02" || e.getValue("memomain") == "re03") {
             var de = record.delete({ type: 'journalentry', id: e.id })
-            log.debug("删除成功  ", de)
+            log.debug("ɾ���ɹ�  ", de)
           }
         } catch (e) {
           log.debug("delete error", e)
@@ -616,7 +616,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
     }
 
     /**
-      * 生成单据失败记录
+      * ���ɵ���ʧ�ܼ�¼
       * @param {*} type 
       * @param {*} account_id 
       * @param {*} order_id 
@@ -653,7 +653,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime','
       mo.setValue({
         fieldId: 'custrecord_tr_missing_order_type',
         value: type
-      }); //类型
+      }); //����
 
       mo.setValue({
         fieldId: 'custrecord_tr_missing_order_id',

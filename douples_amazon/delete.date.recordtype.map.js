@@ -5,7 +5,7 @@
  * @Description    : 
  * @FilePath       : \delete.date.recordtype.map.js
  * @Author         : Li
- * @可以输入预定的版权声明、个性签名、空行等
+ * @��������Ԥ���İ�Ȩ����������ǩ�������е�
  */
 /**
  *@NApiVersion 2.x
@@ -19,10 +19,10 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function (record, search,
         log.debug('record_type', record_type)
 
         if (record_type) {
-            log.audit('需要删除记录的ID', record_type)
+            log.audit('��Ҫɾ����¼��ID', record_type)
             try {
 
-                // 传入参数, 删除记录
+                // �������, ɾ����¼
                 search.create({
                     type: record_type,
                     filters: []
@@ -38,7 +38,7 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function (record, search,
 
         }
         else {
-            log.audit('请输入需要删除记录的ID', '请输入需要删除记录的ID')
+            log.audit('��������Ҫɾ����¼��ID', '��������Ҫɾ����¼��ID')
         }
 
 

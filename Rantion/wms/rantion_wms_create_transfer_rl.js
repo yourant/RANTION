@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-06-19 16:26:14
+ * @LastEditTime   : 2020-06-28 20:36:57
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -382,6 +382,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 });
                 item_info.push(it);
 
+                return true;
+
             });
 
             log.debug('itemArr', itemArr);
@@ -391,53 +393,33 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             if (tranType == 1) {
                 var new_limit = 3999;
                 search.create({
-                    type: 'customrecord_dps_amazon_seller_sku',
+                    type: 'customrecord_aio_amazon_seller_sku',
                     filters: [{
-                            name: "custrecord_dps_amazon_ns_sku",
+                            name: "custrecord_ass_sku",
                             operator: 'anyof',
                             values: itemArr
                         },
                         {
-                            name: 'custrecord_dps_amazon_sku_account',
+                            name: 'custrecord_ass_account',
                             operator: 'anyof',
                             values: fbaAccount
                         }
                     ],
-                    columns: [{
-                            name: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "custrecord_dps_amazon_ns_sku",
-                        },
-                        {
-                            name: "custrecord_ass_asin",
-                            join: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "name",
-                            join: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "custrecord_ass_fnsku",
-                            join: "custrecord_dps_amazon_sku_number",
-                        }
+                    columns: [
+                        "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
                 }).run().each(function (rec) {
 
-                    var it = rec.getValue('custrecord_dps_amazon_ns_sku');
+                    var it = rec.getValue('custrecord_ass_sku');
                     item_info.forEach(function (item, key) {
+
+                        // log.debug('item.itemId: ' + item.itemId, "it: " + it);
+
                         if (item.itemId == it) {
 
-                            item.asin = rec.getValue({
-                                name: "custrecord_ass_asin",
-                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                            });
-                            item.fnsku = rec.getValue({
-                                name: "custrecord_ass_fnsku",
-                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                            })
-                            item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
-
+                            item.asin = rec.getValue("custrecord_ass_asin");
+                            item.fnsku = rec.getValue("custrecord_ass_fnsku")
+                            item.msku = rec.getValue('name');
                             newItemInfo.push(item);
                         }
                     });

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-23 19:55:20
+ * @LastEditTime   : 2020-07-01 16:25:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -92,55 +92,61 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     function afterSubmit(context) {
 
+        var actionType = context.type;
 
-        var afRec = context.newRecord;
-        var af_rec = record.load({
-            type: afRec.type,
-            id: afRec.id
-        });
-        var tranType = af_rec.getValue('custbody_dps_transferor_type');
-        log.debug('tranType', tranType);
-        var orderstatus = af_rec.getValue('orderstatus');
-        var traArr = [1, 2, 3, 7];
-        // 1 FBA调拨    2 自营仓调拨    3 跨仓调拨  4 移库  5 公司间交易    6 报损  7 供应商直发
-        if (orderstatus == 'B' && (tranType == 1 || tranType == 2 || tranType == 3 || tranType == 7)) {
-            try {
+        if (actionType != "delete") {
+            var afRec = context.newRecord;
+            var af_rec = record.load({
+                type: afRec.type,
+                id: afRec.id
+            });
+            var tranType = af_rec.getValue('custbody_dps_transferor_type');
+            log.debug('tranType', tranType);
+            var orderstatus = af_rec.getValue('orderstatus');
+            var traArr = [1, 2, 3, 7];
+            // 1 FBA调拨    2 自营仓调拨    3 跨仓调拨  4 移库  5 公司间交易    6 报损  7 供应商直发
+            if (orderstatus == 'B' && (tranType == 1 || tranType == 2 || tranType == 3 || tranType == 7)) {
+                try {
 
-                var link = af_rec.getValue('custbody_dps_fu_rec_link');
-                if (!link) {
-                    // 创建大货发运记录
-                    var rec_id = createFulRecord(af_rec);
+                    var link = af_rec.getValue('custbody_dps_fu_rec_link');
+                    if (!link) {
+                        // 创建大货发运记录
+                        var rec_id = createFulRecord(af_rec);
 
-                    if (rec_id) {
-                        record.submitFields({
-                            type: af_rec.type,
-                            id: af_rec.id,
-                            values: {
-                                'custbody_dps_fu_rec_link': rec_id
-                            }
-                        });
+                        if (rec_id) {
+                            record.submitFields({
+                                type: af_rec.type,
+                                id: af_rec.id,
+                                values: {
+                                    'custbody_dps_fu_rec_link': rec_id
+                                }
+                            });
 
-                        // if (rec_id && context.type == 'create') {
-                        // if (rec_id) {
-                        var con = record.load({
-                            type: 'customrecord_dps_shipping_record',
-                            id: rec_id
-                        });
-                        // if (context.type == 'create') {
-                        sub(con);
-                        // }
-                        // }
-                        log.debug('context.type', context.type);
+                            // if (rec_id && context.type == 'create') {
+                            // if (rec_id) {
+                            var con = record.load({
+                                type: 'customrecord_dps_shipping_record',
+                                id: rec_id
+                            });
+                            // if (context.type == 'create') {
+                            sub(con);
+                            // }
+                            // }
+                            log.debug('context.type', context.type);
+
+                        }
 
                     }
-
+                } catch (error) {
+                    log.error('error', error);
                 }
-            } catch (error) {
-                log.error('error', error);
+            } else {
+                log.debug('else status', orderstatus);
             }
-        } else {
-            log.debug('else status', orderstatus);
+
         }
+
+
     }
 
 
@@ -205,6 +211,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     ]
                 }).run().each(function (rec) {
 
+                    var nsItem = rec.getValue({
+                        name: "custrecord_dps_shipping_record_item",
+                        join: "custrecord_dps_shipping_record_parentrec"
+                    });
+
+                    log.debug('nsItem', nsItem);
+
                     ship_to_country_code = rec.getValue({
                         name: 'custrecord_cc_country_code',
                         join: 'custrecord_dps_recipient_country_dh'
@@ -232,7 +245,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     });
 
                     var info = {
-                        SellerSKU: SellerSKU, // 这里使用固定 seller SKU 替代一下
+                        SellerSKU: SellerSKU,
                         ASIN: '',
                         Condition: '',
                         Quantity: Number(rec.getValue({
@@ -1181,10 +1194,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 });
             }
         }
-
+        var target_loca = rec.getValue('custbody_actual_target_warehouse')
         if (tran_type == 2 || tran_type == 3) {
             // 2020.6.10 16:50
-            var target_loca = rec.getValue('custbody_actual_target_warehouse')
+
             search.create({
                 type: "location",
                 filters: [{
@@ -1379,6 +1392,103 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 })
             });
         }
+
+        var custrecord_dps_declare_currency_dh;
+        var custrecord_dps_declared_value_dh = 0;;
+        search.create({
+            type: 'customrecord_transfer_order_details',
+            filters: [{
+                name: 'custrecord_transfer_code',
+                operator: 'anyof',
+                values: rec.id
+            }],
+            columns: [{
+                    name: 'custrecord__realted_transfer_head'
+                },
+                {
+                    name: 'custrecord_transfer_quantity'
+                }
+            ]
+        }).run().each(function (rec1) {
+            var custrecord__realted_transfer_head = rec1.getValue('custrecord__realted_transfer_head');
+            var custrecord_transfer_quantity = rec1.getValue('custrecord_transfer_quantity');
+            log.debug('custrecord__realted_transfer_head', custrecord__realted_transfer_head);
+            log.debug('custrecord_transfer_quantity', custrecord_transfer_quantity);
+
+            search.create({
+                type: 'purchaseorder',
+                filters: [{
+                        name: "mainline",
+                        operator: "is",
+                        values: ["F"]
+                    },
+                    {
+                        name: "taxline",
+                        operator: "is",
+                        values: ["F"]
+                    },
+                    {
+                        name: "item",
+                        operator: "noneof",
+                        values: ["@NONE@"]
+                    },
+                    {
+                        name: "type",
+                        operator: "anyof",
+                        values: ["PurchOrd"]
+                    },
+                    {
+                        name: "custbody_dps_type",
+                        operator: "anyof",
+                        values: ["2"]
+                    },
+                    // { name: "subsidiary", operator: "is", values: [subsidiary] },
+                    // { name: "item", operator: "anyof", values: itemArray },
+                    {
+                        name: 'custcol_realted_transfer_detail',
+                        operator: "anyof",
+                        values: custrecord__realted_transfer_head
+                    }
+                ],
+                columns: [{
+                        name: "quantity",
+                        label: "采购数量",
+                        type: "float"
+                    },
+                    {
+                        name: "custcol_realted_transfer_detail",
+                        label: "关联调拨单号",
+                        type: "select"
+                    },
+                    {
+                        name: "rate"
+                    },
+                    {
+                        name: 'currency'
+                    }
+                ]
+            }).run().each(function (result) {
+                log.debug("testest1 ", JSON.stringify(result));
+                custrecord_dps_declare_currency_dh = result.getValue('currency');
+                var value = {
+                    quantity: result.getValue('quantity'),
+                    link: result.getValue('custcol_realted_transfer_detail')
+                }
+                custrecord_dps_declared_value_dh = custrecord_dps_declared_value_dh + result.getValue('rate') * custrecord_transfer_quantity;
+                log.debug("testest ", JSON.stringify(value));
+                return true;
+            });
+            return true;
+        });
+        objRecord.setValue({
+            fieldId: 'custrecord_dps_declare_currency_dh',
+            value: custrecord_dps_declare_currency_dh
+        });
+        objRecord.setValue({
+            fieldId: 'custrecord_dps_declared_value_dh',
+            value: custrecord_dps_declared_value_dh
+        });
+
         var objRecord_id;
         objRecord_id = objRecord.save();
 

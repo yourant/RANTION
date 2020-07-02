@@ -393,9 +393,12 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                 ship_rec = record.create({
                     type: 'customrecord_amazon_finances_cahce'
                 })
+
+            var pos =  interfun.getFormatedDate("","",l.posted_date,true).date
+            if(pos=="2") return ;
             ship_rec.setText({
                 fieldId: 'custrecord_amazon_finances_postedafter',
-                text:interfun.getFormatedDate("","",l.posted_date).date
+                text:pos
             })
             ship_rec.setValue({
                 fieldId: 'custrecord_amazon_ginances_postdate_txt',

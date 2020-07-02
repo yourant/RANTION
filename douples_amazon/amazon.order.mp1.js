@@ -8,9 +8,9 @@
 define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
     "./Helper/Moment.min", "N/log", "N/search", "N/record",  "N/encode", "N/https", "N/xml","./Helper/interfunction.min"
 ], function (format, runtime, core, cryptoJS, moment, log, search, record, encode, https, xml,interfun) {
-    var tz = new Date().getTimezoneOffset()
+    var tz = new Date().getTimezoneOffset();
     function getInputData() {
-        var orders = [];
+        var orders = []
         try {
             var req = runtime.getCurrentScript().getParameter({
                 name: 'custscript_listorder_date'
@@ -24,59 +24,29 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             var request_end = runtime.getCurrentScript().getParameter({
                 name: 'custscript_end_date'
             });
-            request_start = new Date(request_start.getTime() - tz*60*1000).toISOString()
-            request_end = new Date(request_end.getTime() - tz*60*1000).toISOString()
-            log.debug("店铺L:"+request_acc,"date end:"+request_end+",date request_start:"+request_start );
-            core.amazon.getAccountList().map(function (account) {
-                if(account.id != request_acc && request_acc ) return 
+            var dps_pull_order = runtime.getCurrentScript().getParameter({
+                name: 'custscript_dps_pull_order'
+            });
+            if(request_start)
+            request_start = new Date(request_start.getTime() - tz*60*1000).toISOString();
+            if(request_end)
+            request_end = new Date(request_end.getTime() - tz*60*1000).toISOString();
+            log.debug("店铺L:"+request_acc+",分组："+dps_pull_order,"date end:"+request_end+",date request_start:"+request_start );
+            core.amazon.getAccountList(dps_pull_order).map(function (account) {
+                if(account.id != request_acc && request_acc ) return ;
                 last_updated_after = "2020-06-01T00:00:00.000Z";
-                // last_updated_before = "2020-03-10T23:59:59.999Z";
-                if (account.enabled_sites == 'AmazonUS') {
-                    // 美国站点
-                    log.audit("account.id " + account.id, "美国站点");
-                    last_updated_after = "2020-05-31T16:00:00.000Z";
-                    // last_updated_before = "2020-03-19T23:59:59.999Z";
-
-                } else if (account.enabled_sites == 'AmazonUK') {
-                    // 英国站点
-                    log.audit("account.id " + account.id, "英国站点");
-
-                    last_updated_after = "2020-06-01T00:00:00.000Z";
-                    // last_updated_before = "2020-03-20T08:00:00.000Z";
-
-                } else if (account.enabled_sites == 'AmazonDE' || account.enabled_sites == 'AmazonES' || account.enabled_sites == 'AmazonFR' || account.enabled_sites == 'AmazonIT') {
-                    // 欧洲站点
-                    log.audit("account.id " + account.id, "欧洲站点");
-
-                    last_updated_after = "2020-06-01T01:00:00.000Z";
-                    // last_updated_before = "2020-03-20T09:00:00.000Z";
-
-                } else {
-                    // 其他站点
-                    log.audit("account.id " + account.id, "其他站点");
-                    last_updated_after = "2020-06-01T00:00:00.000Z";
-                    // last_updated_before = "2020-03-19T23:59:59.999Z";
-                }
-
-
-                // last_updated_before = "2020-03-19T23:59:59.999Z";
                 if (req) {
-
                     // // 设置统一时间
-                    // last_updated_after ="2020-06-01T00:00:00.000Z";
-                    // last_updated_before = "2020-06-12T00:00:00.000Z";
-                    var ssd = core1.handleit(account.id, request_start, request_end)
+                    var ssd = core1.handleit(account.id, request_start, request_end);
                     if (ssd)
                         ssd.map(function (order) {
                             orders.push(order);
                         })
                 } else {
-
-                    log.audit(' !request', account.id)
+                    log.audit(' !request', account.id);
                     core1.handleit(account.id).map(function (order) {
                         orders.push(order);
-                    })
-
+                    });
                 }
 
             })
@@ -84,17 +54,17 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
         } catch (e) {
             log.error('getinput error 出错了', e);
         }
-        log.audit("orders 总数：", orders.length)
+        log.audit("orders 总数：", orders.length);
         return orders;
     }
 
     function map(context) {
-        var order = JSON.parse(context.value)
-        log.debug("order:", context.value)
+        var order = JSON.parse(context.value);
+        log.debug("order:", context.value);
         // ====================进cache==============
        
         try {
-            var r;
+            var r,r_id;
             search.create({
                 type: 'customrecord_aio_order_import_cache',
                 filters: [
@@ -110,6 +80,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     }
                 ]
             }).run().each(function (rec) {
+                r_id = rec.id
                 r = record.load({
                     type: 'customrecord_aio_order_import_cache',
                     id: rec.id
@@ -121,8 +92,15 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     type: 'customrecord_aio_order_import_cache'
                 });
             }
-            var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date
-            var last_update_date =interfun.getFormatedDate("","",order.last_update_date).date
+            var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date;
+            var last_update_date =interfun.getFormatedDate("","",order.last_update_date).date;
+            if(last_update_date == "2") {
+                if(r_id){
+                    var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
+                    log.debug("删除 del:"+del);
+                }
+                return ;
+            }
             r.setValue({
                 fieldId: 'custrecord_aio_cache_acc_id',
                 value: order.AccID
@@ -163,10 +141,16 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                 fieldId: 'custrecord_dps_cache_fulfillment_channel',
                 value:  order.fulfillment_channel
             });
+            r.setValue({fieldId:"custrecord_shipment_date_cache",value:order.latest_ship_date});
+            r.setValue({fieldId:"custrecord_purchase_date_1",value:order.purchase_date});
+            r.setValue({fieldId:"custrecord_last_update_date",value:order.last_update_date});
+            r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.last_update_date).date});
+            r.setValue({fieldId:"custrecord_seller_order_id_1",value:order.seller_order_id  });
+            r.setValue({fieldId:"custrecord_dps_cache_shipped_byamazont_f",value:order.shipped_byamazont_fm});
             var ss = r.save();
-            log.debug("11cache save success：", ss)
+            log.debug("11cache save success：", ss);
         } catch (e) {
-            log.error("import cache error", e)
+            log.error("import cache error", e);
         }
         // =======================进cache==============end
 

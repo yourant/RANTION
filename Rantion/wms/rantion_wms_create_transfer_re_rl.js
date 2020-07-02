@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-06-24 16:04:52
+ * @LastEditTime   : 2020-06-24 14:41:40
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -65,6 +65,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         // for (var i = 0, len = date.length; i < len; i++) {
 
         var retjson = {};
+
         try {
 
             var temp = data;

@@ -20,12 +20,12 @@
  * @NScriptType MapReduceScript
  * @NModuleScope SameAccount
  *
- * @desc 自动创建亚马逊退货授权单订单
+ * @desc �Զ���������ѷ�˻���Ȩ������
  * @search DPS | WF | Pending Fulfillment Orders 135
  * @name DPS | MP | Amazon Order Fulfill
  * @id _aio_mp_fulfill
- * 关于亚马逊退货的判断，退货报告上面有个字段是  DETAILED-DISPOSITION    
- * 该字段是  SELLABLE的时候，说明退货商品可售，放入FBA仓，否则放入不良品仓。
+ * ��������ѷ�˻����жϣ��˻����������и��ֶ���  DETAILED-DISPOSITION    
+ * ���ֶ���  SELLABLE��ʱ��˵���˻���Ʒ���ۣ�����FBA�֣�������벻��Ʒ�֡�
  */
 define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min","require", "exports", "./Helper/core.min", "N/log", "N/search", "N/record", "./Helper/fields.min"],
  function (interfun,runtime,format,moment,require, exports, core, log, search, record,fiedls) {
@@ -73,7 +73,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 creturn_lcn: rec.getValue('custrecord_aio_b2c_return_lcn'),
                 return_date: rec.getValue('custrecord_amazon_returndate_text'),
                 seller_id: rec.getValue(rec.columns[9]),
-                detial_desc: rec.getValue("custrecord_aio_b2c_return_detailed_disp")  //根据这字段判断是否可售
+                detial_desc: rec.getValue("custrecord_aio_b2c_return_detailed_disp")  //�������ֶ��ж��Ƿ����
             });
             return --limit;
          })
@@ -97,13 +97,13 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 detial_desc = obj.detial_desc,
                 return_date_txt=obj.return_date;
                 log.debug("rtn_id:",rtn_id)
-                log.debug("订单号："+oid)
+                log.debug("�����ţ�"+oid)
                 var transactionType = "returns",err=[]
                 var return_author
                 var location,  fba_location ,fba_return_location,fulfill_id ;
                 try{
                   var  acc_search=interfun.getSearchAccount(obj.seller_id)
-                    //去重，检查是否有相同的退货单,返回状态
+                    //ȥ�أ�����Ƿ�����ͬ���˻���,����״̬
                   var skuid = interfun.getskuId(re_sku,p_store)
                   return_date = interfun.getFormatedDate("", "", return_date_txt).date
                     var res =DeduplicationRa(rtn_id)
@@ -128,7 +128,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             p_store = rec.getValue("custbody_aio_account")
                             ordstatus = rec.getValue("status")
                         });
-                        //如果找得到销售订单
+                        //����ҵõ����۶���
                         if(so_id) 
                         search.create({
                             type:"itemfulfillment",
@@ -142,7 +142,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             fulfill_id = e.getValue(e.columns[0])
                         })
                         if(fulfill_id){
-                            log.debug("找到对应的销售订单"+so_id,"ordstatus: "+ordstatus)
+                            log.debug("�ҵ���Ӧ�����۶���"+so_id,"ordstatus: "+ordstatus)
                             var so = record.load({ type: record.Type.SALES_ORDER, id: so_id });
                             log.audit('returnauthorization', {
                                 so: so.getValue('tranid'),
@@ -165,7 +165,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                                 filters:fils,
                                 columns:["custrecord_aio_fba_return_loaction","custrecord_aio_fbaorder_location"]
                             }).run().each(function(e){
-                                fba_return_location = 3043  //FBA不良品仓
+                                fba_return_location = 3043  //FBA����Ʒ��
                                 fba_location = e.getValue(e.columns[1])
                             })
 
@@ -176,24 +176,24 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                           
                             log.audit('return_date'+return_date_txt,location)
                             r.setText({fieldId:"trandate",text:return_date})
-                            r.setValue({fieldId:'orderstatus',value:'B'})//批准
+                            r.setValue({fieldId:'orderstatus',value:'B'})//��׼
                             r.setValue({fieldId:'location',value:location})//
                             r.setValue({fieldId:'custbody_order_locaiton',value:p_store})//
-                            r.setValue({fieldId:"custbody_origin_customer_return_order",value:rtn_id}) //关联的退货报告
-                            r.setValue({fieldId:"custbody_amazon_ra_date_text",value:return_date_txt})  //退货时间
-                            r.setValue({fieldId:"custbody_ra_license_plate_number",value:re_lcn}) //退货编号
-                            r.setValue({fieldId:"custbody_aio_marketplaceid",value:1})   //是亚马逊
+                            r.setValue({fieldId:"custbody_origin_customer_return_order",value:rtn_id}) //�������˻�����
+                            r.setValue({fieldId:"custbody_amazon_ra_date_text",value:return_date_txt})  //�˻�ʱ��
+                            r.setValue({fieldId:"custbody_ra_license_plate_number",value:re_lcn}) //�˻����
+                            r.setValue({fieldId:"custbody_aio_marketplaceid",value:1})   //������ѷ
                             var lc = r.getLineCount({ sublistId: 'item' });
                             var  arry = []
                             var n;
                             for (var ln = 0; ln < lc; ln++) {
                                 var itemid =  r.getSublistValue({ sublistId: 'item', fieldId: 'item', line: ln });
                                 var itemtype = r.getSublistValue({ sublistId:'item', fieldId:'itemtype',line:ln})
-                                log.debug("itemtype"+itemtype,"itemid："+itemid)
+                                log.debug("itemtype"+itemtype,"itemid��"+itemid)
                                 if(itemtype =='OthCharge'|| !itemid) continue
-                                    log.audit('sku：'+re_sku,"re_qty："+re_qty)
+                                    log.audit('sku��'+re_sku,"re_qty��"+re_qty)
 
-                                    if(n ) {//n为true，代表已经退货，其他行就不用退货（一条退货报告一次只退一个）
+                                    if(n ) {//nΪtrue�������Ѿ��˻��������оͲ����˻���һ���˻�����һ��ֻ��һ����
                                         if (ln ==  n && itemtype == "OthCharge")
                                         continue
                                         else{
@@ -216,7 +216,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                                     
                             } 
                             var del =0
-                            log.debug("记起来取消退货 arrys :",JSON.stringify(arry))
+                            log.debug("������ȡ���˻� arrys :",JSON.stringify(arry))
                             arry.map(function(lin){
                                 r.removeLine({
                                     sublistId: 'item',
@@ -226,17 +226,17 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                                     del++
                             })   
                              return_author = r.save();
-                            log.debug("退货单生产成功",return_author)
+                            log.debug("�˻��������ɹ�",return_author)
                         }else{
-                          //找不到销售订单就 create 
-                          log.debug("找不到销售订单 的发货 "+oid)
+                          //�Ҳ������۶����� create 
+                          log.debug("�Ҳ������۶��� �ķ��� "+oid)
                          var cre_rs = createAuthoration(rtn_id,re_lcn,p_store,skuid,return_date,return_date_txt,oid,re_qty,status)
                          return_author = cre_rs.Art_id
                          fba_location = cre_rs.fba_location
                         if(!return_author)
                             return;
                         }
-                        //创建成功之后接收货品，然后close
+                        //�����ɹ�֮����ջ�Ʒ��Ȼ��close
                             var return_receipt = record.transform({
                                 fromType: record.Type.RETURN_AUTHORIZATION,
                                 toType: 'itemreceipt',
@@ -248,7 +248,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                                 var itemid = return_receipt.getSublistValue({sublistId:'item',fieldId:'item',line:ln})
                                 var itemtype = return_receipt.getSublistValue({sublistId:'item',fieldId:'itemtype',line:ln})
                                 log.debug(itemtype)
-                                if(itemtype =='OthCharge'|| !itemid) continue   //费用类型货品不用接受
+                                if(itemtype =='OthCharge'|| !itemid) continue   //�������ͻ�Ʒ���ý���
                                 var  qty = return_receipt.getSublistValue({ sublistId: 'item', fieldId: 'quantity',  line: ln });
                                 log.debug(itemtype ,"qty "+qty)
                             }
@@ -256,7 +256,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             log.debug(receipt_save,typeof(receipt_save)+"=====\u6536\u8d27\u6210\u529f","\u751f\u6210\u8d37\u9879\u901a\u77e5\u5355")
                             //\u751f\u6210\u8d37\u9879\u901a\u77e5\u5355
 
-                        //关闭退货授权单
+                        //�ر��˻���Ȩ��
                         var return_author_load = record.load({ type: record.Type.RETURN_AUTHORIZATION, id: return_author });
                         var LineCount = return_author_load.getLineCount({ sublistId:'item' });
                         for(var i=0; i<LineCount; i++){
@@ -268,7 +268,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             });
                         }
                         var return_author_load_id = return_author_load.save();
-                        log.debug("关闭退货授权单",return_author_load_id);
+                        log.debug("�ر��˻���Ȩ��",return_author_load_id);
                         record.submitFields({
                             type:"customrecord_aio_amazon_customer_return",
                             id:rtn_id,
@@ -278,14 +278,14 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                         })
                         log.debug("OK")
                     }else if( res.status =="pendingReceipt"){
-                        log.debug("检查有重复，res.status:"+res.status);
-                        //创建成功之后接受货品，然后close
+                        log.debug("������ظ���res.status:"+res.status);
+                        //�����ɹ�֮����ܻ�Ʒ��Ȼ��close
                         var return_receipt = record.transform({
                             fromType: record.Type.RETURN_AUTHORIZATION,
                             toType: 'itemreceipt',
                             fromId: Number(res.art_id)
                         });
-                       log.debug("店铺："+ res.pr_store) 
+                       log.debug("���̣�"+ res.pr_store) 
                         var fils = [
                             [ "internalidnumber","equalto", res.pr_store]
                         ]
@@ -303,14 +303,14 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             var itemtype = return_receipt.getSublistValue({sublistId:'item',fieldId:'itemtype',line:ln})
                             return_receipt.setSublistValue({ sublistId: 'item', fieldId: 'location',value:res.location, line: ln });
                             log.debug(itemtype)
-                            if(itemtype =='OthCharge'|| !itemid) continue   //费用类型货品不用接受
+                            if(itemtype =='OthCharge'|| !itemid) continue   //�������ͻ�Ʒ���ý���
                             var  qty = return_receipt.getSublistValue({ sublistId: 'item', fieldId: 'quantity',  line: ln });
                             log.debug(itemtype ,"qty "+qty)
                         }
                         var receipt_save = return_receipt.save();
                         log.debug(receipt_save,typeof(receipt_save)+"=====\u6536\u8d27\u6210\u529f","\u751f\u6210\u8d37\u9879\u901a\u77e5\u5355")
                         //\u751f\u6210\u8d37\u9879\u901a\u77e5\u5355
-                    //关闭退货授权单
+                    //�ر��˻���Ȩ��
                     var return_author_load = record.load({ type: record.Type.RETURN_AUTHORIZATION, id: Number(res.art_id) });
                     var LineCount = return_author_load.getLineCount({ sublistId:'item' });
                     for(var i=0; i<LineCount; i++){
@@ -322,7 +322,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                         });
                     }
                     var return_author_load_id = return_author_load.save();
-                    log.debug("关闭退货授权单",return_author_load_id);
+                    log.debug("�ر��˻���Ȩ��",return_author_load_id);
                     record.submitFields({
                         type:"customrecord_aio_amazon_customer_return",
                         id:rtn_id,
@@ -343,7 +343,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             });
                         }
                         var return_author_load_id = return_author_load.save();
-                        log.debug("关闭退货授权单",return_author_load_id);
+                        log.debug("�ر��˻���Ȩ��",return_author_load_id);
                         record.submitFields({
                             type:"customrecord_aio_amazon_customer_return",
                             id:rtn_id,
@@ -352,7 +352,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             }
                         })
                     }else if( res.status=="closed"){
-                          //这条退货报告已经生成过退货单了，标记为T
+                          //�����˻������Ѿ����ɹ��˻����ˣ����ΪT
                         record.submitFields({
                             type:"customrecord_aio_amazon_customer_return",
                             id:rtn_id,
@@ -372,19 +372,19 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                         type: format.Type.DATE
                     });;
                     var moId = createSOTRMissingOrder(transactionType, oid, JSON.stringify(err), date,acc);
-                    log.error("出现错误，已创建missingorder" + moId);
+                    log.error("���ִ����Ѵ���missingorder" + moId);
                 }else{ 
-                    //设置missing order为已解决
+                    //����missing orderΪ�ѽ��
                     makeresovle(transactionType, oid,acc)
                 }
             // }
-            log.debug("耗时：",new Date().getTime() - stDt)
-        log.audit("最终剩余点数: ", scriptObj.getRemainingUsage());
+            log.debug("��ʱ��",new Date().getTime() - stDt)
+        log.audit("����ʣ�����: ", scriptObj.getRemainingUsage());
 
     };
  
     /**
-     * 传入时间字符串，格式化时间为美国时区时间
+     * ����ʱ���ַ�������ʽ��ʱ��Ϊ����ʱ��ʱ��
      * @param {*} str 
      */
     function getFormatedDate(str) {
@@ -400,7 +400,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
         s_d = format.format({
             value: moment.utc(s_d).toDate(),
             type: format.Type.DATE,
-            timezone: format.Timezone.AMERICA_LOS_ANGELES  //统一转为美国时间
+            timezone: format.Timezone.AMERICA_LOS_ANGELES  //ͳһתΪ����ʱ��
           });
         return s_d
       }
@@ -436,7 +436,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
         })
       }
         /**
-          * 生成单据失败记录
+          * ���ɵ���ʧ�ܼ�¼
           * @param {*} type 
           * @param {*} account_id 
           * @param {*} order_id 
@@ -471,7 +471,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             mo.setValue({
               fieldId: 'custrecord_tr_missing_order_type',
               value: type
-            }):""; //类型
+            }):""; //����
             acc?
             mo.setValue({
               fieldId: 'custrecord_tracking_missing_acoount',
@@ -501,7 +501,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             return mo.save();
           };
         /**
-         * 去重
+         * ȥ��
          * @param {*} rt 
          * @param {*} pl_num 
          * @param {*} orid 
@@ -521,7 +521,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     {name:"location"},
                 ]
             }).run().each(function (rec) {
-                log.debug("找到重复的了 "+rec.id,"状态"+rec.getValue("status"))
+                log.debug("�ҵ��ظ����� "+rec.id,"״̬"+rec.getValue("status"))
                 rs = {
                  status:rec.getValue("status"),
                  art_id:rec.id,
@@ -534,7 +534,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
        
 
         /**
-         * 创建退货授权单，传入需要的字段
+         * �����˻���Ȩ����������Ҫ���ֶ�
          * @param {*} rtn_id 
          * @param {*} re_lcn 
          * @param {*} retacc 
@@ -568,7 +568,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             rt.setValue({fieldId:'location',value:loc})//\u6279\u51c6
             rt.setValue({fieldId:'otherrefnum',value:order_id})
             rt.setText({fieldId:"trandate",text:retdate})
-            rt.setValue({fieldId:'orderstatus',value:'B'})//批准
+            rt.setValue({fieldId:'orderstatus',value:'B'})//��׼
             rt.setValue({fieldId:'custbody_aio_account',value:retacc})
             rt.setValue({fieldId:'custbody_order_locaiton',value:retacc})
             rt.setValue({fieldId:'custbody_aio_is_aio_order',value:true})
@@ -584,7 +584,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'rate', value: rt_amount});
             rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'amount', value: rt_amount * retqty});
            
-            /** 设置订单含税 */
+            /** ���ö�����˰ */
             if (salesorder_if_taxed && tax_item && rt_tax) {
                 rt.setCurrentSublistValue({
                     sublistId: 'item',
@@ -610,11 +610,11 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             }catch (err) { 
                 log.error("commitLine error",err)
             }
-           log.debug("增加货品成功")
+           log.debug("���ӻ�Ʒ�ɹ�")
         var Art_id = rt.save({
             ignoreMandatoryFields: true
         });
-        log.debug('生成成功', Art_id);
+        log.debug('���ɳɹ�', Art_id);
         return {
             Art_id:Art_id,
             fba_location:fba_location
@@ -636,16 +636,16 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     { name: 'isinactive', operator: 'is', values: false },
                  
                 ], columns: [
-                    /** * 名称 * @index 0 */
+                    /** * ���� * @index 0 */
                     { name: 'name' },
-                    /** * 账户API信息 * @index 1 */
+                    /** * �˻�API��Ϣ * @index 1 */
                     { name: t.seller_id },
                     { name: t.mws_auth_token },
                     { name: tsite.amazon_marketplace_id, join: t.enabled_sites },
                     { name: tsite.amazon_mws_endpoint, join: t.enabled_sites },
                     { name: tdev.aws_access_key_id, join: t.dev_account },
                     { name: tdev.secret_key_guid, join: t.dev_account },
-                    /** * 账户基础信息 * @index 7 * */
+                    /** * �˻�������Ϣ * @index 7 * */
                     { name: 'name' },
                     { name: t.currency },
                     { name: 'custrecord_aio_if_salesorder' },
@@ -653,7 +653,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     { name: 'custrecord_aio_salesorder_form' },
                     { name: 'custrecord_aio_salesorder_location' },
                     { name: 'custrecord_aio_salesorder_start_date' },
-                    /** * FBA信息 * @index 14 */
+                    /** * FBA��Ϣ * @index 14 */
                     { name: 'custrecord_aio_if_fbaorder' },
                     { name: 'custrecord_aio_fbaorder_type' },
                     { name: 'custrecord_aio_fbaorder_form' },
@@ -669,15 +669,15 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     { name: 'custrecord_aio_if_check_customer_addr' },
                     { name: 'custrecord_aio_if_including_fees' },
                     { name: 'custrecord_aio_if_payment_as_tran_date' },
-                    /** * 其他信息 * @index 28 */
+                    /** * ������Ϣ * @index 28 */
                     { name: 'custrecord_aio_dept' },
                     { name: 'custrecord_aio_salesorder_payment_method' },
                     { name: 'custrecord_aio_discount_item' },
                     { name: 'custrecord_aio_tax_item' },
                     { name: tsite.amazon_currency, join: t.enabled_sites },
-                    /** * 公司信息 * @index 33 */
+                    /** * ��˾��Ϣ * @index 33 */
                     core.utils.checkIfSubsidiaryEnabled() ? { name: 'custrecord_aio_subsidiary' } : { name: 'formulanumeric', formula: '0' },
-                    /** * 报告抓取信息 * @index 34 */
+                    /** * ����ץȡ��Ϣ * @index 34 */
                     { name: 'custrecord_aio_if_handle_removal_report' },
                     { name: 'custrecord_aio_if_handle_custrtn_report' },
                     /** * Preferences * @index 36 */
@@ -689,7 +689,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     { name: 'custrecord_aio_if_check_customer_email' },
                     { name: 'custrecord_aio_if_check_customer_addr' },
                     { name: 'custrecord_aio_if_payment_as_tran_date' },
-                    /** * 待扩展的放这个下面，上面次序不要叄1�7 * @index 44 */
+                    /** * ����չ�ķ�������棬�������Ҫ��1�1�77 * @index 44 */
                     { name: 'custrecord_aio_if_handle_inv_report' },
                     { name: 'custrecord_aio_to_default_from_location' },
                     { name: 'custrecord_aio_shipping_item' },
@@ -698,7 +698,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     { name: fiedls.account.if_post_order_fulfillment },
                     { name: fiedls.account.post_order_if_search },
                     { name: fiedls.account.if_handle_sett_report },
-                    /** 检验亚马逊的密钥是否加密了 @index 51 */
+                    /** ��������ѷ����Կ�Ƿ������ @index 51 */
                     { name: 'custrecord_aio_amazon_marketplace', join:"custrecord_aio_enabled_sites" },
                     { name: 'custrecord_aio_customer'},
                     { name: 'custrecord_aio_fba_return_loaction'},
@@ -765,7 +765,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
               return accounts
         }
       /**
-       * 根据sku对应到货品
+       * ����sku��Ӧ����Ʒ
        * @param {*} retsku 
        * @param {*} retacc 
        */   
@@ -784,7 +784,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     skuid = Number(rec.id);
                 });
                 if(!skuid){
-                    log.debug("查itemid msku:",retsku.trim())
+                    log.debug("��itemid msku:",retsku.trim())
                 search.create({
                     type: 'item',
                     filters: [{name: 'itemid',operator: search.Operator.IS,values: retsku.trim()}],
@@ -796,7 +796,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 });
               }
                 if(!skuid){
-                    log.debug("itemId为空：查旧的SKU", skuid);
+                    log.debug("itemIdΪ�գ���ɵ�SKU", skuid);
                     search.create({
                         type: 'item',
                         filters: [{name: 'custitem_old_code',operator: search.Operator.IS,values: retsku.trim()}],
@@ -808,7 +808,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     });
                 }
                 if(!skuid){
-                log.debug("itemId为空：查对应表", skuid);
+                log.debug("itemIdΪ�գ����Ӧ��", skuid);
                 search.create({
                    type: 'customrecord_sku_correspondence',
                    filters: [
@@ -822,7 +822,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                });
                }
                if(!skuid){
-                log.debug("找不到sku，已记录下来 "+retsku,retacc)
+                log.debug("�Ҳ���sku���Ѽ�¼���� "+retsku,retacc)
                    var sku_notes,counts=0
                    search.create({
                        type:'customrecord_no_sku_record',

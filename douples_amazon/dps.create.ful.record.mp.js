@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-14 20:36:32
- * @LastEditTime   : 2020-06-16 14:18:10
+ * @LastEditTime   : 2020-06-15 14:34:53
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \douples_amazon\dps.create.ful.record.mp.js
@@ -63,7 +63,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             var flag = true,
                 fla = false,
                 soid = context.value;
-            log.debug('创建发运记录  Strats', 'soid:' + soid);
+            log.debug('创建发运记录', 'soid:' + soid);
             search.create({
                 type: 'salesorder',
                 filters: [{
@@ -103,6 +103,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
                 } else {
                     log.debug('对应的店铺已经非活动', '不创建小货发运记录');
                 }
+
             }
         } catch (error) {
             log.error('创建发运记录 error', error);
@@ -272,7 +273,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
      */
     function createFulfillmentRecord(soid, sku) {
         var location, api_content, tranid, otherrefnum, account, marketplaceid, amount,
-            first_name, cc_country, cc_state, cc_ctiy, cc_zip, cc_addr1, cc_addr2, cc_phone_number, recName;
+            first_name, cc_country, cc_state, cc_ctiy, cc_zip, cc_addr1, cc_addr2, cc_phone_number;
         var item_arr = [],
             limit = 3999;
         search.create({
@@ -338,21 +339,9 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
                 {
                     name: 'custrecord_cc_phone_number',
                     join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'name',
-                    join: 'custbody_dps_order_contact'
-                },
-                {
-                    name: 'custbody_sotck_account'
-                }, // 发货店铺
+                }
             ]
         }).run().each(function (rec) {
-
-            recName = rec.getValue({
-                name: 'name',
-                join: 'custbody_dps_order_contact'
-            });
             amount = rec.getValue('amount');
             location = rec.getValue('location');
             var info = {
@@ -368,7 +357,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             api_content = rec.getValue('custbody_aio_api_content');
             tranid = rec.getValue('tranid');
             otherrefnum = rec.getValue('otherrefnum');
-            account = rec.getValue('custbody_sotck_account');
+            account = rec.getValue('custbody_aio_account');
             marketplaceid = rec.getValue('custbody_aio_marketplaceid');
             first_name = rec.getValue({
                 name: 'custrecord_cc_first_name',
@@ -502,18 +491,13 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             fieldId: 'custrecord_dps_street2',
             value: cc_addr2 ? cc_addr2 : ''
         });
-
-
-        var strName1;
-        var strName = recName ? recName : first_name;
         // 目的地
-        // ful_create_rec.setValue({
-        //     fieldId: 'custrecord_dps_ship_small_destination',
-        //     value: strName + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country
-        // });
-        if (strName) {
-            strName1 = strName;
-            strName += ',';
+        ful_create_rec.setValue({
+            fieldId: 'custrecord_dps_ship_small_destination',
+            value: first_name + '\n' + cc_addr1 + '\n' + cc_addr2 + '\n' + cc_zip + '\n' + cc_ctiy + '\n' + cc_state + '\n' + cc_country
+        });
+        if (first_name) {
+            first_name += ',';
         }
         if (cc_addr1) {
             cc_addr1 += ',';
@@ -531,14 +515,14 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             cc_state += ',';
         }
         // 收件人地址
-        // ful_create_rec.setValue({
-        //     fieldId: 'custrecord_dps_addressee_address',
-        //     value: strName + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
-        // });
+        ful_create_rec.setValue({
+            fieldId: 'custrecord_dps_addressee_address',
+            value: first_name + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
+        });
         // 收件人 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_recipient',
-            value: strName1
+            value: first_name
         });
         // 联系电话 
         ful_create_rec.setValue({
@@ -846,7 +830,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
                 join: 'item'
             }));
             order.weight = order.weight + weight;
-            SKUs.push(jsonstr.skuid);
+            SKUs.push(jsonstr);
             return true;
         });
         order.lwh = order.long + order.wide + order.high;
@@ -1260,7 +1244,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             }); // 计费重量
             so.setValue({
                 fieldId: 'custbody_dps_estimate_freight',
-                value: resultObj.costamount.toFixed(2)
+                value: resultObj.costamount
             }); // 预估运费
             so.save();
             ful.setValue({
@@ -1273,7 +1257,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
             }); // 渠道服务
             ful.setValue({
                 fieldId: 'custrecord_dps_ship_small_estimatedfreig',
-                value: resultObj.costamount.toFixed(2)
+                value: resultObj.costamount
             }); // 预估运费
             ful.setValue({
                 fieldId: 'custrecord_dps_ship_small_status',
@@ -1282,7 +1266,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
         } else {
             ful.setValue({
                 fieldId: 'custrecord_dps_ship_small_status',
-                value: 2
+                value: 3
             }); // 匹配状态，失败
         }
         ful.setValue({

@@ -12,7 +12,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
             })
             log.audit("case_type",case_type)
             if (case_type == "INVOICE") {
-                // 获取 状态为 "未结" de invoice
+                // ��ȡ ״̬Ϊ "δ��" de invoice
                 var status = [ "CustInvc:A"]
                 search.create({
                     type: 'invoice',
@@ -44,7 +44,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
 
             }
             // log.audit("orders", orders)
-            log.audit("付款总数", orders.length)
+            log.audit("��������", orders.length)
             return orders;
         }
 
@@ -62,7 +62,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                 err.push(e.message);
             }
 
-            //创建missorder
+            //����missorder
             if (err.length > 0) {
 
                 var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
@@ -72,7 +72,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                 });;
 
                 var moId = createSOTRMissingOrder('createpayment', cache_id, JSON.stringify(err), date);
-                log.debug("出现错误，已创建missingorder" + moId);
+                log.debug("���ִ����Ѵ���missingorder" + moId);
             }
 
         }
@@ -88,8 +88,8 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
 
     /**
      * 
-     * @param {*} dateStr 01.01.2020 23:34:01 UTC 或者 2020-01-01 23:34:01 UTC
-     * 返回2020-01-01T23:34:01
+     * @param {*} dateStr 01.01.2020 23:34:01 UTC ���� 2020-01-01 23:34:01 UTC
+     * ����2020-01-01T23:34:01
      */
     function getFormatedDate(dateStr) {
         var dateTime;
@@ -107,7 +107,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
       }
 
         /**
-         * 生成单据失败记录
+         * ���ɵ���ʧ�ܼ�¼
          * @param {*} type 
          * @param {*} account_id 
          * @param {*} order_id 
@@ -144,7 +144,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
             mo.setValue({
                 fieldId: 'custrecord_tr_missing_order_type',
                 value: type
-            }); //类型
+            }); //����
 
             mo.setValue({
                 fieldId: 'custrecord_tr_missing_order_id',
@@ -198,13 +198,13 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                     type:"customrecord_aio_amazon_settlement",
                     filters:[
                         {name:"custrecord_aio_sett_order_id",operator:'is',values:orderid},
-                        // 已生成凭证
+                        // ������ƾ֤
                         {name:"custrecord_settle_is_generate_voucher",operator:'is',values:true},
             
-                        // 付款
+                        // ����
                         {name:"custrecord_aio_sett_tran_type",operator:'startswith',values:"Order"},
             
-                        // 退款
+                        // �˿�
                         // {name:"custrecord_aio_sett_tran_type",operator:'startswith',values:"Refund"},
                         
                         {name:"custrecord_aio_sett_amount_type",operator:'isnot',values:"ItemPrice"},
@@ -253,7 +253,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                      })
          
                      // account = 1275
-                     log.debug("account客户付款科目", account)
+                     log.debug("account�ͻ������Ŀ", account)
                      var pmt = record.transform({
                          fromType: record.Type.INVOICE,
                          toType: record.Type.CUSTOMER_PAYMENT,
@@ -284,7 +284,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                      save_id = pmt.save({
                          ignoreMandatoryFields: true
                      });
-                     log.audit("客户付款成功:", save_id)
+                     log.audit("�ͻ�����ɹ�:", save_id)
                      search.create({
                          type: "journalentry",
                          filters: [{
@@ -300,7 +300,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                              {
                                  name: 'custbody_curr_voucher',
                                  operator: 'is',
-                                 values: "预估凭证"
+                                 values: "Ԥ��ƾ֤"
                              },
                          ]
                      }).run().each(function (e) {
@@ -327,7 +327,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                              {
                                  name: 'custbody_curr_voucher',
                                  operator: 'is',
-                                 values: "冲减凭证"
+                                 values: "���ƾ֤"
                              },
                          ]
                      }).run().each(function (e) {
@@ -354,7 +354,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                              {
                                  name: 'custbody_curr_voucher',
                                  operator: 'is',
-                                 values: "收款凭证"
+                                 values: "�տ�ƾ֤"
                              },
                          ]
                      }).run().each(function (e) {
@@ -370,7 +370,7 @@ define(['N/search', 'N/record', './Helper/Moment.min.js', "N/runtime", 'N/format
                  }
                  else {
 
-                     log.error('找不到相关的结算报告')
+                     log.error('�Ҳ�����صĽ��㱨��')
                  }
 
                  return save_id

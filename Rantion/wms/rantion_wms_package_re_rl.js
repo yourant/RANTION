@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-06-08 20:05:25
+ * @LastEditTime   : 2020-07-02 10:21:11
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -12,7 +12,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record, log, runtime) {
+define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (search, record, log, runtime, task) {
 
     function _get(context) {
 
@@ -70,9 +70,21 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
         //     "createBy": "徐玉立"
         // }
 
+
+        log.debug("测试数据开始时间, Starts", new Date().toISOString());
         var data = context;
 
-        log.audit('data', data);
+
+        var fulRecArr = [];
+
+        log.audit('data typeof(): ' + typeof (data), data);
+
+        try {
+            data = JSON.parse(data);
+        } catch (error) {
+            log.debug('转成对象 error', error);
+            data = data;
+        }
 
         var retjson = {};
 
@@ -102,11 +114,28 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
                         id: bigRec
                     });
 
+                    fulRecArr.push(bigRec);
+
+                    var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
+
+                    var status = objRecord.getValue("custrecord_dps_shipping_rec_status");
+                    var numLines = objRecord.getLineCount({
+                        sublistId: sub_id
+                    });
+
+                    log.debug('发运记录装箱明细行数', numLines);
+                    if (status != 14 && numLines > -1) {
+                        var it = {
+                            code: 0,
+                            data: "NS 处理成功",
+                            msg: 'success'
+                        }
+                        log.debug('单据状态不是 已推送WMS, 直接返回', new Date().toISOString());
+                        return it;
+                    }
 
                     var boxNum = objRecord.getValue('custrecord_dps_total_number'),
                         addNum = 1;
-
-                    var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
 
                     var numLines = objRecord.getLineCount({
                         sublistId: sub_id
@@ -183,18 +212,18 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
                             log.debug("Remaining governance units: " + scriptObj.getRemainingUsage());
                         }
 
-
-
                         log.debug('Number(addNum) + Number(boxNum)', Number(addNum) + Number(boxNum));
                         objRecord.setValue({
                             fieldId: 'custrecord_dps_total_number',
                             value: Number(addNum) + Number(boxNum)
                         });
 
-                        objRecord.setValue({
-                            fieldId: 'custrecord_dps_shipping_rec_status',
-                            value: 12
-                        });
+                        // 更改发运记录的状态为 WMS已装箱
+                        // objRecord.setValue({
+                        //     fieldId: 'custrecord_dps_shipping_rec_status',
+                        //     value: 12
+                        // });
+
                         var objRecord_id = objRecord.save();
                         log.audit('objRecord_id', objRecord_id);
 
@@ -202,6 +231,13 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
                             aono: aono,
                             msg: 'NS 处理成功'
                         });
+
+                        // try {
+                        //     log.debug('启用调度任务', "Starts");
+                        //     submitMapReduceDeployment(bigRec);
+                        // } catch (error) {
+                        //     log.debug('启用调度任务失败', error);
+                        // }
 
                         retjson.code = 0;
                         retjson.data = ord;
@@ -242,13 +278,20 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
                             value: temp.height
                         });
 
-                        objRecord.setValue({
-                            fieldId: 'custrecord_dps_shipping_rec_status',
-                            value: 12
-                        });
+                        // objRecord.setValue({
+                        //     fieldId: 'custrecord_dps_shipping_rec_status',
+                        //     value: 12
+                        // });
 
                         var objRecord_id = objRecord.save();
                         log.audit('objRecord_id', objRecord_id);
+
+                        // try {
+                        //     log.debug('启用调度任务', "Starts");
+                        //     submitMapReduceDeployment(bigRec)
+                        // } catch (error) {
+                        //     log.debug('启用调度任务失败', error);
+                        // }
 
                         retjson.code = 0;
                         retjson.data = {
@@ -282,7 +325,26 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime'], function (search, record,
         // retjson.code = 0;
         // retjson.data = {};
         // retjson.msg = 'string';
+
+        log.debug("测试数据开始时间, End", new Date().toISOString());
+
         return JSON.stringify(retjson);
+    }
+
+
+    function submitMapReduceDeployment(recId) {
+
+        var mrTask = task.create({
+            taskType: task.TaskType.MAP_REDUCE,
+            scriptId: "customscript_dps_setvalue_li_map",
+            deploymentId: 'customdeploy_dps_setvalue_li_map',
+            params: {
+                custscript_dps_ful_rec_id: recId
+            }
+        });
+
+        var mrTaskId = mrTask.submit();
+
     }
 
     /**

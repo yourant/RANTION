@@ -27,7 +27,7 @@ define(["require", "exports", "N/config", "N/search", "./Helper/core.min", "N/ui
         sb.addField({ id: 'name', label: 'Config', type: ui.FieldType.TEXT });
         sb.addField({ id: 'value', label: 'Var', type: ui.FieldType.TEXT });
         var ln = 0;
-        // ��˾��Ϣ
+        // �1�7�1�7�0�4�1�7�1�7�0�4
         var company_info = config.load({ type: config.Type.COMPANY_INFORMATION });
         var company_label = { companyname: 'Company Name', timezone: 'Time Zone', companyid: 'Account ID' };
         Object.keys(company_label).map(function (k) {

@@ -83,8 +83,9 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
       search.create({
         type: 'customrecord_amazon_finances_cahce',
         filters: [
-          // { name: 'custrecord_amazon_finances_postedafter',operator:"within", values: ["2020年2月1日","2020年2月29日"]}, 
+          // { name: 'custrecord_amazon_finances_postedafter',operator:"within", values: ["2020��2��1��","2020��2��29��"]}, 
           { name: 'custrecord_amazon_finances_checkbox',operator: search.Operator.IS, values: false}, 
+          { name: 'custrecordsssssssss',operator: search.Operator.ISNOT, values: "F"}, 
           // { name: 'custrecord_finance_type',operator:"is",values:"orders"}, 
           // { name: 'custrecord_amazon_finances_orderid',operator:"is",values:"303-6657489-5667535"}, 
         ],
@@ -93,7 +94,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
          return --limit>0
       })
 
-      log.audit("订单总数:", orders.length)
+      log.audit("��������:", orders.length)
       return orders;
     };
 
@@ -107,20 +108,29 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
       var acc = fin.getValue("custrecord_amazon_finances_account")
       var postdate = fin.getValue("custrecord_amazon_ginances_postdate_txt")
       var t = fin.getValue("custrecord_finance_type")
-      if (!t) return
+      if (!t) return;
       log.debug("Object.prototype:", Object.prototype.toString.call(ord))
+      var ff =true
       try {
         if (Object.prototype.toString.call(ord) == "[object Array]") {
           ord.map(function (o) {
-            createRec(o, acc, cache_id, t, postdate)
+            ff =  createRec(o, acc, cache_id, t, postdate)
           })
         } else {
-          createRec(ord, acc, cache_id, t, postdate)
+        ff =  createRec(ord, acc, cache_id, t, postdate)
         }
-        fin.setValue({
-          fieldId: "custrecord_amazon_finances_checkbox",
-          value: true
-        })
+        if(ff){
+          fin.setValue({
+            fieldId: "custrecord_amazon_finances_checkbox",
+            value: true
+          })
+        }else{
+          fin.setValue({
+            fieldId: "custrecordsssssssss",
+            value: "F"
+          })
+        }
+        
         var fid = fin.save()
         log.audit("fid:", fid)
       } catch (e) {
@@ -131,12 +141,12 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
 
     };
     /**
-     * 从cache生成财务报告，refunds & orders     
+     * ��cache���ɲ��񱨸棬refunds & orders     
      * 
      */
     function createRec(l, acc, cache_id, type_finances, postdate) {
       log.debug("type:" + type_finances, JSON.stringify(l))
-      if (type_finances == "refunds") { //refund类型费用
+      if (type_finances == "refunds") { //refund���ͷ���
         var items = l.shipment_item_adjustment_list
         var amazon_order_id = l.amazon_order_id
         var seller_order_id = l.seller_order_id
@@ -166,9 +176,13 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               fieldId: 'custrecord_quantityshipped',
               value: items[i].quantity_shipped
             })
+            var pos = interfun.getFormatedDate("","",postdate).date
+            if(pos == "2"){
+              return  false
+            }
             ship_rec.setText({
               fieldId: 'custrecord_posteddate',
-              text: interfun.getFormatedDate("","",postdate).date
+              text: pos
             })
             ship_rec.setValue({
               fieldId: 'custrecord_posteddate_txt',
@@ -191,7 +205,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               value: "refunds"
             })
 
-            //遍历数据源，找出对应的费用类型 financeMapping
+            //��������Դ���ҳ���Ӧ�ķ������� financeMapping
             var item_tax_withheld = items[i].item_tax_withheld_list
             for (var j = 0; j < item_tax_withheld.length; j++) {
               var taxes_withheld = item_tax_withheld[0].taxes_withheld
@@ -211,7 +225,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
                   else {
                     ship_rec.setValue({
                       fieldId: "custrecord_orther_financatype",
-                      value: orther + taxes_withheld[k].charge_type + "：-" + taxes_withheld[k].charge_amount.currency_amount + "; "
+                      value: orther + taxes_withheld[k].charge_type + "��-" + taxes_withheld[k].charge_amount.currency_amount + "; "
                     })
                   }
                 }
@@ -233,7 +247,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + item_charge[l].charge_type + "：-" + item_charge[l].charge_amount.currency_amount + "; "
+                  value: orther + item_charge[l].charge_type + "��-" + item_charge[l].charge_amount.currency_amount + "; "
                 })
               }
             }
@@ -253,7 +267,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + item_fee[l].fee_type + "：-" + item_fee[l].fee_amount.currency_amount + "; "
+                  value: orther + item_fee[l].fee_type + "��-" + item_fee[l].fee_amount.currency_amount + "; "
                 })
               }
             }
@@ -272,7 +286,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + item_fee_adjustment[l].fee_type + "：-" + item_fee_adjustment[l].fee_amount.currency_amount + "; "
+                  value: orther + item_fee_adjustment[l].fee_type + "��-" + item_fee_adjustment[l].fee_amount.currency_amount + "; "
                 })
               }
             }
@@ -288,7 +302,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
                 porship ? porship : porship = 0
                 var poritem = ship_rec.getValue("custrecord_amazon_promotion_itemdiscount")
                 poritem ? poritem : poritem = 0
-                //promotion id  含有 item、VPC、Coupon 归为item类型费用,否则含有ship或者其他归为shipping类型费用
+                //promotion id  ���� item��VPC��Coupon ��Ϊitem���ͷ���,������ship����������Ϊshipping���ͷ���
                 if (promotion_list[l].promotion_id.indexOf("item") > -1 || promotion_list[l].promotion_id.indexOf("VPC") > -1 || promotion_list[l].promotion_id.indexOf("Coupon") > -1)
                   ship_rec.setValue({
                     fieldId: 'custrecord_amazon_promotion_itemdiscount',
@@ -307,7 +321,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               } else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + promotion_list[l].promotion_type + "：-" + promotion_list[l].promotion_amount.currency_amount + "; "
+                  value: orther + promotion_list[l].promotion_type + "��-" + promotion_list[l].promotion_amount.currency_amount + "; "
                 })
               }
             }
@@ -323,7 +337,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
                 var poritem = ship_rec.getValue("custrecord_amazon_promotion_itemdiscount")
                 poritem ? poritem : poritem = 0
 
-                //promotion id  含有 item、VPC、Coupon 归为item类型费用,否则含有ship或者其他归为shipping类型费用
+                //promotion id  ���� item��VPC��Coupon ��Ϊitem���ͷ���,������ship����������Ϊshipping���ͷ���
                 if (pro_adjustment[l].promotion_id.indexOf("item") > -1 || pro_adjustment[l].promotion_id.indexOf("VPC") > -1 || pro_adjustment[l].promotion_id.indexOf("Coupon") > -1)
                   ship_rec.setValue({
                     fieldId: 'custrecord_amazon_promotion_itemdiscount',
@@ -342,7 +356,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               } else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + pro_adjustment[l].PromotionType + "：-" + pro_adjustment[l].promotion_amount.currency_amount + "; "
+                  value: orther + pro_adjustment[l].PromotionType + "��-" + pro_adjustment[l].promotion_amount.currency_amount + "; "
                 })
               }
             }
@@ -358,10 +372,10 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               value: Number(returned) + Number(items[i].cost_of_points_returned.currency_amount)
             })
             var ss = ship_rec.save()
-            log.debug("已生成退款财务报告", ss)
+            log.debug("�������˿���񱨸�", ss)
           }
         }
-      } else { //orders类型费用
+      } else { //orders���ͷ���
         var items = l.shipment_item_list
         var amazon_order_id = l.amazon_order_id
         var seller_order_id = l.seller_order_id
@@ -421,7 +435,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               value: postdate
             })
             var item_tax_withheld = items[i].item_tax_withheld_list
-            //遍历数据源，找出对应的费用类型 financeMapping
+            //��������Դ���ҳ���Ӧ�ķ������� financeMapping
             for (var j = 0; j < item_tax_withheld.length; j++) {
               var taxes_withheld = item_tax_withheld[j].taxes_withheld
               var orther = ship_rec.getValue("custrecord_orther_financatype")
@@ -438,7 +452,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
                 else
                   ship_rec.setValue({
                     fieldId: "custrecord_orther_financatype",
-                    value: orther + taxes_withheld[k].charge_type + "：-" + taxes_withheld[k].charge_amount.currency_amount + "; "
+                    value: orther + taxes_withheld[k].charge_type + "��-" + taxes_withheld[k].charge_amount.currency_amount + "; "
                   })
 
               }
@@ -459,7 +473,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + item_charge[l].charge_type + "：-" + item_charge[l].charge_amount.currency_amount + "; "
+                  value: orther + item_charge[l].charge_type + "��-" + item_charge[l].charge_amount.currency_amount + "; "
                 })
               }
             }
@@ -480,7 +494,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + item_charge_adj[l].charge_type + "：-" + item_charge_adj[l].charge_amount.currency_amount + "; "
+                  value: orther + item_charge_adj[l].charge_type + "��-" + item_charge_adj[l].charge_amount.currency_amount + "; "
                 })
               }
             }
@@ -500,7 +514,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + item_fee[l].fee_type + "：-" + item_fee[l].fee_amount.currency_amount + "; "
+                  value: orther + item_fee[l].fee_type + "��-" + item_fee[l].fee_amount.currency_amount + "; "
                 })
               }
 
@@ -516,7 +530,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + item_fee_adjustment[l].fee_type + "：-" + item_fee_adjustment[l].fee_amount.currency_amount + "; "
+                  value: orther + item_fee_adjustment[l].fee_type + "��-" + item_fee_adjustment[l].fee_amount.currency_amount + "; "
                 })
               }
             }
@@ -533,7 +547,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
                 var poritem = ship_rec.getValue("custrecord_amazon_promotion_itemdiscount")
                 poritem ? poritem : poritem = 0
 
-                //promotion id  含有 item、VPC、Coupon 归为item类型费用,否则含有ship或者其他归为shipping类型费用
+                //promotion id  ���� item��VPC��Coupon ��Ϊitem���ͷ���,������ship����������Ϊshipping���ͷ���
                 if (promotion_list[l].promotion_id.indexOf("item") > -1 || promotion_list[l].promotion_id.indexOf("VPC") > -1 || promotion_list[l].promotion_id.indexOf("Coupon") > -1)
                   ship_rec.setValue({
                     fieldId: 'custrecord_amazon_promotion_itemdiscount',
@@ -552,7 +566,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               } else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + promotion_list[l].promotion_type + "：-" + promotion_list[l].promotion_amount.currency_amount + "; "
+                  value: orther + promotion_list[l].promotion_type + "��-" + promotion_list[l].promotion_amount.currency_amount + "; "
                 })
               }
             }
@@ -567,7 +581,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
                 var poritem = ship_rec.getValue("custrecord_amazon_promotion_itemdiscount")
                 poritem ? poritem : poritem = 0
 
-                //promotion id  含有 item、VPC、Coupon 归为item类型费用,否则含有ship或者其他归为shipping类型费用
+                //promotion id  ���� item��VPC��Coupon ��Ϊitem���ͷ���,������ship����������Ϊshipping���ͷ���
                 if (pro_adjustment[l].promotion_id.indexOf("item") > -1 || pro_adjustment[l].promotion_id.indexOf("VPC") > -1 || pro_adjustment[l].promotion_id.indexOf("Coupon") > -1)
                   ship_rec.setValue({
                     fieldId: 'custrecord_amazon_promotion_itemdiscount',
@@ -586,7 +600,7 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               } else {
                 ship_rec.setValue({
                   fieldId: "custrecord_orther_financatype",
-                  value: orther + pro_adjustment[l].PromotionType + "：-" + pro_adjustment[l].promotion_amount.currency_amount + "; "
+                  value: orther + pro_adjustment[l].PromotionType + "��-" + pro_adjustment[l].promotion_amount.currency_amount + "; "
                 })
               }
             }
@@ -603,12 +617,13 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
             })
 
             var ss = ship_rec.save()
-            log.debug("已生成发货财务报告", ss)
+            log.debug("�����ɷ������񱨸�", ss)
           }
         }
       }
+      return true
     }
     exports.summarize = function (ctx) {
-      log.audit('处理完成',ctx)
+      log.audit('�������',ctx)
     };
   });

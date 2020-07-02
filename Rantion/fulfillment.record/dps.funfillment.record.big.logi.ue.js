@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-06-23 14:59:47
+ * @LastEditTime   : 2020-07-02 11:25:29
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -63,7 +63,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
             // var bigRec_status = bf_cur.getValue('custrecord_dps_shipping_rec_status');
             log.debug('beforeLoad bigRec_status', bigRec_status);
-            if (type == 'view' && (bigRec_status == 4 || bigRec_status == 12)) {
+            if (type == 'view' && (bigRec_status == 4 || bigRec_status == 12) && !logistics_no && channel == 1) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '重新获取物流信息',
@@ -95,6 +95,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             // var tracking_number = bf_cur.getValue('custrecord_dps_ship_trackingnumber_dh');
             // var logistics_no = bf_cur.getValue('custrecord_dps_shipping_rec_logistics_no');
             // if (!tracking_number && bigRec_status == 3) {
+
+            /* HACK
             if (!tracking_number && type == 'view' && logistics_no) {
                 form.addButton({
                     id: 'custpage_dps_li_traking_button',
@@ -102,6 +104,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     functionName: "getTrackingNumber(" + bf_cur.id + ")"
                 });
             }
+            */
+
             // var label = bf_cur.getValue('custrecord_fulfill_dh_label_addr')
             // if (bf_cur.id) {
             //     // var channel = bf_cur.getValue("custrecord_dps_shipping_r_channel_dealer")
@@ -294,7 +298,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 'custrecord_aio_sender_address', // 地址1
                                 'custrecord_aio_sender_name', // 发件人
                                 'custrecord_aio_sender_address_code', // 邮编
-
                                 {
                                     name: 'custrecord_cc_country_code',
                                     join: 'custrecord_aio_country_sender'
@@ -512,6 +515,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 log.debug('response1', response1);
 
                             } else {
+
                                 log.audit('不属于数组', rep);
 
                                 var id = record.submitFields({
@@ -578,6 +582,18 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                             log.debug('获取箱外标签', 'end');
                             if (getRe) {
+
+                                var add;
+
+                                if (channel_dealer == 6) {
+                                    try {
+                                        add = getShipAddByContent({
+                                            "base64": getRe
+                                        });
+                                    } catch (error) {
+                                        log.audit('解析PDF error', error);
+                                    }
+                                }
                                 var fileObj = file.create({
                                     name: rec_shipmentsid + '.ZIP',
                                     fileType: file.Type.ZIP,
@@ -592,14 +608,57 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                                 log.debug('fileObj_id', fileObj_id);
 
+                                var recValue = {};
+
+                                recValue.custrecord_dps_shipping_rec_status = 17;
+                                recValue.custrecord_dps_shipment_label_file = fileObj_id;
+                                if (add.length > 0) {
+
+                                    recValue.custrecord_dps_recpir_flag = add ? add : '';
+
+                                    var addLen = add.length;
+
+                                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人 
+                                    recValue.custrecord_dps_street1_dh = add[1]; // 街道1
+                                    if (addLen > 6) {
+                                        recValue.custrecord_dps_street2_dh = add[2]; // 街道2
+                                    }
+                                    recValue.custrecord_dps_state_dh = add[addLen - 3]; // 州
+
+                                    var temp1 = add[addLen - 1],
+                                        temp2 = '',
+                                        temp3 = temp1.split(" ");
+                                    if (temp3.length > 1) {
+                                        temp2 = temp3[temp3.length - 1];
+                                        recValue.custrecord_dps_recipien_code_dh = temp3[0] + ' ' + temp3[1]; // 邮编
+                                    }
+                                    var seaCout;
+
+                                    try {
+                                        seaCout = searchCreateCountry(temp2);
+                                    } catch (error) {
+                                        log.debug('搜索创建国家 error', error);
+                                    }
+                                    if (seaCout) {
+                                        recValue.custrecord_dps_recipient_country_dh = seaCout; // 国家
+                                    }
+
+                                    var searCity;
+                                    try {
+                                        searCity = searchCreateCity(add[addLen - 2]);
+                                    } catch (error) {
+                                        log.debug('搜索创建城市 error', error);
+                                    }
+                                    if (searCity) {
+                                        recValue.custrecord_dps_recipient_city_dh = searCity; // 城市
+                                    }
+
+                                }
+
                                 var id = record.submitFields({
                                     type: 'customrecord_dps_shipping_record',
                                     id: af_rec.id,
-                                    values: {
-                                        custrecord_dps_shipping_rec_status: 17,
-                                        custrecord_dps_shipment_label_file: fileObj_id
-                                        // custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
-                                    }
+                                    values: recValue
                                 });
 
                                 var id = record.attach({
@@ -642,6 +701,65 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
         }
 
+    }
+
+
+
+    function setRecValue(newArr) {
+
+
+
+    }
+
+
+
+    function getShipAddByContent(data) {
+
+        var str;
+        log.debug('sendRequest data', data);
+        var retdata;
+        var headerInfo = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'access_token': getToken()
+        };
+        var response = http.post({
+            // url: 'http://47.107.254.110:8066/swagger-ui.html#!/36890299922604127861/pdfParseToTextUsingPOST',
+            url: 'http://47.107.254.110:18082/rantion-wms/common/pdfParseToText',
+            headers: headerInfo,
+            body: JSON.stringify(data)
+        });
+        log.debug('response', JSON.stringify(response));
+        retdata = JSON.parse(response.body);
+
+        if (retdata.code == 0) {
+            var jsonRep = retdata.data;
+            str = getShipToAddr(jsonRep);
+        }
+
+        return str || false;
+
+    }
+
+
+
+    function getShipToAddr(str) {
+
+        var newArr = [];
+        var a = str.split("FBA");
+        var b = a[1];
+        var c = b.toString().split("发货地");
+
+        var d = c[0].split("\n");
+
+        for (var i = 0, len = d.length; i < len; i++) {
+            if (d[i] == "" || d[i] == undefined || d[i] == null || d[i].indexOf('目的地') > -1 || d[i].indexOf('发货地') > -1 || d[i].indexOf("Declarant") > -1) {
+                continue;
+            }
+            newArr.push(d[i].trim());
+        }
+
+        return newArr || false;
     }
 
 
@@ -988,62 +1106,45 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 });
                 item_info.push(it);
 
+                return true;
+
             });
 
             log.debug('itemArr', itemArr);
+            log.debug('item_info', item_info);
 
             var newItemInfo = [];
 
             if (tranType == 1) {
                 var new_limit = 3999;
                 search.create({
-                    type: 'customrecord_dps_amazon_seller_sku',
+                    type: 'customrecord_aio_amazon_seller_sku',
                     filters: [{
-                            name: "custrecord_dps_amazon_ns_sku",
+                            name: "custrecord_ass_sku",
                             operator: 'anyof',
                             values: itemArr
                         },
                         {
-                            name: 'custrecord_dps_amazon_sku_account',
+                            name: 'custrecord_ass_account',
                             operator: 'anyof',
                             values: fbaAccount
                         }
                     ],
-                    columns: [{
-                            name: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "custrecord_dps_amazon_ns_sku",
-                        },
-                        {
-                            name: "custrecord_ass_asin",
-                            join: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "name",
-                            join: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "custrecord_ass_fnsku",
-                            join: "custrecord_dps_amazon_sku_number",
-                        }
+                    columns: [
+                        "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
                 }).run().each(function (rec) {
 
-                    var it = rec.getValue('custrecord_dps_amazon_ns_sku');
+                    var it = rec.getValue('custrecord_ass_sku');
                     item_info.forEach(function (item, key) {
+
+                        // log.debug('item.itemId: ' + item.itemId, "it: " + it);
+
                         if (item.itemId == it) {
 
-                            item.asin = rec.getValue({
-                                name: "custrecord_ass_asin",
-                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                            });
-                            item.fnsku = rec.getValue({
-                                name: "custrecord_ass_fnsku",
-                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                            })
-                            item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
-
+                            item.asin = rec.getValue("custrecord_ass_asin");
+                            item.fnsku = rec.getValue("custrecord_ass_fnsku")
+                            item.msku = rec.getValue('name');
                             newItemInfo.push(item);
                         }
                     });
@@ -1056,6 +1157,69 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             } else {
                 data['allocationDetailCreateRequestDtos'] = item_info;
             }
+
+            // if (tranType == 1) {
+            //     var new_limit = 3999;
+            //     search.create({
+            //         type: 'customrecord_dps_amazon_seller_sku',
+            //         filters: [{
+            //                 name: "custrecord_dps_amazon_ns_sku",
+            //                 operator: 'anyof',
+            //                 values: itemArr
+            //             },
+            //             {
+            //                 name: 'custrecord_dps_amazon_sku_account',
+            //                 operator: 'anyof',
+            //                 values: fbaAccount
+            //             }
+            //         ],
+            //         columns: [{
+            //                 name: "custrecord_dps_amazon_sku_number",
+            //             },
+            //             {
+            //                 name: "custrecord_dps_amazon_ns_sku",
+            //             },
+            //             {
+            //                 name: "custrecord_ass_asin",
+            //                 join: "custrecord_dps_amazon_sku_number",
+            //             },
+            //             {
+            //                 name: "name",
+            //                 join: "custrecord_dps_amazon_sku_number",
+            //             },
+            //             {
+            //                 name: "custrecord_ass_fnsku",
+            //                 join: "custrecord_dps_amazon_sku_number",
+            //             }
+            //         ]
+            //     }).run().each(function (rec) {
+
+            //         var it = rec.getValue('custrecord_dps_amazon_ns_sku');
+            //         item_info.forEach(function (item, key) {
+            //             if (item.itemId == it) {
+
+            //                 item.asin = rec.getValue({
+            //                     name: "custrecord_ass_asin",
+            //                     join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
+            //                 });
+            //                 item.fnsku = rec.getValue({
+            //                     name: "custrecord_ass_fnsku",
+            //                     join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
+            //                 })
+            //                 item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
+
+            //                 newItemInfo.push(item);
+            //             }
+            //         });
+            //         return --new_limit > 0;
+            //     });
+
+            //     log.debug('newItemInfo', newItemInfo);
+
+            //     data['allocationDetailCreateRequestDtos'] = newItemInfo;
+            // } else {
+            //     data['allocationDetailCreateRequestDtos'] = item_info;
+            // }
 
             log.audit('newItemInfo', newItemInfo);
 

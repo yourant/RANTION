@@ -43,6 +43,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 (type == core.enums.report_type._GET_FBA_FULFILLMENT_INVENTORY_RECEIPTS_DATA_) ||
                 (type == core.enums.report_type._GET_FBA_STORAGE_FEE_CHARGES_DATA_) ||
                 (type == core.enums.report_type._GET_FBA_FULFILLMENT_LONGTERM_STORAGE_FEE_CHARGES_DATA_) ||
+                (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) ||
                 (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_));
         };
 
@@ -79,6 +80,9 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             var startend = runtime.getCurrentScript().getParameter({
                 name: 'custscript_cust_endate'
             });
+            var group_req = runtime.getCurrentScript().getParameter({
+                name: 'custscript_acc_group_rep'
+            });
             if(startdate)
             startdate = new Date(startdate.getTime() - tz*60*1000).toISOString()
             if(startend)
@@ -89,10 +93,10 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             log.debug(report_type, "startDate:" + startDate + "   endDate:" + endDate);
             var sum = 0,acc_arrys=[];
             //listing可以区分站点
-            if (report_type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_ || report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
-                acc_arrys = core.amazon.getAccountList()
+            if (report_type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_ ) {
+                acc_arrys = core.amazon.getAccountList(group_req)
             }else{
-                acc_arrys =  core.amazon.getReportAccountList()
+                acc_arrys =  core.amazon.getReportAccountList(group_req)
             }
             // core.amazon.getReportAccountList().map(function (account) {
 
@@ -118,7 +122,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             });
                         }
                     } else {
-
                         var rid = Date.now();
                         log.audit("getRequestingReportList", "getRequestingReportList");
                         core.amazon.getRequestingReportList(account, report_type).map(function (r) {
@@ -497,7 +500,8 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                     // log.debug('line[date_key:',line[date_key]);
                     line[date_key + "-txt"] = line[date_key];
                     if (line[date_key]) {
-                        line[date_key] = interfun.getFormatedDate("", "", line[date_key]).date;
+                        line[date_key] = interfun.getFormatedDate("", "", line[date_key],true).date;
+                        if(line[date_key] =="2") return;
                     }
                     Object.keys(mapping.mapping).map(function (field_id) {
                         var values = line[mapping.mapping[field_id]];
@@ -549,13 +553,14 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         }).run().each(function(e){
                             sku_corr =  e.id
                         })
-                        if(!sku_corr){
+                        if(!sku_corr)
                             sku_corr.create({type:"customrecord_aio_amazon_seller_sku"})
                             sku_corr.setValue({fieldId:"custrecord_ass_account",value:acc_id})
                             sku_corr.setValue({fieldId:"custrecord_ass_fnsku",value:v.fnsku})
                             sku_corr.setValue({fieldId:"name",value:v.sku})
-                            sku_corr.save()
-                        }
+                            var ss = sku_corr.save()
+                            log.debug("SKU对应关系 "+ss)
+                        
                     }
                     if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
                         rec.setText({
@@ -583,14 +588,14 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         }).run().each(function(e){
                             sku_corr =  e.id
                         })
-                        if(!sku_corr){
+                        if(!sku_corr)
                             sku_corr.create({type:"customrecord_aio_amazon_seller_sku"})
                             sku_corr.setValue({fieldId:"custrecord_ass_account",value:acc_id})
                             sku_corr.setValue({fieldId:"custrecord_ass_asin",value:v.asin1})
-                            sku_corr.setValue({fieldId:"name",value:v.v["seller-sku"]})
+                            sku_corr.setValue({fieldId:"name",value:v["seller-sku"]})
                             sku_corr.setValue({fieldId:"custrecord_ass_sellersku_site",value:site_id})
-                            sku_corr.save()
-                        }
+                            var ss = sku_corr.save()
+                            log.debug("SKU对应关系 "+ss)
                     }
                     var ss = rec.save();
                     log.debug('rec.id', ss);

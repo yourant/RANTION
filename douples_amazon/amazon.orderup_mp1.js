@@ -17,7 +17,7 @@
 define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/log", "N/search",
     "N/record", "N/transaction", '../Rantion/Helper/location_preferred.js', "./Helper/interfunction.min"
 ], function (format, runtime, core, moment, log, search, record, transaction, loactionPre, interfun) {
-
+    //单价的计算逻辑
     const price_conf = {
         "SKU售价": "item_price",
         "收取运费": "shipping_price",
@@ -25,7 +25,21 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         "运费折扣": "shipping_discount",
         "giftwrap": "gift_wrap_price",
     }
-
+    //订单类型
+    const ord_type = {
+        "AFN":1,
+        "MFN":2
+    }
+    //订单状态
+    const ord_status = {
+        "PendingAvailability":1,
+        "Pending":2,
+        "Unshipped":3,
+        "PartiallyShipped":4,
+        "Shipped":5,
+        "Canceled":6,
+        "Unfulfillable":7,
+    }
     function getInputData() {
         var acc = runtime.getCurrentScript().getParameter({
             name: 'custscript_tr_account'
@@ -44,7 +58,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         log.debug("idto", idto);
         var orders = [];
         core.amazon.getAccountList().map(function (account) {
-            var limit = 1000 // 999; //350
+            var limit = 4000 // 999; //350
             var filters = [{
                     name: 'custrecord_aio_cache_resolved',
                     operator: search.Operator.IS,
@@ -55,6 +69,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     operator: "isnot",
                     values: "Pending"
                 },//除了pending以外的订单都转
+                {
+                    name: "custrecord_aio_memo",
+                    operator: "isnot",
+                    values: "时间不对"
+                },
                 // {
                 //     name: "custrecord_amazon_last_update_date",
                 //     operator: "onorafter",
@@ -123,8 +142,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         },
                     ]
                 }).run().each(function (rec) {
-                    // if (rec.id == 20800) {
-
                     orders.push({
                         rec_id: rec.id,
                         version: rec.getValue({
@@ -145,12 +162,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         iteminfo: rec.getValue('custrecord_amazonorder_iteminfo') ? rec.getValue("custrecord_amazonorder_iteminfo") : "",
                         enabled_sites: account.enabled_sites,
                     });
-                    // }
-
                     return --limit > 0;
                 });
-
-                // log.debug('orders', orders)
             }
         });
         log.debug("orders", orders.length);
@@ -162,6 +175,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         var obj = JSON.parse(context.value);
         log.audit('obj', obj)
         var amazon_account_id = obj.id;
+        var rec_id = obj.rec_id; //cache ID
         var o = obj.order;
         var a = obj.auth;
         var i = obj.info;
@@ -194,7 +208,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         var order_form = o.fulfillment_channel == 'MFN' ? i.salesorder_form : e.fbaorder_form;
 
         var order_location = o.fulfillment_channel == 'MFN' ? i.salesorder_location : e.fbaorder_location;
-        // var order_trandate = p.if_payment_as_tran_date ? moment.utc(o.purchase_date).toDate() : moment.utc(o.purchase_date).toDate();
         var order_trandate = o.purchase_date;
 
 
@@ -202,11 +215,20 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
         var error_message = [],
             currency_id;
-        var ord, c, shipping_cost = 0,
-            discount_rate = 0;
+        var ord, c;
 
         var order_lastupdate = o.last_update_date;
-
+        //如果是6月1号之前的，不转单，直接删除cahce
+        if(interfun.getFormatedDate("", "", order_lastupdate,true).date == "2")  {
+              //时间不对
+              record.submitFields({
+                type: 'customrecord_aio_order_import_cache',
+                id: rec_id,
+                values: {
+                    'custrecord_aio_memo': "时间不对",
+                }
+            });
+        }
         var enabled_sites = obj.enabled_sites;
 
         var dateFormat;
@@ -220,19 +242,19 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 values: o.order_total.currency_code
             }]
         }).run().each(function (e) {
-            currency_id = e.id
-            return true
+            currency_id = e.id;
+            return true;
         })
         if (!currency_id) currency_id = cy
         log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!"); //开始处理订单!
         try {
-            /** 设置只抓取有付款信息的订单 */
-            if (p.if_only_paid_orders) {
-                if (o.fulfillment_channel == 'MFN' && o.order_status == 'Pending')
-                    return mark_resolved(amazon_account_id, o.amazon_order_id);;
-                if (o.fulfillment_channel == 'AFN' && o.order_status != 'Shipped')
-                    return mark_resolved(amazon_account_id, o.amazon_order_id);;
-            }
+            // /** 设置只抓取有付款信息的订单 */
+            // if (p.if_only_paid_orders) {
+            //     if (o.fulfillment_channel == 'MFN' && o.order_status == 'Pending')
+            //         return mark_resolved(amazon_account_id, o.amazon_order_id);
+            //     if (o.fulfillment_channel == 'AFN' && o.order_status != 'Shipped')
+            //         return mark_resolved(amazon_account_id, o.amazon_order_id);
+            // }
             log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  111 " + order_type);
             search.create({
                 type: order_type,
@@ -243,15 +265,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 }]
             }).run().each(function (rec) {
                 // log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  1111");
-                record.delete({
+               
+                ord = record.load({
                     type: order_type,
-                    id: rec.id
-                })
-                // ord = record.load({
-                //     type: order_type,
-                //     id: rec.id,
-                //     isDynamic: true
-                // });
+                    id: rec.id,
+                    isDynamic: true
+                });
                 return false;
             });
             // log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  222");
@@ -264,7 +283,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             if (ord && ord.getValue('orderstatus') != 'C' && o.order_status == 'Canceled') {
                 transaction.void({
                     type: 'salesorder',
-                    id: ord.id
+                    id: ord.id    
                 });
             }
             // log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  444");
@@ -294,13 +313,13 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
                 var pay_ord;
                 if (o.order_status == "Shipped") {
-                    pay_ord = 3
+                    pay_ord = 3;
                 } else if (o.order_status == "Pending") {
-                    pay_ord = 1
+                    pay_ord = 1;
                 } else if (o.order_status == "Canceled") {
-                    pay_ord = 5
+                    pay_ord = 5;
                 } else {
-                    pay_ord = 2
+                    pay_ord = 2;
                 }
 
                 // set payment status
@@ -308,7 +327,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     ord.setValue({
                         fieldId: 'custbody_payment_state',
                         value: pay_ord
-                    })
+                    });
                 }
 
                 log.debug(externalid, externalid + " | \u7ED9\u8BA2\u5355\u8BBE\u7F6Eentity ID: " + cid);
@@ -327,7 +346,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 }
                 log.debug('4trandate', order_trandate);
 
-                var enabled_sites_arr = ['AmazonUK', 'AmazonDE', ]
 
                 // 转换成店铺当地时区
                 if (enabled_sites == 'Amazon US') {
@@ -374,7 +392,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         fieldId: 'trandate',
                         text: interfun.getFormatedDate("", "", order_trandate).date
                     });
-
+                 
                     ord.setText({
                         fieldId: 'custbody_dps_local_dt',
                         text: format.format({
@@ -426,6 +444,16 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     fieldId: 'custbody_amazon_purchase_date',
                     value: o.purchase_date
                 });
+                //设置亚马逊订单状态
+                ord.setValue({
+                    fieldId: 'custbody_amazon_order_status',
+                    value: ord_status[o.order_status]
+                });
+                //设置订单的类型 AFN/MFN
+                ord.setValue({
+                    fieldId: 'custbody_order_type',
+                    value: ord_type[o.fulfillment_channel]   
+                });
                 log.debug('5currency：' + typeof (currency_id), currency_id);
                 ord.setValue({
                     fieldId: 'currency',
@@ -451,8 +479,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
 
             } else {
-
-
                 // 转换成店铺当地时区
                 if (enabled_sites == 'Amazon US') {
                     // 美国站点
@@ -545,9 +571,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         })
                     });
                 }
-
                 log.debug('o.order_lastupdate11', order_lastupdate);
-
                 if (ord.getValue('orderstatus') == 'A' && ['Pending', 'Canceled', 'Unfulfillable'].indexOf(o.order_status) > -1) {
                     /** 如果有地址，替换掉原来的临时地址 */
                     if (o.shipping_address && o.buyer_email) {
@@ -647,16 +671,15 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         }
                     }
                 }
-
                 var pay_ord;
                 if (o.order_status == "Shipped") {
-                    pay_ord = 3
+                    pay_ord = 3;
                 } else if (o.order_status == "Pending") {
-                    pay_ord = 1
+                    pay_ord = 1;
                 } else if (o.order_status == "Canceled") {
-                    pay_ord = 5
+                    pay_ord = 5;
                 } else {
-                    pay_ord = 2
+                    pay_ord = 2;
                 }
 
                 // set payment status
@@ -667,14 +690,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     })
                 }
 
-
-                // set payment status
-                if (pay_ord) {
-                    ord.setValue({
-                        fieldId: 'custbody_payment_state',
-                        value: pay_ord
-                    })
-                }
                 // set LAST UPDATE DATE
                 ord.setValue({
                     fieldId: 'custbody_aio_s_l_u_date',
@@ -898,8 +913,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         value: 0
                     });
                 }
-                shipping_cost += line.shipping_price + line.shipping_tax;
-                discount_rate += Number(line.shipping_discount) + Number(line.promotion_discount);
 
                 try {
                     ord.commitLine({
@@ -967,6 +980,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     order_location = ship_loca_id;
                 }
             }
+          
             log.debug('31-2order_location', order_location);
             ord.setValue({
                 fieldId: 'location',
@@ -1063,7 +1077,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         ignoreMandatoryFields: true
                     });
                     log.debug('订单生成成功', soId);
-
+                    if(o.order_status == 'Canceled'){
+                        transaction.void({
+                            type: 'salesorder',
+                            id: soId   
+                        });
+                    }
                     if (o.fulfillment_channel == 'MFN') {
                         //     // 创建相应的发货记录
                         //     var ful_rec = createFulfillmentRecord(soid, itemAry);

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-06 13:57:10
- * @LastEditTime   : 2020-06-18 13:48:09
+ * @LastEditTime   : 2020-07-02 18:05:16
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.map.js
@@ -24,13 +24,14 @@ define(['N/search', 'N/record', 'N/email', 'N/runtime', 'N/error', 'N/email'],
             var body = 'An error occurred with the following information:\n' +
                 'Error code: ' + e.name + '\n' +
                 'Error msg: ' + e.message;
-
+            /*
             email.send({
                 author: author,
                 recipients: recipients,
                 subject: subject,
                 body: body
             });
+            */
         }
 
         function handleErrorIfAny(summary) {

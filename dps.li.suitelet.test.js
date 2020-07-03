@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-02 17:24:50
+ * @LastEditTime   : 2020-07-03 12:11:24
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -15,8 +15,8 @@
  *@NScriptType Suitelet
  */
 define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/runtime',
-    './douples_amazon/Helper/core.min', 'N/http', 'N/ui/serverWidget'
-], function (task, log, search, record, file, currency, runtime, core, http, serverWidget) {
+    './douples_amazon/Helper/core.min', 'N/http', 'N/ui/serverWidget', "./Rantion/Helper/logistics_cost_calculation"
+], function (task, log, search, record, file, currency, runtime, core, http, serverWidget, costCal) {
 
     function onRequest(context) {
 
@@ -277,9 +277,116 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
         }
 
 
-        var startTime, endTime;
+        /**
+         * 计算预估运费
+         * @param {*} Rec 
+         */
+        function getCost(Rec) {
+
+            var limit = 3999;
+            var rec_country, serverID,
+                cost = 0,
+                allWeight,
+                city,
+                to_location,
+                zip;
+
+            log.audit("serverID rec_country city to_location allWeight", serverID + '-' + rec_country + '-' + city + '-' + to_location + '-' + allWeight);
+
+
+            search.create({
+                type: Rec.type,
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: [Rec.id]
+                }],
+                columns: [
+                    "custrecord_dps_recipient_country_dh", // country
+                    "custrecord_dps_recipient_city_dh", // City
+                    "custrecord_dps_recipien_code_dh", // zip
+                    "custrecord_dps_shipping_rec_country_regi", // Country Code
+                    "custrecord_dps_shipping_rec_to_location", // 目标仓库
+                    "custrecord_dps_shipping_r_channelservice", // 服务Id
+                ]
+            }).run().each(function (rec) {
+                rec_country = rec.getValue("custrecord_dps_shipping_rec_country_regi") ? rec.getValue("custrecord_dps_shipping_rec_country_regi") : "";
+                city = rec.getValue('custrecord_dps_recipient_city_dh') ? rec.getValue('custrecord_dps_recipient_city_dh') : "";
+                zip = rec.getValue('custrecord_dps_recipien_code_dh') ? rec.getValue('custrecord_dps_recipien_code_dh') : "";
+                to_location = rec.getValue('custrecord_dps_shipping_rec_to_location') ? rec.getValue('custrecord_dps_shipping_rec_to_location') : "";
+                serverID = rec.getValue("custrecord_dps_shipping_r_channelservice");
+            });
+
+
+
+            var numLines = Rec.getLineCount({
+                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec'
+            });
+            var allWeight = 0;
+            for (var i = 0; i < numLines; i++) {
+                var item = Rec.getSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_shipping_record_item',
+                    line: i
+                });
+                var quantity = Rec.getSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_ship_record_item_quantity',
+                    line: i
+                })
+                search.create({
+                    type: 'item',
+                    filters: [{
+                        name: 'internalId',
+                        operator: 'anyof',
+                        values: item
+                    }, ],
+                    columns: [{
+                        name: 'custitem_dps_heavy2'
+                    }]
+                }).run().each(function (skurec) {
+                    var weight = skurec.getValue("custitem_dps_heavy2")
+                    if (quantity) allWeight += Number(weight) * Number(quantity)
+                    return true;
+                });
+            }
+
+
+            log.audit("serverID rec_country city to_location allWeight", serverID + '-' + rec_country + '-' + city + '-' + to_location + '-' + allWeight);
+            // if (serverID)
+            cost = costCal.calculation(serverID, rec_country, zip, allWeight, '', '', '', city, '', to_location, '', '');
+            log.audit("cost", cost);
+
+            // 设置预估运费
+            var id = record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: Rec.id,
+                values: {
+                    custrecord_dps_shipping_rec_estimatedfre: cost,
+                }
+            });
+
+            return cost || false;
+        }
+
+
+
+        var startTime, endTime, cost;
         try {
 
+
+
+            var loadRec = record.load({
+                type: 'customrecord_dps_shipping_record',
+                id: 9
+            });
+
+
+            cost = getCost(loadRec);
+            log.debug('cost');
+
+
+            /*
             startTime = new Date().getTime();
             log.debug('startTime', startTime);
 

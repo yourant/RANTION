@@ -1,4 +1,3 @@
-
 /**
  * @NApiVersion 2.x
  * @NScriptType ClientScript
@@ -20,7 +19,7 @@ define(['N/search', 'N/record'],
          * @since 2015.2
          */
         function pageInit(scriptContext) {
-               return true 
+            return true
         }
 
         /**
@@ -36,26 +35,34 @@ define(['N/search', 'N/record'],
          * @since 2015.2
          */
         function fieldChanged(scriptContext) {
-            var curr = scriptContext.currentRecord;  
+            var curr = scriptContext.currentRecord;
             //如果更改字段是参数 
-            if(scriptContext.fieldId =="entity"){
-                var entity = curr.getValue('entity'),loca,acc; 
+            if (scriptContext.fieldId == "entity") {
+                var entity = curr.getValue('entity'),
+                    loca, acc;
                 search.create({
-                    type:"customrecord_aio_account",
-                    filters:[
-                        "custrecord_aio_customer","anyof",entity
-                    ],columns:["custrecord_aio_fbaorder_location"]
-                }).run().each(function(e){
-                    acc=e.id    
+                    type: "customrecord_aio_account",
+                    filters: [
+                        "custrecord_aio_customer", "anyof", entity
+                    ],
+                    columns: ["custrecord_aio_fbaorder_location"]
+                }).run().each(function (e) {
+                    acc = e.id
                     loca = e.getValue(e.columns[0])
-                })  
-                console.log("location:",loca)
-                if(acc)
-                curr.setValue({fieldId:"custbody_sotck_account",value:acc})
-                if(loca)
-                curr.setValue({fieldId:"location",value:Number(loca)})
+                })
+                console.log("location:", loca)
+                if (acc)
+                    curr.setValue({
+                        fieldId: "custbody_sotck_account",
+                        value: acc
+                    })
+                if (loca)
+                    curr.setValue({
+                        fieldId: "location",
+                        value: Number(loca)
+                    })
             }
-            return true 
+            return true
         }
 
         /**
@@ -69,7 +76,7 @@ define(['N/search', 'N/record'],
          * @since 2015.2
          */
         function postSourcing(scriptContext) {
-            return true 
+            return true
         }
 
         /**
@@ -82,7 +89,7 @@ define(['N/search', 'N/record'],
          * @since 2015.2
          */
         function sublistChanged(scriptContext) {
-            return true 
+            return true
         }
 
         /**
@@ -95,7 +102,7 @@ define(['N/search', 'N/record'],
          * @since 2015.2
          */
         function lineInit(scriptContext) {
-            return true 
+            return true
         }
 
         /**
@@ -113,9 +120,66 @@ define(['N/search', 'N/record'],
          * @since 2015.2
          */
         function validateField(scriptContext) {
-                   
+
+            // console.log('scriptContext.fieldId', scriptContext.fieldId);
+            if (scriptContext.fieldId == "item") { // 根据选择的店铺和货品获取对应的 SellerSKU
+
+                var CurRec = scriptContext.currentRecord;
+
+                var account = CurRec.getValue('custbody_sotck_account'); // 店铺
+                var itemId = CurRec.getCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                });
+
+                var sku;
+                if (itemId && account) {
+                    sku = searchSKU(itemId, account);
+                }
+                if (sku) {
+                    CurRec.setCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'custcol_aio_amazon_msku',
+                        value: sku,
+                        ignoreFieldChange: true
+                    });
+                }
+            }
+
             return true;
         }
+
+
+        /**
+         * 根据店铺和货品的对应关系获取 SellerSKU
+         * @param {*} itemId 
+         * @param {*} account 
+         */
+        function searchSKU(itemId, account) {
+            var SellerSku;
+            search.create({
+                type: "customrecord_aio_amazon_seller_sku",
+                filters: [{
+                        name: 'custrecord_ass_sku',
+                        operator: 'anyof',
+                        values: [itemId]
+                    },
+                    {
+                        name: 'custrecord_ass_account',
+                        operator: 'anyof',
+                        values: account
+                    }
+                ],
+                columns: [
+                    "name"
+                ]
+            }).run().each(function (rec) {
+                SellerSku = rec.getValue('name');
+            });
+
+            return SellerSku || false;
+        }
+
 
         /**
          * Validation function to be executed when sublist line is committed.

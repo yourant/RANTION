@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-02 15:50:12
+ * @LastEditTime   : 2020-07-03 15:42:54
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -416,7 +416,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         // log.debug('item.itemId: ' + item.itemId, "it: " + it);
 
                         if (item.itemId == it) {
-
                             item.asin = rec.getValue("custrecord_ass_asin");
                             item.fnsku = rec.getValue("custrecord_ass_fnsku")
                             item.msku = rec.getValue('name');

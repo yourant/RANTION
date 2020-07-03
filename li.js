@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-07-02 17:50:39
+ * @LastEditTime   : 2020-07-02 17:57:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
@@ -11,9 +11,9 @@
 
 
 /**
- * 
- * @param {*} recType 
- * @param {*} recId 
+ * 履行调拨单
+ * @param {*} recType 记录类型
+ * @param {*} recId 记录ID
  */
 function fulTranOrder(recType, recId) {
 

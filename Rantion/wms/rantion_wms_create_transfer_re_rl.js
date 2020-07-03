@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-06-24 14:41:40
+ * @LastEditTime   : 2020-07-03 16:29:31
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -287,12 +287,14 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 sublistId: 'item',
                 fieldId: 'item',
                 line: i,
-            });
+            }); //  获取货品ID
 
             log.debug('treItem', treItem);
 
             for (var j = 0, len = poItem.length; j < len; j++) {
                 var a = poItem[j];
+                log.debug('a', a);
+                log.debug('itemId: ' + a.itemId, treItem == a.itemId);
 
                 if (treItem == a.itemId) {
                     var qty = a.qty;
@@ -304,19 +306,22 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
             log.debug('totalQty', totalQty);
 
-            objRecord.setSublistValue({
-                sublistId: 'item',
-                fieldId: 'quantity',
-                line: i,
-                value: totalQty
-            });
+            if (totalQty > 0) {
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'quantity',
+                    line: i,
+                    value: totalQty
+                });
 
-            objRecord.setSublistValue({
-                sublistId: 'item',
-                fieldId: 'itemreceive',
-                value: true,
-                line: i
-            });
+                objRecord.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'itemreceive',
+                    value: true,
+                    line: i
+                });
+
+            }
 
         }
         var objRecord_id = objRecord.save();

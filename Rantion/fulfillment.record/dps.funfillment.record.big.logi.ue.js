@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-02 15:48:09
+ * @LastEditTime   : 2020-07-03 17:09:36
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -611,7 +611,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                                 recValue.custrecord_dps_shipping_rec_status = 17;
                                 recValue.custrecord_dps_shipment_label_file = fileObj_id;
-                                if (add.length > 0) {
+
+                                if (add && add.length > 0) {
 
                                     recValue.custrecord_dps_recpir_flag = add ? add : '';
 
@@ -660,7 +661,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     values: recValue
                                 });
 
-                                var id = record.attach({
+                                log.debug('id', id);
+
+                                var atid = record.attach({
                                     record: {
                                         type: 'file',
                                         id: fileObj_id
@@ -670,13 +673,23 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         id: af_rec.id
                                     }
                                 });
-                                log.debug('id', id);
+                                log.debug('atid', atid);
+                                var channel_dealer = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer');
+
+                                if (channel_dealer == 6) { // 渠道为龙舟的, 获取到标签文件之后, 直接推送标签文件给WMS
+                                    labelToWMS(af_rec);
+                                }
+
+
                             }
 
                         }
 
                     }
 
+                    if (shipment_label_file) {
+                        labelToWMS(af_rec);
+                    }
                     var channel_dealer = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer');
                     if (!logistics_no && channel_dealer == 1) {
                         log.debug('pushOrder Start', '不存在物流运单号');
@@ -702,6 +715,96 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     }
 
+
+    /**
+     * 搜索并创建城市记录
+     * @param {*} City 
+     */
+    function searchCreateCity(City) {
+
+        var cityId;
+        search.create({
+            type: 'customrecord_dps_port',
+            filters: [{
+                name: 'name',
+                operator: 'is',
+                values: City
+            }]
+        }).run().each(function (rec) {
+            cityId = rec.id;
+        });
+
+        if (!cityId) {
+            var newCi = record.create({
+                type: 'customrecord_dps_port'
+            });
+
+            newCi.setValue({
+                fieldId: 'name',
+                value: City
+            });
+
+            cityId = newCi.save();
+        }
+
+        return cityId || false;
+    }
+
+
+
+    /**
+     * 搜索或创建国家记录
+     * @param {*} CountryCode 
+     */
+    function searchCreateCountry(CountryCode) {
+        var countryId;
+        search.create({
+            type: 'customrecord_country_code',
+            filters: [{
+                name: 'custrecord_cc_country_code',
+                operator: 'is',
+                values: CountryCode
+            }]
+        }).run().each(function (rec) {
+            countryId = rec.id;
+        });
+
+        if (!countryId) {
+            search.create({
+                type: 'customrecord_country_code',
+                filters: [{
+                    name: "custrecord_cc_country_name_en",
+                    operator: 'is',
+                    values: CountryCode
+                }]
+            }).run().each(function (rec) {
+                countryId = rec.id;
+            });
+            var newCode = record.create({
+                type: 'customrecord_country_code'
+            });
+
+            newCode.setValue({
+                fieldId: 'name',
+                value: CountryCode
+            });
+
+            newCode.setValue({
+                fieldId: 'custrecord_cc_country_code',
+                value: CountryCode
+            });
+            newCode.setValue({
+                fieldId: 'custrecord_cc_country_name_en',
+                value: CountryCode
+            });
+
+            countryId = newCode.save();
+
+            log.debug('countryId', countryId);
+        }
+
+        return countryId || false;
+    }
 
 
     function setRecValue(newArr) {
@@ -1019,7 +1122,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         name: 'custitem_dps_declaration_us',
                         join: 'custrecord_dps_shipping_record_item'
                     }, // 产品英文标题,
-
                     {
                         name: 'custitem_dps_use',
                         join: 'custrecord_dps_shipping_record_item'
@@ -1301,6 +1403,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
             fileId = rec.getValue('custrecord_dps_shipment_label_file');
 
+
             service_code = rec.getValue("custrecord_dps_shipping_r_channelservice");
             channelservice = rec.getText('custrecord_dps_shipping_r_channelservice');
             channel_dealer = rec.getText('custrecord_dps_shipping_r_channel_dealer');
@@ -1310,8 +1413,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
         log.debug('Label: ', Label);
 
-        // 属于自营仓调拨
-        if (Label && tranType == 1) {
+        // 属于FBA调拨
+        if (Label && tranType == 1 && channel_dealer_id == 1) {
             // 存在面单文件
             var url;
             if (tranType == 1 && fileId) {
@@ -1841,7 +1944,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         }
         if (shipment_id) {
             flag = false;
-            values.custrecord_dps_shipping_rec_logistics_no = shipment_id;
+            values.custrecord_dps_shipping_rec_logistics_no = shipment_id; // 物流运单号
+            values.custrecord_dps_ship_trackingnumber_dh = shipment_id; // 物流跟踪单号
             values.custrecord_dps_shipping_rec_status = 21; // 推送物流成功, 状态更改为 等待获取面单文件
         }
         if (trackingNumber) {

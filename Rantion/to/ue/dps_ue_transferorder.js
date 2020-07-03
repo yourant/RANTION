@@ -1,3 +1,13 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-06-08 22:51:44
+ * @LastEditTime   : 2020-07-03 16:10:42
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\to\ue\dps_ue_transferorder.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */ 
 /**
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
@@ -11,13 +21,21 @@ define(['N/search', 'N/record'], function (search, record) {
 
     function beforeSubmit(context) {
         var newRec = context.newRecord;
-        var line = newRec.getLineCount({ sublistId: 'item' })
+        var line = newRec.getLineCount({
+            sublistId: 'item'
+        })
         for (var i = 0; i < line; i++) {
-            var quantity = newRec.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i })
+            var quantity = newRec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantity',
+                line: i
+            });
+
+            log.debug("quantity: " + quantity, "Number(quantity): " + Number(quantity));
             newRec.setSublistValue({
                 sublistId: 'item',
                 fieldId: 'custcol_dps_unocc_po_quantity',
-                value: quantity,
+                value: Number(quantity),
                 line: i
             });
         }
@@ -33,12 +51,22 @@ define(['N/search', 'N/record'], function (search, record) {
         var type = context.type;
         if (type == "create") {
             var subsidiary = newRec.getValue('subsidiary')
-            var line = newRec.getLineCount({ sublistId: 'item' })
+            var line = newRec.getLineCount({
+                sublistId: 'item'
+            })
             var itemArray = new Array()
             var itemJson = {}
             for (var i = 0; i < line; i++) {
-                var item = newRec.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i })
-                var quantity = newRec.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i })
+                var item = newRec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    line: i
+                })
+                var quantity = newRec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'quantity',
+                    line: i
+                })
                 var exist = false
                 for (var j = 0; j < itemArray.length; j++) {
                     if (itemArray[j] == item) {
@@ -61,25 +89,88 @@ define(['N/search', 'N/record'], function (search, record) {
                 log.audit('itemArray', itemArray);
                 search.create({
                     type: 'purchaseorder',
-                    filters: [
-                        { name: "mainline", operator: "is", values: ["F"] },
-                        { name: "taxline", operator: "is", values: ["F"] },
-                        { name: "item", operator: "noneof", values: ["@NONE@"] },
-                        { name: "type", operator: "anyof", values: ["PurchOrd"] },
-                        { name: "custbody_dps_type", operator: "anyof", values: ["2"] },
-                        { name: "subsidiary", operator: "is", values: [subsidiary] },
-                        { name: "item", operator: "anyof", values: itemArray }
+                    filters: [{
+                            name: "mainline",
+                            operator: "is",
+                            values: ["F"]
+                        },
+                        {
+                            name: "taxline",
+                            operator: "is",
+                            values: ["F"]
+                        },
+                        {
+                            name: "item",
+                            operator: "noneof",
+                            values: ["@NONE@"]
+                        },
+                        {
+                            name: "type",
+                            operator: "anyof",
+                            values: ["PurchOrd"]
+                        },
+                        {
+                            name: "custbody_dps_type",
+                            operator: "anyof",
+                            values: ["2"]
+                        },
+                        {
+                            name: "subsidiary",
+                            operator: "is",
+                            values: [subsidiary]
+                        },
+                        {
+                            name: "item",
+                            operator: "anyof",
+                            values: itemArray
+                        }
                     ],
-                    columns: [
-                        { name: "datecreated", label: "日期", type: "date", sort: "ASC" },//0
-                        { name: "subsidiary", label: "子公司", type: "select" },//1
-                        { name: "custbody_dps_type", label: "采购订单类型", type: "select" },//2
-                        { name: "line", label: "行Id", type: "integer" },//3
-                        { name: "item", label: "货品名称", type: "select" },//4
-                        { name: "quantity", label: "采购数量", type: "float" },//5
-                        { name: "custcoltransferable_quantity", label: "可调拨数量", type: "float" },//6
-                        { name: "custcol_transferred_quantity", label: "已调拨数量", type: "float" },//7
-                        { name: "custcol_realted_transfer_detail", label: "关联调拨单号", type: "select" }//8
+                    columns: [{
+                            name: "datecreated",
+                            label: "日期",
+                            type: "date",
+                            sort: "ASC"
+                        }, //0
+                        {
+                            name: "subsidiary",
+                            label: "子公司",
+                            type: "select"
+                        }, //1
+                        {
+                            name: "custbody_dps_type",
+                            label: "采购订单类型",
+                            type: "select"
+                        }, //2
+                        {
+                            name: "line",
+                            label: "行Id",
+                            type: "integer"
+                        }, //3
+                        {
+                            name: "item",
+                            label: "货品名称",
+                            type: "select"
+                        }, //4
+                        {
+                            name: "quantity",
+                            label: "采购数量",
+                            type: "float"
+                        }, //5
+                        {
+                            name: "custcoltransferable_quantity",
+                            label: "可调拨数量",
+                            type: "float"
+                        }, //6
+                        {
+                            name: "custcol_transferred_quantity",
+                            label: "已调拨数量",
+                            type: "float"
+                        }, //7
+                        {
+                            name: "custcol_realted_transfer_detail",
+                            label: "关联调拨单号",
+                            type: "select"
+                        } //8
                     ]
                 }).run().each(function (rec) {
                     var value = {
@@ -105,13 +196,20 @@ define(['N/search', 'N/record'], function (search, record) {
             var status;
             search.create({
                 type: 'transferorder',
-                filters: [
-                    { name: "mainline", operator: "is", values: ["T"] },
-                    { name: "internalId", operator: "is", values: newRec.id },
+                filters: [{
+                        name: "mainline",
+                        operator: "is",
+                        values: ["T"]
+                    },
+                    {
+                        name: "internalId",
+                        operator: "is",
+                        values: newRec.id
+                    },
                 ],
-                columns: [
-                    { name: "statusref" },
-                ]
+                columns: [{
+                    name: "statusref"
+                }, ]
             }).run().each(function (rec) {
                 status = rec.getValue(rec.columns[0]);
                 return false;
@@ -123,13 +221,27 @@ define(['N/search', 'N/record'], function (search, record) {
                 var detailJson = {}
                 search.create({
                     type: "customrecord_transfer_order_details",
-                    filters: [
-                        { name: 'custrecord_transfer_code', operator: 'is', values: newRec.id },
-                    ],
-                    columns: [
-                        { "name": "custrecord_transfer_quantity", "label": "调拨数量", "type": "float" },
-                        { "name": "internalid", "join": "CUSTRECORD__REALTED_TRANSFER_HEAD", "label": "内部标识", "type": "select" },
-                        { "name": "custrecord_transfer_code", "label": "转移单号", "type": "select" }
+                    filters: [{
+                        name: 'custrecord_transfer_code',
+                        operator: 'is',
+                        values: newRec.id
+                    }, ],
+                    columns: [{
+                            "name": "custrecord_transfer_quantity",
+                            "label": "调拨数量",
+                            "type": "float"
+                        },
+                        {
+                            "name": "internalid",
+                            "join": "CUSTRECORD__REALTED_TRANSFER_HEAD",
+                            "label": "内部标识",
+                            "type": "select"
+                        },
+                        {
+                            "name": "custrecord_transfer_code",
+                            "label": "转移单号",
+                            "type": "select"
+                        }
                     ]
                 }).run().each(function (rec) {
                     detailArray.push(rec.getValue(rec.columns[1]))
@@ -148,24 +260,83 @@ define(['N/search', 'N/record'], function (search, record) {
                     log.audit('detailJson', detailJson);
                     search.create({
                         type: 'purchaseorder',
-                        filters: [
-                            { name: "mainline", operator: "is", values: ["F"] },
-                            { name: "taxline", operator: "is", values: ["F"] },
-                            { name: "custcol_realted_transfer_detail", operator: "anyof", values: detailArray },
-                            { name: "item", operator: "noneof", values: ["@NONE@"] },
-                            { name: "type", operator: "anyof", values: ["PurchOrd"] },
-                            { name: "custbody_dps_type", operator: "anyof", values: ["2"] },
+                        filters: [{
+                                name: "mainline",
+                                operator: "is",
+                                values: ["F"]
+                            },
+                            {
+                                name: "taxline",
+                                operator: "is",
+                                values: ["F"]
+                            },
+                            {
+                                name: "custcol_realted_transfer_detail",
+                                operator: "anyof",
+                                values: detailArray
+                            },
+                            {
+                                name: "item",
+                                operator: "noneof",
+                                values: ["@NONE@"]
+                            },
+                            {
+                                name: "type",
+                                operator: "anyof",
+                                values: ["PurchOrd"]
+                            },
+                            {
+                                name: "custbody_dps_type",
+                                operator: "anyof",
+                                values: ["2"]
+                            },
                         ],
-                        columns: [
-                            { name: "datecreated", label: "日期", type: "date", sort: "DESC" },//0
-                            { name: "subsidiary", label: "子公司", type: "select" },//1
-                            { name: "custbody_dps_type", label: "采购订单类型", type: "select" },//2
-                            { name: "line", label: "行Id", type: "integer" },//3
-                            { name: "item", label: "货品名称", type: "select" },//4
-                            { name: "quantity", label: "采购数量", type: "float" },//5
-                            { name: "custcoltransferable_quantity", label: "可调拨数量", type: "float" },//6
-                            { name: "custcol_transferred_quantity", label: "已调拨数量", type: "float" },//7
-                            { name: "custcol_realted_transfer_detail", label: "关联调拨单号", type: "select" }//8
+                        columns: [{
+                                name: "datecreated",
+                                label: "日期",
+                                type: "date",
+                                sort: "DESC"
+                            }, //0
+                            {
+                                name: "subsidiary",
+                                label: "子公司",
+                                type: "select"
+                            }, //1
+                            {
+                                name: "custbody_dps_type",
+                                label: "采购订单类型",
+                                type: "select"
+                            }, //2
+                            {
+                                name: "line",
+                                label: "行Id",
+                                type: "integer"
+                            }, //3
+                            {
+                                name: "item",
+                                label: "货品名称",
+                                type: "select"
+                            }, //4
+                            {
+                                name: "quantity",
+                                label: "采购数量",
+                                type: "float"
+                            }, //5
+                            {
+                                name: "custcoltransferable_quantity",
+                                label: "可调拨数量",
+                                type: "float"
+                            }, //6
+                            {
+                                name: "custcol_transferred_quantity",
+                                label: "已调拨数量",
+                                type: "float"
+                            }, //7
+                            {
+                                name: "custcol_realted_transfer_detail",
+                                label: "关联调拨单号",
+                                type: "select"
+                            } //8
                         ]
                     }).run().each(function (rec) {
                         var value = {
@@ -260,7 +431,9 @@ define(['N/search', 'N/record'], function (search, record) {
                 type: 'customrecord_realted_transfer_head',
                 id: linkId
             });
-            var linkLine = linkRec.getLineCount({ sublistId: 'recmachcustrecord__realted_transfer_head' })
+            var linkLine = linkRec.getLineCount({
+                sublistId: 'recmachcustrecord__realted_transfer_head'
+            })
             linkRec.setSublistValue({
                 sublistId: 'recmachcustrecord__realted_transfer_head',
                 fieldId: 'custrecord_transfer_code',
@@ -277,8 +450,14 @@ define(['N/search', 'N/record'], function (search, record) {
         }
         //之前没有未占完的情况
         else {
-            var linkRec = record.create({ type: 'customrecord_realted_transfer_head', isDynamic: false });
-            linkRec.setValue({ fieldId: 'name', value: 'PO:' + poRec.getValue('tranid') + ":" + (PoLine + 1) })
+            var linkRec = record.create({
+                type: 'customrecord_realted_transfer_head',
+                isDynamic: false
+            });
+            linkRec.setValue({
+                fieldId: 'name',
+                value: 'PO:' + poRec.getValue('tranid') + ":" + (PoLine + 1)
+            })
             linkRec.setSublistValue({
                 sublistId: 'recmachcustrecord__realted_transfer_head',
                 fieldId: 'custrecord_transfer_code',
@@ -306,26 +485,66 @@ define(['N/search', 'N/record'], function (search, record) {
         var need = poRec.getValue('custbody_available_transferred_quantit')
         already = Number(already) + count
         need = Number(need) - count
-        poRec.setValue({ fieldId: 'custbody_transferred_quantity', value: already })
-        poRec.setValue({ fieldId: 'custbody_available_transferred_quantit', value: need })
+        poRec.setValue({
+            fieldId: 'custbody_transferred_quantity',
+            value: already
+        })
+        poRec.setValue({
+            fieldId: 'custbody_available_transferred_quantit',
+            value: need
+        })
         //更新行明细汇总
-        var alreadyL = poRec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_transferred_quantity', line: PoLine })
-        var needL = poRec.getSublistValue({ sublistId: 'item', fieldId: 'custcoltransferable_quantity', line: PoLine })
+        var alreadyL = poRec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcol_transferred_quantity',
+            line: PoLine
+        })
+        var needL = poRec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcoltransferable_quantity',
+            line: PoLine
+        })
         alreadyL = Number(alreadyL) + count
         needL = Number(needL) - count
-        poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_transferred_quantity', value: alreadyL, line: PoLine });
-        poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcoltransferable_quantity', value: needL, line: PoLine });
+        poRec.setSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcol_transferred_quantity',
+            value: alreadyL,
+            line: PoLine
+        });
+        poRec.setSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcoltransferable_quantity',
+            value: needL,
+            line: PoLine
+        });
         //更新可使用发票与已使用发票金额
         // //已开票
         // var alreadySum = Number(poRec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_invoiced_amount', line: PoLine }))
         //税率
-        var rate = poRec.getSublistValue({ sublistId: 'item', fieldId: 'taxrate1', line: PoLine })
+        var rate = poRec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'taxrate1',
+            line: PoLine
+        })
         //单价
-        var price = Number(poRec.getSublistValue({ sublistId: 'item', fieldId: 'rate', line: PoLine }))
+        var price = Number(poRec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'rate',
+            line: PoLine
+        }))
         //已使用发票
-        var alreadyUseSum = Number(poRec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_used_invoice_amount', line: PoLine }))
+        var alreadyUseSum = Number(poRec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcol_used_invoice_amount',
+            line: PoLine
+        }))
         //可使用发票
-        var alreadyCanUseSum = Number(poRec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_invoice_amount_available', line: PoLine }))
+        var alreadyCanUseSum = Number(poRec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcol_invoice_amount_available',
+            line: PoLine
+        }))
         //可使用汇总
         var allAlreadyCanUseSum = Number(poRec.getValue('custbody_available_invoice_amount'))
         var allAlreadyUseSum = Number(poRec.getValue('custbody_used_invoice_amount'))
@@ -334,10 +553,26 @@ define(['N/search', 'N/record'], function (search, record) {
         alreadyCanUseSum = alreadyCanUseSum - amount
         allAlreadyUseSum += amount
         allAlreadyCanUseSum = allAlreadyCanUseSum - amount
-        poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_invoice_amount_available', value: alreadyCanUseSum, line: PoLine });
-        poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_used_invoice_amount', value: alreadyUseSum, line: PoLine });
-        poRec.setValue({ fieldId: 'custbody_available_invoice_amount', value: allAlreadyCanUseSum })
-        poRec.setValue({ fieldId: 'custbody_used_invoice_amount', value: allAlreadyUseSum })
+        poRec.setSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcol_invoice_amount_available',
+            value: alreadyCanUseSum,
+            line: PoLine
+        });
+        poRec.setSublistValue({
+            sublistId: 'item',
+            fieldId: 'custcol_used_invoice_amount',
+            value: alreadyUseSum,
+            line: PoLine
+        });
+        poRec.setValue({
+            fieldId: 'custbody_available_invoice_amount',
+            value: allAlreadyCanUseSum
+        })
+        poRec.setValue({
+            fieldId: 'custbody_used_invoice_amount',
+            value: allAlreadyUseSum
+        })
         return poRec;
     }
 
@@ -407,11 +642,13 @@ define(['N/search', 'N/record'], function (search, record) {
             var momentCount = 0;
             search.create({
                 type: "customrecord_transfer_order_details",
-                filters: [
-                    { name: 'internalid', join: 'custrecord__realted_transfer_head', operator: 'is', values: linkId },
-                ],
-                columns: [
-                ]
+                filters: [{
+                    name: 'internalid',
+                    join: 'custrecord__realted_transfer_head',
+                    operator: 'is',
+                    values: linkId
+                }, ],
+                columns: []
             }).run().each(function (rec) {
                 momentCount += 1
                 return true;
@@ -439,15 +676,39 @@ define(['N/search', 'N/record'], function (search, record) {
             var need = poRec.getValue('custbody_available_transferred_quantit')
             already = Number(already) - count
             need = Number(need) + count
-            poRec.setValue({ fieldId: 'custbody_transferred_quantity', value: already })
-            poRec.setValue({ fieldId: 'custbody_available_transferred_quantit', value: need })
+            poRec.setValue({
+                fieldId: 'custbody_transferred_quantity',
+                value: already
+            })
+            poRec.setValue({
+                fieldId: 'custbody_available_transferred_quantit',
+                value: need
+            })
             //更新行明细汇总
-            var alreadyL = poRec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_transferred_quantity', line: PoLine })
-            var needL = poRec.getSublistValue({ sublistId: 'item', fieldId: 'custcoltransferable_quantity', line: PoLine })
+            var alreadyL = poRec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcol_transferred_quantity',
+                line: PoLine
+            })
+            var needL = poRec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcoltransferable_quantity',
+                line: PoLine
+            })
             alreadyL = Number(alreadyL) - count
             needL = Number(needL) + count
-            poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_transferred_quantity', value: alreadyL, line: PoLine });
-            poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcoltransferable_quantity', value: needL, line: PoLine });
+            poRec.setSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcol_transferred_quantity',
+                value: alreadyL,
+                line: PoLine
+            });
+            poRec.setSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcoltransferable_quantity',
+                value: needL,
+                line: PoLine
+            });
 
         }
         return poRec;
@@ -459,18 +720,33 @@ define(['N/search', 'N/record'], function (search, record) {
             type: 'transferorder',
             id: ToId
         });
-        var line = toRec.getLineCount({ sublistId: 'item' })
+        var line = toRec.getLineCount({
+            sublistId: 'item'
+        })
         var hasChange;
         for (var key in itemJson) {
             //占用完后剩余的数量
             var remainCount = itemJson[key]
             for (var i = 0; i < line; i++) {
-                var item = toRec.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i })
+                var item = toRec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    line: i
+                })
                 if (item == key) {
-                    var quantity = Number(toRec.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i }))
+                    var quantity = Number(toRec.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'quantity',
+                        line: i
+                    }))
                     if (quantity) {
                         if (quantity > remainCount) {
-                            toRec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', value: remainCount, line: i });
+                            toRec.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'custcol_dps_unocc_po_quantity',
+                                value: Number(remainCount),
+                                line: i
+                            });
                             itemJson[key] = 0
                             hasChange = true
                         } else {

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-25 22:21:51
- * @LastEditTime   : 2020-06-23 14:21:38
+ * @LastEditTime   : 2020-07-03 11:53:04
  * @LastEditors    : Li
  * @Description    : 搜索报关相关记录, 打印
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.show.print.sl.js
@@ -56,7 +56,7 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
 
                 log.debug('打印 tran_order', tran_order);
                 // var moduleXML = "SuiteScripts/Rantion/cux/Declaration_Information/xml/报关资料模版.xml";
-                var moduleXML = "../xml/报关资料模版.xml";
+                var moduleXML = "./xml/报关资料模版.xml";
 
                 var fileObj = tool.setModuleXMLValue(dec_info, moduleXML);
 

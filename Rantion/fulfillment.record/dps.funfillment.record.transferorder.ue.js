@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-02 15:47:50
+ * @LastEditTime   : 2020-07-03 16:05:01
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -18,8 +18,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     'SuiteScripts/dps/logistics/openapi/dps_openapi_request.js',
     'SuiteScripts/dps/logistics/yanwen/dps_yanwen_request.js',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
-    'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml", 'N/runtime', 'N/redirect', 'N/https', 'N/http'
-], function (record, search, core, log, http, jetstar, openapi, yanwen, endicia, Moment, file, xml, runtime, redirect, https, http) {
+    'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml", 'N/runtime', 'N/redirect', 'N/https', 'N/http', '../Helper/logistics_cost_calculation'
+], function (record, search, core, log, http, jetstar, openapi, yanwen, endicia, Moment, file, xml, runtime, redirect, https, http, costCal) {
 
     //  大货发运记录字段 - 地点需要带出的收件人信息字段   config
     const receiptInfo_corr = {
@@ -82,11 +82,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     }
 
     function beforeSubmit(context) {
-        var bsRec = context.newRecord;
-        bsRec.setValue({
-            fieldId: 'orderstatus',
-            value: 'B'
-        });
+        // var bsRec = context.newRecord;
+        // bsRec.setValue({
+        //     fieldId: 'orderstatus',
+        //     value: 'B'
+        // });
 
     }
 
@@ -181,7 +181,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var SellerSKU;
 
             if (rec_account) {
-
+                var lim2 = 3999;
                 // }
                 var ship_to_country_code = "",
                     address_id = {},
@@ -535,7 +535,17 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         }
 
                         try {
+                            // 计算预估运费
+
+                        } catch (error) {
+
+                        }
+
+                        try {
                             if (upresp) {
+
+
+                                // 推送 WMS
                                 wms(af_rec);
                             }
                         } catch (error) {
@@ -596,8 +606,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 发送请求
-     * @param {*} token 
-     * @param {*} data 
+     * @param {*} token
+     * @param {*} data
      */
     function sendRequest(token, data) {
 
@@ -632,7 +642,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 推送WMS
-     * @param {*} af_rec 
+     * @param {*} af_rec
      */
     function wms(af_rec) {
         // 推送 WMS, 获取装箱信息
@@ -1014,54 +1024,31 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
             if (tranType == 1) {
                 var new_limit = 3999;
+
                 search.create({
-                    type: 'customrecord_dps_amazon_seller_sku',
+                    type: "customrecord_aio_amazon_seller_sku",
                     filters: [{
-                            name: "custrecord_dps_amazon_ns_sku",
+                            name: 'custrecord_ass_sku',
                             operator: 'anyof',
                             values: itemArr
                         },
                         {
-                            name: 'custrecord_dps_amazon_sku_account',
+                            name: 'custrecord_ass_account',
                             operator: 'anyof',
                             values: fbaAccount
                         }
                     ],
-                    columns: [{
-                            name: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "custrecord_dps_amazon_ns_sku",
-                        },
-                        {
-                            name: "custrecord_ass_asin",
-                            join: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "name",
-                            join: "custrecord_dps_amazon_sku_number",
-                        },
-                        {
-                            name: "custrecord_ass_fnsku",
-                            join: "custrecord_dps_amazon_sku_number",
-                        }
+                    columns: [
+                        "name", "custrecord_ass_asin", "custrecord_ass_fnsku", "custrecord_ass_sku"
                     ]
                 }).run().each(function (rec) {
 
-                    var it = rec.getValue('custrecord_dps_amazon_ns_sku');
+                    var it = rec.getValue('custrecord_ass_sku');
                     item_info.forEach(function (item, key) {
                         if (item.itemId == it) {
-
-                            item.asin = rec.getValue({
-                                name: "custrecord_ass_asin",
-                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                            });
-                            item.fnsku = rec.getValue({
-                                name: "custrecord_ass_fnsku",
-                                join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-                            })
-                            item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
-
+                            item.asin = rec.getValue("custrecord_ass_asin");
+                            item.fnsku = rec.getValue("custrecord_ass_fnsku");
+                            item.msku = rec.getValue('name');
                             newItemInfo.push(item);
                         }
                     });
@@ -1114,7 +1101,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 创建大货发运记录
-     * @param {*} rec 
+     * @param {*} rec
      */
     function createFulRecord(rec) {
         var objRecord;
@@ -1166,8 +1153,99 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             value: Number(tran_type)
         });
         var s;
+        // 渠道商
+        var channel_dealer = rec.getValue('custbody_dps_transferor_channel_dealer');
+        var channelservice = rec.getValue('custbody_dps_transferor_channelservice');
+        var target_loca = rec.getValue('custbody_actual_target_warehouse')
+        var city;
+        var location = target_loca;
+
+        var numLines = rec.getLineCount({
+            sublistId: 'item'
+        });
+        var allWeight = 0;
+        for (var i = 0; i < numLines; i++) {
+            var item = rec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'item',
+                line: i
+            });
+            var quantity = rec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantity',
+                line: i
+            })
+            search.create({
+                type: 'item',
+                filters: [{
+                    name: 'internalId',
+                    operator: 'anyof',
+                    values: item
+                }, ],
+                columns: [{
+                    name: 'custitem_dps_heavy2'
+                }]
+            }).run().each(function (skurec) {
+                var weight = skurec.getValue("custitem_dps_heavy2")
+                if (quantity) allWeight += Number(weight) * Number(quantity)
+                return true;
+            });
+        }
+
         if (tran_type) {
-            if (tran_type == 2) { // 2	自营仓调拨
+            if (tran_type == 2 && channelservice) { // 2	自营仓调拨
+                var limit = 3999;
+                var rec_country, serverID = channelservice,
+                    cost = 0;
+                var zip;
+                log.audit("serverID rec_country city location allWeight", serverID + '-' + rec_country + '-' + city + '-' + location + '-' + allWeight);
+                // search.create({
+                //     type: "customrecord_country_code",
+                //     filters: [{
+                //         name: "internalid",
+                //         operator: "anyof",
+                //         values: target_loca
+                //     }],
+                //     columns: [ {
+                //         name: "custrecord_cc_country_code"
+                //     }
+                //     ]
+                // }).run().each(function (e) {
+                //     // city = e.getValue('custrecord_aio_sender_city');
+                //     rec_country = e.getValue('custrecord_cc_country_code');
+                //     return true;
+                // })
+                search.create({
+                    type: 'location',
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: target_loca
+                    }],
+                    columns: [{
+                        name: "custrecord_aio_sender_city"
+                    }, {
+                        name: 'custrecord_cc_country_code',
+                        join: 'custrecord_aio_country_sender'
+                    }, 'custrecord_aio_sender_address_code']
+                }).run().each(function (e) {
+                    // city = e.getValue('custrecord_aio_sender_city');
+                    city = e.getValue('custrecord_aio_sender_city');
+                    zip = e.getValue('custrecord_aio_sender_address_code');
+                    rec_country = e.getValue({
+                        name: 'custrecord_cc_country_code',
+                        join: 'custrecord_aio_country_sender'
+                    });
+                    return true;
+                })
+
+                log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + location);
+                cost = costCal.calculation(serverID, rec_country, zip, allWeight, '', '', '', city, '', location, '', '');
+                log.audit("cost", cost);
+                objRecord.setValue({
+                    fieldId: 'custrecord_dps_shipping_rec_estimatedfre',
+                    value: cost
+                });
                 s = 3;
             } else if (tran_type == 1) { // 1	FBA调拨
                 s = 9;
@@ -1194,7 +1272,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 });
             }
         }
-        var target_loca = rec.getValue('custbody_actual_target_warehouse')
+
         if (tran_type == 2 || tran_type == 3) {
             // 2020.6.10 16:50
 
@@ -1242,13 +1320,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             fieldId: 'custrecord_dps_shipping_rec_department',
             value: rec.getValue('department')
         });
-        // 渠道商
-        var channel_dealer = rec.getValue('custbody_dps_transferor_channel_dealer');
+
+
         objRecord.setValue({
             fieldId: 'custrecord_dps_shipping_r_channel_dealer',
             text: channel_dealer
         });
-        var channelservice = rec.getValue('custbody_dps_transferor_channelservice');
+
         objRecord.setValue({
             fieldId: 'custrecord_dps_shipping_r_channelservice',
             text: channelservice
@@ -1326,9 +1404,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             value: weight
         });
         var employee = rec.getValue('employee');
-        var numLines = rec.getLineCount({
-            sublistId: 'item'
-        });
+
         // 渠道商
         objRecord.setValue({
             fieldId: 'custrecord_dps_shipping_r_channel_dealer',
@@ -1502,9 +1578,100 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         return objRecord_id || false;
     }
 
+
+
+
+
+    /**
+     * 计算预估运费
+     * @param {*} Rec 
+     */
+    function getCost(Rec) {
+
+        var limit = 3999;
+        var rec_country, serverID = channelservice,
+            cost = 0,
+            allWeight,
+            city,
+            to_location,
+            zip;
+
+        log.audit("serverID rec_country city to_location allWeight", serverID + '-' + rec_country + '-' + city + '-' + to_location + '-' + allWeight);
+
+
+        search.create({
+            type: Rec.type,
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: [Rec.id]
+            }],
+            columns: [
+                "custrecord_dps_recipient_country_dh", // country
+                "custrecord_dps_recipient_city_dh", // City
+                "custrecord_dps_recipien_code_dh", // zip
+                "custrecord_dps_shipping_rec_country_regi", // Country Code
+                "custrecord_dps_shipping_rec_to_location", // 目标仓库
+            ]
+        }).run().each(function (rec) {
+            rec_country = rec.getValue("custrecord_dps_shipping_rec_country_regi");
+            city = rec.getValue('custrecord_dps_recipient_city_dh');
+            zip = rec.getValue('custrecord_dps_recipien_code_dh');
+            to_location = rec.getValue('custrecord_dps_shipping_rec_to_location');
+        });
+
+
+
+        var numLines = Rec.getLineCount({
+            sublistId: 'recmachcustrecord_dps_shipping_record_parentrec'
+        });
+        var allWeight = 0;
+        for (var i = 0; i < numLines; i++) {
+            var item = rec.getSublistValue({
+                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                fieldId: 'custrecord_dps_shipping_record_item',
+                line: i
+            });
+            var quantity = rec.getSublistValue({
+                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                fieldId: 'quantity',
+                line: i
+            })
+            search.create({
+                type: 'item',
+                filters: [{
+                    name: 'internalId',
+                    operator: 'anyof',
+                    values: item
+                }, ],
+                columns: [{
+                    name: 'custitem_dps_heavy2'
+                }]
+            }).run().each(function (skurec) {
+                var weight = skurec.getValue("custitem_dps_heavy2")
+                if (quantity) allWeight += Number(weight) * Number(quantity)
+                return true;
+            });
+        }
+
+
+        log.audit("serverID rec_country city to_location", serverID + '-' + rec_country + '-' + city + '-' + to_location);
+        cost = costCal.calculation(serverID, rec_country, zip, allWeight, '', '', '', city, '', to_location, '', '');
+        log.audit("cost", cost);
+
+        // 设置预估运费
+        var id = record.submitFields({
+            type: 'customrecord_dps_shipping_record',
+            id: Rec.id,
+            values: {
+                custrecord_dps_shipping_rec_estimatedfre: cost,
+            }
+        });
+    }
+
     /**
      * 获取货品的所有重量
-     * @param {*} rec 
+     * @param {*} rec
      */
     function getItemWeight(rec) {
         var weight = 0;

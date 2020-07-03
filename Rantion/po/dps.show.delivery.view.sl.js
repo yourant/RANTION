@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-02 14:49:38
- * @LastEditTime   : 2020-07-02 15:18:54
+ * @LastEditTime   : 2020-07-02 19:10:56
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps.show.delivery.view.sl.js
@@ -28,7 +28,13 @@ define(['N/search', 'N/ui/serverWidget', 'N/log', 'N/runtime'], function (search
 
     function InitUI(vendorId) {
 
+        var form = serverWidget.createForm({
+            title: '交货单'
+        });
 
+        
+
+        var limit = 3999;
 
         search.create({
             type: "customrecord_dps_delivery_order",
@@ -49,6 +55,9 @@ define(['N/search', 'N/ui/serverWidget', 'N/log', 'N/runtime'], function (search
             ]
         }).run().each(function (rec) {
 
+
+
+            return --limit > 0;
         })
     }
     return {

@@ -144,6 +144,7 @@ define(['N/search', 'N/record'], function (search, record) {
             type: 'transferorder',
             filters: [
                 { "name": "mainline", "operator": "is", "values": ["F"] },
+                { "name": "taxline", "operator": "is", "values": ["F"] },
                 { "name": "type", "operator": "anyof", "values": ["TrnfrOrd"] },
                 { "name": "transactionlinetype", "operator": "anyof", "values": ["ITEM"] },
                 { "name": "status", "operator": "noneof", "values": ["TrnfrOrd:H"] },
@@ -166,6 +167,7 @@ define(['N/search', 'N/record'], function (search, record) {
                 itemJSon[item] = new Array()
             }
             itemJSon[item].push({
+                itemId: item,
                 toCount: quantity,
                 toId: toId,
                 toLine: toLine
@@ -221,15 +223,27 @@ define(['N/search', 'N/record'], function (search, record) {
         for (var key in toConsumeJson) {
             var rec = record.load({
                 type: 'transferorder',
-                id: key
+                id: key,
+                isDynamic: false
             });
-            var toLineInfoArray = toConsumeJson[key]
+            var toLineInfoArray = toConsumeJson[key];
+            log.debug('toConsumeJson', JSON.stringify(toConsumeJson));
             for (var i in toLineInfoArray) {
                 var line = toLineInfoArray[i].line
                 var count = toLineInfoArray[i].count
-                var nowCount = Number(rec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', line: line }))
+                var itemId = toLineInfoArray[i].item;
+
+                var lineNumber = rec.findSublistLineWithValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    value: itemId
+                });
+                   
+                // var nowCount = Number(rec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', line: line }))
+                var nowCount = Number(rec.getSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', line: lineNumber }));
                 var remainCount = nowCount - count
-                rec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', value: remainCount, line: line });
+                // rec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', value: remainCount, line: line });
+                rec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', value: remainCount, line: lineNumber });
             }
             rec.save();
         }

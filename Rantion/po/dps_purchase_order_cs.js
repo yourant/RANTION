@@ -2,7 +2,8 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(["N/currentRecord", "N/https", "N/ui/dialog", 'N/record', 'N/search', 'N/url'], function (currentRecord, https, dialog, record, search, url) {
+define(['N/currentRecord', 'N/https', 'N/ui/dialog', 'N/record', 'N/search', 'N/url'],
+function (currentRecord, https, dialog, record, search, url) {
 
     function pageInit(context) {
 
@@ -48,46 +49,31 @@ define(["N/currentRecord", "N/https", "N/ui/dialog", 'N/record', 'N/search', 'N/
     function createDeliveryOrders() {
         var sublistId = 'custpage_line';
         var curr = currentRecord.get();
-
         var no_list = [];
-        for (var i = 0; i < curr.getLineCount({
-                sublistId: sublistId
-            }); i++) {
-            var checked = curr.getSublistValue({
-                sublistId: sublistId,
-                fieldId: 'store_line_checkbox',
-                line: i
-            });
-            var id = curr.getSublistValue({
-                sublistId: sublistId,
-                fieldId: 'store_line_orderid',
-                line: i
-            });
+        for (var i = 0; i < curr.getLineCount({ sublistId: sublistId }); i++) {
+            var checked = curr.getSublistValue({ sublistId: sublistId, fieldId: 'store_line_checkbox', line: i });
+            var id = curr.getSublistValue({ sublistId: sublistId, fieldId: 'store_line_orderid', line: i });
             if (checked) {
                 no_list.push(id);
             }
         }
-
         function success(result) {
-            console.log("Success with value " + result);
+            console.log('Success with value ' + result);
         }
-
         function success1(result) {
-            console.log("Success1 with value " + result);
             if (result == true) {
                 var link = url.resolveScript({
                     scriptId: 'customscript_dps_query_purchase_order_rl',
                     deploymentId: 'customdeploy_dps_query_purchase_order_rl'
                 });
                 var header = {
-                    "Content-Type": "application/json;charset=utf-8",
-                    "Accept": "application/json"
+                    'Content-Type': 'application/json;charset=utf-8',
+                    'Accept': 'application/json'
                 }
                 var body = {
                     recId: no_list,
                     type: 1
                 }
-
                 var response = https.post({
                     url: link,
                     body: body,
@@ -99,25 +85,21 @@ define(["N/currentRecord", "N/https", "N/ui/dialog", 'N/record', 'N/search', 'N/
                 }).then(success2).catch(failure);
             }
         }
-
         function success2(reason) {
-            console.log('Success with value: ' + reason);
             window.location.reload(true);
         }
-
         function failure(reason) {
-            console.log("Failure: " + reason);
+            console.log('Failure: ' + reason);
         }
-
         if (no_list.length == 0) {
             var options = {
-                title: "生成交货单",
+                title: '生成交货单',
                 message: '未选择单据！'
             };
             dialog.confirm(options).then(success).catch(failure);
         } else {
             var options = {
-                title: "生成交货单",
+                title: '生成交货单',
                 message: '是否确认生成交货单？'
             };
             dialog.confirm(options).then(success1).catch(failure);
@@ -125,192 +107,31 @@ define(["N/currentRecord", "N/https", "N/ui/dialog", 'N/record', 'N/search', 'N/
     }
 
     //采购订单生成交货单
-    function createDeliveryBills(url, bill_id) {
-
-
-        var custbody_approve_status;
-        search.create({
-            type: 'purchaseorder',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: bill_id
-            }],
-            columns: [{
-                name: 'custbody_approve_status'
-            }]
-        }).run().each(function (rec) {
-            custbody_approve_status = rec.getValue('custbody_approve_status');
-            console.log("custbody_approve_status " + custbody_approve_status);
-
-        });
-        if (custbody_approve_status != '8') {
-            console.log("提示 " + '供应商未确认采购单,无法生成交货单');
-            dialog.alert({
-                title: '提示',
-                message: '供应商未确认采购单,无法生成交货单'
-            });
+    function createDeliveryBills(url, bill_id, approve_status) {
+        if (approve_status != '8') {
+            dialog.alert({ title: '提示', message: '供应商未确认采购单，无法生成交货单' });
             return;
         }
-        // console.log("Success1 with value " + result);
-        console.log(url)
         window.open(url + '&bill_id=' + bill_id);
-
-
-        //var curr = currentRecord.get();
-
-        // var no_list = [];
-        // no_list.push(curr.id);
-
-        // function success(result) {
-        //     console.log("Success with value " + result);
-        // }
-
-
-        /*
-
-        function success1(result) {
-            if (result == true) {
-                search.create({
-                    type: 'purchaseorder',
-                    filters: [{
-                        name: 'internalid',
-                        operator: 'anyof',
-                        values: bill_id
-                    }],
-                    columns: [{
-                        name: 'custbody_approve_status'
-                    }]
-                }).run().each(function (rec) {
-                    custbody_approve_status = rec.getValue('custbody_approve_status');
-                    console.log("custbody_approve_status " + custbody_approve_status);
-
-                });
-                if (custbody_approve_status != '8') {
-                    console.log("提示 " + '供应商未确认采购单,无法生成交货单');
-                    dialog.alert({
-                        title: '提示',
-                        message: '供应商未确认采购单,无法生成交货单'
-                    });
-                    return;
-                }
-                console.log("Success1 with value " + result);
-                console.log(url)
-                window.open(url + '&bill_id=' + bill_id);
-
-
-                // var link = url.resolveScript({
-                //     scriptId: 'customscript_dps_query_purchase_order_rl',
-                //     deploymentId: 'customdeploy_dps_query_purchase_order_rl'
-                // });
-                // var header = {
-                //     "Content-Type": "application/json;charset=utf-8",
-                //     "Accept": "application/json"
-                // }
-                // var body = {
-                //     recId: no_list,
-                //     type: 1
-                // }
-
-                // var response = https.post({
-                //     url: link,
-                //     body: body,
-                //     headers: header
-                // })
-                // if (JSON.parse(response.body).status == 'success') {
-                //     // window.location.href = 'https://6188472-sb1.app.netsuite.com/app/common/custom/custrecordentrylist.nl?rectype=305';
-                //     window.open('/app/common/custom/custrecordentrylist.nl?rectype=305');
-                // } else {
-                //     dialog.alert({
-                //         title: JSON.parse(response.body).status,
-                //         message: JSON.parse(response.body).data
-                //     }).then(success2).catch(failure);
-                // }
-            }
-        }
-
-        // function success2(reason) {
-        //     console.log('Success with value: ' + reason);
-        //     window.location.reload(true);
-        // }
-
-        function failure(reason) {
-            console.log("Failure: " + reason);
-        }
-
-        // if (no_list.length == 0) {
-        //     var options = {
-        //         title: "生成交货单",
-        //         message: '未选择单据！'
-        //     };
-        //     dialog.confirm(options).then(success).catch(failure);
-        // } else {
-        var options = {
-            title: "生成交货单",
-            message: '是否确认生成交货单？'
-        };
-        dialog.confirm(options).then(success1).catch(failure);
-        //}
-
-        */
     }
-
-    //供应商确定
-    // function supplierDetermination(delivery_date, order_location) {
-    //     var curr = currentRecord.get();
-    //     if (!delivery_date) {
-    //         dialog.alert({ title: '提示', message: '交期不能为空！' });
-    //         return;
-    //     }
-    //     if (!order_location) {
-    //         dialog.alert({ title: '提示', message: '地点不能为空！' });
-    //         return;
-    //     }
-    //     function success(result) {
-    //         console.log("Success with value " + result);
-    //         if (result == true) {
-    //             record.submitFields({
-    //                 type: "customrecord_dps_delivery_order",
-    //                 id: curr.id,
-    //                 values: {
-    //                     custrecord_delivery_order_status: 2,
-    //                 }
-    //             })
-    //             window.location.reload(true);
-    //         }
-    //     }
-
-    //     function failure(reason) {
-    //         console.log("Failure: " + reason);
-    //     }
-
-    //     var options = {
-    //         title: "供应商确认",
-    //         message: '是否确认？'
-    //     };
-    //     dialog.confirm(options).then(success).catch(failure);
-    // }
 
     //交货单推送WMS
     function pushToWms() {
         var curr = currentRecord.get();
-
         function success(result) {
-            console.log("Success1 with value " + result);
             if (result == true) {
                 var link = url.resolveScript({
                     scriptId: 'customscript_dps_wms_create_inmaster_rl',
                     deploymentId: 'customdeploy_dps_wms_create_inmaster_rl'
                 });
                 var header = {
-                    "Content-Type": "application/json;charset=utf-8",
-                    "Accept": "application/json"
+                    'Content-Type': 'application/json;charset=utf-8',
+                    'Accept': 'application/json'
                 }
                 var body = {
                     id: curr.id,
                     sourceType: 10
                 }
-
                 var response = https.post({
                     url: link,
                     body: body,
@@ -322,18 +143,14 @@ define(["N/currentRecord", "N/https", "N/ui/dialog", 'N/record', 'N/search', 'N/
                 }).then(success1).catch(failure);
             }
         }
-
         function success1(reason) {
-            console.log('Success with value: ' + reason);
             window.location.reload(true);
         }
-
         function failure(reason) {
-            console.log("Failure: " + reason);
+            console.log('Failure: ' + reason);
         }
-
         var options = {
-            title: "交货单推送WMS",
+            title: '交货单推送WMS',
             message: '是否推送WMS？'
         };
         dialog.confirm(options).then(success).catch(failure);
@@ -352,7 +169,6 @@ define(["N/currentRecord", "N/https", "N/ui/dialog", 'N/record', 'N/search', 'N/
         sublistChanged: sublistChanged,
         createDeliveryOrders: createDeliveryOrders,
         createDeliveryBills: createDeliveryBills,
-        //supplierDetermination: supplierDetermination,
         pushToWms: pushToWms
     }
 });

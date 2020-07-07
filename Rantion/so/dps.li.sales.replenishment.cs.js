@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:43:21
- * @LastEditTime   : 2020-06-04 20:42:51
+ * @LastEditTime   : 2020-07-07 13:43:52
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\dps.li.sales.replenishment.cs.js
@@ -174,6 +174,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog', 'N/record'],
             // return;
 
             var body1;
+            var str = "";
             if (action == 1) {
                 title1 = "是否生成补货";
                 url1 = url.resolveScript({
@@ -221,7 +222,7 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog', 'N/record'],
 
             var options = {
                 title: title1,
-                message: "Press OK or Cancel"
+                message: title1 + "?"
             };
 
             function success(result) {

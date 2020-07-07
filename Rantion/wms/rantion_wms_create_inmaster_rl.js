@@ -1,9 +1,18 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-05-15 12:05:49
+ * @LastEditTime   : 2020-07-07 14:56:02
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format'],
-function (config, search, http, record, moment, format) {
+define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format'], function (search, http, record, moment, format) {
 
     function _get(context) {
 
@@ -54,7 +63,7 @@ function (config, search, http, record, moment, format) {
                 //     supplierVariant (string, optional): 供应商变体规格 json ,
                 //     variant (string, optional): 变体规格 json
                 // }
-                var sourceType = Number(context.sourceType); // 来源类型 10:交货单 20:退货入库 30:调拨入库 40:盘盈入库
+                var sourceType = Number(context.sourceType); // 来源类型 10:交货单 20:退货入库 30:调拨入库 40:样品归还
                 // 交货单入库
                 if (sourceType == 10) {
                     var item_arr = [],
@@ -142,9 +151,9 @@ function (config, search, http, record, moment, format) {
                         });
                         boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
                         if (rec.getValue({
-                            name: 'custrecord_delivery_date',
-                            join: 'custrecord_dps_delivery_order_id'
-                        })) {
+                                name: 'custrecord_delivery_date',
+                                join: 'custrecord_dps_delivery_order_id'
+                            })) {
                             var estimateTime = format.parse({
                                 value: rec.getValue({
                                     name: 'custrecord_delivery_date',
@@ -188,13 +197,13 @@ function (config, search, http, record, moment, format) {
                         }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                         //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
                         var variant_arr = [{
-                            name: 'color',
-                            value: '白色'
-                        },
-                        {
-                            name: 'size',
-                            value: 'L'
-                        }
+                                name: 'color',
+                                value: '白色'
+                            },
+                            {
+                                name: 'size',
+                                value: 'L'
+                            }
                         ];
 
 
@@ -243,15 +252,15 @@ function (config, search, http, record, moment, format) {
                     search.create({
                         type: 'purchaseorder',
                         filters: [{
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: order_po_no
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: true
-                        }
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: order_po_no
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: true
+                            }
                         ],
                         columns: [
                             'tranid',
@@ -303,27 +312,27 @@ function (config, search, http, record, moment, format) {
                     var limit = 3999;
                     var sku_arr = [],
                         item_sku = [],
-                        record_type, taxamount, otherrefnum, inspection_type,
+                        record_type, taxamount, otherrefnum, inspection_type = 10,
                         record_id, location_id, subsidiary_id,
                         entity, location, subsidiary, trandate, tranid, total = 0;
                     // sku、价格、数量、客户名称、地点、日期、子公司、退货单号
                     search.create({
                         type: 'returnauthorization',
                         filters: [{
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: context.id
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: false
-                        },
-                        {
-                            name: 'taxline',
-                            operator: 'is',
-                            values: false
-                        }
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: context.id
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: false
+                            },
+                            {
+                                name: 'taxline',
+                                operator: 'is',
+                                values: false
+                            }
                         ],
                         // sku、价格、数量、客户名称、地点、日期、子公司、退货单号
                         columns: [
@@ -380,13 +389,26 @@ function (config, search, http, record, moment, format) {
 
                         otherrefnum = rec.getValue('otherrefnum');
 
-                        inspection_type = rec.getValue({
+
+                        var a = 30;
+                        var insType = rec.getValue({
                             name: "custitem_dps_quality_inspection_type",
                             join: "item"
                         });
+                        if (insType == 1) {
+                            a = 10;
+                        } else if (insType == 2) {
+                            a = 20;
+                        }
+                        var itemInspectionType = rec.getValue({
+                            name: "custitem_dps_quality_inspection_type",
+                            join: "item"
+                        });
+                        // inspection_type =  == 1 ? 10 : 20;
                         var it = Math.abs(rec.getValue('quantity'));
                         total += Number(it);
                         var info = {
+                            inspectionType: Number(a),
                             item: rec.getValue('item'),
                             sku: rec.getValue({
                                 name: "itemid",
@@ -405,15 +427,16 @@ function (config, search, http, record, moment, format) {
                         };
                         sku_arr.push(info);
                         return --limit > 0;
+                        f
                     });
 
                     var skuList = [];
                     for (var i = 0; i < sku_arr.length; i++) {
-                        if (inspection_type == 1) {
-                            inspectionType = inspectionType;
-                        } else if (inspection_type == 2) {
-                            inspectionType = 30;
-                        }
+                        // if (inspection_type == 1) {
+                        //     inspectionType = inspectionType;
+                        // } else if (inspection_type == 2) {
+                        //     inspectionType = 30;
+                        // }
                         var info = {
                             "boxNum": 0, // 箱数
                             "planQty": sku_arr[i].quantity, // 计划入库数
@@ -422,7 +445,8 @@ function (config, search, http, record, moment, format) {
                             "productTitle": sku_arr[i].title, //产品标题
                             "remainderQty": 0, // 余数
                             "sku": sku_arr[i].sku, // sku
-                            'inspectionType': inspectionType, //     质检类型(字段迁移至 货品行)
+                            'inspectionType': 10, //     质检类型(字段迁移至 货品行)
+                            // 'inspectionType': sku_arr[i].inspectionType, //     质检类型(字段迁移至 货品行)
                         }
                         skuList.push(info);
                     }
@@ -447,7 +471,7 @@ function (config, search, http, record, moment, format) {
                     // 3 免检
 
                     log.debug('inspection_type', inspection_type);
-                    var inspectionType = 2;
+                    var inspectionType = 20;
                     if (inspection_type == 1) {
                         inspectionType = 10;
                     } else if (inspection_type == 2) {
@@ -458,13 +482,13 @@ function (config, search, http, record, moment, format) {
 
                     log.debug('inspectionType', inspectionType);
 
-                    data["inspectionType"] = inspectionType;
+                    data["inspectionType"] = 10;
                     data["planQty"] = Math.abs(Number(total));
                     // var sourceNo = record_type + '_' + record_id;
 
                     // log.error('sourceNo', sourceNo);
 
-                    data["sourceNo"] = otherrefnum; // 来源单号
+                    data["sourceNo"] = record_id; // otherrefnum; // 来源单号
 
                     data["sourceType"] = 20; // 来源类型
                     data["taxFlag"] = taxFlag; // 是否含税
@@ -491,13 +515,14 @@ function (config, search, http, record, moment, format) {
                 else if (sourceType == 30) {
 
                 }
-                // 盘盈入库
+                // 样品归还
                 else if (sourceType == 40) {
-
+                    data['sourceType'] = 40;
+                    log.debug('inventoryadjust_id', context.inventoryadjust_id);
                 }
                 message = sendRequest(token, data);
                 var flag = false;
-                if (message.code == 0) {
+                if (message.data.code == 0) {
                     log.error('response code', message.data);
                     flag = true;
                 }
@@ -527,7 +552,7 @@ function (config, search, http, record, moment, format) {
                         type: 'returnauthorization',
                         id: context.id,
                         values: {
-                            custbody_dps_wms_info: JSON.stringify(message.data),
+                            custbody_dps_wms_info: JSON.stringify(message.data.msg ? message.data.msg : message.data),
                             custbody_dps_push_wms: flag
                         }
                     });
@@ -587,11 +612,11 @@ function (config, search, http, record, moment, format) {
             'access_token': token
         };
         var response = http.post({
-            url: config.WMS_Debugging_URL + '/inMaster',
+            url: 'http://47.107.254.110:18082/rantion-wms/inMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });
-        // log.error('response', JSON.stringify(response));
+        log.audit('response', JSON.stringify(response));
         if (response.code == 200) {
             retdata = JSON.parse(response.body);
         } else {

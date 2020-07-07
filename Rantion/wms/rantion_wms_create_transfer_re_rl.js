@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-07-06 21:06:59
+ * @LastEditTime   : 2020-07-07 11:43:40
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -11,7 +11,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
+define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (search, record, log, requestRecord) {
 
     function _get(context) {
 
@@ -62,141 +62,159 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
         log.audit('context', context);
         var data = context.requestBody;
+
+        log.debug('context.requestBody typeof', typeof (context.requestBody));
+
+        // try {
+        //     data = JSON.parse(context.requestBody);
+        // } catch (error) {
+        //     data = context.requestBody;
+        //     log.audit('尝试转换为 JSON 对象出错', error);
+        // }
+        // var data = context.requestBody;
         // for (var i = 0, len = date.length; i < len; i++) {
 
         var retjson = {};
 
         try {
 
-            var temp = data;
-            var containerNo = temp.containerNo,
-                boxQty = temp.boxQty,
-                aono = temp.aono,
-                deliveryTime = temp.deliveryTime,
-                dono = temp.dono,
-                pickno = temp.pickno,
-                status = temp.status,
-                volume = temp.volume,
-                weight = temp.weight,
-                storageList = temp.storageList,
-                abno = temp.abno;
-
-            log.debug('aono', aono);
-            var aono_id = searchFulRec(aono);
-
-            if (aono_id) {
-                var l_rec = record.load({
-                    type: 'customrecord_dps_shipping_record',
-                    id: aono_id
-                });
-
-                l_rec.setValue({
-                    fieldId: 'custrecord_dps_total_number',
-                    value: boxQty
-                });
-
-                l_rec.setValue({
-                    fieldId: 'custrecord_dps_ship_tran_abno',
-                    value: abno
-                });
-                l_rec.setValue({
-                    fieldId: 'custrecord_dps_ship_small_weight',
-                    value: weight
-                });
-
-                var tranNO = l_rec.getValue('custrecord_dps_shipping_rec_order_num');
-
-                var LoId, positionCode;
-                for (var i = 0, len = storageList.length; i < len; i++) {
-                    positionCode = storageList[i].positionCode;
-                    LoId = searchLocationCode(storageList[i].positionCode, aono_id); // 只能修改一次,不可修改多次,履行多次出错
-                    if (LoId) {
-                        break;
-                    }
-                }
-
-                if (LoId) {
-                    var transferorderId = record.submitFields({
-                        type: 'transferorder',
-                        id: tranNO,
-                        values: {
-                            location: LoId
-                        },
-                        options: {
-                            enableSourcing: false,
-                            ignoreMandatoryFields: true
-                        }
-                    });
-                    log.debug('transferorderId', transferorderId);
-                } else {
-                    log.debug('调拨单回传处理出错了', 'NS找不到对应的库位' + positionCode);
-                    retjson.code = 3;
-                    retjson.data = {
-                        msg: '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode
-                    };
-                    retjson.msg = 'error';
-                    retjson.msg = '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode;
-
-                    return JSON.stringify(retjson);
-                }
-
-                var cn_no = searchLoadingInformation(containerNo);
-                if (cn_no) {
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_ship_rec_load_links',
-                        value: cn_no
-                    });
-
-                    var l_con = record.load({
-                        type: 'customrecord_dps_cabinet_record',
-                        id: cn_no
-                    });
-
-
-                    var conVolume = l_con.getValue("custrecord_dps_cabinet_rec_volume");
-                    l_con.setValue({
-                        fieldId: 'custrecord_dps_cabinet_rec_remai_volume',
-                        value: Number(conVolume) - Number(volume)
-                    });
-                    var l_con_id = l_con.save();
-                    log.audit('更新装柜信息成功', l_con_id);
-                }
-
-                // 设置调拨单的状态
-
-                if (status) {
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_ship_rec_transfer_status',
-                        value: status / 10
-                    });
-                }
-
-                l_rec.setValue({
-                    fieldId: 'custrecord_dps_ship_rec_dono',
-                    value: dono
-                });
-
-                l_rec.setValue({
-                    fieldId: 'custrecord_dps_ship_rec_pickno',
-                    value: pickno
-                });
-
-                l_rec.setValue({
-                    fieldId: 'custrecord_dps_shipping_rec_status',
-                    value: 6
-                });
-
-                itemfulfillment(l_rec, tranNO, storageList);
-                var l_rec_id = l_rec.save();
-
-
-                log.audit('发运记录更新完成', l_rec_id);
-
-                retjson.code = 0;
+            var requestRecordInfo = requestRecord.findRequestRecord(context.requestId, 1, "transfer");
+            if (requestRecordInfo) {
+                retjson.code = 1;
                 retjson.data = {
-                    msg: 'NS 处理成功'
-                };
-                retjson.msg = 'success';
+                    msg: 'NS 请求重复处理'
+                }
+                retjson.msg = 'failure'
+            } else {
+                var temp = data;
+                var containerNo = temp.containerNo,
+                    boxQty = temp.boxQty,
+                    aono = temp.aono,
+                    deliveryTime = temp.deliveryTime,
+                    dono = temp.dono,
+                    pickno = temp.pickno,
+                    status = temp.status,
+                    volume = temp.volume,
+                    weight = temp.weight,
+                    storageList = temp.storageList,
+                    abno = temp.abno;
+                var aono_id = searchFulRec(aono);
+
+                if (aono_id) {
+                    var l_rec = record.load({
+                        type: 'customrecord_dps_shipping_record',
+                        id: aono_id
+                    });
+
+                    l_rec.setValue({
+                        fieldId: 'custrecord_dps_total_number',
+                        value: boxQty
+                    });
+
+                    l_rec.setValue({
+                        fieldId: 'custrecord_dps_ship_tran_abno',
+                        value: abno
+                    });
+                    l_rec.setValue({
+                        fieldId: 'custrecord_dps_ship_small_weight',
+                        value: weight
+                    });
+
+                    var tranNO = l_rec.getValue('custrecord_dps_shipping_rec_order_num');
+
+                    var LoId, positionCode;
+                    for (var i = 0, len = storageList.length; i < len; i++) {
+                        positionCode = storageList[i].positionCode;
+                        LoId = searchLocationCode(storageList[i].positionCode, aono_id); // 只能修改一次,不可修改多次,履行多次出错
+                        if (LoId) {
+                            break;
+                        }
+                    }
+
+                    if (LoId) {
+                        var transferorderId = record.submitFields({
+                            type: 'transferorder',
+                            id: tranNO,
+                            values: {
+                                location: LoId
+                            },
+                            options: {
+                                enableSourcing: false,
+                                ignoreMandatoryFields: true
+                            }
+                        });
+                        log.debug('transferorderId', transferorderId);
+                    } else {
+                        log.debug('调拨单回传处理出错了', 'NS找不到对应的库位' + positionCode);
+                        retjson.code = 3;
+                        retjson.data = {
+                            msg: '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode
+                        };
+                        retjson.msg = 'error';
+                        retjson.msg = '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode;
+
+                        return JSON.stringify(retjson);
+                    }
+
+                    var cn_no = searchLoadingInformation(containerNo);
+                    if (cn_no) {
+                        l_rec.setValue({
+                            fieldId: 'custrecord_dps_ship_rec_load_links',
+                            value: cn_no
+                        });
+
+                        var l_con = record.load({
+                            type: 'customrecord_dps_cabinet_record',
+                            id: cn_no
+                        });
+
+
+                        var conVolume = l_con.getValue("custrecord_dps_cabinet_rec_volume");
+                        l_con.setValue({
+                            fieldId: 'custrecord_dps_cabinet_rec_remai_volume',
+                            value: Number(conVolume) - Number(volume)
+                        });
+                        var l_con_id = l_con.save();
+                        log.audit('更新装柜信息成功', l_con_id);
+                    }
+
+                    // 设置调拨单的状态
+
+                    if (status) {
+                        l_rec.setValue({
+                            fieldId: 'custrecord_dps_ship_rec_transfer_status',
+                            value: status / 10
+                        });
+                    }
+
+                    l_rec.setValue({
+                        fieldId: 'custrecord_dps_ship_rec_dono',
+                        value: dono
+                    });
+
+                    l_rec.setValue({
+                        fieldId: 'custrecord_dps_ship_rec_pickno',
+                        value: pickno
+                    });
+
+                    l_rec.setValue({
+                        fieldId: 'custrecord_dps_shipping_rec_status',
+                        value: 6
+                    });
+
+                    itemfulfillment(l_rec, tranNO, storageList);
+                    var l_rec_id = l_rec.save();
+
+
+                    log.audit('发运记录更新完成', l_rec_id);
+
+                    retjson.code = 0;
+                    retjson.data = {
+                        msg: 'NS 处理成功'
+                    };
+                    retjson.msg = 'success';
+                    requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "transfer");
+                }
             }
         } catch (error) {
             log.debug('调拨单回传处理出错 error', error);
@@ -205,6 +223,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 msg: 'NS error: ' + error.message
             };
             retjson.msg = 'error';
+            requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 2, "transfer");
         }
 
         return JSON.stringify(retjson);

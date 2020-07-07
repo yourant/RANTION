@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:50:16
- * @LastEditTime   : 2020-06-04 20:52:42
+ * @LastEditTime   : 2020-07-07 12:01:29
  * @LastEditors    : Li
  * @Description    : 复制对应的销售订单, 生成新的销售订单; 推送 入库信息到WMS
  * @FilePath       : \Rantion\so\dps.li.sales.replenishment.rl.js
@@ -155,6 +155,22 @@ define(['N/record', 'N/search', 'N/log', 'N/format', "../../douples_amazon/Helpe
         objRecord.setValue({
             fieldId: 'custbody_dps_so_create_ful_record',
             value: true
+        });
+
+        // 设置关联的小货发运记录为空
+        objRecord.setValue({
+            fieldId: 'custbody_dps_small_fulfillment_record',
+            value: ""
+        });
+        // 设置渠道商为空
+        objRecord.setValue({
+            fieldId: 'custbody_dps_distributors',
+            value: ""
+        });
+        // 设置渠道服务为空
+        objRecord.setValue({
+            fieldId: 'custbody_dps_service_channels',
+            value: ""
         });
 
         var numLines = objRecord.getLineCount({

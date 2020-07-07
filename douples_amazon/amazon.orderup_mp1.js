@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-07 09:41:37
- * @LastEditTime   : 2020-06-08 20:45:10
+ * @LastEditTime   : 2020-07-07 16:48:33
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \douples_amazon\amazon.orderup_mp1.js
@@ -27,19 +27,20 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
     }
     //订单类型
     const ord_type = {
-        "AFN":1,
-        "MFN":2
+        "AFN": 1,
+        "MFN": 2
     }
     //订单状态
     const ord_status = {
-        "PendingAvailability":1,
-        "Pending":2,
-        "Unshipped":3,
-        "PartiallyShipped":4,
-        "Shipped":5,
-        "Canceled":6,
-        "Unfulfillable":7,
+        "PendingAvailability": 1,
+        "Pending": 2,
+        "Unshipped": 3,
+        "PartiallyShipped": 4,
+        "Shipped": 5,
+        "Canceled": 6,
+        "Unfulfillable": 7,
     }
+
     function getInputData() {
         var acc = runtime.getCurrentScript().getParameter({
             name: 'custscript_tr_account'
@@ -68,7 +69,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     name: "custrecord_aio_cache_status",
                     operator: "isnot",
                     values: "Pending"
-                },//除了pending以外的订单都转
+                }, //除了pending以外的订单都转
                 {
                     name: "custrecord_aio_memo",
                     operator: "isnot",
@@ -90,7 +91,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 //     values: "MFN"
                 // }
             ];
-            if(orderid){
+            if (orderid) {
                 filters.push({
                     name: "custrecord_aio_cache_order_id",
                     operator: "is",
@@ -219,9 +220,9 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
         var order_lastupdate = o.last_update_date;
         //如果是6月1号之前的，不转单，直接删除cahce
-        if(interfun.getFormatedDate("", "", order_lastupdate,true).date == "2")  {
-              //时间不对
-              record.submitFields({
+        if (interfun.getFormatedDate("", "", order_lastupdate, true).date == "2") {
+            //时间不对
+            record.submitFields({
                 type: 'customrecord_aio_order_import_cache',
                 id: rec_id,
                 values: {
@@ -265,7 +266,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 }]
             }).run().each(function (rec) {
                 // log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  1111");
-               
+
                 ord = record.load({
                     type: order_type,
                     id: rec.id,
@@ -280,12 +281,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             }
             // log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  333");
             /** 状态变成了Cancel，VOID掉NS的单? */
-            if (ord && ord.getValue('orderstatus') != 'C' && o.order_status == 'Canceled') {
-                transaction.void({
-                    type: 'salesorder',
-                    id: ord.id    
-                });
-            }
+            // if (ord && ord.getValue('orderstatus') != 'C' && o.order_status == 'Canceled') {
+            //     transaction.void({
+            //         type: 'salesorder',
+            //         id: ord.id    
+            //     });
+            // }
             // log.debug(externalid, externalid + " | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  444");
             if (!ord) {
                 var cid = customer;
@@ -392,7 +393,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         fieldId: 'trandate',
                         text: interfun.getFormatedDate("", "", order_trandate).date
                     });
-                 
+
                     ord.setText({
                         fieldId: 'custbody_dps_local_dt',
                         text: format.format({
@@ -452,7 +453,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 //设置订单的类型 AFN/MFN
                 ord.setValue({
                     fieldId: 'custbody_order_type',
-                    value: ord_type[o.fulfillment_channel]   
+                    value: ord_type[o.fulfillment_channel]
                 });
                 log.debug('5currency：' + typeof (currency_id), currency_id);
                 ord.setValue({
@@ -779,7 +780,9 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 log.debug("line", line);
                 log.debug("amazon_account_id", amazon_account_id);
                 itemAry.push(line.seller_sku);
-                if (line.qty == 0) {
+                if (line.qty == 0 && o.order_status == 'Canceled') {
+                    line.qty = 1;
+                } else if (line.qty == 0) {
                     return;
                 }
                 var skuid;
@@ -980,7 +983,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     order_location = ship_loca_id;
                 }
             }
-          
+
             log.debug('31-2order_location', order_location);
             ord.setValue({
                 fieldId: 'location',
@@ -1077,11 +1080,25 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         ignoreMandatoryFields: true
                     });
                     log.debug('订单生成成功', soId);
-                    if(o.order_status == 'Canceled'){
-                        transaction.void({
-                            type: 'salesorder',
-                            id: soId   
+                    //如果状态是已取消，则关闭销售订单
+                    if (o.order_status == 'Canceled') {
+                        var so = record.load({
+                            type: "salesorder",
+                            id: soId
                         });
+                        var LineCount = so.getLineCount({
+                            sublistId: 'item'
+                        });
+                        for (var i = 0; i < LineCount; i++) {
+                            so.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'isclosed',
+                                line: i,
+                                value: true
+                            });
+                        }
+                        var ss = so.save();
+                        log.debug("关闭成功", ss)
                     }
                     if (o.fulfillment_channel == 'MFN') {
                         //     // 创建相应的发货记录
@@ -1101,7 +1118,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         }]
                     }).run().each(function (rec) {
                         record.submitFields({
-                            type: core.ns.connector_missing_order._name,
+                            type: "customrecord_aio_connector_missing_order",
                             id: rec.id,
                             values: {
                                 'custrecord_aio_missing_order_is_resolved': true,
@@ -1323,7 +1340,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
         var c_id
 
-        var o_name = o.shipping_address.name ? o.shipping_address.name : (o.buyer_name ? o.buyer_name : (o.buyer_email.split('@')[0]))
+        // var o_name = o.shipping_address.name ? o.shipping_address.name : (o.buyer_name ? o.buyer_name : (o.buyer_email.split('@')[0]))
 
 
         if (o.shipping_address && o.buyer_email) {
@@ -1372,6 +1389,14 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 fieldId: 'custrecord_cc_country',
                 value: o.shipping_address.country_code
             });
+
+            if (o.shipping_address.country_code) {
+                var coun = searchCreateCountry(o.shipping_address.country_code);
+                c.setValue({
+                    fieldId: 'custrecord_dps_cc_country',
+                    value: coun
+                });
+            }
             c.setValue({
                 fieldId: 'custrecord_cc_state',
                 value: o.shipping_address.state_or_oegion.slice(0, 30)
@@ -1398,6 +1423,61 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
         return c_id
 
+    }
+
+
+    /**
+     * 搜索或创建国家记录
+     * @param {*} CountryCode 
+     */
+    function searchCreateCountry(CountryCode) {
+        var countryId;
+        search.create({
+            type: 'customrecord_country_code',
+            filters: [{
+                name: 'custrecord_cc_country_code',
+                operator: 'is',
+                values: CountryCode
+            }]
+        }).run().each(function (rec) {
+            countryId = rec.id;
+        });
+
+        if (!countryId) {
+            search.create({
+                type: 'customrecord_country_code',
+                filters: [{
+                    name: "custrecord_cc_country_name_en",
+                    operator: 'is',
+                    values: CountryCode
+                }]
+            }).run().each(function (rec) {
+                countryId = rec.id;
+            });
+            var newCode = record.create({
+                type: 'customrecord_country_code'
+            });
+
+            newCode.setValue({
+                fieldId: 'name',
+                value: CountryCode
+            });
+
+            newCode.setValue({
+                fieldId: 'custrecord_cc_country_code',
+                value: CountryCode
+            });
+            newCode.setValue({
+                fieldId: 'custrecord_cc_country_name_en',
+                value: CountryCode
+            });
+
+            countryId = newCode.save();
+
+            log.debug('countryId', countryId);
+        }
+
+        return countryId || false;
     }
 
     var mark_missing_order = function (externalid, account_id, order_id, reason, purchase_date) {
@@ -1443,15 +1523,15 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             value: reason
         });
         mo.setValue({
-            fieldId: 'custrecord_purchase_date_missing',
+            fieldId: 'customrecord_aio_connector_missing_order',
             value: purchase_date
         });
         mo.setValue({
-            fieldId: core.ns.connector_missing_order.missing_order_is_resolved,
+            fieldId: "customrecord_aio_connector_missing_order",
             value: false
         });
         mo.setValue({
-            fieldId: core.ns.connector_missing_order.missing_order_resolving,
+            fieldId: "customrecord_aio_connector_missing_order",
             value: false
         });
         return mo.save();

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-03 12:11:24
+ * @LastEditTime   : 2020-07-06 18:19:06
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -376,12 +376,41 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
 
 
 
-            var loadRec = record.load({
-                type: 'customrecord_dps_shipping_record',
-                id: 9
+            var rec = record.load({
+                type: 'transferorder',
+                id: 20369
             });
 
+            var lofba;
 
+            search.create({
+                type: rec.type,
+                filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: [rec.id]
+                    },
+                    {
+                        name: 'mainline',
+                        operator: 'is',
+                        values: true
+                    }
+                ],
+                columns: [{
+                    name: 'custrecord_dps_financia_warehous',
+                    join: "custbody_actual_target_warehouse"
+                }]
+            }).run().each(function (rec) {
+                lofba = rec.getValue({
+                    name: 'custrecord_dps_financia_warehous',
+                    join: "custbody_actual_target_warehouse"
+                })
+            });
+
+            log.debug('lofba', lofba);
+
+
+            /*
             cost = getCost(loadRec);
             log.debug('cost');
 

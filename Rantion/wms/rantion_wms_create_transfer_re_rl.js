@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-07-03 16:29:31
+ * @LastEditTime   : 2020-07-06 21:06:59
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -61,7 +61,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
 
         log.audit('context', context);
-        var data = context;
+        var data = context.requestBody;
         // for (var i = 0, len = date.length; i < len; i++) {
 
         var retjson = {};
@@ -80,6 +80,8 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 weight = temp.weight,
                 storageList = temp.storageList,
                 abno = temp.abno;
+
+            log.debug('aono', aono);
             var aono_id = searchFulRec(aono);
 
             if (aono_id) {

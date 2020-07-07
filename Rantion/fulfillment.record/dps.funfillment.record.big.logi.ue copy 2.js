@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-06 20:41:58
+ * @LastEditTime   : 2020-07-03 17:09:36
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -553,8 +553,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 log.debug('logistics_no', logistics_no);
                 if (rec_status == 12) { // 12	WMS已装箱
                     var shipment_label_file = af_rec.getValue('custrecord_dps_shipment_label_file');
-                    log.debug('shipment_label_file', shipment_label_file);
-                    if ((tranor_type == 1 || tranor_type == 3) && !shipment_label_file) {
+                    if (tranor_type == 1 && !shipment_label_file) {
 
                         var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account');
 
@@ -1415,10 +1414,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         log.debug('Label: ', Label);
 
         // 属于FBA调拨
-        if (Label && (tranType == 1 || tranType == 3) && channel_dealer_id == 1) { // 跨仓调拨至 FBA、FAB调拨
+        if (Label && tranType == 1 && channel_dealer_id == 1) {
             // 存在面单文件
             var url;
-            if ((tranType == 1 || tranType == 3) && fileId) {
+            if (tranType == 1 && fileId) {
                 var fileObj = file.load({
                     id: fileId
                 });
@@ -1510,7 +1509,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             }
 
         }
-        if (Label && (tranType == 2 || tranType == 3)) {
+        if (Label && tranType == 2) {
             // 存在面单文件
             var url = 'https://';
             if (tranType == 1 && fileId) {
@@ -1947,7 +1946,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             flag = false;
             values.custrecord_dps_shipping_rec_logistics_no = shipment_id; // 物流运单号
             values.custrecord_dps_ship_trackingnumber_dh = shipment_id; // 物流跟踪单号
-
             values.custrecord_dps_shipping_rec_status = 21; // 推送物流成功, 状态更改为 等待获取面单文件
         }
         if (trackingNumber) {

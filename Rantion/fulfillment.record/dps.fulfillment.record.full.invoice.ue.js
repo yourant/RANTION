@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-06-24 17:09:23
+ * @LastEditTime   : 2020-07-06 18:42:49
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -526,7 +526,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                     join: 'custrecord_dps_ship_small_channelservice'
                 }); //  '物流渠道服务编号';
 
-                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice');
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice'); //  '物流渠道服务编号';
                 data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
                 data["logisticsLabelPath"] = rec.getValue('custrecord_record_fulfill_xh_label_addr'); // 物流面单文件路径 ,
                 data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';

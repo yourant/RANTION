@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-03 16:05:01
+ * @LastEditTime   : 2020-07-06 19:42:56
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -170,13 +170,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             wms(af_rec);
         }
 
-        if (rec_status == 9 && tranor_type == 1) {
+        if (rec_status == 9 && (tranor_type == 1 || tranor_type == 3)) { // 发运记录的状态为 9	未发运，等待获取Shipment 时, 可能是FBA调拨, 也可能是 跨仓调拨
             type = 20;
 
             // 创建入库装运计划     createInboundShipmentPlan
 
             var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account');
-
 
             var SellerSKU;
 
@@ -513,7 +512,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     id: af_rec.id,
                                     values: {
                                         custrecord_dps_shipping_rec_status: 11,
-                                        custrecord_dps_shipment_info: JSON.stringify(rep)
+                                        custrecord_dps_shipment_info: JSON.stringify(rep.message)
                                     }
                                 });
                             }
@@ -1160,6 +1159,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         var city;
         var location = target_loca;
 
+
+        var shipment_id = rec.getValue('custbody_shipment_id'); // shipmentId
+
+        objRecord.setValue({
+            fieldId: 'custrecord_dps_shipping_rec_shipmentsid',
+            value: shipment_id
+        }); // 设置shipmentID
+
+
         var numLines = rec.getLineCount({
             sublistId: 'item'
         });
@@ -1251,6 +1259,40 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 s = 9;
             } else if (tran_type == 3) { // 3	跨仓调拨
                 s = 3;
+
+                var lofba;
+
+                try {
+                    search.create({
+                        type: rec.type,
+                        filters: [{
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: [rec.id]
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: true
+                            }
+                        ],
+                        columns: [{
+                            name: 'custrecord_dps_financia_warehous',
+                            join: "custbody_actual_target_warehouse"
+                        }]
+                    }).run().each(function (rec) {
+                        lofba = rec.getValue({
+                            name: 'custrecord_dps_financia_warehous',
+                            join: "custbody_actual_target_warehouse"
+                        })
+                    });
+                } catch (error) {
+                    log.debug('获取目标仓的财务分仓出错了', error)
+                }
+
+                if (lofba == 1) {
+                    s = 9;
+                }
             }
 
             // 渠道商
@@ -1258,10 +1300,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             // 6 Amazon龙舟     1	捷仕
             if (channel_dealer == 6) {
                 s = 5;
-                objRecord.setValue({
-                    fieldId: 'custrecord_dps_shipping_rec_logisticsfla',
-                    value: false
-                });
+                // objRecord.setValue({
+                //     fieldId: 'custrecord_dps_shipping_rec_logisticsfla',
+                //     value: false
+                // });
             }
 
             log.debug('s', s);

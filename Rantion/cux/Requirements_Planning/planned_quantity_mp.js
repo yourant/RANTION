@@ -51,7 +51,6 @@ define(['N/search', 'N/log', 'N/record', '../../Helper/Moment.min', 'N/runtime']
     }
 
     function map(context) {
-        return;
         var today = new Date(+new Date()+8*3600*1000);
         var bill_id = context.value;
         try{

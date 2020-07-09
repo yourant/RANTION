@@ -9,10 +9,9 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/url', 'N/ui/dialog', 'N/https',"N/currentRecord","N/runtime","N/format",'../../Helper/Moment.min'], 
-function(url, dialog, https,currentRecord,runtime,format,moment) {
-    var rec,sublistId = 'custpage_sublist';
-
+define(['N/url', 'N/ui/dialog', 'N/https',"N/currentRecord","N/runtime","N/format",'../../Helper/Moment.min',"N/search","N/record"], 
+function(url, dialog, https,currentRecord,runtime,format,moment,search,record) {
+    var rec,sublistId = 'custpage_sublist',week_rs,func_type;
     function pageInit(context) {
         rec = context.currentRecord; //当前记录
     }
@@ -34,7 +33,11 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
         var cur = context.currentRecord;
         var fieldId = context.fieldId;
         var data_type_id = cur.getCurrentSublistValue({ sublistId: sublistId, fieldId: 'custpage_data_type_id'});
-        if(fieldId != 'custpage_account_store' && fieldId != 'custpage_site' && fieldId != 'custpage_item' && fieldId != 'custpage_date_from' && fieldId != 'custpage_date_to' && data_type_id != 5){    
+        if(fieldId != 'custpage_account_store' && fieldId != 'custpage_site' && fieldId != 'custpage_item'
+         && fieldId != 'custpage_date_from' && fieldId != 'custpage_date_to' && data_type_id != 5
+          && data_type_id != 23
+          && fieldId != 'custpage_page_size' 
+          ){    
             function success(result) { console.log('Success with value: ' + result); window.location.reload(true);}
             function failure(reason) { console.log('Failure: ' + reason) }
     
@@ -44,6 +47,22 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
             }).then(success).catch(failure);
             return;
         }else{
+
+            if(fieldId == "custpage_date_from" || fieldId == "custpage_date_to" ){
+                var D = cur.getValue(fieldId);
+                var now_date =getWeek(new Date());
+                var fo_date =getWeek(D);
+                console.log("错误的")
+                if(D < new Date() && now_date > fo_date){
+                    function success(result) { console.log('Success with value: ' + result); }
+                    function failure(reason) { console.log('Failure: ' + reason); }
+                    dialog.alert({
+                        title: '提示',message: '不能选择旧数据' 
+                    }).then(success).catch(failure);
+                    cur.setValue({fieldId:fieldId,value:new Date()});
+                }
+                return;
+            }
             var data = [];
             var item_week = fieldId.replace(/custpage_quantity_week/, "custrecord_quantity_week");
             data.push({
@@ -70,6 +89,7 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
                 headers : header
             })
         }
+        return true;
     }
 
     function postSourcing(context) {
@@ -126,24 +146,33 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
 
     function pigeSizeChange() {
 
-        var custpage_item = rec.getValue('custpage_item');
-        var custpage_date_from = rec.getText('custpage_date_from');
+        var custpage_item = rec.getValue('custpage_item');  //货品
+        var custpage_date_from = rec.getText('custpage_date_from'); 
         var custpage_date_to = rec.getText('custpage_date_to');
-        var custpage_now_page = rec.getValue('custpage_now_page');
-        var custpage_total_page = rec.getValue('custpage_total_page');
-        var custpage_select_page = rec.getValue('custpage_select_page');
-        var custpage_page_size = rec.getValue('custpage_page_size');
-
+        var custpage_now_page = rec.getValue('custpage_now_page'); 
+        var custpage_total_page = rec.getValue('custpage_total_page'); 
+        var custpage_select_page = rec.getText('custpage_page_size');
+        var custpage_page_size = rec.getText('custpage_page_size');
+            console.log("所选货品:",custpage_item)
         if (custpage_total_page != null && custpage_total_page != '') {
-            if (parseInt(custpage_now_page) - 1 > 0) {
-                window.location = url + '&' + serializeURL({
+            console.log("选择的页数",custpage_select_page)
+            console.log("页面大小",custpage_page_size)
+            if (parseInt(custpage_select_page) - 1 > 0) {
+                var link = url.resolveScript({
+                    scriptId : 'customscript_store_demand_sl',
+                    deploymentId:'customdeploy_store_demand_sl'
+                });
+             
+                link = link + '&' + serializeURL({
                     action: 'search',
                     custpage_item: custpage_item,
                     custpage_date_from: custpage_date_from,
                     custpage_date_to: custpage_date_to,
-                    custpage_now_page: 1,
+                    custpage_now_page: custpage_select_page,
                     custpage_page_size: custpage_page_size
                 });
+                console.log("link : ",link);
+                window.location =link;
             }
         }
 
@@ -166,53 +195,35 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
   
 
 
-
-
-
-
+     /**  
+      * 导出Excel
+      */
     function ExportDemandPlan(){
         var sublistId = 'custpage_sublist';
         var curr = currentRecord.get();
         var date_from = format.parse({ value:curr.getValue('custpage_date_from'), type: format.Type.DATE});
-        var week_from = weekofday(date_from);
         var date_to = format.parse({ value:curr.getValue('custpage_date_to'), type: format.Type.DATE});
-        var week_to = weekofday(date_to);
-        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT'); 
         var today = moment(new Date().getTime()).format(dateFormat),quantity;
-        // var weekArray=new Array(),lines=new Array(), lineComObj =new Object(),dataObjs = new Object();
+        //传入开始时间和结束时
+        var week_objs = weekofday(new Date(), date_from, date_to);
+        func_type =week_objs.func_type;
+        week_rs =week_objs.weeks;
+        log.audit('week_rs', week_rs);
         var fils = new Array();
         var len = curr.getLineCount({sublistId:sublistId});
         console.log("子列表长度: "+len,today);
-        if(len >0){
-           
-            // fils["acc"] = curr.getValue("custpage_account_store");
-            // fils["sku"] = curr.getValue("custpage_item");
-            // fils["dateFrom"] = week_from;
-            // fils["dateTo"] = week_to;
+        if(len >0){           
+         
             fils = {
               "acc": curr.getValue("custpage_account_store"),
               "sku": curr.getValue("custpage_item"),
-              "dateFrom": week_from,
-              "dateTo": week_to
+              "TT": "Demand",
+              "func_type": func_type,
+              "week_rs": week_rs
             }
-            console.log("week:: "+week_to,week_from);
-            // var week;
-            // for(var i = 0; i < len; i++){
-            //     var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
-            //     weekArray =[],dataObjs = {};
-            //     store_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name',line:i});
-            //     sku = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku',line:i});
-            //     item_name = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_name',line:i});
-            //     data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type',line:i});
-            //     for(var a = week_from; a < week_to + 1; a++){
-            //         week ="W"+ a;
-            //         weekArray.push({week : week,qty:curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week'+a,line:i})});
-            //     }
-            //     lines.push({ store_name:store_name, sku:sku, item_name:item_name,data_type:data_type,weekArray:weekArray});
-            // }
-            // console.log("+ItemDatas: ",JSON.stringify(lines));
-            // lineComObj["lines"] = lines;    
-            // lineComObj["weekArrayHead"] = weekArray;
+            console.log("week:: "+week_rs,func_type);
+         
             console.log("fils: ",JSON.stringify(fils));
             var link = url.resolveScript({
                 scriptId : 'customscript_store_demand_print_sl',
@@ -221,22 +232,11 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
                   fils:JSON.stringify(fils)
                 },
                 returnExternalUrl: true
-            });
-        
-       
-  
-          // https.post({
-          //     url : link,
-          //     body : JSON.stringify(lineComObj),
-          //     headers : header
-          // })
+            });				            
             window.open(link)
         }else{
             alert("无数据")
         }
-        
-        
-       
     }
 
     
@@ -244,175 +244,150 @@ function(url, dialog, https,currentRecord,runtime,format,moment) {
         var sublistId = 'custpage_sublist';
         var curr = currentRecord.get();
         var date_from = format.parse({ value:curr.getValue('custpage_date_from'), type: format.Type.DATE});
-        var week_from = weekofday(date_from);
         var date_to = format.parse({ value:curr.getValue('custpage_date_to'), type: format.Type.DATE});
-        var week_to = weekofday(date_to);
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+          //传入开始时间和结束时
+          var week_objs = weekofday(new Date(), date_from, date_to);
+          func_type =week_objs.func_type;
+          week_rs =week_objs.weeks;
+          log.audit('week_rs', week_rs);
         var today = moment(new Date().getTime()).format(dateFormat);
-        log.debug("today:",today)
-        var item_arr6 =[] ,item_arr5=[]
-        var quantity 
+        log.debug("today:",today);
+        var item_arr6 =[] ,item_arr5=[];
+        var quantity;
+        var ST = new Date().getTime();
         for(var i = 0; i < curr.getLineCount({sublistId:sublistId}); i++){
             var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type_id',line:i});
             if(data_type == 5 || data_type == 23){ //修改净需求量
                 quantity = 0
-                    for(var a = week_from; a < week_to + 1; a++){
-                            quantity = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week' + a,line:i});
+                week_rs.map(function(wek){
+                            quantity = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_week' + wek,line:i});
                         item_arr6.push({
                             item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
                             account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
-                            week_date: a,
+                            week_date: wek,
                             line:i,
                             data_type:23,  
-                            item_quantity: quantity
-                        })
-                    }
+                            item_quantity: quantity.toString()
+                        });
+                    });
+                for(var l=1;l<54;l++){
+                  if(week_rs.indexOf(l)== -1){
+                    quantity = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_quantity_weekhi' + l,line:i});
+                    item_arr6.push({
+                        item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
+                        account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
+                        week_date: l,
+                        line:i,
+                        data_type:23,  
+                        item_quantity: quantity.toString()
+                    });
+                  }
+                  
+                }
             }
         }
-       
-       // 设置例外信息处理情况
-    var bill_id
-    item_arr6.map(function (itls) {
-      search
-        .create({
-          type: 'customrecord_demand_forecast_child',
-          filters: [
-            {
-              join: 'custrecord_demand_forecast_parent',
-              name: 'custrecord_demand_forecast_item_sku',
-              operator: 'anyof',
-              values: itls.item_id
-            },
-            {
-              join: 'custrecord_demand_forecast_parent',
-              name: 'custrecord_demand_forecast_account',
-              operator: 'anyof',
-              values: itls.account_id
-            },
-            {
-              name: 'custrecord_demand_forecast_l_date',
-              operator: 'on',
-              values: today
-            },
-            {
-              name: 'custrecord_demand_forecast_l_data_type',
-              operator: 'anyof',
-              values: itls.data_type
-            }
-          ]
+        console.log("循环获取数据耗时：" + (new Date().getTime() - ST));
+        console.log("item_arr6 : \n " + JSON.stringify(item_arr6));
+   
+      var link = url.resolveScript({
+          scriptId : 'customscript_modified_quantity_rl',
+          deploymentId:'customdeploy_modified_quantity_rl'
+      });
+      var header = {
+          "Content-Type":"application/json;charset=utf-8",
+          "Accept":"application/json"
+      };
+      var body = {
+          data : item_arr6,
+          today : today,
+          TT : "storeDemand",
+      };
+  
+      https.post.promise({
+        header: header,
+        url: link,
+        body: body
+     }).then(function(response){
+      alert("保存成功");
+    }).catch(function onRejected(reason) {
+      console.log("报错了，look:  " + reason);
         })
-        .run()
-        .each(function (rec) {
-          bill_id = rec.id
-        })
-      log.debug('bill_id', bill_id)
-      var child_bill_data
-      if (bill_id) {
-        child_bill_data = record.load({
-          type: 'customrecord_demand_forecast_child',
-          id: bill_id
-        })
-        var field_name = 'custrecord_quantity_week' + itls.week_date
-        child_bill_data.setValue({
-          fieldId: field_name,
-          value: itls.item_quantity
-        })
-        child_bill_data.save()
-      } else {
-        var forecast_id
-        search
-          .create({
-            type: 'customrecord_demand_forecast',
-            filters: [
-              {
-                name: 'custrecord_demand_forecast_item_sku',
-                operator: 'anyof',
-                values: itls.item_id
-              },
-              {
-                name: 'custrecord_demand_forecast_account',
-                operator: 'anyof',
-                values: itls.account_id
-              }
-            ]
-          })
-          .run()
-          .each(function (rec) {
-            forecast_id = rec.id
-          })
-        log.debug('forecast_id', forecast_id)
-        child_bill_data = record.create({
-          type: 'customrecord_demand_forecast_child'
-        })
-        child_bill_data.setText({
-          fieldId: 'custrecord_demand_forecast_l_date',
-          text: today
-        })
-        child_bill_data.setValue({
-          fieldId: 'custrecord_demand_forecast_l_data_type',
-          value: itls.data_type
-        })
-        child_bill_data.setValue({
-          fieldId: 'custrecord_demand_forecast_parent',
-          value: forecast_id
-        })
-        var field_name = 'custrecord_quantity_week' + itls.week_date
-        child_bill_data.setValue({
-          fieldId: field_name,
-          value: itls.item_quantity
-        })
-        child_bill_data.save()
-      }
-    })
-     
-       alert("保存成功")
+   
+    console.log("更新数据耗时：" + (new Date().getTime() - ST));
     }
    
-  /**
+     /**
      * 判断某一日属于这一年的第几周
      * @param {*} data 
      */
-    function weekofday(data) {
-        // log.debug('data',data);
-        // var value = format.parse({value:data, type: format.Type.DATE});
-        // log.debug('value',value);
-        // var value = moment(value1).format('YYYY/MM/DD');
-        // log.debug('value',value);
-        // var dt = new Date(value);
-        var dt = data;
-        // log.debug('dt',dt);
-        var y = dt.getFullYear();
-        // log.debug('y',y);
-        var start = "1/1/" + y;
+    function weekofday(data, date_from, date_to) {
+      log.debug("date_from:" + date_from, date_to);
+      var weeks = [],dat_from,dat_to ,func_type;
+      // //获取年份
+      var YearDer_to = date_to.getFullYear() - data.getFullYear();
+      if (YearDer_to > 0) {//跨明年
+          log.debug("跨明年");
+          //如果跨年了，判断明年的第一天是星期几
+          //是周 5、6、7，这几天，归为今年的是最后一周
+          var y = date_to.getFullYear();
+          var dd = "1/1/" + y;
+          dd = new Date(dd);
+          if(dd.getDay() > 4|| dd.getDay() == 0){
+              //并且 明年的 第一周归为去年的 最后一周 ，就是明年的第一周不要了
+              dat_from = getWeek(date_from)
+              for(var i=dat_from;i<=53;i++){
+                  weeks.push(i) 
+              }
 
-        // log.debug('start',start);
+              dat_to = getWeek(date_to);
+              for(var i=2;i<=dat_to;i++){
+                  weeks.push(i) 
+              }
+              func_type = "B"
+          }else{
+              //否则 去年的最后一周归为明年的第一周，就是去年的最后一周不要了
+              dat_from = getWeek(date_from)
+              for(var i=dat_from;i<=52;i++){
+                  weeks.push(i) 
+              }
 
-        start = new Date(start);
-        
-        // log.debug('start_1',start);
+              dat_to = getWeek(date_to);
+              for(var i=1;i<=dat_to;i++){
+                  weeks.push(i) 
+              }
+              func_type = "C"
+          }
 
-        starts = start.valueOf();
+      } else {
+          log.debug("不跨明年？0,", YearDer_to);
+          dat_to = getWeek(date_to);
+          dat_from = getWeek(date_from);
+          for(var i=dat_from;i<=dat_to;i++){
+              weeks.push(i) 
+          }
+          func_type = "A"
+      }
+      log.debug("weeks ",weeks);
+      return {"weeks":weeks,"func_type":func_type} ;
+  }
 
-        // log.debug('starts',starts);
-
-        startweek = start.getDay();
-
-        // log.debug('startweek',startweek);
-
-        dtweek = dt.getDay();
-
-        // log.debug('dtweek',dtweek);
-
-        var days = Math.round((dt.valueOf() - start.valueOf()) / (24 * 60 * 60 * 1000)) - (7 - startweek) - dt.getDay() - 1 ;
-        
-        // log.debug('days',days);
-
-        days = Math.floor(days / 7);
-
-        // log.debug('days_1',days);
-
-        return (days + 2);
-    }
+  function getWeek(day,func_type) {
+      var d1 = new Date(day);
+      var d2 = new Date(day);
+      d2.setMonth(0);
+      d2.setDate(1);
+      var numweekf = d2.getDay();
+      var rq = d1.getTime() - d2.getTime() + (24 * 60 * 60 * 1000 * numweekf);
+      var days = Math.ceil(rq / (24 * 60 * 60 * 1000));
+      var num = Math.ceil(days / 7);
+      if(func_type == "B" && num == 1){
+          num = 53
+      }else if(func_type == "C" && num == 53){
+          num = 1
+      }
+      return num;
+  }
     return {
         pageInit: pageInit,
         saveRecord: saveRecord,

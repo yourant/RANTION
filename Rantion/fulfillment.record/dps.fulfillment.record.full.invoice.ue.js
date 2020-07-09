@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-07-06 18:42:49
+ * @LastEditTime   : 2020-07-09 16:50:23
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -26,8 +26,11 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
             var form = context.form;
             var bf_cur = context.newRecord;
 
+            var channel_dealer = bf_cur.getValue("custrecord_dps_ship_small_channel_dealer");
+            var channelservice = bf_cur.getValue("custrecord_dps_ship_small_channelservice");
+
             var small_status = bf_cur.getValue('custrecord_dps_ship_small_status');
-            if (small_status == 4 || small_status == 2) {
+            if (small_status == 4 || small_status == 2 || (small_status == 1 && channel_dealer && channelservice)) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '重新获取物流渠道',
@@ -526,7 +529,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                     join: 'custrecord_dps_ship_small_channelservice'
                 }); //  '物流渠道服务编号';
 
-                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice'); //  '物流渠道服务编号';
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_ship_small_channelservice');
                 data["logisticsChannelName"] = rec.getText('custrecord_dps_ship_small_channelservice'); // '物流渠道服务名称';
                 data["logisticsLabelPath"] = rec.getValue('custrecord_record_fulfill_xh_label_addr'); // 物流面单文件路径 ,
                 data["logisticsProviderCode"] = rec.getValue('custrecord_dps_ship_small_channel_dealer'); //'物流渠道商编号';
@@ -986,8 +989,18 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                         var data = result.data;
                         var Status = data.Status
                         if (Status == 'Created') {
-                            var trackingNumber = data.TrackingNumber
-                            updateTrackingNumber(rec_id, trackingNumber)
+                            var trackingNumber = data.TrackingNumber;
+                            if (trackingNumber) {
+                                record.submitFields({
+                                    type: 'customrecord_dps_shipping_small_record',
+                                    id: rec.id,
+                                    values: {
+                                        custrecord_dps_ship_small_trackingnumber: trackingNumber,
+                                    }
+                                });
+                            }
+
+                            // updateTrackingNumber(rec.id, trackingNumber)
                         } else if (Status == 'CreateFailed') {
                             var CreateFailedReason = data.CreateFailedReason.ExtendMessage
                             record.submitFields({
@@ -1057,7 +1070,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                         isOnline: true
                     });
                     // 保存文件 folder表示文件柜里面的文件夹的id
-                    fileObj.folder = 2078;
+                    fileObj.folder = 542;
                     var fileId = fileObj.save();
                     fileObj = file.load({
                         id: fileId

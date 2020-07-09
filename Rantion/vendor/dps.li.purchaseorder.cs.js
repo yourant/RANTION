@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 20:32:05
- * @LastEditTime   : 2020-05-27 16:35:41
+ * @LastEditTime   : 2020-07-08 11:47:19
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.cs.js
@@ -41,6 +41,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
         var price_type = rec.getValue('custbody_vendor_price_type');
 
         var curUnitPrice = 0;
+        var curTaxCode = 0;
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
         var today = moment(new Date().getTime()).format(dateFormat);
         // console.log('today', today);
@@ -83,7 +84,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             } else if (price_type == 2) {
 
                 var get_arr = getEffectiveDateByItem(supplier, currency, partNo, today);
-                if (get_arr.length > 0) {
+                if (get_arr && get_arr.length > 0) {
                     console.log('get_arr', get_arr);
                     var effectiveDate;
                     effectiveDate = get_arr[0].getValue('custrecord_dps_vmph_cumulative_time');
@@ -112,7 +113,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
 
             }
             console.log('resultArr', resultArr);
-            if (resultArr.length > 0) {
+            if (resultArr && resultArr.length > 0) {
                 if (price_type == 1) {
                     for (j = 0; j < resultArr.length; j++) {
                         var curquantity = resultArr[j].getValue('custrecord_vmpd_quantity');
@@ -120,11 +121,13 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                         if (quantity >= curquantity) {
                             if ((j + 1) == resultArr.length) {
                                 curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
+                                curTaxCode = resultArr[j].getValue('custrecord_vmpd_tax_code');
                                 console.log('(j + 1) == resultArr.length curUnitPrice', curUnitPrice);
                                 break;
                             } else {
                                 if (quantity < resultArr[j + 1].getValue('custrecord_vmpd_quantity')) {
                                     curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
+                                    curTaxCode = resultArr[j].getValue('custrecord_vmpd_tax_code');
                                     console.log('ELSE curUnitPrice', curUnitPrice);
                                     break;
                                 }
@@ -134,12 +137,20 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                 } else if (price_type == 2) {
                     var len = resultArr.length;
                     curUnitPrice = resultArr[len - 1].getValue('custrecord_vmpd_unit_price');
+                    curTaxCode = resultArr[len - 1].getValue('custrecord_vmpd_tax_code');
                 }
 
                 rec.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'rate',
                     value: curUnitPrice
+                });
+
+
+                rec.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'taxcode',
+                    value: curTaxCode
                 });
 
             }
@@ -217,7 +228,9 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
         columns.push({
             name: 'custrecord_vmpd_unit_price'
         });
-
+        columns.push({
+            name: 'custrecord_vmpd_tax_code'
+        });
         if (sta == 1) {
             columns.push({
                 name: 'custrecord_vmpd_quantity',
@@ -267,6 +280,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             resultArr.push(result);
 
             log.error('price', result.getValue('custrecord_vmpd_unit_price'));
+            log.error('price2', result.getValue('custrecord_vmpd_tax_code'));
             add++;
 
             return flag;

@@ -21,17 +21,19 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
 
         exports.getInputData = function () {
 
-            var orderJson = {},
+            var orderJson = [],
                 total = 0;
                 var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_store' });
-                log.debug("acc:"+acc)
-                  var fils = []
+                var group_f = runtime.getCurrentScript().getParameter({ name: 'custscript_acc_group_fl' });
+                log.debug("acc:"+acc);
+                  var fils = [];
                   fils.push(search.createFilter({ name: 'custrecord_aio_marketplace', operator: "anyof", values: "1" }));/* amazon */
                   fils.push(search.createFilter({ name: 'custrecord_aio_seller_id', operator: "isnotempty"}));/* amazon */
                   fils.push(search.createFilter({ name: 'custrecord_aio_dev_account', operator: "noneof",values:"@NONE@"}));/* amazon */
                   fils.push(search.createFilter({ name: 'isinactive', operator: "is",values:false}));/* amazon */
                   fils.push(search.createFilter({ name: 'custrecord_dps_get_report', operator: "is",values:true}));/* amazon */
-                  acc ? fils.push(search.createFilter({ name: 'internalidnumber', operator: search.Operator.EQUALTO, values: acc })) : ""
+                  acc ? fils.push(search.createFilter({ name: 'internalidnumber', operator: search.Operator.EQUALTO, values: acc })) : "";
+                  group_f ? fils.push(search.createFilter({ name: 'custrecord_aio_getorder_group', operator: search.Operator.ANYOF, values: group_f })) : "";
                   log.debug("filters", JSON.stringify(fils))
             // 搜索店铺
             search.create({
@@ -42,10 +44,11 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                     } // 站点信息
                 ]
             }).run().each(function (rec) {
-                var sites = rec.getText('custrecord_aio_enabled_sites');
-                orderJson[sites] = rec.id;
-                total++
-                return true
+                // var sites = rec.getText('custrecord_aio_enabled_sites');
+                // orderJson[sites] = rec.id;
+                orderJson.push(rec.id)
+                total++;
+                return true;
             })
 
             log.audit("总数: total  " + total, JSON.stringify(orderJson));

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:50:16
- * @LastEditTime   : 2020-07-07 12:01:29
+ * @LastEditTime   : 2020-07-09 19:25:29
  * @LastEditors    : Li
  * @Description    : 复制对应的销售订单, 生成新的销售订单; 推送 入库信息到WMS
  * @FilePath       : \Rantion\so\dps.li.sales.replenishment.rl.js
@@ -142,9 +142,9 @@ define(['N/record', 'N/search', 'N/log', 'N/format', "../../douples_amazon/Helpe
         });
 
         objRecord.setValue({
-            fieldId: 'custbody_order_type',
-            value: 4
-        });
+            fieldId: 'custbody_reason_type',
+            value: 1
+        }); // 设置原因类型为 1 补货
 
         objRecord.setValue({
             fieldId: 'custbody_dps_link_so',

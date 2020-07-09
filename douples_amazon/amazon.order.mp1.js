@@ -32,9 +32,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             if(request_end)
             request_end = new Date(request_end.getTime() - tz*60*1000).toISOString();
             log.debug("店铺L:"+request_acc+",分组："+dps_pull_order,"date end:"+request_end+",date request_start:"+request_start );
-            core.amazon.getAccountList(dps_pull_order).map(function (account) {
+            var ff =   core.amazon.getAccountList(dps_pull_order);
+            log.debug("ff:"+ff.length);
+            ff.map(function (account) {
+                log.debug("0000000000000000000000000000getAccountList.id: "+account.id,dps_pull_order);
                 if(account.id != request_acc && request_acc ) return ;
-                last_updated_after = "2020-06-01T00:00:00.000Z";
+                last_updated_after = "2020-05-31T00:00:00.000Z";
                 if (req) {
                     // // 设置统一时间
                     var ssd = core1.handleit(account.id, request_start, request_end);
@@ -55,6 +58,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             log.error('getinput error 出错了', e);
         }
         log.audit("orders 总数：", orders.length);
+        return "1"
         return orders;
     }
 
@@ -92,8 +96,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     type: 'customrecord_aio_order_import_cache'
                 });
             }
-            var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date;
-            var last_update_date =interfun.getFormatedDate("","",order.last_update_date).date;
+            var order_trandate = interfun.getFormatedDate("","",order.purchase_date,true).date;
+            var last_update_date =interfun.getFormatedDate("","",order.last_update_date,true).date;
             if(last_update_date == "2") {
                 if(r_id){
                     var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
@@ -255,7 +259,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             log.debug("field_token", field_token)
 
             if (!last_update_date) {
-                last_update_date = "2020-06-12T00:00:00.000Z";
+                last_update_date = "2020-05-31T00:00:00.000Z";
             }
             if (hid && nextToken) {
                 if (nextToken == '-1') {
@@ -432,7 +436,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                                 // 'CreatedBefore': last_before
                             }, '/Orders/2013-09-01');
                         } else {
-                            log.debug("auth", auth)
+                            log.debug("auth", auth);
                             content = core.amazon.mwsRequestMaker(auth, 'ListOrders', '2013-09-01', {
                                 'MarketplaceId.Id.1': auth.marketplace_id,
                                 // 'FulfillmentChannel.Channel.1': "MFN",

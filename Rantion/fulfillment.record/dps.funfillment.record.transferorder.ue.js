@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-06 19:42:56
+ * @LastEditTime   : 2020-07-08 13:51:33
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -155,6 +155,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         var af_rec = context;
 
         var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status');
+        var shipId = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
 
         log.audit('rec_status', rec_status);
 
@@ -512,7 +513,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     id: af_rec.id,
                                     values: {
                                         custrecord_dps_shipping_rec_status: 11,
-                                        custrecord_dps_shipment_info: JSON.stringify(rep.message)
+                                        custrecord_dps_shipment_info: JSON.stringify(rep)
                                     }
                                 });
                             }
@@ -579,6 +580,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
 
 
+        }
+
+        if (rec_status == 5 && (tranor_type == 1 || tranor_type == 3) && shipId) { // 渠道商为龙舟, 存在shipmentId, 直接推送 WMS
+            wms(af_rec);
         }
 
     }

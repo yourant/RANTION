@@ -7,7 +7,7 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
      const MissingReportType = 1 //Missing report 发货报告
     function getInputData() {
       var startT = new Date().getTime()
-      var limit = 1, orders = []
+      var limit = 4000, orders = []
       var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_if_account' });
       var orderid = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_orderid' });
       var shipdate_ed = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_shipdate_ed' });

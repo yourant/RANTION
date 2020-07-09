@@ -3,14 +3,14 @@
  *@NScriptType Restlet
  */
 define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/log", "N/search",
-    "N/record", "N/transaction", '../Rantion/Helper/location_preferred.js', "./Helper/interfunction.min","./Helper/fields.min","N/xml"
-], function (format, runtime, core, moment, log, search, record, transaction, loactionPre, interfun,fiedls,xml) {
+    "N/record", "N/transaction",  "./Helper/interfunction.min","./Helper/fields.min","N/xml"
+], function (format, runtime, core, moment, log, search, record, loactionPre, interfun,fiedls,xml) {
 
     function _get(context) {
+        log.debug("pullorder context:", context)
         switch (context.op) {
             case "go":
                 var acc = context.acc;
-                log.debug("go context:", context)
                 var startT = new Date().getTime();
                 var invs = getInputData(acc) 
                 invs.map(function(lo){
@@ -23,7 +23,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 var acc = context.acc;
                 var last_updated_after = context.last_updated_after;
                 var last_updated_before = context.last_updated_before;
-                log.debug("pullorder context:", context)
                 var startT = new Date().getTime();
                  Orderpull(acc,last_updated_after,last_updated_before)
                 var ss = "success ," + " 耗时：" + (new Date().getTime() - startT)
@@ -53,10 +52,10 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
 
     function Orderpull(acc,last_updated_after,last_updated_before) {
-        var orders =[]
+        var orders =[];
         core.amazon.getAccountList().map(function (account) {
             if(acc == account.id){
-  // last_updated_after = "2020-06-01T00:00:00.000Z";
+            // last_updated_after = "2020-06-01T00:00:00.000Z";
             // last_updated_before = "2020-03-10T23:59:59.999Z";
             var ssd = core1.handleit(account.id, last_updated_after, last_updated_before)
                 ssd.map(function (order) {
@@ -66,7 +65,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
           
         })
         orders.map(function(order){
-        log.debug("order:", order)
+        log.debug("order:", order);
         // ====================进cache==============
         try {
             var r;
@@ -95,8 +94,15 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     type: 'customrecord_aio_order_import_cache'
                 });
             }
-            var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date
-            var last_update_date =interfun.getFormatedDate("","",order.last_update_date).date
+            var order_trandate = interfun.getFormatedDate("","",order.purchase_date,true).date;
+            var last_update_date =interfun.getFormatedDate("","",order.last_update_date,true).date;
+            if(last_update_date == "2") {
+                if(r_id){
+                    var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
+                    log.debug("删除 del:"+del);
+                }
+                return ;
+            }
             r.setValue({
                 fieldId: 'custrecord_aio_cache_acc_id',
                 value: order.AccID
@@ -133,10 +139,16 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 fieldId: 'custrecord_amazon_last_update_date',
                 text: last_update_date
             });
+            r.setValue({fieldId:"custrecord_shipment_date_cache",value:order.latest_ship_date});
+            r.setValue({fieldId:"custrecord_purchase_date_1",value:order.purchase_date});
+            r.setValue({fieldId:"custrecord_last_update_date",value:order.last_update_date});
+            r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.last_update_date).date});
+            r.setValue({fieldId:"custrecord_seller_order_id_1",value:order.seller_order_id });
+            r.setValue({fieldId:"custrecord_dps_cache_shipped_byamazont_f",value:order.shipped_byamazont_fm});
             var ss = r.save();
-            log.debug("11cache save success：", ss)
+            log.debug("11cache save success：", ss);
         } catch (e) {
-            log.error("import cache error", e)
+            log.error("import cache error", e);
         }
         // =======================进cache==============end
        })

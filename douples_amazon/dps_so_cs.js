@@ -146,6 +146,8 @@ define(['N/search', 'N/record'],
                 }
             }
 
+
+
             return true;
         }
 

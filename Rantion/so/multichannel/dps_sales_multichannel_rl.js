@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-13 13:52:41
- * @LastEditTime   : 2020-06-17 13:54:26
+ * @LastEditTime   : 2020-07-04 14:14:30
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_rl.js
@@ -84,10 +84,19 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                             {
                                 name: 'custbody_mcf_delivery_method'
                             },
-                            {name:'custbodyfulfillment_stock_so'}, // MCF fulfillment Order Id
-                            {name:'custbody_reason_type'}, //原因类型
-                            {name:'custentity_store_number',join:"customer"},   //12店铺编号
-                            {name:'otherrefnum'}, //原订单号
+                            {
+                                name: 'custbodyfulfillment_stock_so'
+                            }, // MCF fulfillment Order Id
+                            {
+                                name: 'custbody_reason_type'
+                            }, //原因类型
+                            {
+                                name: 'custentity_store_number',
+                                join: "customer"
+                            }, //12店铺编号
+                            {
+                                name: 'otherrefnum'
+                            }, //原订单号
                         ]
                     }).run().each(function (rec) {
                         delivery_shop = rec.getValue('custbody_sotck_account');
@@ -109,27 +118,31 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                         return true;
                     });
                     log.debug('items', items);
-                    if(!reason_type){
+
+                    /* 
+                    if (!reason_type) {
                         return {
                             code: '失败',
                             message: "操作失败，请先选择原因类型"
                         };
                     }
-                    if(!store_num){
+                    */
+                    if (!store_num) {
                         return {
                             code: '失败',
                             message: "操作失败，客户信息中的店铺编号不存在"
                         };
                     }
-                      if(!order_num){ 
-                          //如果多渠道订单编号不存在，就根据规则生成 ：店铺编号 - 原订单号 - 原因类型
-                          var corr = {
-                              "1":"BF","2":"CF"
-                            }
-                          order_num =store_num +"-"+ order_id+"-"+corr[reason_type]
-                      }
-                      log.debug("order_num:",order_num)
-                   
+                    if (!order_num) {
+                        //如果多渠道订单编号不存在，就根据规则生成 ：店铺编号 - 原订单号 - 原因类型
+                        var corr = {
+                            "1": "BF",
+                            "2": "CF"
+                        }
+                        order_num = store_num + "-" + order_id + "-" + corr[reason_type]
+                    }
+                    log.debug("order_num:", order_num)
+
                     //获取订单联系人地址 
                     var addr = record.load({
                         type: 'customrecord_customer_contact',

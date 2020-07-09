@@ -144,7 +144,8 @@ define(['../Helper/config.js', 'N/ui/dialog', 'N/runtime', 'N/record'],
 
         function fieldChanged(context) {
             // console.log('roleId:' + roleId);
-            if (roleId != config.vendorRoleId && roleId != config.managerRoleId) {
+            // if (roleId != config.vendorRoleId && roleId != config.managerRoleId) {   // HACK 限制于供应商不允许修改交货地点
+            if (roleId == config.vendorRoleId) {
                 var fieldId = context.fieldId;
                 if (fieldId != 'custrecord_item_quantity' && fieldId != 'custrecord_delivery_date' &&
                     fieldId != 'custrecord_outstanding_quantity') {

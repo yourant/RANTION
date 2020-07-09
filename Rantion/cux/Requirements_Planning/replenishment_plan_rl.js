@@ -32,7 +32,7 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
 // 3.若SKU没有默认供应商，则交易主体为蓝深贸易
 
 
-    function createBill(items_arr){
+    function createBill(items_arr,week){
         var result_data = {},ord_len = [];
         items_arr.map(function(line){
             var t_ord = record.create({ type: 'purchaserequisition', isDynamic: true });
@@ -63,8 +63,11 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
             }catch(e){
                 log.error("error:",e)
             }
-           
-
+               //需求计划标记   ,年份+week        
+            t_ord.setValue({
+                fieldId: 'custbody_replace_demand_bj',
+                value: new Date().getFullYear() +""+week
+              })
             t_ord.setValue({ fieldId: 'custbody_dps_type', value: 2 });
             var acc  = line.account_id
             var subsidiary = 5  //蓝深贸易
@@ -72,24 +75,79 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
             var entity_id = runtime.getCurrentUser().id;
             t_ord.setValue({ fieldId: 'entity', value: entity_id });
             var today = new Date(+new Date()+8*3600*1000);
+      
             t_ord.setValue({ fieldId: 'trandate', value: today });
+            var vendor_id,dn;//根据SKU加供应商，找到对应的采购周期
+            search.create({
+                type: 'item',
+                filters: [
+                    { name: 'internalid', operator: 'is', values:  line.item_id },
+                ],
+                columns: [
+                    { name: 'othervendor'}
+                ]
+            }).run().each(function (rec) {
+                    vendor_id= rec.getValue('othervendor')
+            });
+            if(vendor_id){
+                search.create({
+                    type: 'customrecordpurchasing_cycle_record',
+                    filters: [
+                        { name: 'custrecordsku_number', operator: 'is', values: line.item_id },
+                        { name: 'custrecord_vendor', operator: 'is', values: line.vendor_id },
+                    ],
+                    columns: [
+                        'custrecord_purchasing_cycle'  //采购周期
+                    ]
+                }).run().each(function (rec) {
+                    dn = rec.getValue("custrecord_purchasing_cycle");
+                });
+            }else{
+                dn = 1;
+            }
+            var today_l = new Date(+new Date()+(dn*24*3600*1000));
             t_ord.selectNewLine({ sublistId: 'item' });
             t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'item', value: line.item_id });
+            t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'expectedreceiptdate', value: today_l});
             t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity', value: Math.abs(line.item_quantity) });
             t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'estimatedamount', value:  0});
+            t_ord.commitLine({
+                sublistId: 'item'
+            });
             // 其他字段
             try {
-                t_ord.commitLine({ sublistId: 'item'});
+             
             }catch (err) {
                 throw "Error inserting item line: " + line.item_id + ", abort operation!" + err;
             }
-            var t_ord_id = t_ord.save();
+            var len = t_ord.getLineCount({sublistId:"item"});
+           
+            t_ord.selectLine({ sublistId: 'item',line:len -1 });
+            var ss = t_ord.getCurrentSublistValue({ sublistId: 'item', fieldId: 'item'});
+            log.debug("生成请购单之前，查看一下len1 "+len,ss);
+            t_ord.selectNewLine({ sublistId: 'item' });
+            t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'item', value: line.item_id });
+            t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'expectedreceiptdate', value: today_l});
+            t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity', value: Math.abs(line.item_quantity) });
+            t_ord.setCurrentSublistValue({ sublistId: 'item', fieldId: 'estimatedamount', value: 0});
+            t_ord.commitLine({ sublistId: 'item'});
+            var len = t_ord.getLineCount({sublistId:"item"});
+            t_ord.selectLine({ sublistId: 'item',line:len -1  });
+            var ss = t_ord.getCurrentSublistValue({ sublistId: 'item', fieldId: 'item'});
+            log.debug("生成请购单之前，查看一下len2： "+len,ss);
+            try {
+                var t_ord_id = t_ord.save();
+            }catch (err) {
+                throw "Error inserting item line: " + line.item_id + ", abort operation!" + err;
+                return
+            }
+            
             var plan_rec = record.create({ type: 'customrecord_replenishment_plan_rec' });
             plan_rec.setValue({ fieldId: 'custrecord_replenishment_account', value: acc });
             plan_rec.setValue({ fieldId: 'custrecord_replenishment_item', value: line.item_id });
-            plan_rec.setValue({ fieldId: 'custrecord_replenishment_qty', value: Math.abs(line.item_quantity)  });
+            plan_rec.setValue({ fieldId: 'custrecord_replenishment_qty', value: Math.abs(line.item_quantity)});
             plan_rec.setValue({ fieldId: 'custrecord_replenishment_reqpurchase', value: t_ord_id });
-            plan_rec.save()
+            plan_rec.save();
             ord_len.push(t_ord_id);
         })
 

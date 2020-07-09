@@ -101,7 +101,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             // core.amazon.getReportAccountList().map(function (account) {
 
                 acc_arrys.map(function (account) {
-                if(account.id !=stroe && stroe) return
+                if(account.id !=stroe && stroe) return;
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {
                     log.audit("account:" + account.id, marketplace);
@@ -448,10 +448,10 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             ]
                         }).run().each(function (e) {
                             check_rec_id = e.id;
-                        })
+                        });
 
                     } else if (mapping.record_type_id == "customrecord_aio_amazon_mfn_listing") {
-                        // 报告为 Amazon Listing 报告,增加去重机制
+                        // 报告为 Amazon Listing 报告 , 增加去重机制
                         search.create({
                             type: mapping.record_type_id,
                             filters: [{
@@ -482,7 +482,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                         log.audit('check_rec_id', check_rec_id);
                     }
                     if (check_rec_id) {
-                        log.audit("0load " + line['amazon-order-id'] ? line['amazon-order-id'] : line["order-id"], "1 load: " + mapping.record_type_id)
+                        log.audit("0load " + line['amazon-order-id'] ? line['amazon-order-id'] : line["order-id"], "1 load: " + mapping.record_type_id);
                         // return
                         rec = record.load({
                             type: mapping.record_type_id,
@@ -548,18 +548,20 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             type:"customrecord_aio_amazon_seller_sku",
                             filters:[
                                 {name:"custrecord_ass_account" ,operator:"anyof",values:acc_id},
-                                {name:"name" ,operator:"is",values:v.sku}
-                            ],columns:{name:""}
+                                {name:"name" ,operator:"is",values:line.sku}
+                            ]
                         }).run().each(function(e){
                             sku_corr =  e.id
                         })
-                        if(!sku_corr)
-                            sku_corr.create({type:"customrecord_aio_amazon_seller_sku"})
+                        if(!sku_corr){
+                            sku_corr = record.create({type:"customrecord_aio_amazon_seller_sku"});
                             sku_corr.setValue({fieldId:"custrecord_ass_account",value:acc_id})
-                            sku_corr.setValue({fieldId:"custrecord_ass_fnsku",value:v.fnsku})
-                            sku_corr.setValue({fieldId:"name",value:v.sku})
+                            sku_corr.setValue({fieldId:"custrecord_ass_fnsku",value:line.fnsku})
+                            sku_corr.setValue({fieldId:"name",value:line.sku})
                             var ss = sku_corr.save()
                             log.debug("SKU对应关系 "+ss)
+                        }
+                         
                         
                     }
                     if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
@@ -578,24 +580,25 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                             value: acc_id
                         });
                         //sku对应关系，asin sellersku 店铺 站点
-                        var sku_corr
+                        var sku_corr;
                         search.create({
                             type:"customrecord_aio_amazon_seller_sku",
                             filters:[
                                 {name:"custrecord_ass_account" ,operator:"anyof",values:acc_id},
-                                {name:"name" ,operator:"anyof",values:v["seller-sku"]}
+                                {name:"name" ,operator:"is",values:line["seller-sku"]}
                             ]
                         }).run().each(function(e){
                             sku_corr =  e.id
-                        })
-                        if(!sku_corr)
-                            sku_corr.create({type:"customrecord_aio_amazon_seller_sku"})
-                            sku_corr.setValue({fieldId:"custrecord_ass_account",value:acc_id})
-                            sku_corr.setValue({fieldId:"custrecord_ass_asin",value:v.asin1})
-                            sku_corr.setValue({fieldId:"name",value:v["seller-sku"]})
-                            sku_corr.setValue({fieldId:"custrecord_ass_sellersku_site",value:site_id})
-                            var ss = sku_corr.save()
-                            log.debug("SKU对应关系 "+ss)
+                        });
+                        if(!sku_corr){
+                            sku_corr = record.create({type:"customrecord_aio_amazon_seller_sku"});
+                            sku_corr.setValue({fieldId:"custrecord_ass_account",value:acc_id});
+                            sku_corr.setValue({fieldId:"custrecord_ass_asin",value:line.asin1});
+                            sku_corr.setValue({fieldId:"name",value:line["seller-sku"]});
+                            sku_corr.setValue({fieldId:"custrecord_ass_sellersku_site",value:site_id});
+                            var ss = sku_corr.save();
+                            log.debug("SKU对应关系 "+ss);
+                        }
                     }
                     var ss = rec.save();
                     log.debug('rec.id', ss);

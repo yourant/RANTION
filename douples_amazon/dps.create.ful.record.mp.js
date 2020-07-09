@@ -749,7 +749,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
                     join: 'item'
                 },
                 {
-                    name: 'custitem_dps_weight',
+                    name: 'custitem_dps_heavy2',
                     join: 'item'
                 }
             ]
@@ -826,7 +826,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
                 order.high = high;
             }
             var weight = Number(result.getValue({
-                name: 'custitem_dps_weight',
+                name: 'custitem_dps_heavy2',
                 join: 'item'
             }));
             order.weight = order.weight + weight;

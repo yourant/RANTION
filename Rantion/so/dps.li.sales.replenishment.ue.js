@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 16:36:48
- * @LastEditTime   : 2020-06-04 21:08:10
+ * @LastEditTime   : 2020-07-08 19:32:30
  * @LastEditors    : Li
  * @Description    : 销售退货/补货
  * @FilePath       : \Rantion\so\dps.li.sales.replenishment.ue.js
@@ -28,7 +28,7 @@ define(['N/runtime'], function (runtime) {
         if (!link_so && createdfrom) {
             form.addButton({
                 id: 'custpage_dps_li_sales_button',
-                label: '生成补货',
+                label: '生成补货订单',
                 functionName: "createNewSo(" + createdfrom + ',' + bf_cur.id + ',' + 1 + ")"
             });
         }
@@ -36,7 +36,7 @@ define(['N/runtime'], function (runtime) {
         if (!push_wms && createdfrom) {
             form.addButton({
                 id: 'custpage_dps_li_wms_button',
-                label: '推送WMS1',
+                label: '推送WMS入库',
                 functionName: "createNewSo(" + createdfrom + ',' + bf_cur.id + ',' + 2 + ")"
             });
         }

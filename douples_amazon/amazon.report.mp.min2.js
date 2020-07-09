@@ -40,6 +40,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 (type == core.enums.report_type._GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA_) ||
                 (type == core.enums.report_type._GET_VAT_TRANSACTION_DATA_) ||
                 (type == core.enums.report_type._GET_FBA_FULFILLMENT_INVENTORY_RECEIPTS_DATA_) ||
+                (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) ||
                 (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_));
         };
 
@@ -51,6 +52,9 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             }),
                 report_type = runtime.getCurrentScript().getParameter({
                     name: 'custscript_aio_obt_report_type2'
+                }),
+                caac = runtime.getCurrentScript().getParameter({
+                    name: 'custscript_caac'
                 }),
                 report_range = runtime.getCurrentScript().getParameter({
                     name: 'custscript_aio_obt_report_date_range2'
@@ -66,7 +70,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             var sum = 0;
 
             core.amazon.getReportAccountList().map(function (account) {
-                if(account.id !=118) return
+                if(account.id !=caac) return
                 // core.amazon.getAccountList().map(function (account) {
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {

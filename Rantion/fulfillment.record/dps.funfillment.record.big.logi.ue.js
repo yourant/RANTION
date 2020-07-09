@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-06 20:41:58
+ * @LastEditTime   : 2020-07-08 19:34:39
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -87,7 +87,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             if (type == 'view' && bigRec_status == 8 /*|| bigRec_status == 9*/ ) {
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
-                    label: 'WMS发运',
+                    label: '推送WMS装箱',
                     functionName: "WMSShipping(" + bf_cur.id + ")"
                 });
             }

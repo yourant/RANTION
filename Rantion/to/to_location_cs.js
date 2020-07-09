@@ -24,7 +24,7 @@ define(['N/search'], function(search) {
         }
         if (context.fieldId == 'custbody_dps_transferor_type' || context.fieldId == 'subsidiary') {
             var transferor_type = rec.getValue('custbody_dps_transferor_type');
-            if (transferor_type == '1' || transferor_type == '2') {
+            if (transferor_type == '1' || transferor_type == '2' || transferor_type == '3') {
                 var subsidiary = rec.getValue('subsidiary');
                 var to_location;
                 if (subsidiary) {
@@ -32,7 +32,7 @@ define(['N/search'], function(search) {
                         type: 'location',
                         filters: [
                             { name: 'subsidiary', operator: 'anyof', values: subsidiary },
-                            { name: 'custrecord_wms_location_type', operator: 'anyof', values: 4 }
+                            { name: 'custrecord_dps_financia_warehous', operator: 'anyof', values: 5 }
                         ]
                     }).run().each(function (rec) {
                         to_location = rec.id;

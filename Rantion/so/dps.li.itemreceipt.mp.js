@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-14 15:42:03
- * @LastEditTime   : 2020-06-23 14:56:27
+ * @LastEditTime   : 2020-05-14 15:49:55
  * @LastEditors    : Li
  * @Description    : 定时查询已推送WMS的退货授权单, 获取相关信息
  * @FilePath       : \Rantion\so\dps.li.itemreceipt.mp.js
@@ -25,6 +25,7 @@ define(['N/search', 'N/record'], function (search, record) {
                     operator: 'is',
                     values: true
                 },
+
                 {
                     name: 'custbody_dps_push_wms',
                     operator: 'is',
@@ -33,7 +34,7 @@ define(['N/search', 'N/record'], function (search, record) {
             ]
         }).run().each(function (rec) {
             info.push(rec.id);
-            return --limit > 0;
+            return --limit>0;
         })
     }
 

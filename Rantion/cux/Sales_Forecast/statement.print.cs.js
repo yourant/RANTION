@@ -7,7 +7,7 @@
  * @scriptID    customscript_rsf_forcast_workbench_cs
  * @deploymentID    customdeploy_rsf_forcast_workbench_cs
  */
-define(["require", "exports"], function (require, exports) {
+define(["require", "exports", 'N/currentRecord', 'N/url'], function (require, exports, currentRecord, url) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.pageInit = function (ctx) {
         window.onbeforeunload = function (e) {
@@ -85,4 +85,43 @@ define(["require", "exports"], function (require, exports) {
     exports.saveRecord = function (ctx) {
         return true;
     };
+    exports.ExportSalesForecast = function () {
+        var sublistId = 'custpage_sb_02';
+        var curr = currentRecord.get();
+        var len = curr.getLineCount({ sublistId: sublistId });
+        var fils = new Array();
+        console.log(len);
+        if (len > 0) {
+            for (var i = 0; i < len; i++) {
+                fils.push({
+                    "acc": curr.getSublistValue({ sublistId: sublistId, fieldId: 'store_id', line: i }),
+                    "sku": curr.getSublistValue({ sublistId: sublistId, fieldId: 'sku_id', line: i })
+                })
+            }
+            var need_fils = [];
+            var po_no = [];
+            if (fils.length > 0) {
+                for (var i = 0; i < fils.length; i++) {
+                    if (po_no.indexOf(fils[i]['acc'] + fils[i]['sku']) === -1) {
+                        need_fils.push({
+                            "acc": fils[i].acc,
+                            "sku": fils[i].sku
+                        });
+                        po_no.push(fils[i]['acc'] + fils[i]['sku']);
+                    }
+                }
+            }
+            var link = url.resolveScript({
+                scriptId: 'customscript_rsf_export_sl',
+                deploymentId: 'customdeploy_rsf_export_sl',
+                params: {
+                    fils: JSON.stringify(need_fils)
+                },
+                returnExternalUrl: true
+            });
+            window.open(link);
+        } else {
+            alert("无数据")
+        }
+    }
 });

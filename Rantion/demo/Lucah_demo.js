@@ -24,8 +24,8 @@ define([
   "N/render",
   "../../douples_amazon/Helper/handlebars-v4.1.1",
   "N/file",
-  "./conf_comment",
   "N/ui/serverWidget",
+  "N/transaction"
 ], function (
   format,
   runtime,
@@ -41,8 +41,8 @@ define([
   render,
   Handlebars,
   file,
-  conf_comment,
-  ui
+  ui,
+  transaction
 ) {
   // 已知格林威治时间，换算本地正确时间
   // 本地时间 = 格林威治时间 - 时差
@@ -63,31 +63,9 @@ define([
     var response = context.response;
     var request = context.request;
     var St = new Date().getTime();
-    // var rs = getOrderAndCreateCache(4,4, "206-1383689-3656328")
     var params = request.parameters; //参数
-    // log.debug("lineComObj:", params.lineComObj);
-    // var model = file.load({
-    //   //写全路径
-    //   id: "SuiteScripts/Rantion/demo/procurement_print_temp.xml"
-    // }).getContents();
-    // var template = Handlebars.compile(model);
-    // var xml = template(JSON.parse(params.lineComObj));
-    // var fileObj = file.create({
-    //   name: "需求计划.xls",
-    //   fileType: file.Type.EXCEL,
-    //   contents:
-    //     encode.convert({
-    //       string:xml,
-    //       inputEncoding: encode.Encoding.UTF_8,
-    //       outputEncoding: encode.Encoding.BASE_64,
-    //     }),
-    //   encoding: file.Encoding.UTF8,
-    //   isOnline: true,
-    // });
-    // response.writeFile({ file: fileObj, isInline: true });
- 
-    var form =  initUI()
-     response.writePage(form);
+    var ss = getOrderAndCreateCache(19, 19, "111-2977173-4262641")
+    response.write(JSON.stringify(ss))
     log.debug("耗时：", new Date().getTime() - St);
   }
 

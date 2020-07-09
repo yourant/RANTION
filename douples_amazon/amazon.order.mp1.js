@@ -155,6 +155,50 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             log.debug("11cache save success：", ss);
         } catch (e) {
             log.error("import cache error", e);
+            log.error("import cache error", e);
+           var  externalid = order.AccID+"."+order.amazon_order_id
+            var mo;
+            search.create({
+                type: 'customrecord_dps_transform_mo',
+                filters: [{
+                    name: 'externalid',
+                    operator: 'is',
+                    values: externalid
+                }]
+            }).run().each(function (rec) {
+                mo = record.load({
+                    type: 'customrecord_dps_transform_mo',
+                    id: rec.id
+                });
+                return false;
+            });
+            if (!mo) {
+                mo = record.create({
+                    type: 'customrecord_dps_transform_mo',
+                    isDynamic: true,
+                });
+                mo.setValue({
+                    fieldId:"externalid",
+                    value: order.AccID+"."+order.amazon_order_id
+                });
+                mo.setValue({
+                    fieldId:"custrecord_tr_missing_order_type",
+                    value: "拉单报错"
+                });
+                mo.setValue({
+                    fieldId:"custrecord_missing_orderid_txt",
+                    value: order.amazon_order_id
+                });
+                mo.setValue({
+                    fieldId:"custrecord_tracking_missing_acoount",
+                    value: acc
+                });
+                mo.setValue({
+                    fieldId:"custrecord_tr_missing_order_reason",
+                    value: JSON.stringify(e)
+                });
+                mo.save();
+            }
         }
         // =======================进cache==============end
 

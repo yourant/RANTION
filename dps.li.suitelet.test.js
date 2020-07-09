@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-09 09:59:30
+ * @LastEditTime   : 2020-07-09 20:14:38
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -374,13 +374,19 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
         var startTime, endTime, cost;
         try {
 
-            log.debug('context.request.month', context.request.month)
+            // log.debug('context.request.month', context.request.month)
 
             if (context.request.month == "POST") {
                 log.debug('context.request.month', context.request.month)
             }
 
-            log.debug("请求", context);
+
+            var a = new Date();
+            log.debug('a', a);
+            log.debug('toString a', a.toUTCString())
+            log.debug('a getTimezoneOffset', a.getTimezoneOffset())
+
+            // log.debug("请求", context);
 
             context.response.write("1");
 

@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function(log, record, serverWidget, search) {
+define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, record, serverWidget, search) {
 
 
 
@@ -10,12 +10,16 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function(log, rec
 
     }
 
-    function beforeSubmit(context) {}
+    function beforeSubmit(context) { }
 
     function afterSubmit(context) {
         var bf_cur = context.newRecord;
 
         var purchaseorder_id = bf_cur.getValue('purchaseorder');
+
+        if (!purchaseorder_id) {
+            return;
+        }
         //purchaseorder
         //获取对应采购订单
         var p_record = record.load({

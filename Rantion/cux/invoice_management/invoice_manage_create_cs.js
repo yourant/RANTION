@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/currentRecord', 'N/ui/dialog'], function(currentRecord, dialog) {
+define(['N/currentRecord', 'N/ui/dialog'], function (currentRecord, dialog) {
 
     var rec;
 
@@ -41,11 +41,11 @@ define(['N/currentRecord', 'N/ui/dialog'], function(currentRecord, dialog) {
     }
 
     function postSourcing(context) {
-        
+
     }
 
     function lineInit(context) {
-        
+
     }
 
     function validateDelete(context) {
@@ -61,19 +61,23 @@ define(['N/currentRecord', 'N/ui/dialog'], function(currentRecord, dialog) {
     }
 
     function sublistChanged(context) {
-        
+
     }
 
     function createInvoice() {
+        log.audit('createInvoice begin');
         var rtn = getSublistCountAndValue();
+        log.audit('createInvoice rtn', JSON.stringify(rtn));
         if (!rtn.isCheck) {
             dialog.alert({ title: '提示', message: rtn.checkMsg });
             return false;
         } else {
             window.onbeforeunload = null;
-            var invoiceid = 494;
+            // var invoiceid = 494;
+            var invoiceid = 185;
             window.location.href = '/app/common/custom/custrecordentry.nl?rectype=' + invoiceid + '&poids=' + rtn.detail.join('|');
         }
+        log.audit('createInvoice end');
     }
 
     /**

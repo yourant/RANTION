@@ -6,17 +6,22 @@ define([], function() {
 
     function beforeLoad(context) {
         var form = context.form;
+        var type = context.type;
         var bf_cur = context.newRecord;
-        var order_status = bf_cur.getValue('orderstatus');
-        var createdfrom = bf_cur.getValue('createdfrom');
-
-        if (order_status == 'B' || order_status == 'D' || order_status == 'E' || order_status == 'F' || order_status == 'G') {
-            form.addButton({
-                id: 'custpage_rt_wms_order_btn',
-                label: '推送WMS',
-                functionName: "returnWMS(+" + createdfrom + ',' + bf_cur.id + ")"
-            });
-            form.clientScriptModulePath = './dps.huey.po.rt.wms.cs.js';
+        var po_id = bf_cur.getValue('createdfrom');
+        var status = bf_cur.getValue('custbody_po_return_status');
+        if (!status) {
+            bf_cur.setValue({ fieldId: 'custbody_po_return_status', value: 1 });
+        }
+        if (type == 'view') {
+            if (status == 1 || !status) {
+                form.addButton({
+                    id: 'custpage_rt_wms_order_btn',
+                    label: '推送WMS',
+                    functionName: "returnWMS(+" + po_id + ',' + bf_cur.id + ")"
+                });
+                form.clientScriptModulePath = './dps.huey.po.rt.wms.cs.js';
+            }
         }
     }
 

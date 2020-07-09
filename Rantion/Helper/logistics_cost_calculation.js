@@ -238,7 +238,6 @@ define(['N/search'], function(search) {
             filters.push('and');
             filters.push(['custrecord_lcl_weight_end', 'anyof', '@NONE@']);
         }
-        log.debug('filters', JSON.stringify(filters));
         search.create({
             type: 'customrecord_logistics_cost_labber',
             filters: filters,
@@ -260,7 +259,6 @@ define(['N/search'], function(search) {
             if ((zip && zipBegin && (zip.indexOf(zipBegin) != 0)) || (!zip && zipBegin)) {
                 return true;
             }
-            log.debug('1', '1');
             var unitCost = Number(result.getValue('custrecord_lcl_unit_weight_cost'));
             var bubble = Number(result.getValue({ name: 'custrecord_ls_bubble_count', join: 'custrecord_lcl_logistics_services_link' }));
             var bubbleType = result.getValue({ name: 'custrecord_ls_bubble_type', join: 'custrecord_lcl_logistics_services_link' });

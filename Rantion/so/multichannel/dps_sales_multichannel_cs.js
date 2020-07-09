@@ -1,18 +1,9 @@
-/*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-05-13 13:52:41
- * @LastEditTime   : 2020-07-03 15:09:03
- * @LastEditors    : Li
- * @Description    : 
- * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_cs.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
 /**
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(["N/ui/dialog", 'N/https', 'N/url', "N/currentRecord", 'N/log', 'N/search'], function (dialog, https, url, currentRecord, log, search) {
+define(["N/ui/dialog", 'N/https', 'N/url',"N/currentRecord"],
+ function (dialog, https, url,currentRecord) {
 
     function pageInit(context) {
 
@@ -23,60 +14,7 @@ define(["N/ui/dialog", 'N/https', 'N/url', "N/currentRecord", 'N/log', 'N/search
     }
 
     function validateField(context) {
-
-        // var CurRec = context.currentRecord;
-
-        // var account = CurRec.getValue('custbody_sotck_account'); // 店铺
-        // var itemId = CurRec.getSublistValue({
-        //     sublistId: 'item',
-        //     fieldId: 'item',
-        // });
-
-        // var sku = searchSKU(itemId, account);
-        // if (sku) {
-
-        //     CurRec.setCurrentSublistValue({
-        //         sublistId: 'item',
-        //         fieldId: 'custcol_aio_amazon_msku',
-        //         value: sku,
-        //         ignoreFieldChange: true
-        //     });
-
-        // }
-
-
         return true;
-    }
-
-
-    /**
-     * 根据店铺和货品的对应关系获取 SellerSKU
-     * @param {*} itemId 
-     * @param {*} account 
-     */
-    function searchSKU(itemId, account) {
-        var SellerSku;
-        search.create({
-            type: "customrecord_aio_amazon_seller_sku",
-            filters: [{
-                    name: 'custrecord_ass_sku',
-                    operator: 'anyof',
-                    values: [itemId]
-                },
-                {
-                    name: 'custrecord_ass_account',
-                    operator: 'anyof',
-                    values: account
-                }
-            ],
-            columns: [
-                "name"
-            ]
-        }).run().each(function (rec) {
-            SellerSku = rec.getValue('name');
-        });
-
-        return SellerSku || false;
     }
 
     function fieldChanged(context) {
@@ -109,13 +47,13 @@ define(["N/ui/dialog", 'N/https', 'N/url', "N/currentRecord", 'N/log', 'N/search
 
     function syncToAmazon(soId) {
 
-
+        
         // console.log("原因类型："+JSON.stringify(curr)+"-"+curr.getText("custbody_reason_type"))
         // if(!curr.getValue("custbody_reason_type")){
         //     alert("请先选择原因类型")
         //     return 
         // }
-
+      
         function success1(result) {
             if (result == true) {
                 var link = url.resolveScript({

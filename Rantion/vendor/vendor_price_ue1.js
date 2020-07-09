@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 15:09:31
- * @LastEditTime   : 2020-06-24 10:13:39
+ * @LastEditTime   : 2020-06-23 15:47:24
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\vendor_price_ue1.js
@@ -51,9 +51,6 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
     }
 
     function beforeSubmit(context) {
-
-        log.debug('beforeSubmit type', context.type);
-
         // var newRecord = context.newRecord;
         // log.audit('newRecord', newRecord)
         // var status = newRecord.getValue('custrecord_vmph_check_status');

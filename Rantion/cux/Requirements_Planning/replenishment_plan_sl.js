@@ -466,7 +466,7 @@ function(search, ui, moment, format, runtime, record) {
         });
         var totalCount = pageData_delivery_schedule.count; //总数
         var pageCount = pageData_delivery_schedule.pageRanges.length; //页数
-
+        var item_data16=[];
         if (totalCount == 0 && pageCount ==0) {
             rsJson.result = [];
             rsJson.totalCount = totalCount;
@@ -477,74 +477,103 @@ function(search, ui, moment, format, runtime, record) {
             pageData_delivery_schedule.fetch({
                 index: Number(nowPage-1)
             }).data.forEach(function (rs) {
-                item_data.push({
-                    item_sku:rs.getValue(rs.columns[2]),
-                    item_sku_text: rs.getText(rs.columns[2]),
-                    item_name: rs.getValue(rs.columns[3]),
-                    account: rs.getValue(rs.columns[0]),
-                    account_text: rs.getText(rs.columns[0]),
-                    site: rs.getValue(rs.columns[1]),
-                    data_type: rs.getValue(rs.columns[4]),
-                    data_type_text: rs.getText(rs.columns[4]),
-                    quantity_week1: rs.getValue(rs.columns[5]),
-                    quantity_week2: rs.getValue(rs.columns[6]),
-                    quantity_week3: rs.getValue(rs.columns[7]),
-                    quantity_week4: rs.getValue(rs.columns[8]),
-                    quantity_week5: rs.getValue(rs.columns[9]),
-                    quantity_week6: rs.getValue(rs.columns[10]),
-                    quantity_week7: rs.getValue(rs.columns[11]),
-                    quantity_week8: rs.getValue(rs.columns[12]),
-                    quantity_week9: rs.getValue(rs.columns[13]),
-                    quantity_week10: rs.getValue(rs.columns[14]),
-                    quantity_week11: rs.getValue(rs.columns[15]),
-                    quantity_week12: rs.getValue(rs.columns[16]),
-                    quantity_week13: rs.getValue(rs.columns[17]),
-                    quantity_week14: rs.getValue(rs.columns[18]),
-                    quantity_week15: rs.getValue(rs.columns[19]),
-                    quantity_week16: rs.getValue(rs.columns[20]),
-                    quantity_week17: rs.getValue(rs.columns[21]),
-                    quantity_week18: rs.getValue(rs.columns[22]),
-                    quantity_week19: rs.getValue(rs.columns[23]),
-                    quantity_week20: rs.getValue(rs.columns[24]),
-                    quantity_week21: rs.getValue(rs.columns[25]),
-                    quantity_week22: rs.getValue(rs.columns[26]),
-                    quantity_week23: rs.getValue(rs.columns[27]),
-                    quantity_week24: rs.getValue(rs.columns[28]),
-                    quantity_week25: rs.getValue(rs.columns[29]),
-                    quantity_week26: rs.getValue(rs.columns[30]),
-                    quantity_week27: rs.getValue(rs.columns[31]),
-                    quantity_week28: rs.getValue(rs.columns[32]),
-                    quantity_week29: rs.getValue(rs.columns[33]),
-                    quantity_week30: rs.getValue(rs.columns[34]),
-                    quantity_week31: rs.getValue(rs.columns[35]),
-                    quantity_week32: rs.getValue(rs.columns[36]),
-                    quantity_week33: rs.getValue(rs.columns[37]),
-                    quantity_week34: rs.getValue(rs.columns[38]),
-                    quantity_week35: rs.getValue(rs.columns[39]),
-                    quantity_week36: rs.getValue(rs.columns[40]),
-                    quantity_week37: rs.getValue(rs.columns[41]),
-                    quantity_week38: rs.getValue(rs.columns[42]),
-                    quantity_week39: rs.getValue(rs.columns[43]),
-                    quantity_week40: rs.getValue(rs.columns[44]),
-                    quantity_week41: rs.getValue(rs.columns[45]),
-                    quantity_week42: rs.getValue(rs.columns[46]),
-                    quantity_week43: rs.getValue(rs.columns[47]),
-                    quantity_week44: rs.getValue(rs.columns[48]),
-                    quantity_week45: rs.getValue(rs.columns[49]),
-                    quantity_week46: rs.getValue(rs.columns[50]),
-                    quantity_week47: rs.getValue(rs.columns[51]),
-                    quantity_week48: rs.getValue(rs.columns[52]),
-                    quantity_week49: rs.getValue(rs.columns[53]),
-                    quantity_week50: rs.getValue(rs.columns[54]),
-                    quantity_week51: rs.getValue(rs.columns[55]),
-                    quantity_week52: rs.getValue(rs.columns[56]),
-                    quantity_week53: rs.getValue(rs.columns[59]),
-                    item_leve : rs.getValue(rs.columns[57]),//产品分级
-                    itemf_leve : rs.getValue(rs.columns[58]),//产品初始分级
-                });
-             
+                sku_arrys.map(function(dd){
+                    if(rs.getValue(rs.columns[2]) == dd){
+                        item_data.push({
+                            item_sku:rs.getValue(rs.columns[2]),
+                            item_sku_text: rs.getText(rs.columns[2]),
+                            item_name: rs.getValue(rs.columns[3]),
+                            account: rs.getValue(rs.columns[0]),
+                            account_text: rs.getText(rs.columns[0]),
+                            site: rs.getValue(rs.columns[1]),
+                            data_type: rs.getValue(rs.columns[4]),
+                            data_type_text: rs.getText(rs.columns[4]),
+                            quantity_week1: rs.getValue(rs.columns[5]),
+                            quantity_week2: rs.getValue(rs.columns[6]),
+                            quantity_week3: rs.getValue(rs.columns[7]),
+                            quantity_week4: rs.getValue(rs.columns[8]),
+                            quantity_week5: rs.getValue(rs.columns[9]),
+                            quantity_week6: rs.getValue(rs.columns[10]),
+                            quantity_week7: rs.getValue(rs.columns[11]),
+                            quantity_week8: rs.getValue(rs.columns[12]),
+                            quantity_week9: rs.getValue(rs.columns[13]),
+                            quantity_week10: rs.getValue(rs.columns[14]),
+                            quantity_week11: rs.getValue(rs.columns[15]),
+                            quantity_week12: rs.getValue(rs.columns[16]),
+                            quantity_week13: rs.getValue(rs.columns[17]),
+                            quantity_week14: rs.getValue(rs.columns[18]),
+                            quantity_week15: rs.getValue(rs.columns[19]),
+                            quantity_week16: rs.getValue(rs.columns[20]),
+                            quantity_week17: rs.getValue(rs.columns[21]),
+                            quantity_week18: rs.getValue(rs.columns[22]),
+                            quantity_week19: rs.getValue(rs.columns[23]),
+                            quantity_week20: rs.getValue(rs.columns[24]),
+                            quantity_week21: rs.getValue(rs.columns[25]),
+                            quantity_week22: rs.getValue(rs.columns[26]),
+                            quantity_week23: rs.getValue(rs.columns[27]),
+                            quantity_week24: rs.getValue(rs.columns[28]),
+                            quantity_week25: rs.getValue(rs.columns[29]),
+                            quantity_week26: rs.getValue(rs.columns[30]),
+                            quantity_week27: rs.getValue(rs.columns[31]),
+                            quantity_week28: rs.getValue(rs.columns[32]),
+                            quantity_week29: rs.getValue(rs.columns[33]),
+                            quantity_week30: rs.getValue(rs.columns[34]),
+                            quantity_week31: rs.getValue(rs.columns[35]),
+                            quantity_week32: rs.getValue(rs.columns[36]),
+                            quantity_week33: rs.getValue(rs.columns[37]),
+                            quantity_week34: rs.getValue(rs.columns[38]),
+                            quantity_week35: rs.getValue(rs.columns[39]),
+                            quantity_week36: rs.getValue(rs.columns[40]),
+                            quantity_week37: rs.getValue(rs.columns[41]),
+                            quantity_week38: rs.getValue(rs.columns[42]),
+                            quantity_week39: rs.getValue(rs.columns[43]),
+                            quantity_week40: rs.getValue(rs.columns[44]),
+                            quantity_week41: rs.getValue(rs.columns[45]),
+                            quantity_week42: rs.getValue(rs.columns[46]),
+                            quantity_week43: rs.getValue(rs.columns[47]),
+                            quantity_week44: rs.getValue(rs.columns[48]),
+                            quantity_week45: rs.getValue(rs.columns[49]),
+                            quantity_week46: rs.getValue(rs.columns[50]),
+                            quantity_week47: rs.getValue(rs.columns[51]),
+                            quantity_week48: rs.getValue(rs.columns[52]),
+                            quantity_week49: rs.getValue(rs.columns[53]),
+                            quantity_week50: rs.getValue(rs.columns[54]),
+                            quantity_week51: rs.getValue(rs.columns[55]),
+                            quantity_week52: rs.getValue(rs.columns[56]),
+                            quantity_week53: rs.getValue(rs.columns[59]),
+                            item_leve : rs.getValue(rs.columns[57]),//产品分级
+                            itemf_leve : rs.getValue(rs.columns[58]),//产品初始分级
+                        });
+                        item_data16.push(dd)
+                    }
+                })
             });
         }
+        log.debug("item_data16",item_data16)
+        log.debug("sku_arrys",sku_arrys)
+        sku_arrys.map(function(dd){
+        if(item_data16.indexOf(dd) == -1 ){
+            var li =  SKUIds[skuids.indexOf(dd)];
+            log.debug("没有确认交货量",li)
+            var objs =  {
+                item_sku: li.item_sku,
+                item_sku_text: li.item_sku_name,
+                item_name: li.item_name,
+                account: li.forecast_account,
+                account_text: li.forecast_account_name,
+                site: li.forecast_site,
+                data_type: '16',
+                data_type_text: '确认交货量',
+                item_leve : li['item_leve'],//产品分级
+                itemf_leve : li['itemf_leve'],//产品初始分级
+            }
+            for(var i=1;i<54;i++){
+                objs["quantity_week"+i] = "0";
+            }
+            item_data.push(objs);
+        }
+        })
+       
      
         //倒排补货量
         var item_arr = []
@@ -572,7 +601,6 @@ function(search, ui, moment, format, runtime, record) {
                         ss = true;
                         //如果供应商存在
                             if(line.vendor_id){
-                                log.debug("存在供应商,搜索采购周期记录")
                                 var cycle= true;
                                 search.create({
                                     type: 'customrecordpurchasing_cycle_record',
@@ -630,7 +658,6 @@ function(search, ui, moment, format, runtime, record) {
                                             cycle=false;
                                 });
                                 if(cycle){
-                                    log.debug("没有维护周期");
                                     item_data.push({
                                         item_sku: li.item_sku,
                                         item_sku_text: li.item_sku_name,
@@ -813,7 +840,6 @@ function(search, ui, moment, format, runtime, record) {
                         sublist.setSublistValue({ id: 'custpage_item_start_leve', value: result[a]['itemf_leve'], line: zl }); 
                         //店铺净需求
                         if(result[a]['data_type'] == 3 || result[a]['data_type'] == 23){
-                            log.debug("店铺净需求",result[a])
                             week_rs.map(function(wek){
                                 var sub_filed = 'custpage_quantity_week' + wek;
                                  sublist.setSublistValue({ id: sub_filed, value: Math.round(result[a]['quantity_week'+wek])?Math.round(result[a]['quantity_week'+wek]).toString():"0", line: zl});  //

@@ -17,11 +17,13 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
             url = url + '?' +
                 'processCodeList=PROC-EF6YCS6WO2-5NM7Y2MXPFWDA00LGYVX1-M4IP76KI-CD1,PROC-AKGK7QZV-IVMTO4NVOXRZB4PMOV5X1-TMIAF0FJ-6,PROC-JFYJVERV-E272C7P4XCJNF0L298HP2-Y558Y5RJ-R' +
                 //'processCodeList=PROC-7EB449A0-A953-4DF1-9203-D5429FEE2AFF,PROC-1092FF21-2C38-4CC3-97F4-3A5F91D0DE8E,PROC-ACB6A139-97C2-4A85-ACDB-14DF102BBED8' +//测试用
-                '&statue=COMPLETED&result=agree&eventType=bpms_instance_change' +
-                '&beginCreateTime=2020-5-28'
-                //+ beginDate.format("yyyy-MM-dd")
-                +
-                '&endCreateTime=' + endDate.format("yyyy-MM-dd");
+                '&status=COMPLETED&result=agree&eventType=bpms_instance_change' +
+                '&beginCreateTime='
+                // + beginDate.format("yyyy-MM-dd 00:00:00")
+                + beginDate.format("2020-06-25 00:00:00")
+                + '&endCreateTime='
+                // + endDate.format("yyyy-MM-dd 23:59:59");
+                + endDate.format("2020-06-30 23:59:59");
             message = sendRequest(url, token);
             message = JSON.parse(JSON.parse(message.data))
             if (message.code == 0) {

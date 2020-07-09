@@ -7,7 +7,7 @@
  * @scriptID    customscript_rsf_sequential_growth_mp
  * @deploymentID    customdeploy_rsf_sequential_growth_mp
  */
-define(["require", "exports", "N/search", "N/record", "./utils/fun.lib", "./service/rsf.lib"], function (require, exports, search, record, fun_lib_1, rsf_lib_1) {
+define(["require", "exports", "N/search", "N/record", "./utils/fun.lib", "./service/rsf.lib", 'N/log'], function (require, exports, search, record, fun_lib_1, rsf_lib_1, log) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getInputData = function (ctx) {
         var dict = rsf_lib_1.calculate_year_on_year_growth_rate(new Date());

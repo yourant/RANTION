@@ -38,7 +38,7 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
         var id = journalRecord.id;
         var orderType = journalRecord.getValue({ fieldId: 'ordertype' });
         var subsidiary = journalRecord.getValue({ fieldId: 'subsidiary' });
-        log.debug("json", journalRecord);
+        log.debug("json", JSON.stringify(journalRecord));
         log.debug("order type", orderType);
         log.debug("subsidiary", subsidiary);
         var memo;
@@ -53,36 +53,39 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
         var noNumber = {};
         switch (type) {
             case 'vendorprepayment':
-                modular = getCustrecordModular('采购模块');
-                process = getCustrecordProcess('采购订单');
-                documentList = 79;
+
                 var purchaseorderId = journalRecord.getValue({ fieldId: 'purchaseorder' });
-                var purchaseRecord = record.load({
-                    type: 'purchaseorder',
-                    id: purchaseorderId
-                });
+                if (purchaseorderId) {
+                    modular = getCustrecordModular('采购模块');
+                    process = getCustrecordProcess('采购订单');
+                    documentList = 79;
+                    var purchaseRecord = record.load({
+                        type: 'purchaseorder',
+                        id: purchaseorderId
+                    });
 
-                var purchaseOrderType = purchaseRecord.getValue({ fieldId: 'custbody_dps_type' })
-                log.debug('purchaseOrderType', purchaseOrderType);
-                documentType = getPOTypeToDocumentType(purchaseOrderType);
-                log.debug('test purchaseOrderType', getPOTypeToDocumentType(purchaseOrderType))
-                var lineCount = purchaseRecord.getLineCount({
-                    sublistId: 'recmachcustrecord_purchase_order_no'
-                })
-                var LNNO = '';
-                for (var i = 0; i < lineCount; i++) {
-                    LNNO += '[' + purchaseRecord.getSublistValue({
-                        sublistId: 'recmachcustrecord_purchase_order_no',
-                        fieldId: 'name',
-                        line: i
-                    }) + ']';
+                    var purchaseOrderType = purchaseRecord.getValue({ fieldId: 'custbody_dps_type' })
+                    log.debug('purchaseOrderType', purchaseOrderType);
+                    documentType = getPOTypeToDocumentType(purchaseOrderType);
+                    log.debug('test purchaseOrderType', getPOTypeToDocumentType(purchaseOrderType))
+                    var lineCount = purchaseRecord.getLineCount({
+                        sublistId: 'recmachcustrecord_purchase_order_no'
+                    })
+                    var LNNO = '';
+                    for (var i = 0; i < lineCount; i++) {
+                        LNNO += '[' + purchaseRecord.getSublistValue({
+                            sublistId: 'recmachcustrecord_purchase_order_no',
+                            fieldId: 'name',
+                            line: i
+                        }) + ']';
+                    }
+                    log.debug('LNNO', LNNO);
+
+                    noNumber = {
+                        PONO: purchaseRecord.getValue({ fieldId: 'tranid' }),
+                        LNNO: LNNO
+                    };
                 }
-                log.debug('LNNO', LNNO);
-
-                noNumber = {
-                    PONO: purchaseRecord.getValue({ fieldId: 'tranid' }),
-                    LNNO: LNNO
-                };
                 break;
             //
             case 'vendorprepaymentapplication':
@@ -187,6 +190,7 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
             case 'itemfulfillment':
                 documentList = 32;
                 var orderid = journalRecord.getValue({ fieldId: 'orderid' });
+                log.debug('orderid', orderid);
                 if (orderType == 'SalesOrd') {
                     modular = getCustrecordModular('销售模块');
                     process = getCustrecordProcess('销售订单');
@@ -211,7 +215,7 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
                     if (fbm == shipmentType) {
                         documentType = getDocumentType('亚马逊FBM订单');
                     }
-                } else {
+                } else if (orderType == 'RtnAuth') {
                     modular = getCustrecordModular('采购模块');
                     process = getCustrecordProcess('采购退货订单');
                     documentType = getDocumentType('采购退货');

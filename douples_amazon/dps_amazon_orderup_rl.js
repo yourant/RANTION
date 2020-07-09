@@ -47,18 +47,17 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 var msg = settlementDe();
                 var ss = "success ," + " 耗时：" + (new Date().getTime() - startT);
                 log.debug("ss:", ss)
-                return ss
+                return ss;
             case "store":
                 log.debug("store context:", context)
                 var msg = dingdandianpu();
                 var ss = "success ," + " 耗时：" + (new Date().getTime() - startT);
                 log.debug("ss:", ss);
-                return ss
+                return ss;
             default:
+                return context.op;
                 break;
         }
-
-
     }
 
     function _post(context) {
@@ -293,7 +292,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
                 } catch (error) {
                     log.error('保存出错了', error)
-
                 }
             }
         } catch (e) {
@@ -414,8 +412,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
     }
 
 
-
-    function FinanMap(ctx) {
+   //创建财务报告
+    function FinC(ctx) {
     var cache_id = ctx.value
     var fin = record.load({
         type: "customrecord_amazon_finances_cahce",
@@ -430,10 +428,10 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
     try {
         if (Object.prototype.toString.call(ord) == "[object Array]") {
         ord.map(function (o) {
-            createRec(o, acc, cache_id, t, postdate)
+            createRecFin(o, acc, cache_id, t, postdate)
         })
         } else {
-        createRec(ord, acc, cache_id, t, postdate)
+            createRecFin(ord, acc, cache_id, t, postdate)
         }
         fin.setValue({
         fieldId: "custrecord_amazon_finances_checkbox",

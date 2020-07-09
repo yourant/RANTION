@@ -3,8 +3,8 @@
  * @NScriptType ClientScript
  */
 define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
-    'N/currentRecord', 'N/http', 'N/url', 'N/ui/dialog'], function (
-        cryptoJS, search, log, record, currentRecord, http, url, dialog) {
+    'N/currentRecord', 'N/http', 'N/url', 'N/ui/dialog', '../common/request_record'], function (
+        cryptoJS, search, log, record, currentRecord, http, url, dialog, requestRecord) {
 
     String.prototype.format = function () {
         if (arguments.length == 0) {
@@ -44,413 +44,7 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
 
         console.log('record_type:' + scriptContext.currentRecord.type);
         console.log('record_type:' + scriptContext.currentRecord.id);
-
-
-        console.log('[NO]:', '[NO][ONO]'.format({ NO: '测试1', ONO: '测试2' }));
-        // var str = '测试{PONumber}'.format({
-        //     'PONumber': 'PO2006100001'
-        // });
-        // var recordInfo = record.load({
-        //     type: scriptContext.currentRecord.type,
-        //     id: scriptContext.currentRecord.id
-        // });
-        // console.log('recordInfo:', JSON.stringify(recordInfo));
-
-        // var sublistCount = recordInfo.getLineCount({
-        //     sublistId: 'line'
-        // });
-        // console.log('sublistCount:', sublistCount);
-        // for (var i = 0; i < sublistCount; i++) {
-        //     var line = recordInfo.getSublistValue({
-        //         sublistId: 'line',
-        //         fieldId: 'memo',
-        //         line: i
-        //     });
-        //     recordInfo.setSublistValue({
-        //         sublistId: 'line',
-        //         fieldId: 'memo',
-        //         value: i,
-        //         line: i
-        //     });
-        //     console.log('memo:', JSON.stringify(line));
-        // }
-        // recordInfo.save();
-        var item = record.load({
-            type: 'purchaseorder',
-            id: 167619
-        })
-        console.log(JSON.stringify(item));
-        console.log(item);
-
-        search.create({
-            type: 'purchaseorder',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: 167619
-            }],
-            columns: [{
-                name: 'custbody_approve_status'
-            }]
-        }).run().each(function (rec) {
-            var custbody_approve_status = rec.getValue('custbody_approve_status');
-            console.log('custbody_approve_status', custbody_approve_status);
-            console.log('custbody_approve_status', typeof custbody_approve_status);
-        });
-
-        var filterArr = [];
-        var modular = getCustrecordModular('采购模块');
-        var process = getCustrecordProcess('采购订单');
-        var documentType = getDocumentType('计划/备库存采购');
-        // var documentList = getDocumentList('货品收据');
-        documentList = 16;
-        console.log("modular", modular);
-        console.log("process", process);
-        console.log("documentType", documentType);
-        console.log("documentList", documentList);
-        if (modular && process && documentType && documentList) {
-            // filterArr.push({ name: 'custrecord_modular', operator: 'anyof', values: modular });
-            // filterArr.push({ name: 'custrecord_process', operator: 'anyof', values: process });
-            // filterArr.push({ name: 'custrecord_document_type', operator: 'anyof', values: documentType });
-            // filterArr.push({ name: 'custrecord_document_list', operator: 'anyof', values: documentList });
-            // filterArr.push({ name: 'custrecord_subsidiary_type', operator: 'is', values: 2 });
-        }
-        var i = 50;
-        var configRecord = search.create({
-            type: "customrecord_common_configuration",
-            filters: filterArr,
-            // [
-            //customlist1001 模块
-            //customlist1002 流程
-            //customlist492 订单类型
-            //customrecord_cn_voucher_trantypes 事物类型
-            //subsidiary
-            // { name: 'namenohierarchy', join: 'custrecord_modular', operator: 'is', values: '采购模块' },
-            // { name: 'namenohierarchy', join: 'custrecord_subsidiary_type', operator: 'is', values: '广州蓝深科技有限公司' }
-            // filterArr
-            // ],
-            columns:
-                [
-                    "custrecord_modular",
-                    "custrecord_process",
-                    "custrecord_document_type",
-                    "custrecord_document_list",
-                    "custrecord_common",
-                    'custrecord_subsidiary_type'
-                ]
-        });
-        configRecord.run().each(function (result) {
-            console.log('result:' + JSON.stringify(result));
-            // log.debug('result ' + JSON.stringify(result));
-            return i-- > 0;
-        });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // var filters = [];
-        // filters.push({ name: 'custrecord_fba_update_inventory_account',
-        // operator: 'EQUALTO', values: 1 });
-        // filters.push({ name: 'custrecord_salesorder_location', operator:
-        // 'EQUALTO', values: 4 });
-        // var updateId;
-        // var fbaUpdateInventorySearch = search.create({
-        // type: 'customrecord_fba_update_inventory',
-        // filters: filters,
-        // columns: [
-        // 'custrecord_fba_update_inventory_account',
-        // 'custrecord_salesorder_location',
-        // 'custrecord_fba_update_inventory_rid',
-        // 'custrecord_fba_update_status'
-        // ]
-        // }).run().each(function (e) {
-        // updateId = e.id;
-        // if (updateId) {
-        // console.log(11)
-        // } else {
-        // console.log(22)
-        // }
-        // console.log(updateId)
-        // });
-        // console.log("begin");
-        // search.create({
-        // type: 'customrecord_dps_amazon_seller_sku',
-        // columns: [
-        // 'custrecord_dps_amazon_sku_number',
-        // 'custrecord_dps_amazon_ns_sku'
-        // ]
-        // , filters: [
-        // { name: 'name', join: 'custrecord_dps_amazon_sku_number', operator:
-        // 'is', values: 'MF239-FBA' }
-        // , { name: 'isinactive', join: 'custrecord_dps_amazon_ns_sku',
-        // operator: 'is', values: false }
-        // ]
-        // }).run().each(function (seller) {
-        // var sellerJSON = JSON.parse(JSON.stringify(seller));
-        // console.log(sellerJSON);
-        // });
-        // var filters = [];
-        // filters.push({ name: 'custrecord_fba_update_inventory_account',
-        // operator: 'is', values: 1 });
-        // filters.push({ name: 'custrecord_salesorder_location', operator:
-        // 'is', values: 1 });
-        // var updateId;
-        // var fbaUpdateInventorySearch = search.create({
-        // type: 'customrecord_fba_update_inventory',
-        // filters: filters,
-        // columns: [
-        // 'custrecord_fba_update_inventory_account',
-        // 'custrecord_salesorder_location',
-        // 'custrecord_fba_update_inventory_rid',
-        // 'custrecord_fba_update_status'
-        // ]
-        // }).run().each(function (e) {
-        // updateId = e.id;
-        // });
-
-        // eric_record = record.load({
-        // type: scriptContext.currentRecord.type,
-        // id: scriptContext.currentRecord.id
-        // });
-        // var jour = record.create({ type: 'journalentry', isDynamic: true });
-        // jour.setValue({ fieldId: 'memo', value: '测试备注' });
-        // jour.setValue({ fieldId: 'subsidiary', value: '2' });
-        // jour.setValue({ fieldId: 'currency', value: 'USD' });
-        // jour.setValue({ fieldId: 'custbody_pr_store', value:
-        // 'custbody_pr_store' });
-        // jour.setValue({ fieldId: 'custbody_jour_orderid', value:
-        // 'custbody_jour_orderid' });
-        // jour.setValue({ fieldId: 'custbody_curr_voucher', value: '测试凭证' });
-
-        // jour.setValue({ fieldId: 'trandate', value: new Date() });
-        // jour.save();
-        // var page = 100;
-        // search.create({
-        // type: "journalentry",
-        // columns: [
-        // { name: "memo" }
-        // ]
-        // }).run().each(function (e) {
-        // console.log('journalentry:' + JSON.stringify(e));
-        // if (page == 0) {
-        // return false;
-        // }
-        // var journalentryItem = record.load({
-        // type: "journalentry",
-        // id: e.id
-        // });
-        // console.log("journalentryItem: " + JSON.stringify(journalentryItem));
-        // console.log("line: " + JSON.stringify(journalentryItem.getSublist({
-        // sublistId: "line" })));
-        // // journalentryItem.setSublistValue({ sublistId: 'line', fieldId:
-        // 'memo', value: "测试备注", line: 0 })
-        // // journalentryItem.save();
-        // page--;
-        // return true;
-        // })
-
-        // //盘盈
-        // var surplus = [];
-        // //盘亏
-        // var losses = [];
-
-        // var updateList = [];
-        // console.log("updateList begin");
-        // search.create({
-        // type: 'customrecord_fba_update_inventory',
-        // columns: [
-        // 'custrecord_fba_update_inventory_account',
-        // 'custrecord_salesorder_location',
-        // 'custrecord_fba_update_inventory_rid',
-        // 'custrecord_fba_update_status'
-        // ],
-        // filters: [{ name: 'custrecord_fba_update_status', operator: 'is',
-        // values: 2 }]
-        // }).run().each(function (e) {
-        // var result = JSON.parse(JSON.stringify(e));
-        // console.log("updateList begin", JSON.stringify(e));
-        // var isC = false;
-        // var custrecord_salesorder_location =
-        // result.values.custrecord_salesorder_location;
-        // updateList.map(function (v) {
-        // console.log("updateList v", JSON.stringify(v));
-        // if (v.salesorder_location == custrecord_salesorder_location) {
-        // isC = true;
-        // }
-        // });
-        // if (!false) {
-        // var item = {
-        // account: result.values.custrecord_fba_update_inventory_account,
-        // salesorder_location: result.values.custrecord_salesorder_location,
-        // rid: result.values.custrecord_fba_update_inventory_rid
-        // }
-        // updateList.push(item);
-        // }
-        // });
-
-        // console.log("updateList ", JSON.stringify(updateList));
-
-        // updateList.map(function (update) {
-        // var i = 1;
-        // console.log("updateList item ", update);
-        // var nowPage = Number(0); // 查询页
-        // var pageSize = Number(100); // 每页数量
-        // console.log('update.rid ', update.rid);
-        // var inventoryitem = search.create({
-        // type: 'customrecord_fba_myi_all_inventory_data',
-        // columns: [
-        // 'custrecord_fba_sku', 'custrecord_fba_afn_total_quantity',
-        // 'custrecord_fba_inventory_rid', 'custrecord_fba_account',
-        // 'custrecord_all_salesorder_location'
-        // ],
-        // filters: [
-        // { name: 'custrecord_fba_inventory_rid', operator: 'EQUALTO', values:
-        // Number(update.rid) },
-        // { name: 'custrecord_fba_account', operator: 'EQUALTO', values:
-        // Number(update.account) },
-        // { name: 'custrecord_all_salesorder_location', operator: 'EQUALTO',
-        // values: Number(update.salesorder_location) }
-        // ]
-        // });
-        // var pageData = inventoryitem.runPaged({
-        // // pageSize: pageSize
-        // pageSize: 10
-        // });
-        // var totalCount = pageData.count; // 总数
-        // // var pageCount = pageData.pageRanges.length; // 页数
-        // var pageCount = 1; // 页数
-        // console.log('totalCount', JSON.stringify(totalCount));
-        // while (pageCount > 0) {
-        // pageData.fetch({
-        // index: Number(nowPage++)
-        // }).data.forEach(function (result) {
-        // var resultJSON = result.toJSON();
-        // // if (resultJSON.custrecord_fba_sku &&
-        // // resultJSON.custrecord_fba_afn_total_quantity &&
-        // // resultJSON.custrecord_fba_inventory_rid &&
-        // // resultJSON.custrecord_fba_account &&
-        // // resultJSON.custrecord_all_salesorder_location) {
-        // //获取映射关系sku customrecord_dps_amazon_seller_sku
-        // // console.log('customrecord_dps_amazon_seller_sku',
-        // JSON.stringify(record.load({
-        // // type: "customrecord_dps_amazon_seller_sku",
-        // // id: ++i
-        // // })));
-        // search.create({
-        // type: 'customrecord_dps_amazon_seller_sku',
-        // columns: [
-        // 'custrecord_dps_amazon_sku_number',
-        // 'custrecord_dps_amazon_ns_sku'
-        // ]
-        // , filters: [{ name: 'custrecord_dps_amazon_sku_number', operator:
-        // 'is', values: resultJSON.values.custrecord_fba_sku }]
-        // }).run().each(function (seller) {
-        // var sellerJSON = JSON.parse(JSON.stringify(seller));
-        // console.log('sellerJSON', sellerJSON)
-        // var skuId = sellerJSON.values.custrecord_dps_amazon_ns_sku[0].value;
-        // var inventoryitem = record.load({
-        // type: "inventoryitem",
-        // id: skuId
-        // });
-        // var inventoryitemJSON = JSON.parse(JSON.stringify(inventoryitem));
-        // console.log('inventoryitemJSON', inventoryitemJSON)
-
-        // var item_count = inventoryitem.getLineCount({ sublistId: 'locations'
-        // });
-        // for (var i = 0; i < item_count; i++) {
-        // var locationid = inventoryitem.getSublistValue({
-        // sublistId: 'locations',
-        // fieldId: 'locationid',
-        // line: i,
-        // });
-        // if (locationid == update.salesorder_location) {
-        // //库存对比
-        // var quantityavailable = inventoryitem.getSublistValue({
-        // sublistId: 'locations',
-        // fieldId: 'quantityavailable',
-        // line: i,
-        // });
-        // var qty = resultJSON.values.custrecord_fba_afn_total_quantity;
-        // console.log("库存对比 ", qty + "-" + quantityavailable)
-        // if (qty > quantityavailable) {
-        // surplus.push({
-        // item: skuId,
-        // location: update.salesorder_location,
-        // diffCount: qty - quantityavailable
-        // });
-        // }
-        // if (qty < quantityavailable) {
-        // losses.push({
-        // item: skuId,
-        // location: update.salesorder_location,
-        // diffCount: qty - quantityavailable
-        // });
-        // }
-        // }
-        // }
-        // return false;
-        // });
-        // });
-        // pageCount--;
-        // }
-
-        // console.log('i', i);
-        // });
-        // console.log('surplus', surplus);
-
-        // var firstCompany = getCompanyId("蓝深贸易有限公司")
-        // if (surplus.length > 0) {
-        // var useType = stockUseType('盘盈入库')
-        // saveInventoryAdjust(firstCompany, surplus, useType);
-        // }
-        // console.log('losses', losses);
-        // if (losses.length > 0) {
-        // var useType = stockUseType('盘亏出库')
-        // saveInventoryAdjust(firstCompany, losses, useType);
-        // }
-
-        // var nowPage = Number(1); // 查询页
-        // var pageSize = Number(100); // 每页数量
-        // var inventoryitem = search.create({
-        // type: 'inventoryitem',
-        // columns: [
-        // 'itemid', 'custitem_dps_ctype', 'custitem_dps_skuchiense',
-        // 'locationquantityonhand',
-        // 'locationquantitycommitted', 'locationquantityavailable',
-        // 'custitem_dps_picture'
-        // ]
-        // });
-        // var pageData = inventoryitem.runPaged({
-        // pageSize: pageSize
-        // });
-        // var totalCount = pageData.count; // 总数
-        // var pageCount = pageData.pageRanges.length; // 页数
-        // pageData.fetch({
-        // index: Number(nowPage - 1)
-        // }).data.forEach(function (result) {
-        // console.log('inventoryitem', JSON.stringify(result));
-        // var inventoryitem = record.load({
-        // type: "inventoryitem",
-        // id: result.id
-        // });
-        // console.log("inventoryitem: ", JSON.stringify(inventoryitem));
-        // });
-
-        // console.log(JSON.stringify(eric_record));
+        testRequest();
         console.log('end-test');
 
     }
@@ -841,6 +435,146 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
             return false;
         });
         return result
+    }
+
+    function logisticsTest() {
+        var filters = [];
+        filters.push(['custrecord_lcl_logistics_services_link', 'anyof', 60]);
+        filters.push('and');
+        filters.push([['custrecord_lcl_weight_start', 'lessthanorequalto', 123], 'or', ['custrecord_lcl_weight_start', 'is', '@NONE@']]);
+        filters.push('and');
+        filters.push([['custrecord_lcl_weight_end', 'greaterthanorequalto', 123], 'or', ['custrecord_lcl_weight_end', 'is', '@NONE@']]);
+
+        log.debug('filters', JSON.stringify(filters));
+        search.create({
+            type: 'customrecord_logistics_cost_labber',
+            filters: filters,
+            columns: [
+                'custrecord_lcl_unit_weight_cost', 'custrecord_lcl_processing_fee', 'custrecord_lcl_minimal_cost_weight',
+                'custrecord_lcl_discount', 'custrecord_lcl_zip_begin',
+                { name: 'internalid', join: 'custrecord_lcl_logistics_services_link' },
+                { name: 'custrecord_ls_bubble_count', join: 'custrecord_lcl_logistics_services_link' },
+                { name: 'custrecord_ls_logistics_company', join: 'custrecord_lcl_logistics_services_link' },
+                { name: 'custrecord_ls_bubble_type', join: 'custrecord_lcl_logistics_services_link' },
+                { name: 'custrecord_cc_country_code', join: 'custrecord_lcl_country' }
+            ]
+        }).run().each(function (result) {
+
+            log.debug('1', JSON.stringify(result));
+            var zipBegin = result.getValue('custrecord_lcl_zip_begin');
+            if ((zip && zipBegin && (zip.indexOf(zipBegin) != 0)) || (!zip && zipBegin)) {
+                return true;
+            }
+            log.debug('2', '2');
+            var unitCost = Number(result.getValue('custrecord_lcl_unit_weight_cost'));
+            var bubble = Number(result.getValue({ name: 'custrecord_ls_bubble_count', join: 'custrecord_lcl_logistics_services_link' }));
+            var bubbleType = result.getValue({ name: 'custrecord_ls_bubble_type', join: 'custrecord_lcl_logistics_services_link' });
+            var tureWeight = calcuationCostWeight(long, wide, high, bubble, bubbleType, weight); // 计费重量
+            var minimalWeight = Number(result.getValue('custrecord_lcl_minimal_cost_weight'));
+            if (minimalWeight > 0 && tureWeight < minimalWeight) {
+                tureWeight = minimalWeight;
+            }
+            var discount = Number(result.getValue('custrecord_lcl_discount'));
+            var cost = (unitCost * tureWeight + Number(result.getValue('custrecord_lcl_processing_fee'))) * discount;
+            log.debug('cost', cost);
+            if (resultJSON.costamount == 0 || cost < resultJSON.costamount) {
+                resultJSON.servicesId = result.getValue({ name: 'internalid', join: 'custrecord_lcl_logistics_services_link' });
+                resultJSON.services_com_id = result.getValue({ name: 'custrecord_ls_logistics_company', join: 'custrecord_lcl_logistics_services_link' });
+                resultJSON.costweight = tureWeight;
+                resultJSON.costamount = cost;
+            }
+            return true;
+        });
+    }
+
+    function testRequest() {
+        var custrecord_dps_declare_currency_dh;
+        var custrecord_dps_declared_value_dh = 0;
+        console.debug('begin')
+        search.create({
+            type: 'customrecord_transfer_order_details',
+            filters: [{
+                name: 'custrecord_transfer_code',
+                operator: 'anyof',
+                values: 23705
+            }],
+            columns: [{
+                name: 'custrecord__realted_transfer_head'
+            },
+            {
+                name: 'custrecord_transfer_quantity'
+            }
+            ]
+        }).run().each(function (rec1) {
+            var custrecord__realted_transfer_head = rec1.getValue('custrecord__realted_transfer_head');
+            var custrecord_transfer_quantity = rec1.getValue('custrecord_transfer_quantity');
+            console.debug('custrecord__realted_transfer_head', custrecord__realted_transfer_head);
+            console.debug('custrecord_transfer_quantity', custrecord_transfer_quantity);
+            search.create({
+                type: 'purchaseorder',
+                filters: [{
+                    name: "mainline",
+                    operator: "is",
+                    values: ["F"]
+                },
+                {
+                    name: "taxline",
+                    operator: "is",
+                    values: ["F"]
+                },
+                {
+                    name: "item",
+                    operator: "noneof",
+                    values: ["@NONE@"]
+                },
+                {
+                    name: "type",
+                    operator: "anyof",
+                    values: ["PurchOrd"]
+                },
+                {
+                    name: "custbody_dps_type",
+                    operator: "anyof",
+                    values: ["2"]
+                },
+                // { name: "subsidiary", operator: "is", values: [subsidiary] },
+                // { name: "item", operator: "anyof", values: itemArray },
+                {
+                    name: 'custcol_realted_transfer_detail',
+                    operator: "anyof",
+                    values: custrecord__realted_transfer_head
+                }
+                ],
+                columns: [{
+                    name: "quantity",
+                    label: "采购数量",
+                    type: "float"
+                },
+                {
+                    name: "custcol_realted_transfer_detail",
+                    label: "关联调拨单号",
+                    type: "select"
+                },
+                {
+                    name: "rate"
+                },
+                {
+                    name: 'currency'
+                }
+                ]
+            }).run().each(function (result) {
+                console.debug("testest1 ", JSON.stringify(result));
+                custrecord_dps_declare_currency_dh = result.getValue('currency');
+                var value = {
+                    quantity: result.getValue('quantity'),
+                    link: result.getValue('custcol_realted_transfer_detail')
+                }
+                custrecord_dps_declared_value_dh = custrecord_dps_declared_value_dh + result.getValue('rate') * custrecord_transfer_quantity;
+                console.debug("testest ", JSON.stringify(value));
+                return true;
+            });
+            return true;
+        });
     }
 
     return {

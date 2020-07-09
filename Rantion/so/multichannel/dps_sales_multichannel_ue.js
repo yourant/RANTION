@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-13 13:52:41
- * @LastEditTime   : 2020-06-07 14:04:10
+ * @LastEditTime   : 2020-07-04 14:09:40
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_ue.js
@@ -12,28 +12,33 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(["N/log"], function (log) {
+define(["N/log", 'N/search'], function (log, search) {
 
     function beforeLoad(context) {
         var newRecord = context.newRecord;
         log.debug('id', newRecord.id);
-        if (context.type == 'view' && (newRecord.getValue('custbody_order_type') == 5) && (newRecord.getValue('custbody_dps_create_mcf_order') == false)) {
-            var form = context.form
-            form.clientScriptModulePath = './dps_sales_multichannel_cs.js';
-            form.addButton({
-                id: 'custpage_sync_to_amazon',
-                label: '创建多渠道订单',
-                functionName: 'syncToAmazon(' + newRecord.id + ')'
-            });
-        }
-        if (context.type == 'view' && (newRecord.getValue('custbody_order_type') == 5) && (newRecord.getValue('custbody_dps_create_mcf_order') == true)) {
-            var form = context.form
-            form.clientScriptModulePath = './dps_sales_multichannel_cs.js';
-            form.addButton({
-                id: 'custpage_sync_to_amazon_cel',
-                label: '取消多渠道订单',
-                functionName: 'syncCelAmazon(' + newRecord.id + ')'
-            });
+
+        if (context.type == "view") {
+
+
+            if (context.type == 'view' && (newRecord.getValue('custbody_order_type_fulfillment') == 3) && (newRecord.getValue('custbody_dps_create_mcf_order') == false)) {
+                var form = context.form
+                form.clientScriptModulePath = './dps_sales_multichannel_cs.js';
+                form.addButton({
+                    id: 'custpage_sync_to_amazon',
+                    label: '创建多渠道订单',
+                    functionName: 'syncToAmazon(' + newRecord.id + ')'
+                });
+            }
+            if (context.type == 'view' && (newRecord.getValue('custbody_order_type_fulfillment') == 3) && (newRecord.getValue('custbody_dps_create_mcf_order') == true)) {
+                var form = context.form
+                form.clientScriptModulePath = './dps_sales_multichannel_cs.js';
+                form.addButton({
+                    id: 'custpage_sync_to_amazon_cel',
+                    label: '取消多渠道订单',
+                    functionName: 'syncCelAmazon(' + newRecord.id + ')'
+                });
+            }
         }
     }
 

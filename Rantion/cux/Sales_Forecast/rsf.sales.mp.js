@@ -7,7 +7,7 @@
  * @scriptID    customscript_rsf_daily_sales_mp
  * @deploymentID    customdeploy_rsf_daily_sales_mp
  */
-define(["require", "exports", "N/search", "N/record", "./utils/fun.lib"], function (require, exports, search, record, fun_lib_1) {
+define(["require", "exports", "N/search", "N/record", "./utils/fun.lib", 'N/log'], function (require, exports, search, record, fun_lib_1, log) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getInputData = function (ctx) {
         var data = [];
@@ -16,18 +16,19 @@ define(["require", "exports", "N/search", "N/record", "./utils/fun.lib"], functi
         filters.push({ name: 'mainline', operator: search.Operator.IS, values: false });
         filters.push({ name: 'taxline', operator: search.Operator.IS, values: false });
         filters.push({ name: 'shipping', operator: search.Operator.IS, values: false });
+        filters.push({ name: 'status', operator: search.Operator.IS, values: 'SalesOrd:G' });
         search.create({
             type: search.Type.SALES_ORDER,
             filters: filters,
             columns: [
-                { name: 'custbody_aio_account', summary: search.Summary.GROUP },
+                { name: 'custbody_order_locaiton', summary: search.Summary.GROUP },
                 { name: 'item', summary: search.Summary.GROUP },
                 { name: 'quantity', summary: search.Summary.SUM },
                 { name: 'trandate', summary: search.Summary.GROUP },
             ]
         }).run().each(function (rec) {
             data.push({
-                store_id: rec.getValue({ name: 'custbody_aio_account', summary: search.Summary.GROUP }),
+                store_id: rec.getValue({ name: 'custbody_order_locaiton', summary: search.Summary.GROUP }),
                 item_id: rec.getValue({ name: 'item', summary: search.Summary.GROUP }),
                 quantity: rec.getValue({ name: 'quantity', summary: search.Summary.SUM }),
                 date: rec.getValue({ name: 'trandate', summary: search.Summary.GROUP }),
@@ -62,6 +63,7 @@ define(["require", "exports", "N/search", "N/record", "./utils/fun.lib"], functi
                 r.setText({ fieldId: 'custrecord_rsf_date', text: obj.date });
             }
             r.setValue({ fieldId: 'custrecord_rsf_sales', value: obj.quantity });
+            r.setValue({ fieldId: 'custrecord_rsf_sales_alter', value: obj.quantity });
             r.save();
         });
     };

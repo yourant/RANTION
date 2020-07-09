@@ -94,6 +94,20 @@ function(commonTool, search, url, https, dialog) {
                         poDataJson.to_subsidiary_currency = result.getValue({ name: 'currency', join: 'custbodyactual_target_subsidiary' });
                         return false;
                     });
+                    var shipment_id;
+                    search.create({
+                        type: 'customrecord_dps_shipping_record',
+                        filters: [
+                            { name: 'internalid', operator: 'anyof', values: informationId }
+                        ],
+                        columns: [ 'custrecord_dps_shipping_rec_shipmentsid' ]
+                    }).run().each(function(result) {
+                        shipment_id = result.getValue('custrecord_dps_shipping_rec_shipmentsid');
+                        return true;
+                    });
+                    if (shipment_id) {
+                        poDataJson.shipment_id = shipment_id;
+                    }
                     search.create({
                         type: 'customrecord_dps_customs_invoice_item',
                         filters: [

@@ -21,14 +21,19 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 break;
             case "pullorder":
                 var acc = context.acc;
+                var group = context.acc_group;
                 var last_updated_after = context.last_updated_after;
                 var last_updated_before = context.last_updated_before;
                 var startT = new Date().getTime();
-                 Orderpull(acc,last_updated_after,last_updated_before)
-                var ss = "success ," + " 耗时：" + (new Date().getTime() - startT)
+                //  core.amazon.getReportAccountList(group).map(function(account){
+                //     log.audit(account.id);
+                 var ss = Orderpull(acc,last_updated_after,last_updated_before)
+                //  })
+               ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
                 return ss;
                 break;
             default:
+                return context.op;
                 break;
         }
 
@@ -53,22 +58,17 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
 
     function Orderpull(acc,last_updated_after,last_updated_before) {
         var orders =[];
-        core.amazon.getAccountList().map(function (account) {
-            if(acc == account.id){
-            // last_updated_after = "2020-06-01T00:00:00.000Z";
-            // last_updated_before = "2020-03-10T23:59:59.999Z";
-            var ssd = core1.handleit(account.id, last_updated_after, last_updated_before)
+            var ssd = core1.handleit(acc, last_updated_after, last_updated_before)
+            if(!ssd)
+            return "没有数据 店铺: "+acc
                 ssd.map(function (order) {
                     orders.push(order);
                 })
-            }
-          
-        })
         orders.map(function(order){
         log.debug("order:", order);
         // ====================进cache==============
         try {
-            var r;
+            var r,r_id;
             search.create({
                 type: 'customrecord_aio_order_import_cache',
                 filters: [{
@@ -87,14 +87,15 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     type: 'customrecord_aio_order_import_cache',
                     id: rec.id
                 });
+                r_id = rec.id;
                 return false;
             });
             if (!r) {
                 r = record.create({
-                    type: 'customrecord_aio_order_import_cache'
+                    type: 'customrecord_aio_order_import_cache',isDynamic:true
                 });
             }
-            var order_trandate = interfun.getFormatedDate("","",order.purchase_date,true).date;
+            var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date;
             var last_update_date =interfun.getFormatedDate("","",order.last_update_date,true).date;
             if(last_update_date == "2") {
                 if(r_id){
@@ -139,17 +140,62 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 fieldId: 'custrecord_amazon_last_update_date',
                 text: last_update_date
             });
+            r.setValue({fieldId:"custrecord_dps_cache_fulfillment_channel",value:order.fulfillment_channel});
             r.setValue({fieldId:"custrecord_shipment_date_cache",value:order.latest_ship_date});
             r.setValue({fieldId:"custrecord_purchase_date_1",value:order.purchase_date});
             r.setValue({fieldId:"custrecord_last_update_date",value:order.last_update_date});
             r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.last_update_date).date});
             r.setValue({fieldId:"custrecord_seller_order_id_1",value:order.seller_order_id });
             r.setValue({fieldId:"custrecord_dps_cache_shipped_byamazont_f",value:order.shipped_byamazont_fm});
+            // rec.selectNewLine({sublistId:"recmachcustrecord_aitem_rel_cahce"})
+            // rec.setCurrentSublistText({sublistId:"recmachcustrecord_settlement_link",fieldId:field_id,text:values})
             var ss = r.save();
             log.debug("11cache save success：", ss);
         } catch (e) {
             log.error("import cache error", e);
-        }
+                var mo;
+                search.create({
+                    type: 'customrecord_dps_transform_mo',
+                    filters: [{
+                        name: 'externalid',
+                        operator: 'is',
+                        values: externalid
+                    }]
+                }).run().each(function (rec) {
+                    mo = record.load({
+                        type: 'customrecord_dps_transform_mo',
+                        id: rec.id
+                    });
+                    return false;
+                });
+                if (!mo) {
+                    mo = record.create({
+                        type: 'customrecord_dps_transform_mo',
+                        isDynamic: true,
+                    });
+                    mo.setValue({
+                        fieldId:"externalid",
+                        value: acc+""+order.amazon_order_id
+                    });
+                    mo.setValue({
+                        fieldId:"custrecord_tr_missing_order_type",
+                        value: "拉单报错"
+                    });
+                    mo.setValue({
+                        fieldId:"custrecord_missing_orderid_txt",
+                        value: order.amazon_order_id
+                    });
+                    mo.setValue({
+                        fieldId:"custrecord_tracking_missing_acoount",
+                        value: acc
+                    });
+                    mo.setValue({
+                        fieldId:"custrecord_tr_missing_order_reason",
+                        value: JSON.stringify(e)
+                    });
+                    mo.save();
+                }
+            };
         // =======================进cache==============end
        })
     }
@@ -245,32 +291,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             var field_token = cut_token ? 'custrecord_nexttoken_cust' : 'custrecord_aio_importer_next_token';
             log.debug("field_token", field_token)
 
-            if (!last_update_date) {
-
-                // 根据站点来设置拉取的时间
-                if (enabled_sites == 'AmazonUS') {
-                    // 美国站点
-                    log.audit("acc_id " + acc_id, "美国站点");
-
-                    last_update_date = "2020-06-01T00:00:00.000Z";
-                } else if (enabled_sites == 'AmazonUK') {
-                    // 英国站点
-                    log.audit("acc_id " + acc_id, "英国站点");
-
-                    last_update_date = "2020-06-01T00:00:00.000Z";
-                } else if (enabled_sites == 'AmazonDE' || enabled_sites == 'AmazonES' || enabled_sites == 'AmazonFR' || enabled_sites == 'AmazonIT') {
-                    // 欧洲站点
-                    log.audit("acc_id " + acc_id, "欧洲站点");
-
-                    last_update_date = "2020-06-01T00:00:00.000Z";
-                } else {
-                    // 其他站点
-                    log.audit("acc_id " + acc_id, "其他站点");
-
-                    last_update_date = "2020-06-01T00:00:00.000Z";
-                }
-
-            }
+            if (!last_update_date) 
+                last_update_date = "2020-05-30T00:00:00.000Z";
             if (hid && nextToken) {
                 if (nextToken == '-1') {
                     return 
@@ -321,12 +343,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     log.debug("123new Date()=====save()", hid)
                     return rtn_1.orders;
                 } else {
-                    log.audit('last_update_date3', last_update_date);
-                    log.audit('date3', moment(last_update_date).toISOString());
                     // var rtn = core1.listOrders(acc_id, moment(last_update_date).toISOString(), nextToken);
                     var rtn = core1.listOrders(acc_id, last_update_date, nextToken);
-                    log.audit('listOrders111');
-                    log.error('rtn LastUpdatedBefore', last_update_date + "------------------" + rtn.LastUpdatedBefore)
                     h.setValue({
                         // fieldId: 'custrecord_aio_importer_next_token',
                         fieldId: field_token,
@@ -359,16 +377,10 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         value: acc_id
                     });
                 }
-                log.debug("当前店铺不存在转单状态, create", h)
                 log.audit('else ! nextToken', last_update_date)
-                log.audit('last_after, last_before', last_after + ' ' + last_before)
+                log.audit("店铺："+acc_id,'last_after'+last_after+'last_before: '+ last_before)
                 // var rtn = core1.listOrders(acc_id, moment(last_update_date).toISOString(), '', last_after, last_before);
                 var rtn = core1.listOrders(acc_id, last_update_date, '', last_after, last_before);
-
-                log.error('rtn LastUpdatedBefore', moment(last_update_date).toISOString() + "------------------" + rtn.LastUpdatedBefore)
-
-                log.audit('last_update_date2', last_update_date);
-
                if(last_after)
                 // 文本形式时间
                 h.setValue({
@@ -423,13 +435,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             // log.debug("last_before inlist:",last_before)
             // log.debug("last_update_date inlist:",last_updated_after)
             // log.audit('listOrder-->auth锛?1?7', auth);
-            log.audit('listOrder-->last_updated_after', last_updated_after);
 
             // last_updated_after = "2020-03-05T00:00:00.000Z"
 
             if (auth) {
                 try {
-                    log.debug("authauthauthauth  =====", JSON.stringify(auth))
                     var content = void 0;
                     if (nextToken) {
                         content = core.amazon.mwsRequestMaker(auth, 'ListOrdersByNextToken', '2013-09-01', {
@@ -446,7 +456,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                                 // 'CreatedBefore': last_before
                             }, '/Orders/2013-09-01');
                         } else {
-                            log.debug("auth", auth)
                             content = core.amazon.mwsRequestMaker(auth, 'ListOrders', '2013-09-01', {
                                 'MarketplaceId.Id.1': auth.marketplace_id,
                                 'LastUpdatedAfter': last_updated_after,
@@ -456,9 +465,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         }
                     }
 
-                } catch (e) {
-                    log.error("mwsRequestMaker eororooror:", e)
-                }
+             
                 log.audit('listOrder-->content', content);
                 var res = xml.Parser.fromString({
                     text: content
@@ -749,6 +756,9 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         })[0].textContent
                     };
                 }
+            } catch (e) {
+                log.error("mwsRequestMaker eororooror:", e)
+            }
             } else {
                 throw "\u627E\u4E0D\u5230\u6307\u5B9A\u7684\u4E9A\u9A6C\u900A\u8D26\u53F7[" + acc_id + "].";
             }

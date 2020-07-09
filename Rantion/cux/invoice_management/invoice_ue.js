@@ -6,8 +6,10 @@ define(['N/search', 'N/record'], function (search, record) {
 
     function beforeLoad(context) {
         var newRec = context.newRecord;
+        try{
         if (context.type == context.UserEventType.CREATE) {
             var request = context.request;
+            log.debug("request",request)
             if (request) {
                 var poIds = request.parameters.poids.split('|');
                 if (poIds.length > 0) {
@@ -99,8 +101,24 @@ define(['N/search', 'N/record'], function (search, record) {
                     newRec.setValue({ fieldId: 'custrecord_transfer_order_quantity', value: toLinkArray.length });
                     newRec.setValue({ fieldId: 'custrecord_used_invoice_amount', value: alreadyUseSum.toFixed(2) });
                     newRec.setValue({ fieldId: 'custrecord_invoice_amount_available', value: alreadyCanUseSum.toFixed(2) });
+                    var slid_to = 'recmachcustrecord_iss_link_inv_manage'; //调拨单（明细行）
+                    var l=0 
+                    toLinkArray.map(function(La){
+                        search.create({
+                            type:"customrecord_transfer_order_details",
+                            filters:["internalidnumber","equalto",La],
+                            columns:["custrecord_transfer_code","custrecord_transfer_quantity"]
+                        }).run().each(function(e){
+                            newRec.setSublistValue({ sublistId: slid_to, fieldId: 'custrecord_transfer_code', value: e.getValue("custrecord_transfer_code"), line: l });
+                            newRec.setSublistValue({ sublistId: slid_to, fieldId: 'custrecord_transfer_quantity', value: e.getValue("custrecord_transfer_quantity"), line: l });
+                            l++
+                        })
+                    })
                 }
             }
+        }
+        }catch(e){
+            log.error("beforeLoad error:" ,e)
         }
     }
 

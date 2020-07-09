@@ -23,6 +23,12 @@ define(['N/log', 'N/record', 'N/search'], function(log, record, search) {
         var objRecord = scriptContext.currentRecord;
 
         var prepaymentamount = 0;
+
+        console.log();
+
+        if (objRecord.getValue('purchaseorder') == '')
+            return;
+
         search.create({
             type: 'purchaseorder',
             filters: [{

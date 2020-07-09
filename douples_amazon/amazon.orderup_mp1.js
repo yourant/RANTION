@@ -59,6 +59,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         log.debug("idto", idto);
         var orders = [];
         core.amazon.getAccountList().map(function (account) {
+            if(account.id !=79 && account.id !=164 ) return;
             var limit = 4000 // 999; //350
             var filters = [{
                     name: 'custrecord_aio_cache_resolved',
@@ -1380,6 +1381,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 fieldId: 'custrecord_cc_email',
                 value: o.buyer_email
             });
+            //设置国家名称
             if( o.shipping_address.country_code){
                 search.create({
                     type:"customrecord_country_code",
@@ -1393,6 +1395,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     });
                 });
             }
+            //设置联系人类型
             c.setValue({
                 fieldId: 'custrecord_cc_type',
                 value:cc_type

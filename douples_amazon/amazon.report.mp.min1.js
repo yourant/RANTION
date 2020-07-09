@@ -99,7 +99,8 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 acc_arrys =  core.amazon.getReportAccountList(group_req)
             }
             // core.amazon.getReportAccountList().map(function (account) {
-
+            log.debug(report_type, "店铺数量:" + acc_arrys.length );
+            return 
                 acc_arrys.map(function (account) {
                 if(account.id !=stroe && stroe) return;
                 var marketplace = account.marketplace;

@@ -86,13 +86,13 @@ var yanwenApi = {
                 Node = node
                 return false
             })
-            var SuccessResult = res.getElementsByTagName({
+            var SuccessResult = Node.getElementsByTagName({
                 tagName: 'Success'
             })[0].textContent
             if (SuccessResult == "true") {
                 return Result.success({
                     //燕文的单号
-                    Epcode: res.getElementsByTagName({
+                    Epcode: Node.getElementsByTagName({
                         tagName: 'Epcode'
                     })[0].textContent,
                     YanwenNumber: res.getElementsByTagName({
@@ -100,7 +100,7 @@ var yanwenApi = {
                     })[0].YanwenNumber
                 })
             } else {
-                return Result.error(res.getElementsByTagName({
+                return Result.error(Node.getElementsByTagName({
                     tagName: 'ReasonMessage'
                 })[0].textContent)
             }

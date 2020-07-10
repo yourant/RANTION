@@ -62,7 +62,6 @@ function(moment,url, dialog, https,runtime,search,record,currentRecord ,format )
                 var D = cur.getValue(fieldId);
                 var now_date =getWeek(new Date());
                 var fo_date =getWeek(D);
-                console.log("错误的")
                 if(D < new Date() && now_date > fo_date){
                     function success(result) { console.log('Success with value: ' + result); }
                     function failure(reason) { console.log('Failure: ' + reason); }
@@ -173,19 +172,20 @@ function(moment,url, dialog, https,runtime,search,record,currentRecord ,format )
     }
 
     function pigeSizeChange() {
-
-        var custpage_item = rec.getValue('custpage_item');
-        var custpage_date_from = rec.getText('custpage_date_from');
+        var custpage_item = rec.getValue('custpage_item');  //货品
+        var custpage_date_from = rec.getText('custpage_date_from'); 
         var custpage_date_to = rec.getText('custpage_date_to');
-        var custpage_now_page = rec.getValue('custpage_now_page');
-        var custpage_total_page = rec.getValue('custpage_total_page');
-        var custpage_select_page = rec.getValue('custpage_select_page');
+        var custpage_now_page = rec.getValue('custpage_now_page'); 
+        var custpage_total_page = rec.getValue('custpage_total_page'); 
+        var custpage_select_page = rec.getText('custpage_page_size');
         var custpage_page_size = rec.getValue('custpage_page_size');
-
+            console.log("所选货品:",custpage_item)
         if (custpage_total_page != null && custpage_total_page != '') {
-            if (parseInt(custpage_now_page) - 1 > 0) {
+            console.log("选择的页数",custpage_select_page)
+            console.log("页面大小",custpage_page_size)
+            if (parseInt(custpage_select_page) - 1 > 0) {
                 var link = url.resolveScript({
-                    scriptId : 'customscript_allocation_plan_sl',
+                    scriptId : 'customscript_delivery_schedule_sl',
                     deploymentId:'customdeploy_allocation_plan_sl'
                 });
              
@@ -201,9 +201,7 @@ function(moment,url, dialog, https,runtime,search,record,currentRecord ,format )
                 window.location =link;
             }
         }
-
     }
-
     /**
      * 序列化url参数
      * 

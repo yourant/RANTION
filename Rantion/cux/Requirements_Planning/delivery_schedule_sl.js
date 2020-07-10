@@ -57,7 +57,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
     function getSearchData(form, params) {
         var nowPage = params.custpage_now_page ? params.custpage_now_page : 1;
         // var pageSize = params.custpage_page_size ? params.custpage_page_size : 50; // 每页数量
-        var pageSize =20; // 每页数量
+        var pageSize =10; // 每页数量
         var item = params.custpage_item;
         var date_from_p = params.custpage_date_from;
         var date_to_p = params.custpage_date_to;
@@ -378,7 +378,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             filters: filters,
             columns: cols
         });
-        var pageSize = pageSize; //每页条数
         var pageData_delivery_schedule = mySearch_delivery_schedule.runPaged({
             pageSize: pageSize
         });
@@ -389,7 +388,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             rsJson.result = [];
             rsJson.totalCount = totalCount;
             rsJson.pageCount = pageCount;
-            return;
+            return ;
         } else {
             pageData_delivery_schedule.fetch({
                 index: Number(nowPage-1)
@@ -738,7 +737,6 @@ var mySearch_demand_forecast = search.create({
     filters: filters,
     columns: cols
 });
-var pageSize = pageSize; //每页条数
 var pageData_demand_forecast = mySearch_demand_forecast.runPaged({
     pageSize: pageSize
 });
@@ -853,7 +851,6 @@ var mySearch_demand_forecast = search.create({
     filters: filters,
     columns: cols
 });
-var pageSize = pageSize; //每页条数
 var pageData_demand_forecast = mySearch_demand_forecast.runPaged({
     pageSize: pageSize
 });
@@ -1384,7 +1381,241 @@ if (totalCount1 == 0 && pageCount1 ==0) {
         }
         return item_data
     }
+   /**  
+   * 搜索销售预测数据
+   */
+  function GetPredictionData (item_data, datatype, today, account, skuids, SKUIds, params,week_rs,Double,nowPage,acc_skus) {
+    var filters = [
+      { name: 'custrecord_demand_forecast_l_data_type', join: 'custrecord_demand_forecast_parent', operator: 'anyof', values: datatype },
+      { name: 'custrecord_demand_forecast_l_date', join: 'custrecord_demand_forecast_parent', operator: 'on', values: today }
+    ]
+    if (account) {
+      filters.push({ name: 'custrecord_demand_forecast_account', operator: 'anyof', values: account })
+    }
+    filters.push({ name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: skuids })
+    var cols= [
+        { name:'custrecord_demand_forecast_account'},
+        { name:'custrecord_demand_forecast_site'},
+        { name:'custrecord_demand_forecast_item_sku'},
+        { name: 'custitem_dps_skuchiense',join:"custrecord_demand_forecast_item_sku"},
+        { name:'custrecord_demand_forecast_l_data_type', join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week1' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week2' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week3' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week4' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week5' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week6' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week7' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week8' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week9' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week10' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week11' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week12' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week13' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week14' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week15' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week16' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week17' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week18' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week19' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week20' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week21' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week22' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week23' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week24' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week25' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week26' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week27' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week28' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week29' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week30' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week31' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week32' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week33' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week34' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week35' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week36' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week37' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week38' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week39' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week40' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week41' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week42' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week43' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week44' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week45' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week46' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week47' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week48' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week49' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week50' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week51' , join: 'custrecord_demand_forecast_parent'},
+        { name:'custrecord_quantity_week52' , join: 'custrecord_demand_forecast_parent'},
+        { name: 'custitem_product_grading',join:"custrecord_demand_forecast_item_sku"}, //产品分级
+        { name: 'custitemf_product_grading',join:"custrecord_demand_forecast_item_sku"}, //产品初始分级
+        { name:'custrecord_quantity_week53' , join: 'custrecord_demand_forecast_parent'},
+    ]
+    var mySearch_demand_forecast = search.create({
+      type: 'customrecord_demand_forecast',
+      filters: filters,
+      columns: cols
+    });
+    var pageData_demand_forecast = mySearch_demand_forecast.runPaged({
+      pageSize: 10
+    });
+    var totalCount = pageData_demand_forecast.count; // 总数
+    var pageCount = pageData_demand_forecast.pageRanges.length; // 页数
+    if(pageCount ==0 && Double ) {
+    
+      //调拨计划量  ，取自修改的调拨计划量
+      var filters = [
+          { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: [ params.data_type] },
+          { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
+      ];
 
+      if (account) {
+          filters.push({ name: "custrecord_demand_forecast_account", operator: "anyof", values: account });
+      }
+
+      filters.push({ name: "custrecord_demand_forecast_item_sku", operator: "anyof", values: skuids });
+    
+      var mySearch_delivery_schedule = search.create({
+          type: "customrecord_demand_forecast",
+          filters: filters,
+          columns:cols
+      });
+      pageData_demand_forecast = mySearch_delivery_schedule.runPaged({
+          pageSize: 10
+      });
+       totalCount = pageData_demand_forecast.count; //总数
+       pageCount = pageData_demand_forecast.pageRanges.length; //页数
+    }
+    log.audit("pageCount",pageCount)
+    log.audit("totalCount",totalCount)
+    log.audit("skuids",skuids)
+    var item_data16 = [];
+    if (totalCount == 0 && pageCount == 0) {
+        SKUIds.map(function (line) {
+          item_data.push({
+            item_sku: line.item_sku,
+            item_sku_text: line.item_sku_name,
+            item_name: line.item_name,
+            account: line.forecast_account,
+            account_text: line.forecast_account_name,
+            site: line.forecast_site,
+            data_type: params.data_type,
+            data_type_text: params.data_type_text,
+            item_leve: line.item_leve,
+            itemf_leve: line.itemf_leve,
+          });
+        });
+    } else {
+      pageData_demand_forecast.fetch({
+        index: Number(nowPage - 1 ) 
+      }).data.forEach(function (rs) {
+        for(var key_acc in acc_skus){
+            if(rs.getValue(rs.columns[2]) == key_acc.split(".")[0] && rs.getValue(rs.columns[0]) == key_acc.split(".")[1]){
+                item_data.push({
+                    item_sku:rs.getValue(rs.columns[2]),
+                    item_sku_text: rs.getText(rs.columns[2]),
+                    item_name: rs.getValue(rs.columns[3]),
+                    account: rs.getValue(rs.columns[0]),
+                    account_text: rs.getText(rs.columns[0]),
+                    site: rs.getValue(rs.columns[1]),
+                    data_type: rs.getValue(rs.columns[4]),
+                    data_type_text: rs.getText(rs.columns[4]),
+                    item_leve : rs.getValue(rs.columns[57]),//产品分级
+                    itemf_leve : rs.getValue(rs.columns[58]),//产品初始分级
+                    quantity_week1: rs.getValue(rs.columns[5]),
+                    quantity_week2: rs.getValue(rs.columns[6]),
+                    quantity_week3: rs.getValue(rs.columns[7]),
+                    quantity_week4: rs.getValue(rs.columns[8]),
+                    quantity_week5: rs.getValue(rs.columns[9]),
+                    quantity_week6: rs.getValue(rs.columns[10]),
+                    quantity_week7: rs.getValue(rs.columns[11]),
+                    quantity_week8: rs.getValue(rs.columns[12]),
+                    quantity_week9: rs.getValue(rs.columns[13]),
+                    quantity_week10: rs.getValue(rs.columns[14]),
+                    quantity_week11: rs.getValue(rs.columns[15]),
+                    quantity_week12: rs.getValue(rs.columns[16]),
+                    quantity_week13: rs.getValue(rs.columns[17]),
+                    quantity_week14: rs.getValue(rs.columns[18]),
+                    quantity_week15: rs.getValue(rs.columns[19]),
+                    quantity_week16: rs.getValue(rs.columns[20]),
+                    quantity_week17: rs.getValue(rs.columns[21]),
+                    quantity_week18: rs.getValue(rs.columns[22]),
+                    quantity_week19: rs.getValue(rs.columns[23]),
+                    quantity_week20: rs.getValue(rs.columns[24]),
+                    quantity_week21: rs.getValue(rs.columns[25]),
+                    quantity_week22: rs.getValue(rs.columns[26]),
+                    quantity_week23: rs.getValue(rs.columns[27]),
+                    quantity_week24: rs.getValue(rs.columns[28]),
+                    quantity_week25: rs.getValue(rs.columns[29]),
+                    quantity_week26: rs.getValue(rs.columns[30]),
+                    quantity_week27: rs.getValue(rs.columns[31]),
+                    quantity_week28: rs.getValue(rs.columns[32]),
+                    quantity_week29: rs.getValue(rs.columns[33]),
+                    quantity_week30: rs.getValue(rs.columns[34]),
+                    quantity_week31: rs.getValue(rs.columns[35]),
+                    quantity_week32: rs.getValue(rs.columns[36]),
+                    quantity_week33: rs.getValue(rs.columns[37]),
+                    quantity_week34: rs.getValue(rs.columns[38]),
+                    quantity_week35: rs.getValue(rs.columns[39]),
+                    quantity_week36: rs.getValue(rs.columns[40]),
+                    quantity_week37: rs.getValue(rs.columns[41]),
+                    quantity_week38: rs.getValue(rs.columns[42]),
+                    quantity_week39: rs.getValue(rs.columns[43]),
+                    quantity_week40: rs.getValue(rs.columns[44]),
+                    quantity_week41: rs.getValue(rs.columns[45]),
+                    quantity_week42: rs.getValue(rs.columns[46]),
+                    quantity_week43: rs.getValue(rs.columns[47]),
+                    quantity_week44: rs.getValue(rs.columns[48]),
+                    quantity_week45: rs.getValue(rs.columns[49]),
+                    quantity_week46: rs.getValue(rs.columns[50]),
+                    quantity_week47: rs.getValue(rs.columns[51]),
+                    quantity_week48: rs.getValue(rs.columns[52]),
+                    quantity_week49: rs.getValue(rs.columns[53]),
+                    quantity_week50: rs.getValue(rs.columns[54]),
+                    quantity_week51: rs.getValue(rs.columns[55]),
+                    quantity_week52: rs.getValue(rs.columns[56]),
+                    quantity_week53: rs.getValue(rs.columns[59]),
+                    
+                });
+                item_data16.push(key_acc);
+            }
+        }
+        
+      })
+      log.debug("item_data16",item_data16)
+      for(var key_acc in acc_skus){
+      if(item_data16.indexOf(key_acc) == -1 ){
+          SKUIds.map(function(li){
+              if(li.item_sku == key_acc.split(".")[0] && li.forecast_account == key_acc.split(".")[1]){
+                  var objs =  {
+                      item_sku: li.item_sku,
+                      item_sku_text: li.item_sku_name,
+                      item_name: li.item_name,
+                      account: li.forecast_account,
+                      account_text: li.forecast_account_name,
+                      site: li.forecast_site,
+                      data_type: params.data_type,
+                      data_type_text:params.data_type_text,
+                      item_leve : li['item_leve'],//产品分级
+                      itemf_leve : li['itemf_leve'],//产品初始分级
+                  };
+                  for(var i=1;i<54;i++){
+                      objs["quantity_week"+i] = "0";
+                  }
+                  item_data.push(objs);
+              }
+             
+          });
+       }
+      }
+    }
+    
+    return item_data;
+  }
     return {
         onRequest: onRequest
     }

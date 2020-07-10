@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (search, apiUtil, record) {
+define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/request_record'], function (search, apiUtil, record, requestRecord) {
 
     function _get(context) {
 
@@ -22,115 +22,152 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
     //     warehouseCode (string): 仓库编号 ,
     //     warehouseName (string): 仓库名称
     //     }
-    function _post(context) {
+    function _post(requestData) {
+        var context = requestData.requestBody;
         try {
-            var firstCompany = getCompanyId("蓝深贸易有限公司")
-            var secondCompany = getCompanyId("广州蓝图创拓进出口贸易有限公司")
-            var thirdCompany = getCompanyId("广州蓝深科技有限公司")
+            var requestRecordInfo = requestRecord.findRequestRecord(requestData.requestId, 1, "库存报损");
+            if (requestRecordInfo) {
+                retjson.code = 1;
+                retjson.data = {
+                    msg: 'NS 请求重复处理'
+                }
+                retjson.msg = 'failure'
+            } else {
 
-            if (!context.fono) throw new Error('请传递单号fono')
-            //存在相应单号不做任何处理 返回成功信息给客户
-            var exist = checkExist(context.fono)
-            if (exist) return JSON.stringify({ code: 0, data: {} });
+
+                var firstCompany = getCompanyId("蓝深贸易有限公司")
+                var secondCompany = getCompanyId("广州蓝图创拓进出口贸易有限公司")
+                var thirdCompany = getCompanyId("广州蓝深科技有限公司")
+
+                if (!context.fono) throw new Error('请传递单号fono')
+                //存在相应单号不做任何处理 返回成功信息给客户
+                var exist = checkExist(context.fono)
+                if (exist) return JSON.stringify({ code: 0, data: {} });
 
 
-            var damageedLocation = "damageLocation"
-            var item = getItemId(context.sku)
-            log.audit('item', item);
-            if (!item) throw new Error('该SKU不存在NS系统')
+                var damageedLocation = "damageLocation"
+                var item = getItemId(context.sku)
+                log.audit('item', item);
+                if (!item) throw new Error('该SKU不存在NS系统')
+                var firstLocation = getLocationId(firstCompany, context.positionCode)
+                var secondLocation = getLocationId(secondCompany, context.positionCode)
+                var thirdLocation = getLocationId(thirdCompany, context.positionCode)
+                log.audit('Location', firstLocation + '-' + secondLocation + '-' + thirdLocation);
+                var firstCount = 0
+                var secondCount = 0
+                var thirdCount = 0
 
-            var firstLocation = getLocationId(firstCompany, context.positionCode)
-            var secondLocation = getLocationId(secondCompany, context.positionCode)
-            var thirdLocation = getLocationId(thirdCompany, context.positionCode)
-
-            var firstCount = 0
-            var secondCount = 0
-            var thirdCount = 0
-
-            if (firstLocation) {
-                firstCount = getCount(item, firstLocation)
-            }
-            if (secondLocation) {
-                secondCount = getCount(item, secondLocation)
-            }
-            if (thirdLocation) {
-                thirdCount = getCount(item, thirdLocation)
-            }
-
-            var allAccount = firstCount + secondCount + thirdCount
-            var inventoryQty = Number(context.num)
-            //盘盈的情况 当前数量 小于 WMS转移数量  
-            if (allAccount < inventoryQty) {
-                throw new Error("当前可用库存小于报损数量，当前库存：" + allAccount + " 报损数量：" + inventoryQty)
-            }
-            //盘亏的情况 当前数量 大于 WMS库存数量
-            if (allAccount > inventoryQty) {
-                //剩余待调整数量
-                var remainCount = inventoryQty
-                var idArray = new Array()
-                //如果第一个仓位当前量小于总的盈亏  先调整完这一部分
-                if (firstCount > 0) {
-                    var diffCount = firstCount
-                    if (!firstLocation) throw new Error("蓝深贸易有限公司 对应旧库位不存在 库位编号：" + context.positionCode)
-                    var toLocation = getLocationId(firstCompany, damageedLocation)
-                    if (!toLocation) throw new Error("蓝深贸易有限公司 对应新库位不存在 库位编号：" + damageedLocation)
-                    if (firstCount < remainCount) {
-                        remainCount = remainCount - firstCount
-                    } else {
-                        diffCount = remainCount
-                        remainCount = 0
+                if (firstLocation) {
+                    firstCount = getCount(item, firstLocation)
+                }
+                if (secondLocation) {
+                    secondCount = getCount(item, secondLocation)
+                }
+                if (thirdLocation) {
+                    thirdCount = getCount(item, thirdLocation)
+                }
+                log.audit('Count', firstCount + '-' + secondCount + '-' + thirdCount);
+                var allAccount = firstCount + secondCount + thirdCount
+                var inventoryQty = Number(context.num)
+                //盘盈的情况 当前数量 小于 WMS转移数量  
+                if (allAccount < inventoryQty) {
+                    throw new Error("当前可用库存小于报损数量，当前库存：" + allAccount + " 报损数量：" + inventoryQty)
+                }
+                //盘亏的情况 当前数量 大于 WMS库存数量
+                if (allAccount >= inventoryQty) {
+                    log.audit('allAccount > inventoryQty');
+                    //剩余待调整数量
+                    var remainCount = inventoryQty
+                    var idArray = new Array()
+                    //如果第一个仓位当前量小于总的盈亏  先调整完这一部分
+                    if (firstCount > 0) {
+                        var diffCount = firstCount
+                        if (!firstLocation) throw new Error("蓝深贸易有限公司 对应旧库位不存在 库位编号：" + context.positionCode)
+                        var toLocation = getLocationId(firstCompany, damageedLocation)
+                        if (!toLocation) throw new Error("蓝深贸易有限公司 对应新库位不存在 库位编号：" + damageedLocation)
+                        if (firstCount < remainCount) {
+                            remainCount = remainCount - firstCount
+                        } else {
+                            diffCount = remainCount
+                            remainCount = 0
+                        }
+                        var id = saveTransferOrder(firstCompany, item, firstLocation, toLocation, diffCount, context.fono, getParentLocationId(firstCompany, context.positionCode))
+                        idArray.push(id)
                     }
-                    var id = saveTransferOrder(firstCompany, item, firstLocation, toLocation, diffCount, context.fono)
-                    idArray.push(id)
-                }
-                if (secondCount > 0 && remainCount > 0) {
-                    var diffCount = secondCount
-                    if (!secondLocation) throw new Error("广州蓝图创拓进出口贸易有限公司 对应旧库位不存在 库位编号：" + context.positionCode)
-                    var toLocation = getLocationId(secondCompany, damageedLocation)
-                    if (!toLocation) throw new Error("广州蓝图创拓进出口贸易有限公司 对应新库位不存在 库位编号：" + damageedLocation)
-                    if (secondCount < remainCount) {
-                        remainCount = remainCount - secondCount
-                    } else {
-                        diffCount = remainCount
-                        remainCount = 0
+                    if (secondCount > 0 && remainCount > 0) {
+                        var diffCount = secondCount
+                        if (!secondLocation) throw new Error("广州蓝图创拓进出口贸易有限公司 对应旧库位不存在 库位编号：" + context.positionCode)
+                        var toLocation = getLocationId(secondCompany, damageedLocation)
+                        if (!toLocation) throw new Error("广州蓝图创拓进出口贸易有限公司 对应新库位不存在 库位编号：" + damageedLocation)
+                        if (secondCount < remainCount) {
+                            remainCount = remainCount - secondCount
+                        } else {
+                            diffCount = remainCount
+                            remainCount = 0
+                        }
+                        var id = saveTransferOrder(secondCompany, item, secondLocation, toLocation, diffCount, context.fono, getParentLocationId(secondCompany, context.positionCode))
+                        idArray.push(id)
                     }
-                    var id = saveTransferOrder(secondCompany, item, secondLocation, toLocation, diffCount, context.fono)
-                    idArray.push(id)
+                    if (remainCount > 0) {
+                        var diffCount = remainCount
+                        if (!thirdLocation) throw new Error("广州蓝深科技有限公司 对应库位不存在 库位编号：" + context.positionCode)
+                        var toLocation = getLocationId(thirdCompany, damageedLocation)
+                        if (!toLocation) throw new Error("广州蓝深科技有限公司 对应新库位不存在 库位编号：" + damageedLocation)
+                        var id = saveTransferOrder(thirdCompany, item, thirdLocation, toLocation, diffCount, context.fono, getParentLocationId(thirdCompany, context.positionCode))
+                        idArray.push(id)
+                    }
+                    var retjson = {
+                        code: 0,
+                        data: {}
+                    }
+                    requestRecord.saveRequestRecord(requestData.requestId, JSON.stringify(requestData.requestBody), JSON.stringify(retjson), 1, "库存报损");
+                    return JSON.stringify(retjson);
                 }
-                if (remainCount > 0) {
-                    var diffCount = remainCount
-                    if (!thirdLocation) throw new Error("广州蓝深科技有限公司 对应库位不存在 库位编号：" + context.positionCode)
-                    var toLocation = getLocationId(thirdCompany, damageedLocation)
-                    if (!toLocation) throw new Error("广州蓝深科技有限公司 对应新库位不存在 库位编号：" + damageedLocation)
-                    var id = saveTransferOrder(thirdCompany, item, thirdLocation, toLocation, diffCount, context.fono)
-                    idArray.push(id)
-                }
-                var retjson = {
-                    code: 0,
-                    data: {}
-                }
-                return JSON.stringify(retjson);
             }
         } catch (e) {
             var retjson = {
                 code: 1,
                 msg: e.message
             }
+            log.audit('catch:', JSON.stringify(retjson));
+            requestRecord.saveRequestRecord(requestData.requestId, JSON.stringify(requestData.requestBody), JSON.stringify(retjson), 2, "库存报损");
             return JSON.stringify(retjson);
         }
     }
 
     //保存数据
-    function saveTransferOrder(company, item, location, toLocation, diffCount, fono) {
+    function saveTransferOrder(company, item, location, toLocation, diffCount, fono, parentLocation) {
+        var price;
+        search.create({
+            type: 'item',
+            filters: [
+                { name: 'internalid', operator: 'is', values: item },
+                { name: 'inventorylocation', operator: 'anyof', values: location }
+            ],
+            columns: ['locationaveragecost']
+        }).run().each(function (rec) {
+            price = rec.getValue('locationaveragecost');
+        });
+
+
         var rec = record.create({ type: 'transferorder', isDynamic: false });
         rec.setValue({ fieldId: 'subsidiary', value: company })
         rec.setValue({ fieldId: 'orderstatus', value: 'B' })
         rec.setValue({ fieldId: 'location', value: location })
+        rec.setValue({ fieldId: 'custbody_dps_start_location', value: parentLocation })
         rec.setValue({ fieldId: 'custbody_dps_transferor_type', value: '6' })
         rec.setValue({ fieldId: 'transferlocation', value: toLocation })
+        rec.setValue({ fieldId: 'custbody_dps_end_location', value: toLocation })
         rec.setValue({ fieldId: 'custbody_dps_wms_damage_num', value: fono })
+        rec.setValue({ fieldId: 'useitemcostastransfercost', value: true })
         rec.setSublistValue({ sublistId: 'item', fieldId: 'item', value: item, line: 0 });
         rec.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: diffCount, line: 0 });
+
+        if (price) {
+            log.audit('saveTransferOrder price', price);
+            rec.setSublistValue({ sublistId: 'item', fieldId: 'rate', value: price, line: 0 });
+        }
+
         var id = rec.save();
         var itemf = record.transform({
             fromType: 'transferorder',
@@ -220,6 +257,29 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record'], function (s
             return true;
         });
         return count
+    }
+
+    //获取子公司的ParentLocationId
+    function getParentLocationId(companyId, positionCode) {
+        log.audit('getParentLocationId', companyId + '-' + positionCode)
+        var result
+        search.create({
+            type: 'location',
+            filters: [
+                { name: 'subsidiary', operator: 'is', values: companyId },
+                { name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode },
+                { name: 'custrecord_wms_location_type', operator: 'is', values: '2' }
+            ],
+            columns: [
+                { name: 'custrecord_dps_parent_location' }
+            ]
+        }).run().each(function (rec) {
+            log.audit('getParentLocationId result', JSON.stringify(rec))
+            result = rec.getValue('custrecord_dps_parent_location')
+            return false;
+        });
+
+        return result
     }
 
     function checkExist(fono) {

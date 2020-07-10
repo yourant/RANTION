@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 13:58:40
- * @LastEditTime   : 2020-07-01 11:02:19
+ * @LastEditTime   : 2020-06-17 16:10:52
  * @LastEditors    : Li
  * @Description    : 应用于大货发运记录, WMS 发运产生 报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.ue.js
@@ -13,7 +13,7 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(['./dps.information.values', 'N/record', 'N/search', 'N/log', 'N/file'], function (informationValue, record, search, log, file) {
+define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (informationValue, record, search, log) {
 
     function beforeLoad(context) {
 
@@ -31,7 +31,7 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log', 'N/file'], 
                 statusId, subText, subId,
                 ship_tran_abno, af_rec = context.newRecord,
                 information, type = context.type,
-                legalname, gross_margin, label_file
+                legalname, gross_margin
 
             if (type != 'create' || type != 'delete') {
 
@@ -43,7 +43,6 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log', 'N/file'], 
                         values: af_rec.id
                     }],
                     columns: [
-                        "custrecord_dps_shipment_label_file",
                         'custrecord_dps_shipping_rec_status', 'custrecord_dps_shipping_rec_transa_subje',
                         'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_ship_tran_abno',
                         'custrecord_dps_shipping_rec_information',
@@ -58,7 +57,6 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log', 'N/file'], 
                         }, // 交易主体 法定名称
                     ]
                 }).run().each(function (rec) {
-                    label_file = rec.getValue('custrecord_dps_shipment_label_file');
                     legalname = rec.getValue({
                         name: 'legalname',
                         join: 'custrecord_dps_shipping_rec_transa_subje'
@@ -159,17 +157,6 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log', 'N/file'], 
                                 custrecord_dps_customs_information: '创建报关资料失败,映射关系中找不到关联的采购订单'
                             }
                         });
-                    }
-                }
-
-                if (statusId == 12 || statusText == 'WMS已装箱') {
-
-                    if (label_file) {
-
-                        var fileObj = file.load({
-                            id: label_file
-                        });
-                        
                     }
                 }
             }

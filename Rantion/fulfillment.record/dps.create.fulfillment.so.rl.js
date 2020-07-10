@@ -721,7 +721,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                     join: 'item'
                 },
                 {
-                    name: 'custitem_dps_weight',
+                    name: 'custitem_dps_heavy2',
                     join: 'item'
                 }
             ]
@@ -798,7 +798,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                 order.high = high;
             }
             var weight = Number(result.getValue({
-                name: 'custitem_dps_weight',
+                name: 'custitem_dps_heavy2',
                 join: 'item'
             }));
             order.weight = order.weight + weight;

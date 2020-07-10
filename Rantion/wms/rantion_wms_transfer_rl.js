@@ -35,7 +35,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                 var thirdCompany = getCompanyId("广州蓝深科技有限公司")
                 if (context.boxtorageDto) {
                     context = context.boxtorageDto
-
+                    if (context.oldPositionCode == context.newPositionCode) throw new Error("新库位与旧库位相等")
                     var oldFirstPosition = getLocationId(firstCompany, context.oldPositionCode)
                     var oldSecondPosition = getLocationId(secondCompany, context.oldPositionCode)
                     var oldThirdPosition = getLocationId(thirdCompany, context.oldPositionCode)
@@ -48,6 +48,9 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                     var newSecondPosition = getLocationId(secondCompany, context.newPositionCode)
                     var newThirdPosition = getLocationId(thirdCompany, context.newPositionCode)
 
+                    log.audit('newFirstPosition', newFirstPosition);
+                    log.audit('newSecondPosition', newSecondPosition);
+                    log.audit('newThirdPosition', newThirdPosition);
 
                     if (!newFirstPosition) throw new Error("蓝深贸易有限公司：新库位不存在")
                     if (!newSecondPosition) throw new Error("广州蓝图创拓进出口贸易有限公司：新库位不存在")
@@ -60,9 +63,13 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                     var secondLocation = getBoxLocationId(secondCompany, context.barcode, oldSecondPosition, 'F')
                     var thirdLocation = getBoxLocationId(thirdCompany, context.barcode, oldThirdPosition, 'F')
 
-                    if (!firstLocation) throw new Error("蓝深贸易有限公司：旧库位箱号不存在")
-                    if (!secondLocation) throw new Error("广州蓝图创拓进出口贸易有限公司：旧库位箱号不存在")
-                    if (!thirdLocation) throw new Error("广州蓝深科技有限公司：旧库位箱号不存在")
+                    log.audit('firstLocation', firstLocation);
+                    log.audit('secondLocation', secondLocation);
+                    log.audit('thirdLocation', thirdLocation);
+
+                    if (!firstLocation && !secondLocation && !thirdLocation) throw new Error("旧库位箱号不存在")
+                    // if (!secondLocation) throw new Error("广州蓝图创拓进出口贸易有限公司：旧库位箱号不存在")
+                    // if (!thirdLocation) throw new Error("广州蓝深科技有限公司：旧库位箱号不存在")
 
                     var newFirstLocation = getBoxLocationId(firstCompany, context.barcode, newFirstPosition)
                     var newSecondLocation = getBoxLocationId(secondCompany, context.barcode, newSecondPosition)
@@ -82,20 +89,29 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                     if (!newThirdLocation) newThirdLocation = createLocation(thirdCompany, context.barcode, "蓝深箱子" + context.barcode, newThirdPosition)
 
 
-                    var firstBox = getBoxSku(firstLocation)
-                    var secondBox = getBoxSku(secondLocation)
-                    var thirdBox = getBoxSku(thirdLocation)
+                    var firstBox;
+                    if (firstLocation) {
+                        firstBox = getBoxSku(firstLocation)
+                    }
+                    var secondBox;
+                    if (secondLocation) {
+                        secondBox = getBoxSku(secondLocation);
+                    }
+                    var thirdBox;
+                    if (thirdLocation) {
+                        thirdBox = getBoxSku(thirdLocation);
+                    }
 
                     log.audit('firstBox', firstBox);
                     log.audit('secondBox', secondBox);
                     log.audit('thirdBox', thirdBox);
 
                     if (firstBox && firstBox.length > 0)
-                        saveTransferOrderBox(firstCompany, firstLocation, newFirstLocation, firstBox)
+                        saveTransferOrderBox(firstCompany, firstLocation, newFirstLocation, firstBox, getParentLocationId(firstCompany, context.oldPositionCode))
                     if (secondBox && secondBox.length > 0)
-                        saveTransferOrderBox(secondCompany, secondLocation, newSecondLocation, secondBox)
+                        saveTransferOrderBox(secondCompany, secondLocation, newSecondLocation, secondBox, getParentLocationId(firstCompany, context.oldPositionCode))
                     if (thirdBox && thirdBox.length > 0)
-                        saveTransferOrderBox(thirdCompany, thirdLocation, newThirdLocation, thirdBox)
+                        saveTransferOrderBox(thirdCompany, thirdLocation, newThirdLocation, thirdBox, getParentLocationId(firstCompany, context.oldPositionCode))
 
                     disableLocation(firstLocation)
                     disableLocation(secondLocation)
@@ -155,7 +171,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                                 diffCount = remainCount
                                 remainCount = 0
                             }
-                            var id = saveTransferOrder(firstCompany, item, firstLocation, toLocation, diffCount)
+                            var id = saveTransferOrder(firstCompany, item, firstLocation, toLocation, diffCount, getParentLocationId(firstCompany, context.positionCode))
                             idArray.push(id)
                         }
                         if (secondCount > 0 && remainCount > 0) {
@@ -169,7 +185,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                                 diffCount = remainCount
                                 remainCount = 0
                             }
-                            var id = saveTransferOrder(secondCompany, item, secondLocation, toLocation, diffCount)
+                            var id = saveTransferOrder(secondCompany, item, secondLocation, toLocation, diffCount, getParentLocationId(secondCompany, context.positionCode))
                             idArray.push(id)
                         }
                         if (remainCount > 0) {
@@ -177,7 +193,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                             if (!thirdLocation) throw new Error("广州蓝深科技有限公司 对应库位不存在 库位编号：" + context.positionCode)
                             var toLocation = getLocationId(thirdCompany, context.newPosition)
                             if (!toLocation) throw new Error("广州蓝深科技有限公司 对应新库位不存在 库位编号：" + context.newPosition)
-                            var id = saveTransferOrder(thirdCompany, item, thirdLocation, toLocation, diffCount)
+                            var id = saveTransferOrder(thirdCompany, item, thirdLocation, toLocation, diffCount, getParentLocationId(thirdCompany, context.positionCode))
                             idArray.push(id)
                         }
                         var retjson = {
@@ -197,15 +213,34 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
         }
 
         //保存数据
-        function saveTransferOrder(company, item, location, toLocation, diffCount) {
+        function saveTransferOrder(company, item, location, toLocation, diffCount, parentLocation) {
+            var price;
+            search.create({
+                type: 'item',
+                filters: [
+                    { name: 'internalid', operator: 'is', values: item },
+                    { name: 'inventorylocation', operator: 'anyof', values: location }
+                ],
+                columns: ['locationaveragecost']
+            }).run().each(function (rec) {
+                price = rec.getValue('locationaveragecost');
+            });
+
             var rec = record.create({ type: 'transferorder', isDynamic: false });
             rec.setValue({ fieldId: 'subsidiary', value: company })
             rec.setValue({ fieldId: 'orderstatus', value: 'B' })
             rec.setValue({ fieldId: 'custbody_dps_transferor_type', value: '4' })
             rec.setValue({ fieldId: 'location', value: location })
+            rec.setValue({ fieldId: 'custbody_dps_start_location', value: parentLocation })
             rec.setValue({ fieldId: 'transferlocation', value: toLocation })
+            rec.setValue({ fieldId: 'custbody_dps_end_location', value: toLocation })
+            rec.setValue({ fieldId: 'useitemcostastransfercost', value: true })
             rec.setSublistValue({ sublistId: 'item', fieldId: 'item', value: item, line: 0 });
             rec.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: diffCount, line: 0 });
+            if (price) {
+                log.audit('saveTransferOrder price', price);
+                rec.setSublistValue({ sublistId: 'item', fieldId: 'rate', value: price, line: 0 });
+            }
             var id = rec.save();
             var itemf = record.transform({
                 fromType: 'transferorder',
@@ -225,31 +260,64 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
 
 
         //保存数据
-        function saveTransferOrderBox(company, location, toLocation, data) {
+        function saveTransferOrderBox(company, location, toLocation, data, parentLocation) {
+            log.audit('saveTransferOrderBox begin');
+            log.audit('saveTransferOrderBox arr', company + '-' + location + '-' + toLocation + '-' + data + '-' + parentLocation);
             var rec = record.create({ type: 'transferorder', isDynamic: false });
             rec.setValue({ fieldId: 'subsidiary', value: company })
             rec.setValue({ fieldId: 'orderstatus', value: 'B' })
             rec.setValue({ fieldId: 'custbody_dps_transferor_type', value: '4' })
             rec.setValue({ fieldId: 'location', value: location })
+            rec.setValue({ fieldId: 'custbody_dps_start_location', value: parentLocation })
             rec.setValue({ fieldId: 'transferlocation', value: toLocation })
+            rec.setValue({ fieldId: 'custbody_dps_end_location', value: toLocation })
+            rec.setValue({ fieldId: 'useitemcostastransfercost', value: true })
             for (var i in data) {
+                var price;
+                search.create({
+                    type: 'item',
+                    filters: [
+                        { name: 'internalid', operator: 'is', values: data[i].item },
+                        { name: 'inventorylocation', operator: 'anyof', values: location }
+                    ],
+                    columns: ['locationaveragecost']
+                }).run().each(function (rec) {
+                    price = rec.getValue('locationaveragecost');
+                });
+                if (price) {
+                    log.audit('saveTransferOrder price', price);
+                    rec.setSublistValue({ sublistId: 'item', fieldId: 'rate', value: price, line: i });
+                }
+
                 rec.setSublistValue({ sublistId: 'item', fieldId: 'item', value: data[i].item, line: i });
                 rec.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: data[i].count, line: i });
             }
-            var id = rec.save();
+            var id;
+            try {
+                id = rec.save();
+            } catch (error) {
+                log.audit('saveTransferOrderBox save1', error);
+            }
+
             var itemf = record.transform({
                 fromType: 'transferorder',
                 toType: record.Type.ITEM_FULFILLMENT,
                 fromId: id
             });
             itemf.setValue({ fieldId: 'shipstatus', value: 'C' })
-            itemf.save()
+            try {
+                itemf.save()
+            } catch (error) {
+                log.audit('saveTransferOrderBox save2', error);
+            }
+
             var itemr = record.transform({
                 fromType: 'transferorder',
                 toType: 'itemreceipt',
                 fromId: id
             });
             itemr.save()
+            log.audit('saveTransferOrderBox end');
             return id
         }
 
@@ -269,6 +337,9 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
         }
 
         function disableLocation(id) {
+            if (!id) {
+                return;
+            }
             record.submitFields({
                 type: 'location',
                 id: id,
@@ -330,6 +401,29 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', 'SuiteScript
                 result = rec.id
                 return false;
             });
+            return result
+        }
+
+        //获取子公司的ParentLocationId
+        function getParentLocationId(companyId, positionCode) {
+            log.audit('getParentLocationId', companyId + '-' + positionCode)
+            var result
+            search.create({
+                type: 'location',
+                filters: [
+                    { name: 'subsidiary', operator: 'is', values: companyId },
+                    { name: 'custrecord_dps_wms_location', operator: 'is', values: positionCode },
+                    { name: 'custrecord_wms_location_type', operator: 'is', values: '2' }
+                ],
+                columns: [
+                    { name: 'custrecord_dps_parent_location' }
+                ]
+            }).run().each(function (rec) {
+                log.audit('getParentLocationId result', JSON.stringify(rec))
+                result = rec.getValue('custrecord_dps_parent_location')
+                return false;
+            });
+
             return result
         }
 

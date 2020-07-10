@@ -14,7 +14,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
             var date_quan = mGetDate(date.getYear(), date.getMonth() + 1);
             var speed_table = {};
             var offset = 0;//Math.ceil((date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-            var limit = 1000;
+            var limit = 4000;
             /** 获取因子比例 */
             var factor_dict = {};
             search.create({
@@ -66,8 +66,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
                         type: 'customrecord_rsf_sequential_growth_rate',
                         filters: [
                             { name: 'custrecord_rsf_category', operator: search.Operator.ANYOF, values: category1 },
-                            { name: 'custrecord_rsf_department', operator: search.Operator.ANYOF, values: division },
-                            { name: 'created', operator: search.Operator.ON, values: 'today' }
+                            { name: 'custrecord_rsf_department', operator: search.Operator.ANYOF, values: division }
                         ],
                         columns: [
                             { name: 'custrecord_rsf_growth_rate' }
@@ -93,7 +92,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         }
     };
 
-    exports.calculate_sales_speed1 = function (dt, store_id, item_id, quantity) {
+    exports.calculate_sales_speed1 = function (dt, list) {
         var now_date = dt.getDate();
         var date = new Date(dt.getFullYear(), dt.getMonth(), 0);
         var date_quan = mGetDate(date.getYear(), date.getMonth() + 1);
@@ -103,10 +102,6 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         var limit = 4000;
         search.create({
             type: 'customrecord_rsf_daily_sales',
-            filters: [
-                { name: 'custrecord_rsf_item', operator: search.Operator.ANYOF, values: item_id },
-                { name: 'custrecord_rsf_store', operator: search.Operator.ANYOF, values: store_id }
-            ],
             columns: [
                 { name: 'custrecord_rsf_store', summary: search.Summary.GROUP },
                 { name: 'custrecord_rsf_item', summary: search.Summary.GROUP },
@@ -116,11 +111,16 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
                 { name: 'formulanumeric', formula: "CASE WHEN ROUND({today}-{custrecord_rsf_date}, 0) <= " + (date_quan + now_date + date_quan1) + " AND ROUND({today}-{custrecord_rsf_date}, 0) > " + (date_quan + now_date) + " THEN {custrecord_rsf_sales_alter} ELSE 0 END", summary: search.Summary.SUM },
             ]
         }).run().each(function (rec) {
-            var speed = [
-                Number(rec.getValue(rec.columns[2])) * 0.3,
-                Number(rec.getValue(rec.columns[3])) * 0.2,
-            ].reduce(function (p, c) { return p + c; }, 0);
-            speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Math.round(speed + Number(quantity));
+            for(var i = 0; i < list.length; i++){
+                var a = list[i][1].split('-');
+                if(a[0] == rec.getValue(rec.columns[0]) && a[1] == rec.getValue(rec.columns[1])){
+                    var speed = [
+                        Number(rec.getValue(rec.columns[2])) * 0.3,
+                        Number(rec.getValue(rec.columns[3])) * 0.2,
+                    ].reduce(function (p, c) { return p + c; }, 0);
+                    speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Math.round(speed + (Number(list[i][2]) * 0.5));
+                }
+            }
             return --limit > 0;
         });
         return speed_table;

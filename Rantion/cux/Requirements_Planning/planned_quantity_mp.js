@@ -60,9 +60,9 @@ define(['N/search', 'N/log', 'N/record', '../../Helper/Moment.min', 'N/runtime']
                 isDynamic: true
             });  
             forecast_child.setValue({fieldId: 'custrecord_demand_forecast_l_date',value: today});
-            forecast_child.save();
+            var id = forecast_child.save();
             if(forecast_child){
-                log.debug('复制成功','id为：' + forecast_child)
+                log.debug('复制成功','id为：' + id)
             }else{
                 log.debug('复制失败','复制失败')
             }

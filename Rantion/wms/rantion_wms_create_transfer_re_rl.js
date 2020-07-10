@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-07-07 11:43:40
+ * @LastEditTime   : 2020-07-10 11:11:30
  * @LastEditors    : Li
  * @Description    : 调拨单 回传 NS, 回写信息至相关单据
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -77,14 +77,11 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
         var retjson = {};
 
         try {
-
             var requestRecordInfo = requestRecord.findRequestRecord(context.requestId, 1, "transfer");
             if (requestRecordInfo) {
                 retjson.code = 1;
-                retjson.data = {
-                    msg: 'NS 请求重复处理'
-                }
-                retjson.msg = 'failure'
+                retjson.data = null;
+                retjson.msg = 'failure:WMS 请求重复处理';
             } else {
                 var temp = data;
                 var containerNo = temp.containerNo,
@@ -147,11 +144,9 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
                     } else {
                         log.debug('调拨单回传处理出错了', 'NS找不到对应的库位' + positionCode);
                         retjson.code = 3;
-                        retjson.data = {
-                            msg: '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode
-                        };
+                        retjson.data = null;
                         retjson.msg = 'error';
-                        retjson.msg = '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode;
+                        // retjson.msg = '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode;
 
                         return JSON.stringify(retjson);
                     }
@@ -209,9 +204,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
                     log.audit('发运记录更新完成', l_rec_id);
 
                     retjson.code = 0;
-                    retjson.data = {
-                        msg: 'NS 处理成功'
-                    };
+                    retjson.data = null;
                     retjson.msg = 'success';
                     requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "transfer");
                 }
@@ -219,9 +212,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
         } catch (error) {
             log.debug('调拨单回传处理出错 error', error);
             retjson.code = 3;
-            retjson.data = {
-                msg: 'NS error: ' + error.message
-            };
+            retjson.data = null;
             retjson.msg = 'error';
             requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 2, "transfer");
         }

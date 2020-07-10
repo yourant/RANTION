@@ -147,7 +147,7 @@ function(search, ui, moment, format, runtime, record) {
     */
     function getSearchData(form, params) {
         var nowPage = params.custpage_now_page ? params.custpage_now_page : 1;
-        var pageSize = 20; // 每页数量
+        var pageSize = 10; // 每页数量
         // var pageSize = params.custpage_page_size ? params.custpage_page_size : 50; // 每页数量
         var item = params.custpage_item;
         var date_from_p = params.custpage_date_from;
@@ -349,7 +349,6 @@ function(search, ui, moment, format, runtime, record) {
             filters: filters,
             columns: cols
         });
-        var pageSize = pageSize; //每页条数
         var pageData_delivery_schedule = mySearch_delivery_schedule.runPaged({
             pageSize: pageSize
         });
@@ -460,25 +459,27 @@ function(search, ui, moment, format, runtime, record) {
             filters: filters,
             columns: cols
         });
-        var pageSize = pageSize; //每页条数
         var pageData_delivery_schedule = mySearch_delivery_schedule.runPaged({
             pageSize: pageSize
         });
-        var totalCount = pageData_delivery_schedule.count; //总数
-        var pageCount = pageData_delivery_schedule.pageRanges.length; //页数
-        var item_data16=[];
-        if (totalCount == 0 && pageCount ==0) {
+        var totalCount1 = pageData_delivery_schedule.count; //总数
+        var pageCount1 = pageData_delivery_schedule.pageRanges.length; //页数
+        var item_data16=[],index16 =Number(nowPage-1) ;
+        if (totalCount1 == 0 && pageCount1 ==0) {
             rsJson.result = [];
             rsJson.totalCount = totalCount;
             rsJson.pageCount = pageCount;
             return ;
         } else {
             //查询结果
+            if(nowPage > pageCount1){
+                index16=0;
+            }
             pageData_delivery_schedule.fetch({
-                index: Number(nowPage-1)
+                index: index16
             }).data.forEach(function (rs) {
-                sku_arrys.map(function(dd){
-                    if(rs.getValue(rs.columns[2]) == dd){
+                for(var key_acc in acc_skus){
+                    if(rs.getValue(rs.columns[2]) == key_acc.split(".")[0] && rs.getValue(rs.columns[0]) == key_acc.split(".")[1]){
                         item_data.push({
                             item_sku:rs.getValue(rs.columns[2]),
                             item_sku_text: rs.getText(rs.columns[2]),
@@ -488,6 +489,8 @@ function(search, ui, moment, format, runtime, record) {
                             site: rs.getValue(rs.columns[1]),
                             data_type: rs.getValue(rs.columns[4]),
                             data_type_text: rs.getText(rs.columns[4]),
+                            item_leve : rs.getValue(rs.columns[57]),//产品分级
+                            itemf_leve : rs.getValue(rs.columns[58]),//产品初始分级
                             quantity_week1: rs.getValue(rs.columns[5]),
                             quantity_week2: rs.getValue(rs.columns[6]),
                             quantity_week3: rs.getValue(rs.columns[7]),
@@ -541,38 +544,40 @@ function(search, ui, moment, format, runtime, record) {
                             quantity_week51: rs.getValue(rs.columns[55]),
                             quantity_week52: rs.getValue(rs.columns[56]),
                             quantity_week53: rs.getValue(rs.columns[59]),
-                            item_leve : rs.getValue(rs.columns[57]),//产品分级
-                            itemf_leve : rs.getValue(rs.columns[58]),//产品初始分级
+                            
                         });
-                        item_data16.push(dd)
+                        item_data16.push(key_acc);
                     }
-                })
+                }
             });
         }
         log.debug("item_data16",item_data16)
         log.debug("sku_arrys",sku_arrys)
-        sku_arrys.map(function(dd){
-        if(item_data16.indexOf(dd) == -1 ){
-            var li =  SKUIds[skuids.indexOf(dd)];
-            log.debug("没有确认交货量",li)
-            var objs =  {
-                item_sku: li.item_sku,
-                item_sku_text: li.item_sku_name,
-                item_name: li.item_name,
-                account: li.forecast_account,
-                account_text: li.forecast_account_name,
-                site: li.forecast_site,
-                data_type: '16',
-                data_type_text: '确认交货量',
-                item_leve : li['item_leve'],//产品分级
-                itemf_leve : li['itemf_leve'],//产品初始分级
-            }
-            for(var i=1;i<54;i++){
-                objs["quantity_week"+i] = "0";
-            }
-            item_data.push(objs);
+        for(var key_acc in acc_skus){
+        if(item_data16.indexOf(key_acc) == -1 ){
+            SKUIds.map(function(li){
+                if(li.item_sku == key_acc.split(".")[0] && li.forecast_account == key_acc.split(".")[1]){
+                    var objs =  {
+                        item_sku: li.item_sku,
+                        item_sku_text: li.item_sku_name,
+                        item_name: li.item_name,
+                        account: li.forecast_account,
+                        account_text: li.forecast_account_name,
+                        site: li.forecast_site,
+                        data_type: '16',
+                        data_type_text: '确认交货量',
+                        item_leve : li['item_leve'],//产品分级
+                        itemf_leve : li['itemf_leve'],//产品初始分级
+                    };
+                    for(var i=1;i<54;i++){
+                        objs["quantity_week"+i] = "0";
+                    }
+                    item_data.push(objs);
+                }
+               
+            });
+         }
         }
-        })
        
      
         //倒排补货量
@@ -592,165 +597,144 @@ function(search, ui, moment, format, runtime, record) {
             });
             return true;
         });
+        log.debug("item_arr,",item_arr)
+        var fils = [],num = 0;
         if(item_arr.length > 0){
             item_arr.map(function(line){
-                var ss = false;
-                SKUIds.map(function(li){
-                    if(ss) return;
-                    if(line.item_id == li.item_sku){
-                        ss = true;
-                        //如果供应商存在
-                            if(line.vendor_id){
-                                var cycle= true;
-                                search.create({
-                                    type: 'customrecordpurchasing_cycle_record',
-                                    filters: [
-                                        { name: 'custrecordsku_number', operator: 'is', values: line.item_id },
-                                        { name: 'custrecord_vendor', operator: 'is', values: line.vendor_id },
-                                    ],
-                                    columns: [
-                                        'custrecord_purchasing_cycle'  //采购周期
-                                    ]
-                                }).run().each(function (rec) {
-                                    var need_time = Number(rec.getValue('custrecord_purchasing_cycle'));
-                                    log.debug("need_time",need_time);
-                                            item_data.push({
-                                                item_sku: li.item_sku,
-                                                item_sku_text: li.item_sku_name,
-                                                item_name: li.item_name,
-                                                account: li.forecast_account,
-                                                account_text: li.forecast_account_name,
-                                                site: li.forecast_site,
-                                                data_type: '1',
-                                                data_type_text: '倒排补货量',
-                                                item_leve : li['item_leve'],//产品分级
-                                                itemf_leve : li['itemf_leve'],//产品初始分级
-                                                need_time: need_time?need_time:""
-                                            }); 
-
-                                            item_data.push({
-                                                item_sku: li.item_sku,
-                                                item_sku_text: li.item_sku_name,
-                                                item_name: li.item_name,
-                                                account: li.forecast_account,
-                                                account_text: li.forecast_account_name,
-                                                site: li.forecast_site,
-                                                data_type: '2',
-                                                data_type_text: '修改补货量',
-                                                item_leve : li['item_leve'],//产品分级
-                                                itemf_leve : li['itemf_leve'],//产品初始分级
-                                                need_time: need_time?need_time:""
-                                            }); 
-
-                                            item_data.push({
-                                                item_sku: li.item_sku,
-                                                item_sku_text: li.item_sku_name,
-                                                item_name: li.item_name,
-                                                account: li.forecast_account,
-                                                account_text: li.forecast_account_name,
-                                                site: li.forecast_site,
-                                                data_type: '4',
-                                                data_type_text: '补货量',
-                                                item_leve : li['item_leve'],//产品分级
-                                                itemf_leve : li['itemf_leve'],//产品初始分级
-                                                need_time: need_time?need_time:""
-                                            }); 
-                                            cycle=false;
-                                });
-                                if(cycle){
-                                    item_data.push({
-                                        item_sku: li.item_sku,
-                                        item_sku_text: li.item_sku_name,
-                                        item_name: li.item_name,
-                                        account: li.forecast_account,
-                                        account_text: li.forecast_account_name,
-                                        site: li.forecast_site,
-                                        data_type: '1',
-                                        data_type_text: '倒排补货量',
-                                        item_leve : li['item_leve'],//产品分级
-                                        itemf_leve : li['itemf_leve'],//产品初始分级
-                                        need_time: ''
-                                    }); 
-
-                                    item_data.push({
-                                        item_sku: li.item_sku,
-                                        item_sku_text: li.item_sku_name,
-                                        item_name: li.item_name,
-                                        account: li.forecast_account,
-                                        account_text: li.forecast_account_name,
-                                        site: li.forecast_site,
-                                        data_type: '2',
-                                        data_type_text: '修改补货量',
-                                        item_leve : li['item_leve'],//产品分级
-                                        itemf_leve : li['itemf_leve'],//产品初始分级
-                                        need_time: ''
-                                    }); 
-
-                                    item_data.push({
-                                        item_sku: li.item_sku,
-                                        item_sku_text: li.item_sku_name,
-                                        item_name: li.item_name,
-                                        account: li.forecast_account,
-                                        account_text: li.forecast_account_name,
-                                        site: li.forecast_site,
-                                        data_type: '4',
-                                        data_type_text: '补货量',
-                                        item_leve : li['item_leve'],//产品分级
-                                        itemf_leve : li['itemf_leve'],//产品初始分级
-                                        need_time: ''
-                                    }); 
-                                }
-                            }else{
-                                if(li.item_sku == line.item_id){
-                                    item_data.push({
-                                        item_sku: li.item_sku,
-                                        item_sku_text: li.item_sku_name,
-                                        item_name: li.item_name,
-                                        account: li.forecast_account,
-                                        account_text: li.forecast_account_name,
-                                        site: li.forecast_site,
-                                        data_type: '1',
-                                        data_type_text: '倒排补货量',
-                                        item_leve : li['item_leve'],//产品分级
-                                        itemf_leve : li['itemf_leve'],//产品初始分级
-                                        need_time: ''
-                                    }); 
-
-                                    item_data.push({
-                                        item_sku: li.item_sku,
-                                        item_sku_text: li.item_sku_name,
-                                        item_name: li.item_name,
-                                        account: li.forecast_account,
-                                        account_text: li.forecast_account_name,
-                                        site: li.forecast_site,
-                                        data_type: '2',
-                                        data_type_text: '修改补货量',
-                                        item_leve : li['item_leve'],//产品分级
-                                        itemf_leve : li['itemf_leve'],//产品初始分级
-                                        need_time: ''
-                                    }); 
-
-                                    item_data.push({
-                                        item_sku: li.item_sku,
-                                        item_sku_text: li.item_sku_name,
-                                        item_name: li.item_name,
-                                        account: li.forecast_account,
-                                        account_text: li.forecast_account_name,
-                                        site: li.forecast_site,
-                                        data_type: '4',
-                                        data_type_text: '补货量',
-                                        item_leve : li['item_leve'],//产品分级
-                                        itemf_leve : li['itemf_leve'],//产品初始分级
-                                        need_time: ''
-                                    }); 
-                                }
-                            }
+            //如果供应商存在
+                 num++;
+                if(line.vendor_id){
+                    var filsub = [
+                        ["custrecordsku_number","is",line.item_id],
+                        "and",
+                        ["custrecord_vendor","is",line.vendor_id]
+                    ]
+                    fils.push(filsub)
+                    if(num< item_arr.length){
+                        fils.push("or")
                     }
-                })
+                }
             })
         }else{
             log.debug("搜到的货品供应商为0",item_arr);
         }
+        log.debug("看看看俺fils",fils)
+        var item_data_fak=[]
+        search.create({
+            type: 'customrecordpurchasing_cycle_record',
+            filters:fils,
+            columns: [
+                'custrecord_purchasing_cycle',  //采购周期
+                'custrecordsku_number',  //采购周期
+                'custrecord_vendor',  //采购周期
+            ]
+        }).run().each(function (rec) {
+            var need_time = Number(rec.getValue('custrecord_purchasing_cycle'));
+            var need_itms = Number(rec.getValue('custrecordsku_number'));
+            for(var key_acc in acc_skus){
+                if(need_itms == key_acc.split(".")[0]){
+                    SKUIds.map(function(li){
+                        if(li.item_sku == key_acc.split(".")[0] && li.forecast_account == key_acc.split(".")[1]){
+                            item_data.push({
+                                item_sku: li.item_sku,
+                                item_sku_text: li.item_sku_name,
+                                item_name: li.item_name,
+                                account: li.forecast_account,
+                                account_text: li.forecast_account_name,
+                                site: li.forecast_site,
+                                data_type: '1',
+                                data_type_text: '倒排补货量',
+                                item_leve : li['item_leve'],//产品分级
+                                itemf_leve : li['itemf_leve'],//产品初始分级
+                                need_time: need_time?need_time:""
+                            }); 
+        
+                            item_data.push({
+                                item_sku: li.item_sku,
+                                item_sku_text: li.item_sku_name,
+                                item_name: li.item_name,
+                                account: li.forecast_account,
+                                account_text: li.forecast_account_name,
+                                site: li.forecast_site,
+                                data_type: '2',
+                                data_type_text: '修改补货量',
+                                item_leve : li['item_leve'],//产品分级
+                                itemf_leve : li['itemf_leve'],//产品初始分级
+                                need_time: need_time?need_time:""
+                            }); 
+        
+                            item_data.push({
+                                item_sku: li.item_sku,
+                                item_sku_text: li.item_sku_name,
+                                item_name: li.item_name,
+                                account: li.forecast_account,
+                                account_text: li.forecast_account_name,
+                                site: li.forecast_site,
+                                data_type: '4',
+                                data_type_text: '补货量',
+                                item_leve : li['item_leve'],//产品分级
+                                itemf_leve : li['itemf_leve'],//产品初始分级
+                                need_time: need_time?need_time:""
+                            }); 
+                            item_data_fak.push(key_acc);
+                        }
+                    });
+                }
+              
+            }
+            log.debug("need_time",need_time);
+        });
+        
+        for(var key_acc in acc_skus){
+            if(item_data_fak.indexOf(key_acc) == -1 ){
+                SKUIds.map(function(li){
+                    if(li.item_sku == key_acc.split(".")[0] && li.forecast_account == key_acc.split(".")[1]){
+                        item_data.push({
+                            item_sku: li.item_sku,
+                            item_sku_text: li.item_sku_name,
+                            item_name: li.item_name,
+                            account: li.forecast_account,
+                            account_text: li.forecast_account_name,
+                            site: li.forecast_site,
+                            data_type: '1',
+                            data_type_text: '倒排补货量',
+                            item_leve : li['item_leve'],//产品分级
+                            itemf_leve : li['itemf_leve'],//产品初始分级
+                            need_time: ""
+                        }); 
+    
+                        item_data.push({
+                            item_sku: li.item_sku,
+                            item_sku_text: li.item_sku_name,
+                            item_name: li.item_name,
+                            account: li.forecast_account,
+                            account_text: li.forecast_account_name,
+                            site: li.forecast_site,
+                            data_type: '2',
+                            data_type_text: '修改补货量',
+                            item_leve : li['item_leve'],//产品分级
+                            itemf_leve : li['itemf_leve'],//产品初始分级
+                            need_time: ""
+                        }); 
+    
+                        item_data.push({
+                            item_sku: li.item_sku,
+                            item_sku_text: li.item_sku_name,
+                            item_name: li.item_name,
+                            account: li.forecast_account,
+                            account_text: li.forecast_account_name,
+                            site: li.forecast_site,
+                            data_type: '4',
+                            data_type_text: '补货量',
+                            item_leve : li['item_leve'],//产品分级
+                            itemf_leve : li['itemf_leve'],//产品初始分级
+                            need_time:""
+                        }); 
+                    }
+                   
+                });
+             }
+            }
          log.debug("item data ",item_data)
         rsJson.result = item_data;
         rsJson.totalCount = totalCount;
@@ -865,6 +849,7 @@ function(search, ui, moment, format, runtime, record) {
                         }
                          //倒排补货量
                         if(result[a]['data_type'] == 1){
+                            log.debug("倒排补货量",result[a])
                             var dn =result[a]['need_time']
                             if(!dn) dn = 1
                             var need_today = new Date(+new Date()+8*3600*1000 - dn*24*3600*1000);
@@ -897,6 +882,7 @@ function(search, ui, moment, format, runtime, record) {
                         }
                         //修改补货量，补货量
                         if(result[a]['data_type'] == 2 || result[a]['data_type'] == 4){
+                            log.debug("修改补货量，补货量",result[a])
                             var arr_list = [], data_josn = {};
                             var dn =result[a]['need_time']
                             if(!dn) dn = 1

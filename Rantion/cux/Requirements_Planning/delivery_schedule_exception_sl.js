@@ -381,7 +381,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                 account_text: line.forecast_account_name,
                 site: line.forecast_site,
                 data_type: '20',
-                data_type_text: '差异',
+                data_type_text: '建议处理情况',
                 item_leve : line.item_leve,//产品分级
                 itemf_leve : line.itemf_leve,//产品初始分级
             });
@@ -499,9 +499,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                 var x11 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_filed, line: need2_zl}) : 0;
                                 var x3 =  Math.round(x2) -  Math.round(x1) + Math.round(x11);
                                 log.debug("x3:" +x3,Math.round(x2) - Math.round(x1));
-                                if(Math.round(x2) - Math.round(x1) !=0){
                                     sublist.setSublistValue({ id: sub_filed, value:x3.toString(), line: zl});
-                                }
                                
                             })
                             for (var s = 1; s < 54; s++) {
@@ -511,10 +509,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                 var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0;
                                 var x11 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : need_filed, line: need2_zl}) : 0;
                                 var x3 =  Math.round(x2) -  Math.round(x1) + Math.round(x11);
-                               
-                                if(Math.round(x2) !=  Math.round(x1)){
-                                    sublist.setSublistValue({ id: sub_filed, value:x3.toString(), line: zl});
-                                }
+                                sublist.setSublistValue({ id: sub_filed, value:x3.toString(), line: zl});
                                 
                             }
                             need3_zl = zl;

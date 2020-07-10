@@ -10,71 +10,88 @@
 define(["require", "exports", "N/search", "N/record", "N/log", "N/format", "N/runtime", "./utils/fun.lib", "./service/rsf.lib", '../../Helper/Moment.min'], function (require, exports, search, record, log, format, runtime, fun_lib_1, rsf_lib_1, moment) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getInputData = function (ctx) {
-        var list = [];
-        var dt;//= new Date()
-        if (runtime.getCurrentScript().getParameter({ name: 'custscript_rsf_forcast_date' })) {
-            dt = format.parse({ type: format.Type.DATE, value: runtime.getCurrentScript().getParameter({ name: 'custscript_rsf_forcast_date' }) });
-            log.debug('dt', dt);
-        }
-        else {
-            dt = new Date();
-            log.debug('dt', dt);
-        }
-        // [
-        //     new Date(dt.getFullYear(), dt.getMonth() + 1, 0),
-        //     new Date(dt.getFullYear(), dt.getMonth() + 2, 0),
-        //     new Date(dt.getFullYear(), dt.getMonth() + 3, 0),
-        //     new Date(dt.getFullYear(), dt.getMonth() + 4, 0),
-        //     new Date(dt.getFullYear(), dt.getMonth() + 5, 0),
-        //     new Date(dt.getFullYear(), dt.getMonth() + 6, 0),
-        //     new Date(dt.getFullYear(), dt.getMonth() + 7, 0),
-        //     new Date(dt.getFullYear(), dt.getMonth() + 8, 0),
-        // ].map(function (dt) {
-        //     var speed = rsf_lib_1.calculate_sales_speed(dt);
-        //     list.push.apply(list, Object.keys(speed).map(function (store_id_and_item_id) { return [dt, store_id_and_item_id, speed[store_id_and_item_id]]; }));
-        // });
-        //当前月预测值
-        var speed = rsf_lib_1.calculate_sales_speed(dt);
-        list.push.apply(list, Object.keys(speed).map(function (store_id_and_item_id) { return [dt, store_id_and_item_id, speed[store_id_and_item_id]]; }));
-        log.debug('list', list.length);
-        //当前月加一个月的预测值
-        var list1 = [];
-        for (var i = 300; i < 375; i++) {//list.length
+        try{
+            var list = [], list1 = [];
+            var dt;//= new Date()
+            if (runtime.getCurrentScript().getParameter({ name: 'custscript_rsf_forcast_date' })) {
+                dt = format.parse({ type: format.Type.DATE, value: runtime.getCurrentScript().getParameter({ name: 'custscript_rsf_forcast_date' }) });
+                log.debug('dt', dt);
+            }
+            else {
+                dt = new Date();
+                log.debug('dt', dt);
+            }
+            // [
+            //     new Date(dt.getFullYear(), dt.getMonth() + 1, 0),
+            //     new Date(dt.getFullYear(), dt.getMonth() + 2, 0),
+            //     new Date(dt.getFullYear(), dt.getMonth() + 3, 0),
+            //     new Date(dt.getFullYear(), dt.getMonth() + 4, 0),
+            //     new Date(dt.getFullYear(), dt.getMonth() + 5, 0),
+            //     new Date(dt.getFullYear(), dt.getMonth() + 6, 0),
+            //     new Date(dt.getFullYear(), dt.getMonth() + 7, 0),
+            //     new Date(dt.getFullYear(), dt.getMonth() + 8, 0),
+            // ].map(function (dt) {
+            //     var speed = rsf_lib_1.calculate_sales_speed(dt);
+            //     list.push.apply(list, Object.keys(speed).map(function (store_id_and_item_id) { return [dt, store_id_and_item_id, speed[store_id_and_item_id]]; }));
+            // });
+            //当前月预测值
+            var speed = rsf_lib_1.calculate_sales_speed(dt);
+            log.debug('speed', speed);
+            list.push.apply(list, Object.keys(speed).map(function (store_id_and_item_id) { return [dt, store_id_and_item_id, speed[store_id_and_item_id]]; }));
+            log.debug('list', list.length);
+            log.debug('list_data', list);
+            var speed1 = rsf_lib_1.calculate_sales_speed1(dt, list);
             //加一个月 7
             var c = new Date(dt.getFullYear(), dt.getMonth() + 2, 0);
-            var a = list[i][1].split('-');
-            var d = Number(list[i][2]) * 0.5;
-            var b = rsf_lib_1.calculate_sales_speed1(dt, a[0], a[1], d);
-            list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c, store_id_and_item_id, b[store_id_and_item_id]]; }));
-            //加两个月 8
-            var c1 = new Date(dt.getFullYear(), dt.getMonth() + 3, 0);
-            var b1 = rsf_lib_1.calculate_sales_speed2(dt, a[0], a[1]);
-            var e = Math.round(Number(b1[list[i][1]]) + Number(b[list[i][1]]) * 0.5 + Number(list[i][2]) * 0.3);
-            list1.push.apply(list1, Object.keys(b1).map(function (store_id_and_item_id) { return [c1, store_id_and_item_id, e]; }));
-            //加三个月 9
-            var c2 = new Date(dt.getFullYear(), dt.getMonth() + 4, 0);
-            var f = Math.round(Number(e) * 0.5 + Number(b[list[i][1]]) * 0.3 + Number(list[i][2]) * 0.2);
-            list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c2, store_id_and_item_id, f]; }));
-            //加四个月 10
-            var c3 = new Date(dt.getFullYear(), dt.getMonth() + 5, 0);
-            var f1 = Math.round(Number(f) * 0.5 + Number(e) * 0.3 + Number(b[list[i][1]]) * 0.2);
-            list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c3, store_id_and_item_id, f1]; }));
-            //加五个月 11
-            var c4 = new Date(dt.getFullYear(), dt.getMonth() + 6, 0);
-            var f2 = Math.round(Number(f1) * 0.5 + Number(f) * 0.3 + Number(e) * 0.2);
-            list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c4, store_id_and_item_id, f2]; }));
-            //加六个月 12
-            var c5 = new Date(dt.getFullYear(), dt.getMonth() + 7, 0);
-            var f3 = Math.round(Number(f2) * 0.5 + Number(f1) * 0.3 + Number(f) * 0.2);
-            list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c5, store_id_and_item_id, f3]; }));
-            //加七个月 13
-            var c6 = new Date(dt.getFullYear(), dt.getMonth() + 8, 0);
-            var f4 = Math.round(Number(f3) * 0.5 + Number(f2) * 0.3 + Number(f1) * 0.2);
-            list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c6, store_id_and_item_id, f4]; }));
+            log.debug('speed1', speed1);
+            list1.push.apply(list1, Object.keys(speed1).map(function (store_id_and_item_id) { return [c, store_id_and_item_id, speed1[store_id_and_item_id]]; }));
+            list = list.concat(list1);
+            log.debug('list', list);
+            return;
+            
+    
+            //当前月加一个月的预测值
+            
+            for (var i = 300; i < 375; i++) {//list.length
+                //加一个月 7
+                var c = new Date(dt.getFullYear(), dt.getMonth() + 2, 0);
+                var a = list[i][1].split('-');
+                var d = Number(list[i][2]) * 0.5;
+                var b = rsf_lib_1.calculate_sales_speed1(dt, a[0], a[1], d);
+                list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c, store_id_and_item_id, b[store_id_and_item_id]]; }));
+                //加两个月 8
+                var c1 = new Date(dt.getFullYear(), dt.getMonth() + 3, 0);
+                var b1 = rsf_lib_1.calculate_sales_speed2(dt, a[0], a[1]);
+                var e = Math.round(Number(b1[list[i][1]]) + Number(b[list[i][1]]) * 0.5 + Number(list[i][2]) * 0.3);
+                list1.push.apply(list1, Object.keys(b1).map(function (store_id_and_item_id) { return [c1, store_id_and_item_id, e]; }));
+                //加三个月 9
+                var c2 = new Date(dt.getFullYear(), dt.getMonth() + 4, 0);
+                var f = Math.round(Number(e) * 0.5 + Number(b[list[i][1]]) * 0.3 + Number(list[i][2]) * 0.2);
+                list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c2, store_id_and_item_id, f]; }));
+                //加四个月 10
+                var c3 = new Date(dt.getFullYear(), dt.getMonth() + 5, 0);
+                var f1 = Math.round(Number(f) * 0.5 + Number(e) * 0.3 + Number(b[list[i][1]]) * 0.2);
+                list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c3, store_id_and_item_id, f1]; }));
+                //加五个月 11
+                var c4 = new Date(dt.getFullYear(), dt.getMonth() + 6, 0);
+                var f2 = Math.round(Number(f1) * 0.5 + Number(f) * 0.3 + Number(e) * 0.2);
+                list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c4, store_id_and_item_id, f2]; }));
+                //加六个月 12
+                var c5 = new Date(dt.getFullYear(), dt.getMonth() + 7, 0);
+                var f3 = Math.round(Number(f2) * 0.5 + Number(f1) * 0.3 + Number(f) * 0.2);
+                list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c5, store_id_and_item_id, f3]; }));
+                //加七个月 13
+                var c6 = new Date(dt.getFullYear(), dt.getMonth() + 8, 0);
+                var f4 = Math.round(Number(f3) * 0.5 + Number(f2) * 0.3 + Number(f1) * 0.2);
+                list1.push.apply(list1, Object.keys(b).map(function (store_id_and_item_id) { return [c6, store_id_and_item_id, f4]; }));
+            }
+            list = list.concat(list1);
+            log.debug('list', list);
+            return;
+            return list;
+        }catch(e){
+            log.debug('e', e);
         }
-        list = list.concat(list1);
-        log.debug('list', list);
-        return list;
     };
 
     function mGetDate(year, month) {

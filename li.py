@@ -2,13 +2,13 @@
 @Author         : Li
 @Version        : 1.0
 @Date           : 2020-07-08 20:39:43
-@LastEditTime   : 2020-07-09 19:03:49
+@LastEditTime   : 2020-07-09 20:46:57
 @LastEditors    : Li
 @Description    :
 @FilePath       : \li.py
 @可以输入预定的版权声明、个性签名、空行等
 '''
-
+'''
 import grequests
 import time
 url = "https://6188472-sb1.extforms.netsuite.com/app/site/hosting/scriptlet.nl?script=307&deploy=1&compid=6188472_SB1&h=489b4ff9955d7b8d5cfa"
@@ -24,7 +24,7 @@ while count:
         'Content-Type': "application/json"
     }
     params1 = {'op': 'pullorder', "acc": 164, "last_updated_after": "2020-06-01T00:00:00.000Z",
-              "last_updated_before": "2020-06-30T23:59:59.999Z"}
+               "last_updated_before": "2020-06-30T23:59:59.999Z"}
     req_list = [grequests.get(url=link, params=params1, headers=headers1)
                 ]
 # req_list = [grequests.post(
@@ -34,7 +34,7 @@ while count:
     print(time.time()-start)
     count = count-1
     print(count)
-
+'''
 
 """
 def func():
@@ -52,3 +52,9 @@ def func():
     timer = threading.Timer(5, func);
     timer.start();
 """
+
+a = 3
+b = 2
+c = [1, 3, 5, 6, 7, 8, 9]
+for i in c:
+    print(i, i**i)

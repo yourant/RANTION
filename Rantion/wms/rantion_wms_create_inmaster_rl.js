@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-07 14:56:02
+ * @LastEditTime   : 2020-07-07 14:12:17
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -151,9 +151,9 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         });
                         boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
                         if (rec.getValue({
-                                name: 'custrecord_delivery_date',
-                                join: 'custrecord_dps_delivery_order_id'
-                            })) {
+                            name: 'custrecord_delivery_date',
+                            join: 'custrecord_dps_delivery_order_id'
+                        })) {
                             var estimateTime = format.parse({
                                 value: rec.getValue({
                                     name: 'custrecord_delivery_date',
@@ -197,13 +197,13 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                         //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
                         var variant_arr = [{
-                                name: 'color',
-                                value: '白色'
-                            },
-                            {
-                                name: 'size',
-                                value: 'L'
-                            }
+                            name: 'color',
+                            value: '白色'
+                        },
+                        {
+                            name: 'size',
+                            value: 'L'
+                        }
                         ];
 
 
@@ -252,15 +252,15 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     search.create({
                         type: 'purchaseorder',
                         filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: order_po_no
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: true
-                            }
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: order_po_no
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: true
+                        }
                         ],
                         columns: [
                             'tranid',
@@ -319,20 +319,20 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     search.create({
                         type: 'returnauthorization',
                         filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: context.id
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: false
-                            },
-                            {
-                                name: 'taxline',
-                                operator: 'is',
-                                values: false
-                            }
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: context.id
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: false
+                        },
+                        {
+                            name: 'taxline',
+                            operator: 'is',
+                            values: false
+                        }
                         ],
                         // sku、价格、数量、客户名称、地点、日期、子公司、退货单号
                         columns: [
@@ -427,7 +427,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         };
                         sku_arr.push(info);
                         return --limit > 0;
-                        f
                     });
 
                     var skuList = [];
@@ -471,7 +470,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     // 3 免检
 
                     log.debug('inspection_type', inspection_type);
-                    var inspectionType = 20;
+                    var inspectionType = 2;
                     if (inspection_type == 1) {
                         inspectionType = 10;
                     } else if (inspection_type == 2) {

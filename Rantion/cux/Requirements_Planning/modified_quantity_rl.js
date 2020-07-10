@@ -65,54 +65,55 @@ define(['N/log', 'N/search', 'N/record', '../../Helper/Moment.min', 'N/runtime']
     /** 
      * 需求计划的修改静需求量数据更新
      */
-    function StoreDemand(item_arr6,today){
+    function StoreDemand(item_objs6,today){
      // 设置例外信息处理情况
-    var bill_id;
-    item_arr6.map(function (itls) {
+    var bill_id,child_bill_data;
+    for(var key in item_objs6){
+      //  key_str => sku_id+"-"+ account+"-6-"+i;
+      var spl = key.split("-"),bill_id = false;
+      log.debug(spl,spl[0]+","+spl[1]+","+spl[2])
       search
-        .create({
-          type: 'customrecord_demand_forecast_child',
-          filters: [
-            {
-              join: 'custrecord_demand_forecast_parent',
-              name: 'custrecord_demand_forecast_item_sku',
-              operator: 'anyof',
-              values: itls.item_id
-            },
-            {
-              join: 'custrecord_demand_forecast_parent',
-              name: 'custrecord_demand_forecast_account',
-              operator: 'anyof',
-              values: itls.account_id
-            },
-            {
-              name: 'custrecord_demand_forecast_l_date',
-              operator: 'on',
-              values: today
-            },
-            {
-              name: 'custrecord_demand_forecast_l_data_type',
-              operator: 'anyof',
-              values: itls.data_type
-            }
-          ]
-        })
-        .run()
-        .each(function (rec) {
-          bill_id = rec.id
-        });
-      log.debug('bill_id', bill_id);
-      var child_bill_data;
+      .create({
+        type: 'customrecord_demand_forecast_child',
+        filters: [
+          {
+            join: 'custrecord_demand_forecast_parent',
+            name: 'custrecord_demand_forecast_item_sku',
+            operator: 'anyof',
+            values: spl[0]
+          },
+          {
+            join: 'custrecord_demand_forecast_parent',
+            name: 'custrecord_demand_forecast_account',
+            operator: 'anyof',
+            values: spl[1]
+          },
+          {
+            name: 'custrecord_demand_forecast_l_date',
+            operator: 'on',
+            values: today
+          },
+          {
+            name: 'custrecord_demand_forecast_l_data_type',
+            operator: 'anyof',
+            values: spl[2]
+          }
+        ]
+      }).run().each(function (rec) {
+        bill_id = rec.id
+      });
       if (bill_id) {
         child_bill_data = record.load({
           type: 'customrecord_demand_forecast_child',
           id: bill_id
         });
-        var field_name = 'custrecord_quantity_week' + itls.week_date
-        child_bill_data.setValue({
-          fieldId: field_name,
-          value: itls.item_quantity
-        });
+        item_objs6[key].map(function(itls){
+          var field_name = 'custrecord_quantity_week' + itls.week_date
+          child_bill_data.setValue({
+            fieldId: field_name,
+            value: itls.item_quantity
+          });
+        })
         child_bill_data.save();
       } else {
         var forecast_id;
@@ -123,20 +124,19 @@ define(['N/log', 'N/search', 'N/record', '../../Helper/Moment.min', 'N/runtime']
               {
                 name: 'custrecord_demand_forecast_item_sku',
                 operator: 'anyof',
-                values: itls.item_id
+                values:spl[0]
               },
               {
                 name: 'custrecord_demand_forecast_account',
                 operator: 'anyof',
-                values: itls.account_id
+                values:spl[1]
               }
             ]
           })
           .run()
           .each(function (rec) {
-            forecast_id = rec.id
-          });
-        log.debug('forecast_id', forecast_id);
+            forecast_id = rec.id;
+          })
         child_bill_data = record.create({
           type: 'customrecord_demand_forecast_child'
         });
@@ -146,20 +146,23 @@ define(['N/log', 'N/search', 'N/record', '../../Helper/Moment.min', 'N/runtime']
         });
         child_bill_data.setValue({
           fieldId: 'custrecord_demand_forecast_l_data_type',
-          value: itls.data_type
+          value: spl[2]
         });
         child_bill_data.setValue({
           fieldId: 'custrecord_demand_forecast_parent',
           value: forecast_id
         });
-        var field_name = 'custrecord_quantity_week' + itls.week_date;
-        child_bill_data.setValue({
-          fieldId: field_name,
-          value: itls.item_quantity
-        });
-        child_bill_data.save();
+        item_objs6[key].map(function(itls){
+          var field_name = 'custrecord_quantity_week' + itls.week_date;
+          child_bill_data.setValue({
+            fieldId: field_name,
+            value: itls.item_quantity
+          });
+        })
+       var ss =  child_bill_data.save();
+       log.debug("create 新记录成功",ss);
       }
-    })
+    }
     }
     return {
         get: _get,

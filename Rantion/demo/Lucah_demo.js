@@ -64,8 +64,8 @@ define([
     var request = context.request;
     var St = new Date().getTime();
     var params = request.parameters; //参数
-    var ss = getOrderAndCreateCache(19, 19, "111-2977173-4262641")
-    response.write(JSON.stringify(ss))
+    var ss = getOrderAndCreateCache(79, 79, "305-2592991-7905135");
+    response.write(JSON.stringify(ss));
     log.debug("耗时：", new Date().getTime() - St);
   }
 
@@ -741,6 +741,7 @@ define([
           "",
           order.last_update_date
         ).date;
+        if(last_update_date == "2")
         r.setValue({
           fieldId: "custrecord_aio_cache_acc_id",
           value: order.AccID,
@@ -781,6 +782,12 @@ define([
           fieldId: "custrecord_dps_cache_fulfillment_channel",
           value: order.fulfillment_channel,
         });
+        r.setValue({fieldId: 'custrecord_shipment_date_cache',value: order.latest_ship_date})
+        r.setValue({fieldId: 'custrecord_purchase_date_1',value: order.purchase_date})
+        r.setValue({fieldId: 'custrecord_last_update_date',value: order.last_update_date})
+        r.setText({fieldId: 'custrecordlatest_ship_date',text: interfun.getFormatedDate('', '', order.last_update_date).date})
+        r.setValue({fieldId: 'custrecord_seller_order_id_1',value: order.seller_order_id  })
+        r.setValue({fieldId: 'custrecord_dps_cache_shipped_byamazont_f',value: order.shipped_byamazont_fm})
         ss = r.save();
         log.debug("cache save success：", ss);
       } catch (e) {

@@ -11,7 +11,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
+define(['N/record', 'N/search', 'N/log', '../common/request_record'], function (record, search, log, requestRecord) {
 
     function _get(context) {
 
@@ -39,7 +39,7 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
         //         updateTime(string): 更新时间
         // }
 
-        var data = context;
+        var data = context.requestBody;
 
         log.audit('data', data);
         var code = 1,
@@ -49,85 +49,94 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
 
         try {
             //             for (var i = 0, len = data.length; i < len; i++) {
+            var requestRecordInfo = requestRecord.findRequestRecord(context.requestId, 1, "container");
+            if (requestRecordInfo) {
+                retjson.code = 1;
+                retjson.data = {
+                    msg: 'NS 请求重复处理'
+                }
+                retjson.msg = 'failure'
+            } else {
+                var temp = data,
+                    containerNo = temp.containerNo,
+                    containerVolume = temp.containerVolume,
+                    createTime = temp.createTime,
+                    createBy = temp.createBy,
+                    targetWarehouseCode = temp.targetWarehouseCode,
+                    containerType = temp.containerType;
 
-            var temp = data,
-                containerNo = temp.containerNo,
-                containerVolume = temp.containerVolume,
-                createTime = temp.createTime,
-                createBy = temp.createBy,
-                targetWarehouseCode = temp.targetWarehouseCode,
-                containerType = temp.containerType;
-
-            try {
-                // 不存在对应的装柜记录
-                var con_id = searchLoadingInformation(containerNo);
-                if (!con_id) {
-                    var c_con = record.create({
-                        type: 'customrecord_dps_cabinet_record'
-                    });
-
-                    c_con.setValue({
-                        fieldId: 'custrecord_dps_cabinet_rec_no',
-                        value: containerNo
-                    });
-
-                    c_con.setValue({
-                        fieldId: 'custrecord_dps_cabinet_rec_volume',
-                        value: containerVolume
-                    });
-
-                    if (containerType) {
-                        c_con.setValue({
-                            fieldId: 'custrecord_dps_c_cabinet_type',
-                            value: Number(containerType / 10)
+                try {
+                    // 不存在对应的装柜记录
+                    var con_id = searchLoadingInformation(containerNo);
+                    if (!con_id) {
+                        var c_con = record.create({
+                            type: 'customrecord_dps_cabinet_record'
                         });
-                    }
 
-                    c_con.setValue({
-                        fieldId: 'custrecord_dps_cabinet_rec_owner',
-                        value: createBy
-                    });
+                        c_con.setValue({
+                            fieldId: 'custrecord_dps_cabinet_rec_no',
+                            value: containerNo
+                        });
 
-                    c_con.setValue({
-                        fieldId: 'custrecord_dps_cabinet_rec_create_time',
-                        value: createTime
-                    });
+                        c_con.setValue({
+                            fieldId: 'custrecord_dps_cabinet_rec_volume',
+                            value: containerVolume
+                        });
 
-                    if (targetWarehouseCode) {
-                        var location_id = searchLocationByNo(targetWarehouseCode);
-                        if (location_id) {
+                        if (containerType) {
                             c_con.setValue({
-                                fieldId: 'custrecord_dps_cabinet_rec_to_location',
-                                value: location_id
+                                fieldId: 'custrecord_dps_c_cabinet_type',
+                                value: Number(containerType / 10)
                             });
                         }
-                    }
 
-                    var c_con_id = c_con.save();
-
-                    if (c_con_id) {
-                        re_info.push({
-                            'containerNo': containerNo,
-                            "msg": "创建装柜信息成功(NS)"
+                        c_con.setValue({
+                            fieldId: 'custrecord_dps_cabinet_rec_owner',
+                            value: createBy
                         });
+
+                        c_con.setValue({
+                            fieldId: 'custrecord_dps_cabinet_rec_create_time',
+                            value: createTime
+                        });
+
+                        if (targetWarehouseCode) {
+                            var location_id = searchLocationByNo(targetWarehouseCode);
+                            if (location_id) {
+                                c_con.setValue({
+                                    fieldId: 'custrecord_dps_cabinet_rec_to_location',
+                                    value: location_id
+                                });
+                            }
+                        }
+
+                        var c_con_id = c_con.save();
+
+                        if (c_con_id) {
+                            re_info.push({
+                                'containerNo': containerNo,
+                                "msg": "创建装柜信息成功(NS)"
+                            });
+                        }
+                        requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "container");
+                        log.debug('c_con_id', c_con_id);
                     }
-
-                    log.debug('c_con_id', c_con_id);
+                } catch (error) {
+                    re_info.push({
+                        'containerNo': containerNo,
+                        "msg": "创建装柜信息失败(NS)"
+                    });
+                    requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 2, "container");
                 }
-            } catch (error) {
-                re_info.push({
-                    'containerNo': containerNo,
-                    "msg": "创建装柜信息失败(NS)"
-                });
+                // }
+
+                retjson.code = 0;
+                retjson.data = {
+                    re_info: re_info
+                };
+                retjson.msg = 'succeed';
+
             }
-            // }
-
-            retjson.code = 0;
-            retjson.data = {
-                re_info: re_info
-            };
-            retjson.msg = 'succeed';
-
         } catch (error) {
 
             log.error('error', error)
@@ -136,6 +145,7 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
                 msg: "NS 处理失败, 请稍后重试"
             };
             retjson.msg = 'error';
+            requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 2, "container");
         }
         return JSON.stringify(retjson);
     }

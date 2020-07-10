@@ -511,6 +511,8 @@ function(moment,currentRecord, url, https, dialog, format,runtime,search,record)
             fils = {
               "acc": curr.getValue("custpage_account_store"),
               "sku": curr.getValue("custpage_item"),
+              "pageSize": curr.getText('custpage_page_size'),
+              "nowPage": curr.getValue("custpage_page_size"),
               "TT": "Alloca",
               "func_type": func_type,
               "week_rs": week_rs

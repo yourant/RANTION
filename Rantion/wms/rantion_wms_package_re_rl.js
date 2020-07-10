@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-07-02 10:21:11
+ * @LastEditTime   : 2020-07-10 11:05:23
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -12,7 +12,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (search, record, log, runtime, task) {
+define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logistics_cost_calculation'], function (search, record, log, runtime, task, costCal) {
 
     function _get(context) {
 
@@ -101,8 +101,57 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
 
             // 用于标记当前发运记录是否发运完成, 默认 为 false
             var flag = false;
+            var totalWeight = 0;
+            // serverID = 'custrecord_dps_shipping_r_channelservice'
+            // rec_country = 'custrecord_dps_recipient_country_dh';
+            // zip = 'custrecord_dps_recipien_code_dh';
+            // tLocation = 'custrecord_dps_shipping_rec_to_location';
+            var serverID;
+            var rec_country;
+            var zip;
+            var tLocation;
+            var city;
+            var rid = searchTranRec(data[0].aono);
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [{
+                    name: 'internalId',
+                    operator: 'anyof',
+                    values: rid
+                }, ],
+                columns: [{
+                        name: 'custrecord_dps_shipping_r_channelservice'
+                    },
+                    {
+                        name: 'custrecord_cc_country_code',
+                        join: 'custrecord_dps_recipient_country_dh'
+                    },
+                    {
+                        name: 'custrecord_dps_recipien_code_dh'
+                    },
+                    {
+                        name: 'custrecord_dps_shipping_rec_to_location'
+                    },
+                    {
+                        name: 'custrecord_dps_recipient_city_dh'
+                    }
+                ]
+            }).run().each(function (info) {
+                serverID = info.getValue('custrecord_dps_shipping_r_channelservice');
+                zip = info.getValue('custrecord_dps_recipien_code_dh');
+                tLocation = info.getValue('custrecord_dps_shipping_rec_to_location');
+                city = info.getValue('custrecord_dps_recipient_city_dh');
+                rec_country = info.getValue({
+                    name: 'custrecord_cc_country_code',
+                    join: 'custrecord_dps_recipient_country_dh'
+                });
+            });
+            log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + tLocation);
+
             for (var i = 0, len = data.length; i < len; i++) {
+
                 var temp = data[i];
+                totalWeight += temp.weight;
                 var detailModels = temp.detailModels;
                 aono = temp.aono;
                 var bigRec = searchTranRec(aono);
@@ -122,13 +171,14 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
                     var numLines = objRecord.getLineCount({
                         sublistId: sub_id
                     });
-
-                    log.debug('发运记录装箱明细行数', numLines);
+                    log.debug('objRecord', JSON.stringify(objRecord));
+                    log.debug('发运记录装箱明细行数 status', numLines + '-' + status);
                     if (status != 14 && numLines > -1) {
                         var it = {
-                            code: 0,
-                            data: "NS 处理成功",
-                            msg: 'success'
+
+                            code: 1,
+                            data: null,
+                            msg: '非法操作'
                         }
                         log.debug('单据状态不是 已推送WMS, 直接返回', new Date().toISOString());
                         return it;
@@ -217,7 +267,6 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
                             fieldId: 'custrecord_dps_total_number',
                             value: Number(addNum) + Number(boxNum)
                         });
-
                         // 更改发运记录的状态为 WMS已装箱
                         // objRecord.setValue({
                         //     fieldId: 'custrecord_dps_shipping_rec_status',
@@ -227,11 +276,6 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
                         var objRecord_id = objRecord.save();
                         log.audit('objRecord_id', objRecord_id);
 
-                        ord.push({
-                            aono: aono,
-                            msg: 'NS 处理成功'
-                        });
-
                         // try {
                         //     log.debug('启用调度任务', "Starts");
                         //     submitMapReduceDeployment(bigRec);
@@ -240,7 +284,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
                         // }
 
                         retjson.code = 0;
-                        retjson.data = ord;
+                        retjson.data = null;
                         retjson.msg = 'success';
 
                     } else {
@@ -286,17 +330,8 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
                         var objRecord_id = objRecord.save();
                         log.audit('objRecord_id', objRecord_id);
 
-                        // try {
-                        //     log.debug('启用调度任务', "Starts");
-                        //     submitMapReduceDeployment(bigRec)
-                        // } catch (error) {
-                        //     log.debug('启用调度任务失败', error);
-                        // }
-
                         retjson.code = 0;
-                        retjson.data = {
-                            msg: 'NS 处理成功'
-                        };
+                        retjson.data = null;
                         retjson.msg = 'success';
                     }
 
@@ -306,19 +341,25 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
                         msg: 'NS 找不到对应的调拨单'
                     });
                     retjson.code = 5;
-                    retjson.data = ord;
+                    retjson.data = null;
                     retjson.msg = 'unknown';
                 }
 
             }
-
+            var cost = costCal.calculation(serverID, rec_country, zip, totalWeight, '', '', '', city, '', tLocation, '', '');
+            log.audit("cost", cost);
+            record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: rid,
+                values: {
+                    'custrecord_dps_shipping_rec_estimatedfre': cost
+                }
+            });
         } catch (error) {
 
             log.error('error', error);
             retjson.code = 3;
-            retjson.data = {
-                msg: 'NS 处理失败, 请稍后重试'
-            };
+            retjson.data = null;
             retjson.msg = 'error';
         }
 
@@ -331,21 +372,6 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task'], function (searc
         return JSON.stringify(retjson);
     }
 
-
-    function submitMapReduceDeployment(recId) {
-
-        var mrTask = task.create({
-            taskType: task.TaskType.MAP_REDUCE,
-            scriptId: "customscript_dps_setvalue_li_map",
-            deploymentId: 'customdeploy_dps_setvalue_li_map',
-            params: {
-                custscript_dps_ful_rec_id: recId
-            }
-        });
-
-        var mrTaskId = mrTask.submit();
-
-    }
 
     /**
      * 根据 调拨单号 搜索对应的发运记录, 获取相关的货品信息

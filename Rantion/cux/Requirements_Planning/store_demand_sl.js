@@ -56,7 +56,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
     var nowPage = params.custpage_now_page ? params.custpage_now_page : 1
     // var nowPage =1
     // var pageSize = params.custpage_page_size ? params.custpage_page_size : 50; // 每页数量
-    var pageSize = 20; // 每页数量
+    var pageSize = 10; // 每页数量
     var item = params.custpage_item;
     if (!params.custpage_date_from || !params.custpage_date_to) { // || (date_from_p > date_to_p)
       throw '请先输入正确的时间范围';
@@ -80,7 +80,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
       var need_result = createLineData(form, result, date_from, date_to); // 创建行数据
       if (need_result) {
         try {
-        //   createOrUpdateData(need_result, date_from, date_to)
+          createOrUpdateData(need_result, date_from, date_to)
         } catch (e) {
           log.debug('e', e)
         }
@@ -335,25 +335,18 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
       filters: filters,
       columns: cols
     });
-    var pageSize = pageSize; // 每页条数
     var pageData_demand_forecast = mySearch_demand_forecast.runPaged({
       pageSize: pageSize
     });
     var totalCount = pageData_demand_forecast.count; // 总数
     var pageCount = pageData_demand_forecast.pageRanges.length; // 页数
     if (totalCount == 0 && pageCount == 0) {
-      item_data.push({
-        item_sku: line.item_sku,
-        item_sku_text: line.item_sku_name,
-        item_name: line.item_name,
-        account: line.forecast_account,
-        account_text: line.forecast_account_name,
-        site: line.forecast_site,
-        data_type: '1',
-        item_leve: line['item_leve'], // 产品分级
-        itemf_leve: line['itemf_leve'], // 产品初始分级
-        data_type_text: '销售预测'
-      })
+      rsJson.result = [];
+      rsJson.totalCount = totalCount;
+      rsJson.pageCount = pageCount;
+      log.debug('item_data', item_data);
+      return rsJson;
+   
     } else {
       pageData_demand_forecast.fetch({
         index: Number(nowPage - 1)
@@ -919,7 +912,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                     }
                   })
                   for (var s = 1; s < 54; s++) {
-                    var sub_filed = 'custpage_quantity_weekhi' + s
+                    var sub_filed = 'custpage_quantity_weekhi' + s;
                     if (transit_no.length > 0) {
                       var line_arr = []
                       var quan_item = 0

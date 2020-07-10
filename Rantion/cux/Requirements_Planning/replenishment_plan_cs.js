@@ -5,9 +5,9 @@
 define(['../../Helper/Moment.min','N/currentRecord', 'N/url', 'N/https', 'N/ui/dialog', 'N/format',"N/runtime","N/search","N/record"],
  function(moment,currentRecord, url, https, dialog, format,runtime,search,record) {
 
-    var sublistId = 'custpage_sublist',week_rs,func_type;
+    var rec,sublistId = 'custpage_sublist',week_rs,func_type;
     function pageInit(context) {
-        
+        rec = context.currentRecord; //当前记录
     }
 
     function saveRecord(context) {
@@ -15,9 +15,57 @@ define(['../../Helper/Moment.min','N/currentRecord', 'N/url', 'N/https', 'N/ui/d
     }
 
     function validateField(context) {
+        if (context.fieldId == 'custpage_page_size') {
+            console.log("改变了吗",context.fieldId)
+            pigeSizeChange();
+        }
         return true;
     }
-
+    function pigeSizeChange() {
+        var custpage_item = rec.getValue('custpage_item');  //货品
+        var custpage_date_from = rec.getText('custpage_date_from'); 
+        var custpage_date_to = rec.getText('custpage_date_to');
+        var custpage_now_page = rec.getValue('custpage_now_page'); 
+        var custpage_total_page = rec.getValue('custpage_total_page'); 
+        var custpage_select_page = rec.getText('custpage_page_size');
+        var custpage_page_size = rec.getValue('custpage_page_size');
+            console.log("所选货品:",custpage_item)
+        if (custpage_total_page != null && custpage_total_page != '') {
+            console.log("选择的页数",custpage_select_page)
+            console.log("页面大小",custpage_page_size)
+            if (parseInt(custpage_select_page) - 1 > 0) {
+                var link = url.resolveScript({
+                    scriptId : 'customscript_replenishment_plan_sl',
+                    deploymentId:'customdeploy_replenishment_plan_sl'
+                });
+             
+                link = link + '&' + serializeURL({
+                    action: 'search',
+                    custpage_item: custpage_item,
+                    custpage_date_from: custpage_date_from,
+                    custpage_date_to: custpage_date_to,
+                    custpage_now_page: custpage_select_page,
+                    custpage_page_size: custpage_page_size
+                });
+                console.log("link : ",link);
+                window.location =link;
+            }
+        }
+    }
+     /**
+     * 序列化url参数
+     * 
+     * @param obj
+     * @returns
+     */
+    function serializeURL(obj) {
+        var str = [];
+        for (var p in obj)
+            if (obj.hasOwnProperty(p)) {
+                str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+            }
+        return str.join("&");
+    }
     function fieldChanged(context) {
      
         var cur = context.currentRecord;

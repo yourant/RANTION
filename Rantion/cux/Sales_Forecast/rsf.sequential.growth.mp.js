@@ -31,8 +31,7 @@ define(["require", "exports", "N/search", "N/record", "./utils/fun.lib", "./serv
                 type: 'customrecord_rsf_sequential_growth_rate',
                 filters: [
                     { name: 'custrecord_rsf_category', operator: search.Operator.ANYOF, values: cat_id },
-                    { name: 'custrecord_rsf_department', operator: search.Operator.ANYOF, values: depart_id },
-                    { name: 'created', operator: search.Operator.ON, values: 'today' }
+                    { name: 'custrecord_rsf_department', operator: search.Operator.ANYOF, values: depart_id }
                 ]
             }).run().each(function (rec) {
                 r = record.load({ type: 'customrecord_rsf_sequential_growth_rate', id: rec.id, isDynamic: true });

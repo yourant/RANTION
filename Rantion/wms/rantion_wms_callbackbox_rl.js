@@ -1,24 +1,13 @@
-/*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-06-03 15:34:35
- * @LastEditTime   : 2020-06-18 16:49:47
- * @LastEditors    : Li
- * @Description    : 
- * @FilePath       : \Rantion\wms\rantion_wms_callbackbox_rl.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
+define(['../Helper/config.js', 'N/search', 'N/http', 'N/record'],
+function (config, search, http, record) {
 
     function _get(context) {
 
     }
-
-
 
     function _post(context) {
 
@@ -34,46 +23,37 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         //     logisticsProviderName(string): 物流渠道商名称
         // }
 
-        var recordID = context.recordID;
+        log.debug('context', JSON.stringify(context));
+        var recordID = context.aono;
         var message = {};
         var fileId, service_code, channelservice, channel_dealer, channel_dealer_id, aono, Label, tranType, waybillNo;
         search.create({
             type: 'customrecord_dps_shipping_record',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: recordID
-            }],
-            columns: [{
-                    name: "url",
-                    join: "file"
-                },
-                {
-                    name: 'custrecord_ls_service_code',
-                    join: 'custrecord_dps_shipping_r_channelservice'
-                }, // 渠道服务代码
+            filters: [
+                { name: 'internalid', operator: 'is', values: recordID }
+            ],
+            columns: [
+                { name: 'url', join: 'file' },
+                { name: 'custrecord_ls_service_code', join: 'custrecord_dps_shipping_r_channelservice' }, // 渠道服务代码
                 'custrecord_dps_shipping_r_channelservice', // 渠道服务
                 'custrecord_dps_shipping_r_channel_dealer', //渠道商
                 'custrecord_dps_shipping_rec_order_num', // 调拨单号
                 'custrecord_dps_ship_record_tranor_type', // 调拨单类型
                 'custrecord_dps_shipping_rec_logistics_no', // 物流运单号
+                'custrecord_fulfill_dh_label_addr' // 面单地址
             ]
         }).run().each(function (rec) {
-
             waybillNo = rec.getValue('custrecord_dps_shipping_rec_logistics_no');
             tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
             aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
-            fileId = rec.getValue({
-                name: "url",
-                join: "file"
-            });
+            fileId = rec.getValue({ name: 'url', join: 'file' });
             // service_code = rec.getValue({
             //     name: 'custrecord_ls_service_code',
             //     join: 'custrecord_dps_shipping_r_channelservice'
             // });
 
-            data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
-            // data["logisticsProviderCode"] = rec.getValue({
+            // data['logisticsProviderCode'] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
+            // data['logisticsProviderCode'] = rec.getValue({
             //     name: 'custrecord_ls_service_code',
             //     join: 'custrecord_dps_shipping_r_channelservice'
             // });
@@ -81,7 +61,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
             // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
             // FIXME 需要判断物流渠道是否存在面单文件, 
-            // data["logisticsFlag"] = 1;
+            // data['logisticsFlag'] = 1;
 
             channelservice = rec.getText('custrecord_dps_shipping_r_channelservice');
             channel_dealer = rec.getText('custrecord_dps_shipping_r_channel_dealer');
@@ -94,7 +74,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             var url = 'https://';
             if (tranType == 1 && fileId) {
                 var account = runtime.accountId;
-                log.debug("Account ID for the current user: ", runtime.accountId);
+                log.debug('Account ID for the current user: ', runtime.accountId);
                 if (account.indexOf('_SB1') > -1) {
                     var ac = account.replace('_SB1', '');
                     url += ac + '-sb1.app.netsuite.com';
@@ -124,7 +104,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     'access_token': token
                 };
                 var response = http.post({
-                    url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                    url: config.WMS_Debugging_URL + '/allocationMaster/callbackForBox',
                     headers: headerInfo,
                     body: JSON.stringify(data)
                 });
@@ -176,20 +156,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 log.debug('code', code);
             }
         }
-        // }
-        // var message = {};
-        // // 获取token
-        // var token = getToken();
-        // if (token) {
-        //     var data = {};
-
-
-        //     // 发送请求
-        //     message = sendRequest(token, data);
-        // } else {
-        //     message.code = 1;
-        //     message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
-        // }
         return message;
     }
 
@@ -218,39 +184,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;
-    }
-
-    /**
-     * 发送请求
-     * @param {*} token 
-     * @param {*} data 
-     */
-    function sendRequest(token, data) {
-        var message = {};
-        var code = 0;
-        var retdata;
-        var headerInfo = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'access_token': token
-        };
-        var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
-            headers: headerInfo,
-            body: JSON.stringify(data)
-        });
-        log.debug('response', JSON.stringify(response));
-        retdata = JSON.stringify(response.body);
-        if (response.code == 200) {
-            // 调用成功
-            code = retdata.code;
-        } else {
-            code = 1;
-            // 调用失败
-        }
-        message.code = code;
-        message.data = retdata;
-        return message;
     }
 
     return {

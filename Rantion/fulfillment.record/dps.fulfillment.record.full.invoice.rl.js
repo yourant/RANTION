@@ -173,7 +173,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             isOnline: true
                         });
                         // 保存文件 folder表示文件柜里面的文件夹的id
-                        fileObj.folder = 2078;
+                        fileObj.folder = 542;
                         var fileId = fileObj.save();
                         fileObj = file.load({
                             id: fileId
@@ -340,7 +340,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         //     isInline: true
                         // })
                         // 保存文件 folder表示文件柜里面的文件夹的id
-                        fileObj.folder = 2077;
+                        fileObj.folder = 543;
                         var fileId = fileObj.save();
                         result = { code: 200, data: {} }
                         fileObj = file.load({

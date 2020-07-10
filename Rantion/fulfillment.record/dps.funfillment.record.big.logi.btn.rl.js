@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-06-12 10:29:34
+ * @LastEditTime   : 2020-07-04 15:19:25
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
@@ -133,7 +133,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
         return result
     }
 
-    function submitIdAndTackingNumber(id, shipment_id, trackingNumber,labeladdr) {
+    function submitIdAndTackingNumber(id, shipment_id, trackingNumber, labeladdr) {
         // var values = { custrecord_dps_push_state: "成功", custrecord_dps_push_result: "", custrecord_dps_shipping_rec_status: 3 }
         var values = {
             custrecord_dps_push_state: "成功",
@@ -141,6 +141,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
         }
         if (shipment_id) {
             values.custrecord_dps_shipping_rec_logistics_no = shipment_id;
+            values.custrecord_dps_ship_trackingnumber_dh = shipment_id;
             values.custrecord_dps_shipping_rec_status = 21; // 推送物流成功, 状态更改为 等待获取面单文件
         }
         if (trackingNumber) {

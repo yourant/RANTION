@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-09 10:26:09
+ * @LastEditTime   : 2020-07-10 11:17:44
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -19,7 +19,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         // InMasterResultDto {
         //     detailList (Array[InDetailResultDto]): 入库明细 ,
         //     sourceNo (string): 来源单号 ,
-        //     sourceType (integer): 来源类型 10:交货单 20:退货入库 30:调拨入库 40:盘盈入库
+        //     sourceType (integer): 来源类型 10:交货单 20:退货入库 30:调拨入库 40:盘盈入库,
+        //     remark:备注
         // }
         // InDetailResultDto {
         //     detailRecordList (Array[InDetailRecordResultDto]): sku上架明细 ,
@@ -42,10 +43,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             var requestRecordInfo = requestRecord.findRequestRecord(context.requestId, 1, "putOn");
             if (requestRecordInfo) {
                 retjson.code = 1;
-                retjson.data = {
-                    msg: 'NS 请求重复处理'
-                }
-                retjson.msg = 'failure'
+                retjson.data = null;
+                retjson.msg = 'failure: WMS 请求重复处理';
             } else {
                 var sourceType = context.requestBody.sourceType;
                 log.debug('context', context);
@@ -64,6 +63,10 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                         returnTransfer(context.requestBody);
                     } else if (sourceType == 40) {
                         returnSubsidiaryTransfer(context.requestBody);
+                    } else if (sourceType == 50) {
+                        //小包
+                    } else if (sourceType == 60) {
+                        //大包
                     }
                     retjson.code = 0;
                     retjson.data = {
@@ -1090,15 +1093,11 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             if (objRecord_id && itId) {
 
                 retDate.code = 0;
-                retDate.data = {
-                    msg: 'NS 处理成功'
-                };
+                retDate.data = null;
                 retDate.msg = 'NS 处理成功';
             } else {
                 retDate.code = 3;
-                retDate.data = {
-                    msg: 'NS 处理异常'
-                };
+                retDate.data = null;
                 retDate.msg = 'NS 处理异常';
             }
             return retDate;

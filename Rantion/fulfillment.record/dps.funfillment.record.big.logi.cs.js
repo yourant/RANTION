@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-07-06 20:22:07
+ * @LastEditTime   : 2020-07-04 15:50:38
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -380,7 +380,6 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
                 var body = JSON.parse(response.body);
                 if (body.code == 500) {
                     alert('重新获取物流运单号失败：' + body.msg);
-                    window.location.reload(true);
                 } else {
                     alert('重新获取物流运单号成功');
                     window.location.reload(true);
@@ -541,7 +540,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
                     body: body1,
                     headers: header
                 });
-                console.log('response.body ', response.body);
+                // console.log('response.body ', response);
                 if (response.body == false) {
                     alert('生成报关资料失败');
                 } else {

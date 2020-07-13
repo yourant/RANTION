@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-13 13:52:41
- * @LastEditTime   : 2020-07-04 14:14:30
+ * @LastEditTime   : 2020-07-10 13:44:06
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_rl.js
@@ -39,64 +39,64 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                     search.create({
                         type: 'salesorder',
                         filters: [{
-                                name: 'internalid',
-                                operator: 'is',
-                                values: id
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: false
-                            },
-                            {
-                                name: 'taxline',
-                                operator: 'is',
-                                values: false
-                            }
+                            name: 'internalid',
+                            operator: 'is',
+                            values: id
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: false
+                        },
+                        {
+                            name: 'taxline',
+                            operator: 'is',
+                            values: false
+                        }
                         ],
                         columns: [{
-                                name: 'item'
-                            }, //0
-                            {
-                                name: 'custbody_sotck_account'
-                            }, //1 发货店铺
-                            {
-                                name: 'custbody_dps_order_contact'
-                            }, //2 订单联系人
-                            {
-                                name: 'custcol_aio_amazon_msku'
-                            },
-                            {
-                                name: 'quantity'
-                            },
-                            {
-                                name: 'trandate'
-                            },
-                            {
-                                name: 'tranid'
-                            }, //订单号
-                            {
-                                name: 'custbody_mcf_displayable_order_comment'
-                            },
-                            {
-                                name: 'custbody_mcf_fulfillment_action'
-                            },
-                            {
-                                name: 'custbody_mcf_delivery_method'
-                            },
-                            {
-                                name: 'custbodyfulfillment_stock_so'
-                            }, // MCF fulfillment Order Id
-                            {
-                                name: 'custbody_reason_type'
-                            }, //原因类型
-                            {
-                                name: 'custentity_store_number',
-                                join: "customer"
-                            }, //12店铺编号
-                            {
-                                name: 'otherrefnum'
-                            }, //原订单号
+                            name: 'item'
+                        }, //0
+                        {
+                            name: 'custbody_sotck_account'
+                        }, //1 发货店铺
+                        {
+                            name: 'custbody_dps_order_contact'
+                        }, //2 订单联系人
+                        {
+                            name: 'custcol_aio_amazon_msku'
+                        },
+                        {
+                            name: 'quantity'
+                        },
+                        {
+                            name: 'trandate'
+                        },
+                        {
+                            name: 'tranid'
+                        }, //订单号
+                        {
+                            name: 'custbody_mcf_displayable_order_comment'
+                        },
+                        {
+                            name: 'custbody_mcf_fulfillment_action'
+                        },
+                        {
+                            name: 'custbody_mcf_delivery_method'
+                        },
+                        {
+                            name: 'custbodyfulfillment_stock_so'
+                        }, // MCF fulfillment Order Id
+                        {
+                            name: 'custbody_reason_type'
+                        }, //原因类型
+                        {
+                            name: 'custentity_store_number',
+                            join: "customer"
+                        }, //12店铺编号
+                        {
+                            name: 'otherrefnum'
+                        }, //原订单号
                         ]
                     }).run().each(function (rec) {
                         delivery_shop = rec.getValue('custbody_sotck_account');
@@ -141,8 +141,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                         }
                         order_num = store_num + "-" + order_id + "-" + corr[reason_type]
                     }
-                    log.debug("order_num:", order_num)
-
+                    log.error("order_num:", order_num)
                     //获取订单联系人地址 
                     var addr = record.load({
                         type: 'customrecord_customer_contact',
@@ -347,15 +346,15 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                     search.create({
                         type: 'salesorder',
                         filters: [{
-                                name: 'internalid',
-                                operator: 'is',
-                                values: context.recId
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: true
-                            }
+                            name: 'internalid',
+                            operator: 'is',
+                            values: context.recId
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: true
+                        }
                         ],
                         columns: [
                             "custbodyfulfillment_stock_so", "custbody_sotck_account", 'custbody_dps_mcf_info'
@@ -411,7 +410,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                             });
 
                             result.code = 'Success';
-                            result.message = '创建mcf订单成功。RequestId：' + requestId_[0].textContent;
+                            result.message = '取消mcf订单成功。RequestId：' + requestId_[0].textContent;
                             var id = record.submitFields({
                                 type: record.Type.SALES_ORDER,
                                 id: context.recId,
@@ -452,27 +451,27 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                         values: account_id
                     }],
                     columns: [{
-                            name: 'custrecord_aio_seller_id'
-                        },
-                        {
-                            name: 'custrecord_aio_mws_auth_token'
-                        },
-                        {
-                            name: 'custrecord_aio_aws_access_key_id',
-                            join: 'custrecord_aio_dev_account'
-                        },
-                        {
-                            name: 'custrecord_aio_secret_key_guid',
-                            join: 'custrecord_aio_dev_account'
-                        },
-                        {
-                            name: 'custrecord_aio_amazon_mws_endpoint',
-                            join: 'custrecord_aio_enabled_sites'
-                        },
-                        {
-                            name: 'custrecord_aio_amazon_marketplace_id',
-                            join: 'custrecord_aio_enabled_sites'
-                        },
+                        name: 'custrecord_aio_seller_id'
+                    },
+                    {
+                        name: 'custrecord_aio_mws_auth_token'
+                    },
+                    {
+                        name: 'custrecord_aio_aws_access_key_id',
+                        join: 'custrecord_aio_dev_account'
+                    },
+                    {
+                        name: 'custrecord_aio_secret_key_guid',
+                        join: 'custrecord_aio_dev_account'
+                    },
+                    {
+                        name: 'custrecord_aio_amazon_mws_endpoint',
+                        join: 'custrecord_aio_enabled_sites'
+                    },
+                    {
+                        name: 'custrecord_aio_amazon_marketplace_id',
+                        join: 'custrecord_aio_enabled_sites'
+                    },
                     ]
                 }).run().each(function (rec) {
                     auth = {

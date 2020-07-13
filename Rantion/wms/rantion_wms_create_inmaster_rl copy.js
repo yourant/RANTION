@@ -2,10 +2,10 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-12 10:32:54
+ * @LastEditTime   : 2020-07-11 17:26:58
  * @LastEditors    : Li
  * @Description    : 
- * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
+ * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl copy.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 /**
@@ -21,11 +21,11 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
 
     var checkBodyArr = [
-        // "boxNum", //(integer): 箱数,
+        "boxNum", //(integer): 箱数,
         "estimateTime", //(string): 预计到货时间,
         "inspectionType", //(integer): 质检类型 10: 全检 20: 抽检,
         "planQty", //(integer): 计划入库数量,
-        // "purchaser", //(string): 采购员,
+        "purchaser", //(string): 采购员,
         "sourceNo", //(string): 来源单号,
         "sourceType", //(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 借调入库,
         "taxFlag", // (integer): 是否含税 0: 否1: 是,
@@ -37,11 +37,11 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
 
     var showBodyObj = {
-        // "boxNum": "箱子数量 不存在", //(integer): 箱数,
+        "boxNum": "箱子数量 不存在", //(integer): 箱数,
         "estimateTime": "预计到货时间 不存在", //(string): 预计到货时间,
         "inspectionType": "质检类型 不存在", //(integer): 质检类型 10: 全检 20: 抽检,
         "planQty": '计划入库数量 不存在', //(integer): 计划入库数量,
-        // "purchaser": '采购订单 采购员不存在', //(string): 采购员,
+        "purchaser": '采购订单 采购员不存在', //(string): 采购员,
         "sourceNo": '来源单号 不存在', //(string): 来源单号,
         "sourceType": '来源类型 不存在', //(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 借调入库,
         // "taxFlag": '含税 不存在', // (integer): 是否含税 0: 否1: 是,
@@ -53,7 +53,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
 
     var checkItemArr = [
-        // "boxNum", //(integer): 箱数,
+        "boxNum", //(integer): 箱数,
         "inspectionType", // (integer): 质检类型 10: 全检 20: 抽检 30: 免检,
         "planQty", //(integer): 计划入库数,
         "productCode", //(string): 产品编号,
@@ -64,7 +64,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
     ]
 
     var showItemObj = {
-        // "boxNum": '货品的箱数 不存在', //(integer): 箱数,
+        "boxNum": '货品的箱数 不存在', //(integer): 箱数,
         "inspectionType": '货品档案的 质检类型 不存在', // (integer): 质检类型 10: 全检 20: 抽检 30: 免检,
         "planQty": '货品行 计划入库数 不存在', //(integer): 计划入库数,
         "productCode": '货品档案的 产品编号不存在', //(string): 产品编号,
@@ -138,7 +138,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
                     var inspectionType;
 
-
                     search.create({
                         type: 'customrecord_dps_delivery_order_item',
                         filters: [{
@@ -211,17 +210,15 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                             }, //地点
                         ]
                     }).run().each(function (rec) {
-
-                        // createdby = rec.getValue('createdby');
                         order_po_no = rec.getValue({
                             name: "custrecord_purchase_order_no",
                             join: "custrecord_dps_delivery_order_id"
                         });
                         boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
                         if (rec.getValue({
-                            name: 'custrecord_delivery_date',
-                            join: 'custrecord_dps_delivery_order_id'
-                        })) {
+                                name: 'custrecord_delivery_date',
+                                join: 'custrecord_dps_delivery_order_id'
+                            })) {
                             var estimateTime = format.parse({
                                 value: rec.getValue({
                                     name: 'custrecord_delivery_date',
@@ -265,13 +262,13 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                         //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
                         var variant_arr = [{
-                            name: 'color',
-                            value: '白色'
-                        },
-                        {
-                            name: 'size',
-                            value: 'L'
-                        }
+                                name: 'color',
+                                value: '白色'
+                            },
+                            {
+                                name: 'size',
+                                value: 'L'
+                            }
                         ];
 
 
@@ -313,8 +310,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         });
                         return true;
                     });
-
-                    // log.debug('createdby', createdby);
                     data['boxNum'] = boxNum;
                     data['planQty'] = planQty;
 
@@ -322,15 +317,15 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     search.create({
                         type: 'purchaseorder',
                         filters: [{
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: order_po_no
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: true
-                        }
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: order_po_no
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: true
+                            }
                         ],
                         columns: [
                             'tranid',
@@ -371,10 +366,8 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     }
                     data['skuList'] = item_arr;
                     data['purchaser'] = order_data.getText('employee'); //采购员
-                    // data['purchaser'] = order_data.getText('owner'); //采购员
-
-                    log.debug("order_data.getText('createdby ')", order_data.getText('owner'))
                     log.debug('data', data);
+
 
                     var flag = 0,
                         showArr = [];
@@ -407,7 +400,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     var retArr = [];
                     for (var g = 0, gln = showArr.length; g < gln; g++) {
 
-                        if (showArr[g] == null || showArr[g] == undefined || showArr[g] == '') { } else {
+                        if (showArr[g] == null || showArr[g] == undefined || showArr[g] == '') {} else {
                             retArr.push(showArr[g])
                         }
                     }
@@ -448,20 +441,20 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     search.create({
                         type: 'returnauthorization',
                         filters: [{
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: context.id
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: false
-                        },
-                        {
-                            name: 'taxline',
-                            operator: 'is',
-                            values: false
-                        }
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: context.id
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: false
+                            },
+                            {
+                                name: 'taxline',
+                                operator: 'is',
+                                values: false
+                            }
                         ],
                         // sku、价格、数量、客户名称、地点、日期、子公司、退货单号
                         columns: [
@@ -639,6 +632,64 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     data["waybillNo"] = tranid; // 运单号
                     data["skuList"] = skuList; // SKU LIST
                     log.audit('data', data);
+
+
+
+                    var flag = 0,
+                        showArr = [];
+
+                    for (var i = 0, len = checkItemArr.length; i < len; i++) {
+                        var temp = data.skuList;
+                        // log.debug('temp', temp);
+                        for (var z = 0, len2 = temp.length; z < len2; z++) {
+                            var a = temp[z];
+                            log.debug('a[checkItemArr[i]])', a[checkItemArr[i]])
+                            if (a[checkItemArr[i]]) {
+                                flag += 1;
+                            } else {
+                                showArr.push(showItemObj[checkItemArr[i]])
+                                // flag = false
+                            }
+                        }
+                    }
+
+                    for (var j = 0, len1 = checkBodyArr.length; j < len1; j++) {
+                        if (data[checkBodyArr[j]]) {
+                            flag = true;
+                        } else {
+                            showArr.push(showBodyObj[checkBodyArr[j]])
+                            flag = false
+                        }
+                    }
+
+
+                    var retArr = [];
+                    for (var g = 0, gln = showArr.length; g < gln; g++) {
+
+                        if (showArr[g] == null || showArr[g] == undefined || showArr[g] == '') {} else {
+                            retArr.push(showArr[g])
+                        }
+                    }
+
+                    log.debug('showArr length ' + showArr.length, showArr)
+                    log.debug('NS 字段检查', flag);
+                    if (retArr && retArr.length > 0) {
+                        // var message = {}
+                        message.code = 5;
+                        message.data = JSON.stringify(retArr);
+
+                        var id = record.submitFields({
+                            type: 'returnauthorization',
+                            id: context.id,
+                            values: {
+                                // custrecord_delivery_order_status: 3,
+                                custbody_dps_wms_info: message.data
+                            }
+                        });
+
+                        return message
+                    }
+
 
                 }
                 // 调拨入库

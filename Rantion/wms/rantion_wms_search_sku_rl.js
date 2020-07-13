@@ -23,9 +23,10 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             type: 'item',
             filters : filters,
             columns: [
-                'itemid', 'custitem_dps_ctype', 'custitem_dps_skuchiense', 'custitem_dps_division',
+                'itemid', 'custitem_dps_ctype', 'custitem_dps_skuchiense', 
+                // 'custitem_dps_division', 不明原因被删除
                 'vendorname', 'custitem_dps_skuenglish', 'custitem_dps_skureferred',
-                'vendorname', 'custitem_dps_high', 'custitem_dps_long',
+                'custitem_dps_high', 'custitem_dps_long',
                 'custitem_dps_wide', 'custitem_dps_weight', 'custitem_dps_picture',
                 'custitem_dps_factory_inspe', 'custitem_dps_warehouse_check',
                 'custitem_dps_group', 'stockunit'
@@ -46,7 +47,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                     'productTitle': result.getValue('custitem_dps_skuchiense'),
                     'productUnit': result.getText('stockunit'),
                     'group': result.getText('custitem_dps_group'),
-                    'division': result.getText('custitem_dps_division'),
+                    'division': '无对应字段',
                     'declarationCN': result.getValue('vendorname'),
                     'declarationUS': result.getValue('custitem_dps_skuenglish'),
                     'skureferred': result.getValue('custitem_dps_skureferred'),

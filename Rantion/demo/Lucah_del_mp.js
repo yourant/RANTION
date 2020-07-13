@@ -6,18 +6,28 @@ define(['N/search', 'N/log', 'N/record', '../../douples_amazon/Helper/interfunct
  function (search, log, record, interfun) {
   function getInputData () {
     return search.create({
-      type: 'customrecord_aio_order_import_cache',
+      type: 'customrecord_demand_forecast_child',
       filters: [
-        {name: 'custrecord_dds111',operator: 'isnot',values: 'T'}
+        // {name: 'custrecord_dds111',operator: 'isnot',values: 'T'}
       ],columns: [
         {name: 'internalid'}
       ]
     })
+    // return search.create({
+    //   type: 'customrecord_aio_order_import_cache',
+    //   filters: [
+    //     {name: 'custrecord_dds111',operator: 'isnot',values: 'T'}
+    //   ],columns: [
+    //     {name: 'internalid'}
+    //   ]
+    // })
   }
 
   function map (context) {
     log.debug('context', context)
     var obj = JSON.parse(context.value)
+    var so = record.delete({type:obj.recordType,id:obj.id})
+    return;
     var so = record.load({type:obj.recordType,id:obj.id})
     var item_obj = so.getValue("custrecord_amazonorder_iteminfo");
     if(!item_obj){

@@ -128,7 +128,6 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         }).run().each(function (rec) {
           bill_id = rec.id
         })
-        log.debug('bill_id', bill_id)
         var child_bill_data
         if (bill_id) {
           child_bill_data = record.load({ type: 'customrecord_demand_forecast_child', id: bill_id })
@@ -150,7 +149,6 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
           })
 
           var ss = child_bill_data.save()
-          log.debug('更新成功', ss)
         } else {
           var need_today = new Date(+new Date() + 8 * 3600 * 1000)
           var forecast_id
@@ -177,7 +175,6 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
             })
           })
           var ss = child_bill_data.save()
-          log.debug('create成功', ss)
         }
       })
     } catch (e) {
@@ -315,7 +312,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
 
     // item_data=GetPredictionData (item_data, 1, today, account, skuids, SKUIds, {data_type: '1',data_type_text: '需求预测'},week_rs,func_type)
 
-
+   log.debug("today",today)
     // 需求量 - > 销售预测
     var filters = [
       { name: 'custrecord_demand_forecast_l_data_type', join: 'custrecord_demand_forecast_parent', operator: 'anyof', values: 1 },
@@ -914,70 +911,70 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                   for (var s = 1; s < 54; s++) {
                     var sub_filed = 'custpage_quantity_weekhi' + s;
                     if (transit_no.length > 0) {
-                      var line_arr = []
-                      var quan_item = 0
+                      var line_arr = [];
+                      var quan_item = 0;
                       transit_no.map(function (l) {
                         if (l.item_time == s) {
-                          quan_item = l.item_quantity
-                          sublist.setSublistValue({ id: sub_filed, value: quan_item.toString(), line: zl })
+                          quan_item = l.item_quantity;
+                          sublist.setSublistValue({ id: sub_filed, value: quan_item.toString(), line: zl });
                         }
-                        line_arr.push(l.item_time)
+                        line_arr.push(l.item_time);
                       })
                       if (line_arr.indexOf(s) == -1) {
-                        sublist.setSublistValue({ id: sub_filed, value: '0', line: zl })
+                        sublist.setSublistValue({ id: sub_filed, value: '0', line: zl });
                       }
                     } else {
-                      sublist.setSublistValue({ id: sub_filed, value: '0', line: zl })
+                      sublist.setSublistValue({ id: sub_filed, value: '0', line: zl });
                     }
                   }
-                  data_josn.item = arr_list
-                  data_arr.push(data_josn)
-                  need2_zl = zl
+                  data_josn.item = arr_list;
+                  data_arr.push(data_josn);
+                  need2_zl = zl;
              
                 }
       
-                var need_no = 0
+                var need_no = 0;
                 if (result[a]['data_type'] == 3) { // 库存量
                   week_rs.map(function (wek) {
-                    var sub_filed = 'custpage_quantity_week' + wek
+                    var sub_filed = 'custpage_quantity_week' + wek;
                     if (wek == week_rs[0]) {
                       if (result[a]['location_no']) {
-                        sublist.setSublistValue({ id: sub_filed, value: result[a]['location_no'].toString(), line: zl })
-                        need_no = result[a]['location_no']
+                        sublist.setSublistValue({ id: sub_filed, value: result[a]['location_no'].toString(), line: zl });
+                        need_no = result[a]['location_no'];
                       } else {
-                        sublist.setSublistValue({ id: sub_filed, value: '0', line: zl })
+                        need_no = 0
+                        sublist.setSublistValue({ id: sub_filed, value: '0', line: zl });
                       }
                     } else {
-                      var need_sub_filed = 'custpage_quantity_week' + (wek - 1)
-                      var x1 = need_no
-                      var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need2_zl }) : 0
-                      var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need1_zl }) : 0
-                      need_no = -(x3 - (Number(x1) + Number(x2)))
-                      sublist.setSublistValue({ id: sub_filed, value: need_no.toString() ? need_no.toString() : '0', line: zl })
+                      var need_sub_filed = 'custpage_quantity_weekhi' + (wek - 1);
+                      var x1 = need_no;
+                      var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need2_zl }) : 0;
+                      var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need1_zl }) : 0;
+                      need_no = -(Number(x3) - (Number(x1) + Number(x2))); //需求预测 - (在途+ 库存)
+                      sublist.setSublistValue({ id: sub_filed, value: need_no.toString() ? need_no.toString() : '0', line: zl });
                     }
                   })
                   for (var s = 1; s < 54; s++) {
-                    var sub_filed = 'custpage_quantity_weekhi' + s
+                    var sub_filed = 'custpage_quantity_weekhi' + s;
                     if (s == 1) {
                       if (result[a]['location_no']) {
-                        sublist.setSublistValue({ id: sub_filed, value: result[a]['location_no'].toString(), line: zl })
-                        need_no = result[a]['location_no']
+                        sublist.setSublistValue({ id: sub_filed, value: result[a]['location_no'].toString(), line: zl });
+                        need_no = result[a]['location_no'];
                       } else {
-                        sublist.setSublistValue({ id: sub_filed, value: '0', line: zl })
+                        sublist.setSublistValue({ id: sub_filed, value: '0', line: zl });
                       }
                     } else {
-                      var need_sub_filed = 'custpage_quantity_weekhi' + (s - 1)
-                      var x1 = need_no
-                      var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need2_zl }) : 0
-                      var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need1_zl }) : 0
-                      need_no = -(x3 - (Number(x1) + Number(x2)))
-                      sublist.setSublistValue({ id: sub_filed, value: need_no.toString() ? need_no.toString() : '0', line: zl })
+                      var need_sub_filed = 'custpage_quantity_weekhi' + (s - 1);
+                      var x1 = need_no;
+                      var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need2_zl }) : 0; //店铺库存
+                      var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need1_zl }) : 0; //需求预测
+                      need_no = -(Number(x3) - (Number(x1) + Number(x2)));
+                      sublist.setSublistValue({ id: sub_filed, value: need_no.toString() ? need_no.toString() : '0', line: zl });
                     }
                   }
-                  need3_zl = zl
-            
+                  need3_zl = zl;
                 }
-                zl++
+                zl++;
               }
             }
           }

@@ -1,17 +1,9 @@
-/*
- * @Author         : Li
- * @Date           : 2020-05-18 12:00:00
- * @LastEditTime   : 2020-07-10 11:11:30
- * @LastEditors    : Li
- * @Description    : 调拨单 回传 NS, 回写信息至相关单据
- * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (search, record, log, requestRecord) {
+define(['N/search', 'N/record', 'N/log', '../common/request_record'],
+function (search, record, log, requestRecord) {
 
     function _get(context) {
 
@@ -60,10 +52,8 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
         // }
 
 
-        log.audit('context', context);
+        log.debug('context', context);
         var data = context.requestBody;
-
-        log.debug('context.requestBody typeof', typeof (context.requestBody));
 
         // try {
         //     data = JSON.parse(context.requestBody);
@@ -97,32 +87,24 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
                     abno = temp.abno;
                 var aono_id = searchFulRec(aono);
 
+                var val = {};
                 if (aono_id) {
-                    var l_rec = record.load({
-                        type: 'customrecord_dps_shipping_record',
-                        id: aono_id
-                    });
-
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_total_number',
-                        value: boxQty
-                    });
-
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_ship_tran_abno',
-                        value: abno
-                    });
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_ship_small_weight',
-                        value: weight
-                    });
-
+                    var l_rec = record.load({ type: 'customrecord_dps_shipping_record', id: aono_id });
+                    l_rec.setValue({ fieldId: 'custrecord_dps_total_number', value: boxQty });
+                    val.custrecord_dps_total_number = boxQty;
+                    l_rec.setValue({ fieldId: 'custrecord_dps_ship_tran_abno', value: abno });
+                    val.custrecord_dps_ship_tran_abno = abno;
+                    l_rec.setValue({ fieldId: 'custrecord_dps_ship_small_weight', value: weight });
+                    val.custrecord_dps_ship_small_weight = weight;
                     var tranNO = l_rec.getValue('custrecord_dps_shipping_rec_order_num');
-
                     var LoId, positionCode;
                     for (var i = 0, len = storageList.length; i < len; i++) {
-                        positionCode = storageList[i].positionCode;
-                        LoId = searchLocationCode(storageList[i].positionCode, aono_id); // 只能修改一次,不可修改多次,履行多次出错
+                        if (storageList[i].type == 1) {
+                            positionCode = storageList[i].barcode;
+                        } else {
+                            positionCode = storageList[i].positionCode;
+                        }
+                        LoId = searchLocationCode(positionCode, aono_id); // 只能修改一次,不可修改多次,履行多次出错
                         if (LoId) {
                             break;
                         }
@@ -140,66 +122,54 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
                                 ignoreMandatoryFields: true
                             }
                         });
-                        log.debug('transferorderId', transferorderId);
                     } else {
                         log.debug('调拨单回传处理出错了', 'NS找不到对应的库位' + positionCode);
                         retjson.code = 3;
                         retjson.data = null;
                         retjson.msg = 'error';
-                        // retjson.msg = '调拨单' + aono_id + ',NS找不到对应或者可用的的仓库或库位: ' + positionCode;
-
                         return JSON.stringify(retjson);
                     }
 
                     var cn_no = searchLoadingInformation(containerNo);
                     if (cn_no) {
-                        l_rec.setValue({
-                            fieldId: 'custrecord_dps_ship_rec_load_links',
-                            value: cn_no
-                        });
+                        l_rec.setValue({ fieldId: 'custrecord_dps_ship_rec_load_links', value: cn_no });
+                        val.custrecord_dps_ship_rec_load_links = cn_no;
 
-                        var l_con = record.load({
-                            type: 'customrecord_dps_cabinet_record',
-                            id: cn_no
-                        });
-
-
+                        var l_con = record.load({ type: 'customrecord_dps_cabinet_record', id: cn_no });
                         var conVolume = l_con.getValue("custrecord_dps_cabinet_rec_volume");
-                        l_con.setValue({
-                            fieldId: 'custrecord_dps_cabinet_rec_remai_volume',
-                            value: Number(conVolume) - Number(volume)
-                        });
-                        var l_con_id = l_con.save();
-                        log.audit('更新装柜信息成功', l_con_id);
+                        l_con.setValue({ fieldId: 'custrecord_dps_cabinet_rec_remai_volume', value: Number(conVolume) - Number(volume) });
+                        l_con.save();
                     }
 
                     // 设置调拨单的状态
-
                     if (status) {
-                        l_rec.setValue({
-                            fieldId: 'custrecord_dps_ship_rec_transfer_status',
-                            value: status / 10
-                        });
+                        l_rec.setValue({ fieldId: 'custrecord_dps_ship_rec_transfer_status', value: status / 10 });
+                        val.custrecord_dps_ship_rec_transfer_status = status / 10;
                     }
+                    l_rec.setValue({ fieldId: 'custrecord_dps_ship_rec_dono', value: dono });
+                    val.custrecord_dps_ship_rec_dono = dono;
 
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_ship_rec_dono',
-                        value: dono
-                    });
-
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_ship_rec_pickno',
-                        value: pickno
-                    });
-
-                    l_rec.setValue({
-                        fieldId: 'custrecord_dps_shipping_rec_status',
-                        value: 6
-                    });
-
+                    l_rec.setValue({ fieldId: 'custrecord_dps_ship_rec_pickno', value: pickno });
+                    val.custrecord_dps_ship_rec_pickno = pickno;
+                    l_rec.setValue({ fieldId: 'custrecord_dps_shipping_rec_status', value: 6 });
+                    val.custrecord_dps_shipping_rec_status = 6;
                     itemfulfillment(l_rec, tranNO, storageList);
-                    var l_rec_id = l_rec.save();
-
+                    // var l_rec_id = l_rec.save({
+                    //     enableSourcing: true,
+                    //     ignoreMandatoryFields: true
+                    // });
+                    /**
+                     * 这里采用 submitFields 的方式保存, 之前采用 save 保存报错 (记录已经被更改)
+                     */
+                    var l_rec_id = record.submitFields({
+                        type: 'customrecord_dps_shipping_record',
+                        id: aono_id,
+                        values: val,
+                        options: {
+                            enableSourcing: false,
+                            ignoreMandatoryFields: true
+                        }
+                    })
 
                     log.audit('发运记录更新完成', l_rec_id);
 
@@ -216,7 +186,6 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
             retjson.msg = 'error';
             requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 2, "transfer");
         }
-
         return JSON.stringify(retjson);
     }
 
@@ -240,28 +209,13 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
 
         search.create({
             type: 'transferorder',
-            filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: link
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                },
-
+            filters: [
+                { name: 'internalid', operator: 'anyof', values: link },
+                { name: 'mainline', operator: 'is', values: false },
+                { name: 'taxline', operator: 'is', values: false },
             ],
-            columns: [
-                'item', 'quantity'
-            ]
+            columns: [ 'item', 'quantity' ]
         }).run().each(function (rec) {
-
             for (var i = 0, leni = itemList.length; i < leni; i++) {
                 var a = itemList[i],
                     asku = a.sku;
@@ -273,78 +227,31 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
                     }
                     poItem.push(it);
                 }
-
             }
-
             return --limit > 0;
-
         });
-
-        log.debug('poItem', poItem);
-
-        objRecord.setValue({
-            fieldId: 'shipstatus',
-            value: 'C'
-        });
-
-        var item_ful = objRecord.getLineCount({
-            sublistId: 'item'
-        });
-
-        log.audit('item_ful: ', item_ful);
-
+        objRecord.setValue({ fieldId: 'shipstatus', value: 'C' });
+        var item_ful = objRecord.getLineCount({ sublistId: 'item' });
         for (var i = 0; i < item_ful; i++) {
             var totalQty = 0;
-            var treItem = objRecord.getSublistText({
-                sublistId: 'item',
-                fieldId: 'item',
-                line: i,
-            }); //  获取货品ID
-
-            log.debug('treItem', treItem);
-
+            var treItem = objRecord.getSublistText({ sublistId: 'item', fieldId: 'item', line: i, }); //  获取货品ID
             for (var j = 0, len = poItem.length; j < len; j++) {
                 var a = poItem[j];
-                log.debug('a', a);
-                log.debug('itemId: ' + a.itemId, treItem == a.itemId);
-
                 if (treItem == a.itemId) {
                     var qty = a.qty;
                     totalQty += qty;
-                    log.debug('totalQty: ' + totalQty, 'qty: ' + qty);
                 }
-
             }
-
-            log.debug('totalQty', totalQty);
-
             if (totalQty > 0) {
-                objRecord.setSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'quantity',
-                    line: i,
-                    value: totalQty
-                });
-
-                objRecord.setSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'itemreceive',
-                    value: true,
-                    line: i
-                });
-
+                objRecord.setSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i, value: totalQty });
+                objRecord.setSublistValue({ sublistId: 'item', fieldId: 'itemreceive', value: true, line: i });
             }
-
         }
         var objRecord_id = objRecord.save();
-        log.debug('objRecord_id', objRecord_id);
         var itemreceipt_id;
-
         if (objRecord_id /* && tranor_type == 3 */ ) {
             itemreceipt_id = itemreceipt(link);
-            log.debug('itemreceipt_id', itemreceipt_id);
         }
-
         return itemreceipt_id || false;
     }
 
@@ -359,9 +266,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
             toType: 'itemreceipt',
             // isDynamic: true,
         });
-
         var obj_id = objRecord.save();
-
         return obj_id || false;
     }
 
@@ -371,7 +276,6 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
      * @param {*} containerNo 
      */
     function searchLoadingInformation(containerNo) {
-
         var con_no;
         search.create({
             type: 'customrecord_dps_cabinet_record',
@@ -383,9 +287,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
         }).run().each(function (rec) {
             con_no = rec.id;
         });
-
         return con_no || false;
-
     }
 
     /**
@@ -393,19 +295,15 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
      * @param {*} aono 
      */
     function searchFulRec(aono) {
-
         var ful_id;
         search.create({
             type: 'customrecord_dps_shipping_record',
-            filters: [{
-                name: 'custrecord_dps_shipping_rec_order_num',
-                operator: 'is',
-                values: aono
-            }]
+            filters: [
+                { name: 'custrecord_dps_shipping_rec_order_num', operator: 'is', values: aono }
+            ]
         }).run().each(function (rec) {
             ful_id = rec.id;
         });
-
         return ful_id || false;
     }
 
@@ -415,49 +313,26 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'], function (
      */
     function searchLocationCode(LoCode, recId) {
         var locationId;
-
         var subsidiaryId;
-
         search.create({
             type: 'customrecord_dps_shipping_record',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: recId
-            }],
-            columns: [
-                'custrecord_dps_shipping_rec_transa_subje'
-            ]
+            filters: [
+                { name: 'internalid', operator: 'anyof', values: recId }
+            ],
+            columns: [ 'custrecord_dps_shipping_rec_transa_subje' ]
         }).run().each(function (rec) {
             subsidiaryId = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
         });
-
-        log.debug('subsidiaryId', subsidiaryId);
-
         search.create({
             type: 'location',
-            filters: [{
-                    name: 'custrecord_dps_wms_location',
-                    operator: 'startswith',
-                    values: LoCode
-                },
-                {
-                    name: 'subsidiary',
-                    operator: 'anyof',
-                    values: subsidiaryId
-                },
-                {
-                    name: 'isinactive',
-                    operator: 'is',
-                    values: false
-                }
+            filters: [
+                { name: 'custrecord_dps_wms_location', operator: 'startswith', values: LoCode },
+                { name: 'subsidiary', operator: 'anyof', values: subsidiaryId },
+                { name: 'isinactive', operator: 'is', values: false }
             ]
         }).run().each(function (rec) {
             locationId = rec.id;
         });
-
-        log.debug('locationId', locationId);
-
         return locationId || false;
     }
 

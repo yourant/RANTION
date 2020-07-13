@@ -23,7 +23,7 @@ function(record, search, log) {
     function getInputData() {
     	var orders = [], limit = 3999;
     	search.create({
-            type: 'customrecord_rsf_daily_sales'
+            type: 'customrecord_rsf_sales_forcast'
         }).run().each(function (rec) {
         	orders.push(rec.id);
             return limit-- > 0;
@@ -41,7 +41,7 @@ function(record, search, log) {
     function map(context) {
         try{
             record.delete({
-                type : 'customrecord_rsf_daily_sales',
+                type : 'customrecord_rsf_sales_forcast',
                 id : context.value
             });
             log.audit('delete',context.value);

@@ -54,12 +54,14 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         var idto = runtime.getCurrentScript().getParameter({
             name: 'custscript_id_to1'
         });
+        var group = runtime.getCurrentScript().getParameter({
+            name: 'custscript_id_to1'
+        });
         log.debug("acc", acc);
-        log.debug("idform", idform);
-        log.debug("idto", idto);
+        log.debug("group", group);
         var orders = [];
-        core.amazon.getAccountList().map(function (account) {
-            if(account.id !=79 && account.id !=164 ) return;
+        core.amazon.getAccountList(group).map(function (account) {
+            if(account.id !=acc &&acc ) return;
             var limit = 4000 // 999; //350
             var filters = [{
                     name: 'custrecord_aio_cache_resolved',
@@ -366,7 +368,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         fieldId: 'trandate',
                         text: interfun.getFormatedDate("", "", order_trandate).date
                     });
-
                     ord.setText({
                         fieldId: 'custbody_dps_local_dt',
                         text: format.format({

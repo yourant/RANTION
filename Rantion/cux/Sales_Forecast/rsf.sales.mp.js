@@ -10,32 +10,39 @@
 define(["require", "exports", "N/search", "N/record", "./utils/fun.lib", 'N/log'], function (require, exports, search, record, fun_lib_1, log) {
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getInputData = function (ctx) {
-        var data = [];
-        var limit = 4000;
-        var filters = [];
-        filters.push({ name: 'mainline', operator: search.Operator.IS, values: false });
-        filters.push({ name: 'taxline', operator: search.Operator.IS, values: false });
-        filters.push({ name: 'shipping', operator: search.Operator.IS, values: false });
-        filters.push({ name: 'status', operator: search.Operator.IS, values: 'SalesOrd:G' });
-        search.create({
-            type: search.Type.SALES_ORDER,
-            filters: filters,
-            columns: [
-                { name: 'custbody_order_locaiton', summary: search.Summary.GROUP },
-                { name: 'item', summary: search.Summary.GROUP },
-                { name: 'quantity', summary: search.Summary.SUM },
-                { name: 'trandate', summary: search.Summary.GROUP },
-            ]
-        }).run().each(function (rec) {
-            data.push({
-                store_id: rec.getValue({ name: 'custbody_order_locaiton', summary: search.Summary.GROUP }),
-                item_id: rec.getValue({ name: 'item', summary: search.Summary.GROUP }),
-                quantity: rec.getValue({ name: 'quantity', summary: search.Summary.SUM }),
-                date: rec.getValue({ name: 'trandate', summary: search.Summary.GROUP }),
+        try{
+            var data = [];
+            var limit = 4000;
+            var filters = [];
+            filters.push({ name: 'mainline', operator: search.Operator.IS, values: false });
+            filters.push({ name: 'taxline', operator: search.Operator.IS, values: false });
+            filters.push({ name: 'shipping', operator: search.Operator.IS, values: false });
+            search.create({
+                type: search.Type.SALES_ORDER,
+                filters: filters,
+                columns: [
+                    { name: 'custbody_order_locaiton', summary: search.Summary.GROUP },
+                    { name: 'item', summary: search.Summary.GROUP },
+                    { name: 'quantity', summary: search.Summary.SUM },
+                    { name: 'trandate', summary: search.Summary.GROUP },
+                ]
+            }).run().each(function (rec) {
+                log.debug('rec',rec);
+                data.push({
+                    store_id: rec.getValue({ name: 'custbody_order_locaiton', summary: search.Summary.GROUP }),
+                    item_id: rec.getValue({ name: 'item', summary: search.Summary.GROUP }),
+                    quantity: rec.getValue({ name: 'quantity', summary: search.Summary.SUM }),
+                    date: rec.getValue({ name: 'trandate', summary: search.Summary.GROUP }),
+                });
+                return --limit > 0;
             });
-            return --limit > 0;
-        });
-        return data;
+    
+            log.debug('data',data);
+            return;
+            return data;
+        }catch(e){
+            log.debug('e',e);
+        }
     };
     exports.map = function (ctx) {
         var obj = JSON.parse(ctx.value);

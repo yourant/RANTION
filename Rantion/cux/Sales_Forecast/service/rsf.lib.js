@@ -92,7 +92,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         }
     };
 
-    exports.calculate_sales_speed1 = function (dt, list) {
+    exports.calculate_sales_speed1 = function (dt, speed_data) {
         var now_date = dt.getDate();
         var date = new Date(dt.getFullYear(), dt.getMonth(), 0);
         var date_quan = mGetDate(date.getYear(), date.getMonth() + 1);
@@ -111,22 +111,17 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
                 { name: 'formulanumeric', formula: "CASE WHEN ROUND({today}-{custrecord_rsf_date}, 0) <= " + (date_quan + now_date + date_quan1) + " AND ROUND({today}-{custrecord_rsf_date}, 0) > " + (date_quan + now_date) + " THEN {custrecord_rsf_sales_alter} ELSE 0 END", summary: search.Summary.SUM },
             ]
         }).run().each(function (rec) {
-            for(var i = 0; i < list.length; i++){
-                var a = list[i][1].split('-');
-                if(a[0] == rec.getValue(rec.columns[0]) && a[1] == rec.getValue(rec.columns[1])){
-                    var speed = [
-                        Number(rec.getValue(rec.columns[2])) * 0.3,
-                        Number(rec.getValue(rec.columns[3])) * 0.2,
-                    ].reduce(function (p, c) { return p + c; }, 0);
-                    speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Math.round(speed + (Number(list[i][2]) * 0.5));
-                }
-            }
+            var speed = [
+                Number(rec.getValue(rec.columns[2])) * 0.3,
+                Number(rec.getValue(rec.columns[3])) * 0.2,
+            ].reduce(function (p, c) { return p + c; }, 0);
+            speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Math.round(speed + (Number(speed_data[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])]) * 0.5));
             return --limit > 0;
         });
         return speed_table;
     };
 
-    exports.calculate_sales_speed2 = function (dt, store_id, item_id) {
+    exports.calculate_sales_speed2 = function (dt, speed_data, speed1_data) {
         var now_date = dt.getDate();
         var date = new Date(dt.getFullYear(), dt.getMonth(), 0);
         var date_quan = mGetDate(date.getYear(), date.getMonth() + 1);
@@ -134,10 +129,6 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         var limit = 4000;
         search.create({
             type: 'customrecord_rsf_daily_sales',
-            filters: [
-                { name: 'custrecord_rsf_item', operator: search.Operator.ANYOF, values: item_id },
-                { name: 'custrecord_rsf_store', operator: search.Operator.ANYOF, values: store_id }
-            ],
             columns: [
                 { name: 'custrecord_rsf_store', summary: search.Summary.GROUP },
                 { name: 'custrecord_rsf_item', summary: search.Summary.GROUP },
@@ -145,7 +136,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
                 { name: 'formulanumeric', formula: "CASE WHEN ROUND({today}-{custrecord_rsf_date}, 0) <= " + (date_quan + now_date) + " AND ROUND({today}-{custrecord_rsf_date}, 0) > " + now_date + " THEN {custrecord_rsf_sales_alter} ELSE 0 END", summary: search.Summary.SUM },
             ]
         }).run().each(function (rec) {
-            speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Number(rec.getValue(rec.columns[2])) * 0.2;
+            speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Math.round(Number(rec.getValue(rec.columns[2])) * 0.2 + Number(speed_data[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])]) * 0.3 + Number(speed1_data[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])]) * 0.5);
             return --limit > 0;
         });
         return speed_table;
@@ -180,5 +171,13 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
     function mGetDate(year, month) {
         var d = new Date(year, month, 0);
         return d.getDate();
+    }
+
+    exports.getOtherData = function (list, speed2, speed1, speed) {
+        var speed3 = {}
+        for(var i = 0; i < list.length; i++){
+            speed3[list[i][1]] = Math.round(Number(speed2[list[i][1]]) * 0.5 + Number(speed1[list[i][1]]) * 0.3 + Number(speed[list[i][1]]) * 0.2);
+        }
+        return speed3;
     }
 });

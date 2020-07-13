@@ -36,15 +36,15 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
                 { name: 'custrecord_juge_sho', operator: 'is', values: false }
             ],
             columns: [
-                'custrecord_juge_po', 'custrecord_juge_time', 'custrecord_juge_product', 'custrecord_juge_quantiy', 'custrecord_juge_location'
+                'custrecord_juge_po_2', 'custrecord_juge_time_2', 'custrecord_juge_product_2', 'custrecord_juge_quantiy_2', 'custrecord_juge_location_2'
             ]
         }).run().each(function (rec) {
             
-            var po = rec.getValue('custrecord_juge_po');
-            var sku = rec.getValue('custrecord_juge_product');
-            var qty = Number(rec.getValue('custrecord_juge_quantiy'));
-            var location_IR = rec.getValue('custrecord_juge_location');
-            var date = rec.getValue('custrecord_juge_time');
+            var po = rec.getValue('custrecord_juge_po_2');
+            var sku = rec.getValue('custrecord_juge_product_2');
+            var qty = Number(rec.getValue('custrecord_juge_quantiy_2'));
+            var location_IR = rec.getValue('custrecord_juge_location_2');
+            var date = rec.getValue('custrecord_juge_time_2');
             log.debug('date', date);
             log.debug('date', format.format({ type: format.Type.DATE, value: date }));
             log.debug('采购订单收货', 'po:' + po + ',sku:' + sku + ',qty:' + qty + ',location_IR:' + location_IR);

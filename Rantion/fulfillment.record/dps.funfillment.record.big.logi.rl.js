@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-21 11:00:39
- * @LastEditTime   : 2020-07-06 19:43:11
+ * @LastEditTime   : 2020-07-11 14:26:22
  * @LastEditors    : Li
  * @Description    : 获取 shipmentID, 生成报关资料, 推送 标签面单文件
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -555,6 +555,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     custrecord_dps_declare_currency_dh: invId.currency
                                 }
                             });
+                            ret.msg = "创建报关资料成功";
                         } else {
                             record.submitFields({
                                 type: 'customrecord_dps_shipping_record',
@@ -564,6 +565,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     custrecord_dps_customs_information: '创建报关资料失败'
                                 }
                             });
+                            ret.msg = "创建报关资料失败";
                         }
 
                     } else {
@@ -576,6 +578,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 custrecord_dps_customs_information: '创建报关资料失败,映射关系中找不到关联的采购订单'
                             }
                         });
+
+                        ret.msg = "创建报关资料失败,映射关系中找不到关联的采购订单";
                     }
                 }
 

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-08 13:51:33
+ * @LastEditTime   : 2020-07-11 15:50:52
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -34,48 +34,67 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     function beforeLoad(context) {
         var type = context.type;
-        var bl_rec = context.newRecord;
-        var link = bl_rec.getValue('custbody_dps_fu_rec_link');
-        var link_status;
-        if (link) {
-            search.create({
-                type: 'customrecord_dps_shipping_record',
-                filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: link
-                }],
-                columns: ['custrecord_dps_shipping_rec_status']
-            }).run().each(function (rec) {
-                link_status = rec.getValue('custrecord_dps_shipping_rec_status');
-            });
-            /*
-            if (type == 'edit' && (link_status == 14 || link_status == 10 || link_status == 3)) {
-                // 这些状态下,  不允许更改库存转移订单
-                redirect.toRecord({
-                    type: bl_rec.type,
-                    id: bl_rec.id
-                });
-            }
-            */
-            if (type == 'view') {
 
-                var transferor_type = bl_rec.getValue('custbody_dps_transferor_type');
-                if (transferor_type == 7) {
+        if (type == "view") {
+            var bl_rec = context.newRecord;
+            var link = bl_rec.getValue('custbody_dps_fu_rec_link');
+
+            log.debug('link', link);
+            var link_status;
+            if (link) {
+                search.create({
+                    type: 'customrecord_dps_shipping_record',
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: link
+                    }],
+                    columns: ['custrecord_dps_shipping_rec_status']
+                }).run().each(function (rec) {
+                    link_status = rec.getValue('custrecord_dps_shipping_rec_status');
+                });
+                /*
+                if (type == 'edit' && (link_status == 14 || link_status == 10 || link_status == 3)) {
+                    // 这些状态下,  不允许更改库存转移订单
+                    redirect.toRecord({
+                        type: bl_rec.type,
+                        id: bl_rec.id
+                    });
+                }
+                */
+                if (type == 'view') {
+
+                    var transferor_type = bl_rec.getValue('custbody_dps_transferor_type');
+                    if (transferor_type == 7) {
+                        var form = context.form;
+                        form.addButton({
+                            id: 'custpage_dps_li_get_label_button',
+                            label: '获取标签',
+                            functionName: "getPalletLabels(" + bl_rec.id + ")"
+                        });
+
+                        form.addButton({
+                            id: 'custpage_dps_li_get_label_button',
+                            label: '调拨单发运',
+                            functionName: "fulfillment(" + bl_rec.id + ")"
+                        });
+
+                        form.clientScriptModulePath = './dps.funfillment.record.transferorder.cs.js';
+                    }
+                }
+            } else {
+                try {
                     var form = context.form;
                     form.addButton({
-                        id: 'custpage_dps_li_get_label_button',
-                        label: '获取标签',
-                        functionName: "getPalletLabels(" + bl_rec.id + ")"
-                    });
-
-                    form.addButton({
-                        id: 'custpage_dps_li_get_label_button',
-                        label: '调拨单发运',
-                        functionName: "fulfillment(" + bl_rec.id + ")"
+                        id: 'custpage_dps_li_create_rec_button',
+                        label: '生成发运记录',
+                        functionName: "CreateFulRec(" + bl_rec.id + ")"
                     });
 
                     form.clientScriptModulePath = './dps.funfillment.record.transferorder.cs.js';
+
+                } catch (error) {
+                    log.audit('error', error);
                 }
             }
         }
@@ -110,30 +129,43 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                     var link = af_rec.getValue('custbody_dps_fu_rec_link');
                     if (!link) {
-                        // 创建大货发运记录
-                        var rec_id = createFulRecord(af_rec);
 
-                        if (rec_id) {
+                        var flag = judgmentItemInventory(af_rec.type, af_rec.id);
+                        if (flag) {
+                            // 创建大货发运记录
+                            var rec_id = createFulRecord(af_rec);
+                            if (rec_id) {
+                                record.submitFields({
+                                    type: af_rec.type,
+                                    id: af_rec.id,
+                                    values: {
+                                        'custbody_dps_fu_rec_link': rec_id,
+                                        custbody_dps_to_create_fulrec_info: "已创建调拨单发运记录"
+                                    }
+                                });
+
+                                // if (rec_id && context.type == 'create') {
+                                // if (rec_id) {
+                                var con = record.load({
+                                    type: 'customrecord_dps_shipping_record',
+                                    id: rec_id
+                                });
+                                // if (context.type == 'create') {
+                                sub(con);
+                                // }
+                                // }
+                                log.debug('context.type', context.type);
+
+                            }
+                        } else {
                             record.submitFields({
                                 type: af_rec.type,
                                 id: af_rec.id,
                                 values: {
-                                    'custbody_dps_fu_rec_link': rec_id
+                                    // 'custbody_dps_fu_rec_link': rec_id,
+                                    custbody_dps_to_create_fulrec_info: "库存不足,无法创建发运记录"
                                 }
                             });
-
-                            // if (rec_id && context.type == 'create') {
-                            // if (rec_id) {
-                            var con = record.load({
-                                type: 'customrecord_dps_shipping_record',
-                                id: rec_id
-                            });
-                            // if (context.type == 'create') {
-                            sub(con);
-                            // }
-                            // }
-                            log.debug('context.type', context.type);
-
                         }
 
                     }
@@ -1626,6 +1658,291 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     }
 
 
+    // 获取订单对应的库存
+    /**
+     * 搜索单据的货品、地点、子公司
+     * @param {String} recType 
+     * @param {number} recId 
+     * @returns {Object} {subsidiary: subs,itemArr: itemArr,location: loca,totalQty: totalQty};
+     */
+    function searchToLocationItem(recType, recId) {
+
+        log.debug('recId: ' + recId, "recType: " + recType);
+        var limit = 3999,
+            itemArr = [],
+            totalQty = 0,
+            loca, subs;
+        search.create({
+            type: recType,
+            filters: [{
+                    name: "internalid",
+                    operator: 'anyof',
+                    values: [recId]
+                },
+                {
+                    name: "mainline",
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: "taxline",
+                    operator: 'is',
+                    values: false
+                }
+            ],
+            columns: [
+                "item",
+                "quantity"
+            ]
+        }).run().each(function (rec) {
+            var it = rec.getValue('item')
+            if (itemArr.indexOf(it) == -1) {
+                itemArr.push(rec.getValue('item'));
+                totalQty += Math.abs(Number(rec.getValue('quantity')))
+            }
+            return --limit > 0;
+        });
+
+
+        search.create({
+            type: recType,
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recId
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                }
+            ],
+            columns: [
+                "location", "subsidiary"
+            ]
+        }).run().each(function (r) {
+            subs = r.getValue('subsidiary');
+            loca = r.getValue('location');
+        })
+
+        var it = {
+            subsidiary: subs,
+            itemArr: itemArr,
+            location: loca,
+            totalQty: totalQty
+        };
+
+        return it || false;
+
+    }
+
+
+    /**
+     * 搜索货品对应的所有地点,限制于子公司
+     * @param {String} sub 子公司
+     * @param {number} loca 一级地点
+     * @param {Array} locaArr 货品地点数组
+     * @returns {Array} loArr 货品对应的地点数组
+     */
+    function searchSecLoca(sub, loca, locaArr) {
+        var loArr = [],
+            limit = 3999
+
+        log.debug('sub: ' + sub + " loca: " + loca, "locaArr  typeof  " + typeof (locaArr) + "    " + locaArr)
+        search.create({
+            type: "location",
+            filters: [{
+                    name: 'custrecord_dps_parent_location',
+                    operator: 'anyof',
+                    values: [loca]
+                }, // 父级地点
+                {
+                    name: "subsidiary",
+                    operator: 'anyof',
+                    values: [sub]
+                }, // 子公司
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: locaArr
+                }, // 地点
+            ]
+        }).run().each(function (rec) {
+
+            // log.debug('locaArr.indexOf(rec.id) ', locaArr.indexOf(rec.id))
+            if (locaArr.indexOf(rec.id) > -1) {
+                log.debug('地点的内部ID', rec.id)
+                loArr.push(rec.id);
+            }
+            return --limit > 0;
+        });
+        return loArr || false;
+    }
+
+
+    /**
+     * 搜索对应的地点 并返回
+     * @param {Array} secArr  地点数组
+     * @param {Array} loca 一级地点
+     * @returns {Array} thrArr 地点数组
+     */
+    function searchThrLoca(secArr, loca) {
+        var limit = 3999,
+            thrArr = secArr;
+
+        log.debug('thrArr', thrArr);
+        log.debug('secArr', secArr);
+        search.create({
+            type: 'location',
+            filters: [{
+                name: 'custrecord_dps_parent_location',
+                operator: 'anyof',
+                values: secArr
+            }]
+        }).run().each(function (rec) {
+            thrArr.push(rec.id);
+            return --limit > 0;
+        });
+
+        thrArr.push(loca);
+        return thrArr || false;
+
+    }
+
+    /**
+     * 搜索对应货品、地点的库存量与延交订单量
+     * @param {Array} itemArr 货品数组
+     * @param {Array} LocaArr 地点数组
+     * @returns {Object} { totalQty (库存总量): totalQty, backOrderQty(延交订单总量): backOrderQty }
+     */
+    function searchItemQty(itemArr, LocaArr) {
+
+
+        log.debug('itemArr length: ' + itemArr.length, "LocaArr length: " + LocaArr.length)
+        var limit = 3999,
+            locationquantityonhand,
+            backOrderQty = 0,
+            totalQty = 0,
+            loca;
+        search.create({
+            type: 'item',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: itemArr
+                },
+                {
+                    name: 'inventorylocation',
+                    operator: 'anyof',
+                    values: LocaArr
+                }
+            ],
+            columns: [
+                "locationquantityonhand", // 库存量 Location On Hand
+                "inventorylocation", // 库存地点    Inventory Location
+                "locationquantitybackordered", // 延交订单 LOCATION BACK ORDERED
+            ]
+        }).run().each(function (rec) {
+
+            log.debug('locationquantityonhand: ' + rec.getValue('locationquantityonhand'), "loca: " + rec.getValue('inventorylocation'))
+            totalQty += Number(rec.getValue('locationquantityonhand'));
+            backOrderQty += Number(rec.getValue('locationquantitybackordered'));
+            return --limit > 0;
+        });
+
+        var it = {
+            totalQty: totalQty,
+            backOrderQty: backOrderQty
+        }
+
+        return it || false;
+    }
+
+
+
+    /**
+     * 搜索货品对应的地点
+     * @param {Array} itemArr 货品数组
+     * @param {Number} sub 子公司ID
+     * @returns {Array} locaArr 地点数组
+     */
+    function searchItemLocation(itemArr, sub) {
+
+        var limit = 3999,
+            locaArr = [];
+        search.create({
+            type: 'item',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: itemArr
+                },
+                {
+                    name: 'subsidiary',
+                    join: 'inventorylocation',
+                    operator: 'anyof',
+                    values: sub
+                }
+            ],
+            columns: [
+                "inventorylocation"
+            ]
+        }).run().each(function (rec) {
+            locaArr.push(rec.getValue('inventorylocation'));
+            return --limit > 0;
+        });
+
+        return locaArr || false;
+
+    }
+
+
+
+    /**
+     * 判断库存是否充足
+     * @param {String} recType 
+     * @param {Number} recId 
+     * @returns{Boolean} flag
+     */
+    function judgmentItemInventory(recType, recId) {
+
+        var flag = false;
+
+        // 获取单据对应的货品,子公司,地点,总数量
+        var a = searchToLocationItem(recType, recId);
+        log.debug('一级地点 a', a);
+
+        //  获取货品对应的地点
+        var al = searchItemLocation(a.itemArr, a.subsidiary);
+        log.debug("al", al);
+
+        // 搜索货品地点的库存
+        var bl = searchSecLoca(a.subsidiary, a.location, al)
+        log.debug('bl length' + bl.length, bl);
+        var cl, fl
+
+        if (bl && bl.length > 0) { // 存在库位, 则进行箱的搜索
+            // 搜索库存对应的箱
+            cl = searchThrLoca(bl, a.location)
+            log.debug('cl length: ' + cl.length, cl);
+        } else { // 不存在库存, 直接获取一级地点
+            cl = [a.location]
+        }
+        // 搜索货品对应的库存数量和延交订单数量
+        var dl = searchItemQty(a.itemArr, cl);
+        var fl = dl.totalQty - dl.backOrderQty - a.totalQty;
+        log.debug('fl', fl);
+        if (fl >= 0) {
+            log.debug('库存充足', "可以发货");
+            flag = true;
+        } else {
+            log.debug('库存不足', "无法发货");
+            flag = false;
+        }
+        log.debug('dl', dl);
+
+        return flag;
+    }
 
 
 

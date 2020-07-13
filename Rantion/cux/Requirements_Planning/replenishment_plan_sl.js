@@ -187,7 +187,6 @@ function(search, ui, moment, format, runtime, record) {
 
     /**
     * 设置数据选择列表、当前页、总页数到界面
-    * 
     * @param form
     * @param nowPage
     * @param totalCount
@@ -360,7 +359,7 @@ function(search, ui, moment, format, runtime, record) {
             rsJson.result = [];
             rsJson.totalCount = totalCount;
             rsJson.pageCount = pageCount;
-            return ;
+            return rsJson;
         } else {
             //查询结果
             pageData_delivery_schedule.fetch({
@@ -439,7 +438,6 @@ function(search, ui, moment, format, runtime, record) {
         for(var i=1;i<=pageCount;i++){
             pageSizeField.addSelectOption({ value: i, text: i, isSelected: pageSize == i ? true : false })
         }
-        log.debug('00000000000修改净需求item_data',item_data);
       //搜索确认交货
         var filters = [
             { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["16"] },
@@ -466,10 +464,6 @@ function(search, ui, moment, format, runtime, record) {
         var pageCount1 = pageData_delivery_schedule.pageRanges.length; //页数
         var item_data16=[],index16 =Number(nowPage-1) ;
         if (totalCount1 == 0 && pageCount1 ==0) {
-            rsJson.result = [];
-            rsJson.totalCount = totalCount;
-            rsJson.pageCount = pageCount;
-            return ;
         } else {
             //查询结果
             if(nowPage > pageCount1){
@@ -551,10 +545,11 @@ function(search, ui, moment, format, runtime, record) {
                 }
             });
         }
-        log.debug("item_data16",item_data16)
-        log.debug("sku_arrys",sku_arrys)
+        log.debug("item_data16",item_data16);
+        log.debug("acc_skus",acc_skus);
         for(var key_acc in acc_skus){
         if(item_data16.indexOf(key_acc) == -1 ){
+            log.debug("？？？怎么还进来拉item_data16.indexOf(key_acc)"+item_data16.indexOf(key_acc),"key_acc: "+key_acc);
             SKUIds.map(function(li){
                 if(li.item_sku == key_acc.split(".")[0] && li.forecast_account == key_acc.split(".")[1]){
                     var objs =  {
@@ -581,7 +576,7 @@ function(search, ui, moment, format, runtime, record) {
        
      
         //倒排补货量
-        var item_arr = []
+        var item_arr = [];
         search.create({
             type: 'item',
             filters: [
@@ -597,7 +592,7 @@ function(search, ui, moment, format, runtime, record) {
             });
             return true;
         });
-        log.debug("item_arr,",item_arr)
+        log.debug("item_arr,",item_arr);
         var fils = [],num = 0;
         if(item_arr.length > 0){
             item_arr.map(function(line){
@@ -611,14 +606,13 @@ function(search, ui, moment, format, runtime, record) {
                     ]
                     fils.push(filsub)
                     if(num< item_arr.length){
-                        fils.push("or")
+                        fils.push("or");
                     }
                 }
             })
         }else{
             log.debug("搜到的货品供应商为0",item_arr);
         }
-        log.debug("看看看俺fils",fils)
         var item_data_fak=[]
         search.create({
             type: 'customrecordpurchasing_cycle_record',
@@ -626,7 +620,7 @@ function(search, ui, moment, format, runtime, record) {
             columns: [
                 'custrecord_purchasing_cycle',  //采购周期
                 'custrecordsku_number',  //采购周期
-                'custrecord_vendor',  //采购周期
+                'custrecord_vendor', 
             ]
         }).run().each(function (rec) {
             var need_time = Number(rec.getValue('custrecord_purchasing_cycle'));
@@ -752,7 +746,6 @@ function(search, ui, moment, format, runtime, record) {
         var week_objs = weekofday(today, date_from, date_to);
         func_type =week_objs.func_type
         week_rs =week_objs.weeks
-        log.audit('week_rs', week_rs);
         var sublist = form.addSublist({ id: 'custpage_sublist', type: ui.SublistType.LIST, label: '补货计划', tab: 'custpage_tab' });
         sublist.helpText = "补货计划结果";
         sublist.addField({ id: 'custpage_store_name', label: '店铺名', type: ui.FieldType.TEXT });
@@ -832,7 +825,7 @@ function(search, ui, moment, format, runtime, record) {
                                 var sub_filed = 'custpage_quantity_weekhi' + s;
                                 sublist.setSublistValue({ id: sub_filed, value: Math.round(result[a]['quantity_week'+s])?Math.round(result[a]['quantity_week'+s]).toString():"0", line: zl});  //
                             }
-                            zl++;
+                            
                         }
                         // 确认交货量
                         if(result[a]['data_type'] == 16){
@@ -845,11 +838,9 @@ function(search, ui, moment, format, runtime, record) {
                                 sublist.setSublistValue({ id: sub_filed, value: Math.round(result[a]['quantity_week'+s])?Math.round(result[a]['quantity_week'+s]).toString():"0", line: zl});  //
                             }
                             need1_zl = zl;
-                            zl++;
                         }
                          //倒排补货量
                         if(result[a]['data_type'] == 1){
-                            log.debug("倒排补货量",result[a])
                             var dn =result[a]['need_time']
                             if(!dn) dn = 1
                             var need_today = new Date(+new Date()+8*3600*1000 - dn*24*3600*1000);
@@ -878,11 +869,9 @@ function(search, ui, moment, format, runtime, record) {
                                 sublist.setSublistValue({ id: sub_filed, value: x1 ? x1.toString() : '0', line: zl})
                             }
                             re_zl =zl
-                            zl++;
                         }
                         //修改补货量，补货量
                         if(result[a]['data_type'] == 2 || result[a]['data_type'] == 4){
-                            log.debug("修改补货量，补货量",result[a])
                             var arr_list = [], data_josn = {};
                             var dn =result[a]['need_time']
                             if(!dn) dn = 1
@@ -922,9 +911,8 @@ function(search, ui, moment, format, runtime, record) {
                                 data_josn.item = arr_list;
                                 data_arr.push(data_josn);
                             }
-
-                            zl++;
                         }
+                        zl++;
                     }
                 }
             }
@@ -1028,7 +1016,6 @@ function(search, ui, moment, format, runtime, record) {
         }).run().each(function (rec) {
             bill_id = rec.id;
         });
-        log.debug('bill_id',bill_id);
         var child_bill_data;
         if(bill_id){
             child_bill_data = record.load({type: 'customrecord_demand_forecast_child',id: bill_id});

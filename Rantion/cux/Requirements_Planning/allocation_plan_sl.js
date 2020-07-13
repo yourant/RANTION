@@ -962,24 +962,25 @@ function(search, ui, moment, format, runtime, record) {
                             }
                             need1_zl = zl;
                         }
-                        if(result[a]['data_type'] == 2){ //店铺库存量
+                        var need_no = 0
+                        if(result[a]['data_type'] == 2){ //店铺库存量 = >
                             week_rs.map(function(wek){
                                 var sub_filed = 'custpage_quantity_week' + wek;
                                 if(wek == week_rs[0]){
                                     if(result[a]['location_no']){
+                                        need_no = result[a]['location_no'];
                                         sublist.setSublistValue({ id: sub_filed, value: result[a]['location_no'].toString(), line: zl});
                                     }else{
+                                        need_no = 0;
                                         sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
                                     }
                                 }else{
                                     var need_sub_filed = 'custpage_quantity_weekhi' + (wek - 1);
-                                    if(need4_zl){
-                                        log.debug("sublist.getSublistValue({ id : need_sub_filed, line: need4_zl}",sublist.getSublistValue({ id : need_sub_filed, line: need4_zl}))
-                                    }
-                                    //取店铺静需求量的负数
-                                    var x3 = -(need4_zl || need4_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need4_zl}) : "0");
-                                    log.debug("x3x3x3x3xx3x3",x3)
-                                    sublist.setSublistValue({ id: sub_filed, value: x3.toString()?x3.toString():"0", line: zl});
+                                    var x1 = need_no;
+                                    var x2 = need3_zl || need3_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need3_zl }) : 0;
+                                    var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need1_zl }) : 0;
+                                    need_no = -(Number(x3) - (Number(x1) + Number(x2)));//需求预测 - (在途+ 库存)
+                                    sublist.setSublistValue({ id: sub_filed, value: need_no.toString() ? need_no.toString() : '0', line: zl });
                                 }
                             });
                             for (var s = 1; s < 54; s++) {
@@ -992,11 +993,11 @@ function(search, ui, moment, format, runtime, record) {
                                     }
                                 }else{
                                     var need_sub_filed = 'custpage_quantity_weekhi' + (s - 1);
-                                 
-                                    //取店铺静需求量的负数
-                                    var x3 = -(need4_zl || need4_zl == 0 ? sublist.getSublistValue({ id : need_sub_filed, line: need4_zl}) : "0");
-                               
-                                    sublist.setSublistValue({ id: sub_filed, value: x3.toString()?x3.toString():"0", line: zl});
+                                    var x1 = need_no;
+                                    var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need3_zl }) : 0;
+                                    var x3 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id: need_sub_filed, line: need1_zl }) : 0;
+                                    need_no = -(Number(x3) - (Number(x1) + Number(x2)));
+                                    sublist.setSublistValue({ id: sub_filed, value: need_no.toString() ? need_no.toString() : '0', line: zl });
                                 }
                             }
                             need2_zl = zl;
@@ -1008,7 +1009,6 @@ function(search, ui, moment, format, runtime, record) {
                             data_josn.data_type = result[a]['data_type'];
                             var transit_no = result[a]['transit_no'];
                             week_rs.map(function(wek){
-                             
                                 var sub_filed = 'custpage_quantity_week' + wek;
                                 if (transit_no.length > 0) {
                                     var line_arr = [];
@@ -1338,31 +1338,7 @@ function(search, ui, moment, format, runtime, record) {
     });
     var totalCount = pageData_demand_forecast.count; // 总数
     var pageCount = pageData_demand_forecast.pageRanges.length; // 页数
-    if(pageCount ==0 && Double ) {
-    
-      //调拨计划量  ，取自修改的调拨计划量
-      var filters = [
-          { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: [ params.data_type] },
-          { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
-      ];
-
-      if (account) {
-          filters.push({ name: "custrecord_demand_forecast_account", operator: "anyof", values: account });
-      }
-
-      filters.push({ name: "custrecord_demand_forecast_item_sku", operator: "anyof", values: skuids });
-    
-      var mySearch_delivery_schedule = search.create({
-          type: "customrecord_demand_forecast",
-          filters: filters,
-          columns:cols
-      });
-      pageData_demand_forecast = mySearch_delivery_schedule.runPaged({
-          pageSize: 10
-      });
-       totalCount = pageData_demand_forecast.count; //总数
-       pageCount = pageData_demand_forecast.pageRanges.length; //页数
-    }
+  
     log.audit("pageCount",pageCount)
     log.audit("totalCount",totalCount)
     log.audit("skuids",skuids)

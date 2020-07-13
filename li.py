@@ -2,7 +2,7 @@
 @Author         : Li
 @Version        : 1.0
 @Date           : 2020-07-08 20:39:43
-@LastEditTime   : 2020-07-09 20:46:57
+@LastEditTime   : 2020-07-10 11:51:11
 @LastEditors    : Li
 @Description    :
 @FilePath       : \li.py
@@ -20,7 +20,7 @@ while count:
     start = time.time()
 
     headers1 = {
-        'Authorization': "NLAuth nlauth_account=6188472_SB1,nlauth_email=licanlin@douples.com,nlauth_signature=@LiCanLin1907,nlauth_role=3",
+        'Authorization': "NLAuth nlauth_account=6188472_SB1,nlauth_email=licanlin@douples.com,nlauth_signature=@,nlauth_role=3",
         'Content-Type': "application/json"
     }
     params1 = {'op': 'pullorder', "acc": 164, "last_updated_after": "2020-06-01T00:00:00.000Z",

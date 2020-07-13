@@ -70,9 +70,9 @@ define(['N/search', 'N/record', 'N/format'], function (search, record, format) {
                     for (var index = 0; index < weeks.length; index++) {
                         var week_num = weeks[index];
                         var week_key = 'custrecord_quantity_week' + week_num;
-                        var old_quy = Number(forecast_child_record.getValue(week_key)) ? Number(forecast_child_record.getValue(week_key)) : 0;
-                        var qty = Number(monthWeekDate[week_num].qty) + old_quy;
-                        forecast_child_record.setValue({ fieldId: week_key, value: year + '-' + week_num + ' ' + qty });
+                        // var old_quy = Number(forecast_child_record.getValue(week_key)) ? Number(forecast_child_record.getValue(week_key)) : 0;
+                        // var qty = Number(monthWeekDate[week_num].qty) + old_quy;
+                        forecast_child_record.setValue({ fieldId: week_key, value: year + '-' + week_num + ' ' + monthWeekDate[week_num].qty });
                     }
                 } else {
                     forecast_child_record = record.load({ type: 'customrecord_demand_forecast_child', id: forecast_child_id });

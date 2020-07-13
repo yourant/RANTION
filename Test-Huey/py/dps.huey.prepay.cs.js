@@ -46,6 +46,7 @@ define(['N/log', 'N/record', 'N/search'], function (log, record, search) {
         });
 
         //获取供应商信息
+        /*
         var custentity_dps_accountnameprivate,
             custentity_dps_accountnamepublic,
             custentity_dps_collectionaccountprivate,
@@ -100,6 +101,7 @@ define(['N/log', 'N/record', 'N/search'], function (log, record, search) {
             fieldId: 'custbody_dps_receivingbankpu',
             value: custentity_dps_receivingbankpublic,
         });
+        */
 
         if (scriptContext.mode == 'create') {
 

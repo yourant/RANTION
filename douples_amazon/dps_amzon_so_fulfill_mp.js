@@ -9,17 +9,19 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
       var startT = new Date().getTime()
       var limit = 4000, orders = []
       var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_if_account' });
+      var group = runtime.getCurrentScript().getParameter({ name: 'custscript_fulfill_accgroup' });
       var orderid = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_orderid' });
       var shipdate_ed = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_shipdate_ed' });
       var shipdate_st = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_shipdate_st' });
-      log.debug("shipdate_st:"+shipdate_st,"shipdate_ed:"+shipdate_ed)
+      log.debug("shipdate_st:"+shipdate_st,"shipdate_ed:"+shipdate_ed);
         var fils = []
         fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: "is", values: "F" }));
         // fils.push(search.createFilter({ name: 'internalidnumber', operator: "equalto", values: 50977 }));
-        acc ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.IS, values: acc })) : ""
-        shipdate_st ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORAFTER, values: shipdate_st })) : ""
-        shipdate_ed ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORBEFORE, values: shipdate_ed })) : ""
-        orderid ? fils.push(search.createFilter({ name: 'custrecord_amazon_order_id', operator: search.Operator.IS, values: orderid })) : ""
+        acc ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.IS, values: acc })) : "";
+        shipdate_st ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORAFTER, values: shipdate_st })) : "";
+        shipdate_ed ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORBEFORE, values: shipdate_ed })) : "";
+        orderid ? fils.push(search.createFilter({ name: 'custrecord_amazon_order_id', operator: search.Operator.IS, values: orderid })) : "";
+        group ? fils.push(search.createFilter({ name: 'custrecord_aio_getorder_group',join:"custrecord_shipment_account", operator: search.Operator.ANYOF, values: group })) : "";
         log.debug("filters", JSON.stringify(fils))
         search.create({
           type: 'customrecord_amazon_sales_report',
@@ -46,17 +48,17 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
             "loca": e.getValue(e.columns[5]),
             "shipDate": e.getValue("custrecord_shipment_date")
           })
-          return --limit > 0
+          return --limit > 0;
         })
       
-      log.audit("订单总数", orders.length)
-      var endmap = new Date().getTime()
-      log.debug("000getInputData endTime " + (endmap - startT), new Date().getTime())
+      log.audit("订单总数", orders.length);
+      var endmap = new Date().getTime();
+      log.debug("000getInputData endTime " + (endmap - startT), new Date().getTime());
       return orders;
     }
 
     function map(context) {
-      var startT = new Date().getTime()
+      var startT = new Date().getTime();
       var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
       var date = format.parse({
         value: (moment(new Date().getTime()).format(dateFormat)),

@@ -15,25 +15,27 @@ define(["N/search"], function (search) {
      */
 
     function beforeLoad(context) {
-       var curr =  context.newRecord
-        var entity = curr.getValue('entity'),loca,acc; 
-        if(entity){
+        var form = context.form;
+        var curr = context.newRecord
+        var entity = curr.getValue('entity'), loca, acc;
+        if (entity) {
             search.create({
-                type:"customrecord_aio_account",
-                filters:[
-                    "custrecord_aio_customer","anyof",entity
-                ],columns:["custrecord_aio_fbaorder_location"]
-            }).run().each(function(e){
-                acc=e.id    
+                type: "customrecord_aio_account",
+                filters: [
+                    "custrecord_aio_customer", "anyof", entity
+                ], columns: ["custrecord_aio_fbaorder_location"]
+            }).run().each(function (e) {
+                acc = e.id
                 loca = e.getValue(e.columns[0])
-            }) 
+            })
         }
-      
-        log.debug("location:",loca)
-        if(acc)
-        curr.setValue({fieldId:"custbody_sotck_account",value:acc})
-        if(loca)
-        curr.setValue({fieldId:"location",value:Number(loca)})
+
+        log.debug("location:", loca)
+        if (acc)
+            curr.setValue({ fieldId: "custbody_sotck_account", value: acc })
+        if (loca)
+            curr.setValue({ fieldId: "location", value: Number(loca) })
+
     }
     /**
      * Function definition to be triggered before record is loaded.

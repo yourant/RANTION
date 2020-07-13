@@ -13,6 +13,13 @@ define(['N/search', 'N/record', 'N/log', 'N/ui/serverWidget'], function (search,
                 if (bill_id) {
                     //获取采购订单信息
                     var soRec = record.load({ type: 'purchaseorder', id: bill_id });
+                    var LineCount = soRec.getLineCount({ sublistId: 'item' });
+                    var department_id;
+                    for (var i = 0; i < LineCount; i++) {
+                        if (soRec.getSublistValue({ sublistId: 'item', fieldId: 'department', line: i })) {
+                            department_id = soRec.getSublistValue({ sublistId: 'item', fieldId: 'department', line: i })
+                        }
+                    }
                     //更新科目下拉选项
                     var form = context.form;
                     var field = form.getField({ id: 'custrecord_dps_bank_account' });
@@ -59,17 +66,48 @@ define(['N/search', 'N/record', 'N/log', 'N/ui/serverWidget'], function (search,
                         value: soRec.getValue({ sublistId: 'item', fieldId: 'entity' })
                     });
                     newRecord.setValue({ fieldId: 'custrecord_dps_purchase_order', value: bill_id });
-                    newRecord.setValue({ fieldId: 'custrecord_dps_collection_amount', value: soRec.getValue('custbody_dps_prepaymentamount') });
+
+                    var purchaseorder_data = record.load({ type: 'purchaseorder', id: bill_id });
+                    var total = purchaseorder_data.getValue('total');
+                    var other_total = 0;
+                    search.create({
+                        type: 'customrecord_supplier_advance_charge',
+                        filters: [
+                            { name: 'custrecord_dps_purchase_order', operator: 'anyof', values: bill_id }
+                        ],
+                        columns: [
+                            'custrecord_dps_collection_amount'
+                        ]
+                    }).run().each(function (result) {
+                        other_total += Number(result.getValue('custrecord_dps_collection_amount'));
+                        return true;
+                    });
+                    var total_qua = toDecimal(total - other_total);
+                    if (total_qua < soRec.getValue('custbody_dps_prepaymentamount')) {
+                        newRecord.setValue({ fieldId: 'custrecord_dps_collection_amount', value: total_qua });
+                    }else{
+                        newRecord.setValue({ fieldId: 'custrecord_dps_collection_amount', value: soRec.getValue('custbody_dps_prepaymentamount') });
+                    }
                     newRecord.setValue({ fieldId: 'custrecord_dps_t_currency', value: soRec.getValue('currency') });
                     newRecord.setValue({ fieldId: 'custrecord_dps_exchange_rate', value: soRec.getValue('exchangerate') });
                     newRecord.setValue({ fieldId: 'custrecord_dps_advance_charge_time', value: soRec.getValue('trandate') });
                     newRecord.setValue({ fieldId: 'custrecord_dps_affiliated_subsidiary', value: soRec.getValue('subsidiary') });
+                    newRecord.setValue({ fieldId: 'custrecord_department', value: department_id });
                 }
             } catch (e) {
                 log.debug('e', e);
             }
         }
     }
+
+    function toDecimal(x) {  
+        var f = parseFloat(x);  
+        if (isNaN(f)) {  
+            return;  
+        }  
+        f = Math.round(x*100)/100;  
+        return f;  
+    } 
 
     function beforeSubmit(context) {
         if (context.type == 'create') {
@@ -92,6 +130,7 @@ define(['N/search', 'N/record', 'N/log', 'N/ui/serverWidget'], function (search,
                 vendor_prepayment.setValue({ fieldId: 'account', value: newRecord.getValue('custrecord_dps_bank_account') });
                 vendor_prepayment.setValue({ fieldId: 'payment', value: newRecord.getValue('custrecord_dps_collection_amount') });
                 vendor_prepayment.setValue({ fieldId: 'purchaseorder', value: newRecord.getValue('custrecord_dps_purchase_order') });
+                vendor_prepayment.setValue({ fieldId: 'department', value: newRecord.getValue('custrecord_department') });
                 vendor_prepayment_Id = vendor_prepayment.save();
                 if (vendor_prepayment_Id) {
                     var subId = record.submitFields({

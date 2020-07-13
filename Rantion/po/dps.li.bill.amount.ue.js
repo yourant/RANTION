@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-09 13:34:51
- * @LastEditTime   : 2020-07-09 17:34:07
+ * @LastEditTime   : 2020-07-10 20:29:12
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    : 供应商付款的金额设置到相关联的采购订单; 设置采购订单行上的部门到供应商付款(create)
  * @FilePath       : \Rantion\po\dps.li.bill.amount.ue.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -26,18 +26,15 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
         if (action == "delete") {
             var getObj = searchVendorBill(context.newRecord, action);
             if (getObj) {
-
                 log.debug('getObj', JSON.stringify(getObj));
                 var po_id = searchPurchaseOrder(getObj.billArr);
                 if (po_id) {
-                    setPOValue(po_id, getObj.totalAmount);
+                    setPOValue(po_id, getObj.totalAmount, "", "");
                 }
 
             }
 
         }
-
-
 
     }
 
@@ -51,7 +48,7 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
                 log.debug('getObj', JSON.stringify(getObj));
                 var po_id = searchPurchaseOrder(getObj.billArr);
                 if (po_id) {
-                    setPOValue(po_id, getObj.totalAmount);
+                    setPOValue(po_id, getObj.totalAmount, context.newRecord, action);
                 }
             }
         }
@@ -104,7 +101,6 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
             } else if (action == "delete") {
                 totalAmount = -totalAmount + iAmo;
             }
-
             billArr.push(rec.getValue('createdfrom'))
 
             return --limit > 0;
@@ -163,7 +159,7 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
      * @param {Integer} po_id 
      * @param {currency} toAmount 
      */
-    function setPOValue(po_id, toAmount) {
+    function setPOValue(po_id, toAmount, newRec, action) {
 
         var poRec = record.load({
             type: 'purchaseorder',
@@ -176,7 +172,6 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
             line: 0
         });
 
-
         poRec.setSublistValue({
             sublistId: 'item',
             fieldId: 'custcol_amount_paid',
@@ -184,10 +179,31 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
             line: 0
         });
 
+        var department = poRec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'department',
+            line: 0
+        })
 
         var poRec_id = poRec.save();
 
         log.debug('poRec_id', poRec_id);
+
+
+        if (action == "create") {
+            var id = record.submitFields({
+                type: newRec.type,
+                id: newRec.id,
+                values: {
+                    department: department
+                },
+                options: {
+                    enableSourcing: false,
+                    ignoreMandatoryFields: true
+                }
+            });
+            log.debug('设置供应商付款单 部门字段', id);
+        }
 
     }
 

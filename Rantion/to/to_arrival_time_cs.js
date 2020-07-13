@@ -2,12 +2,15 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/search', 'N/runtime'], function(search,runtime) {
+define(['N/search', 'N/runtime'], function (search, runtime) {
 
     function pageInit(context) {
-        if(context.mode == 'create'){
+        if (context.mode == 'create') {
             var curr = context.currentRecord;
-            curr.setValue({fieldId: 'employee', value: runtime.getCurrentUser().id})
+            curr.setValue({
+                fieldId: 'employee',
+                value: runtime.getCurrentUser().id
+            })
         }
     }
 
@@ -23,39 +26,54 @@ define(['N/search', 'N/runtime'], function(search,runtime) {
                 var days = 0;
                 search.create({
                     type: 'customrecord_logistics_service',
-                    filters: [
-                        { name: 'internalid', operator: 'anyof', values: logistics_id }
-                    ],
-                    columns: [ 'custrecord_ls_average_aging_days' ]
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: logistics_id
+                    }],
+                    columns: ['custrecord_ls_average_aging_days']
                 }).run().each(function (rec) {
                     days = rec.getValue('custrecord_ls_average_aging_days');
                     return false;
                 });
                 var nowDate = new Date();
                 if (days > 0) {
-                   nowDate = new Date(nowDate.getTime() - (Number(days) * 24 * 60 * 60 * 1000));
+                    nowDate = new Date(nowDate.getTime() - (Number(days) * 24 * 60 * 60 * 1000));
                 }
-                rec.setValue({ fieldId: 'custbodyexpected_arrival_time', value: nowDate });
+                rec.setValue({
+                    fieldId: 'custbodyexpected_arrival_time',
+                    value: nowDate
+                });
             }
         }
         // if (context.fieldId == 'item') {
         if (context.fieldId == 'commitinventory') {
-            var item = rec.getCurrentSublistValue({ sublistId: 'item', fieldId: 'item' });
+            var item = rec.getCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'item'
+            });
             var location = rec.getValue('location');
             if (location) {
                 var price;
                 search.create({
                     type: 'item',
-                    filters: [
-                        { name: 'internalid', operator: 'is', values: item },
-                        { name: 'inventorylocation', operator: 'anyof', values: location }
+                    filters: [{
+                            name: 'internalid',
+                            operator: 'is',
+                            values: item
+                        },
+                        // { name: 'inventorylocation', operator: 'anyof', values: location }
                     ],
-                    columns: [ 'locationaveragecost' ]
+                    columns: ['locationaveragecost', "averagecost"]
                 }).run().each(function (rec) {
-                    price = rec.getValue('locationaveragecost');
+                    price = rec.getValue('averagecost');
                 });
                 if (price) {
-                    rec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: price });
+                    rec.setCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'rate',
+                        value: price
+                    });
                 }
             }
         }
@@ -63,15 +81,15 @@ define(['N/search', 'N/runtime'], function(search,runtime) {
     }
 
     function fieldChanged(context) {
-        
+
     }
 
     function postSourcing(context) {
-        
+
     }
 
     function lineInit(context) {
-        
+
     }
 
     function validateDelete(context) {
@@ -87,7 +105,7 @@ define(['N/search', 'N/runtime'], function(search,runtime) {
     }
 
     function sublistChanged(context) {
-        
+
     }
 
     return {

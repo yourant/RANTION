@@ -702,7 +702,7 @@ try{
                 log.debug("所有的仓库没货，选在蓝神贸易下的一个");
               new_need_list_arr.push({
                 subsidiary: 5,
-                location: 2245, //HD5A0906-花都贸易仓
+                location: 2, //HD5A0906-花都贸易仓
                 target_subsidiary: line.lineItems[i].fba_subsidiary,
                 target_warehouse: line.lineItems[i].fba_location,
                 declaration_cn: line.lineItems[i].declaration_cn,
@@ -796,18 +796,23 @@ try{
               type: 'transferorder',
               isDynamic: true
             });
-            log.debug('locatioon' + l.location, 'transferlocation ： ' + l.transfer_location);
+            log.debug('locatioon: ' + l.location, 'transferlocation ： ' + l.transfer_location);
+            log.debug('subsidiary: ' + l.subsidiary);
             log.debug('presT:' +l.presT, ' (presT* 24*3600*1000) ： ' +  (l.presT* 24*3600*1000));
-            var presTs = new Date(+new Date() + (l.presT* 24*3600*1000) );
+          
             t_ord.setValue({ fieldId: 'customform', value:104}) //自定义调拨单表格
             t_ord.setValue({ fieldId: 'subsidiary', value: l.subsidiary });//主体，子公司 subsidiary 2，3，5
             t_ord.setValue({ fieldId: 'location', value: l.location }); //起始地点，三个主体下面的可用的自营仓
             t_ord.setValue({ fieldId: 'custbody_dps_start_location', value: l.location }); //起始地点，三个主体下面的可用的自营仓
-            log.debug("设置店铺",l)
             t_ord.setValue({ fieldId: 'custbody_order_locaiton', value: l.account_id }); //订单店铺
-            log.debug("presTs",presTs);
-            t_ord.setValue({ fieldId: 'custbodyexpected_arrival_time', value:presTs });//预计到货时间
-            t_ord.setValue({ fieldId: 'custbody_dps_end_location', value: l.transfer_location });
+            if(l.presT){
+              var presTs = new Date(+new Date() + (l.presT* 24*3600*1000) );
+              t_ord.setValue({ fieldId: 'custbodyexpected_arrival_time', value:presTs });//预计到货时间
+            } else{
+              var presTs = new Date(+new Date() + (20* 24*3600*1000) );
+              t_ord.setValue({ fieldId: 'custbodyexpected_arrival_time', value:presTs });//预计到货时间
+            }
+            // t_ord.setValue({ fieldId: 'custbody_dps_end_location', value: l.transfer_location });
             t_ord.setValue({
               fieldId: 'transferlocation',
               value: l.transfer_location

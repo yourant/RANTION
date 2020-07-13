@@ -186,7 +186,7 @@ function(moment,url, dialog, https,runtime,search,record,currentRecord ,format )
             if (parseInt(custpage_select_page) - 1 > 0) {
                 var link = url.resolveScript({
                     scriptId : 'customscript_delivery_schedule_sl',
-                    deploymentId:'customdeploy_allocation_plan_sl'
+                    deploymentId:'customdeploy_delivery_schedule_sl'
                 });
              
                 link = link + '&' + serializeURL({
@@ -545,6 +545,8 @@ function(moment,url, dialog, https,runtime,search,record,currentRecord ,format )
             fils = {
               "acc": curr.getValue("custpage_account_store"),
               "sku": curr.getValue("custpage_item"),
+              "pageSize": curr.getText('custpage_page_size'),
+              "nowPage": curr.getValue("custpage_page_size"),
               "TT": "Delivery",
               "week_rs": week_rs,
               "func_type": func_type

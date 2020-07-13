@@ -101,7 +101,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         var today = moment(new Date(+new Date()+8*3600*1000).getTime()).format(dateFormat);
         need_result.map(function(line){
             var bill_id,data_type;
-            if(line.data_type == 8){
+            if(line.data_type == 9){  //确认交货量
                 line.data_type = 16;
             }else if(line.data_type == 7){
                 line.data_type = 14;
@@ -117,7 +117,6 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             }).run().each(function (rec) {
                 bill_id = rec.id;
             });
-            log.debug('bill_id',bill_id);
             var child_bill_data;
             if(bill_id){
                 child_bill_data = record.load({type: 'customrecord_demand_forecast_child',id: bill_id});
@@ -314,7 +313,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             { name: 'custitemf_product_grading',join:"custrecord_demand_forecast_item_sku"}, //产品初始分级
             { name:'custrecord_quantity_week53' , join: 'custrecord_demand_forecast_parent'},
             { name:'custrecord_market_area' , join: 'custrecord_demand_forecast_account'},
-        ]
+        ];
         var rsJson = {} , limit = 4000;
         var filters_sku = [],skuids = [];
         var item_data = [];
@@ -322,7 +321,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             filters_sku = [{ name: 'custrecord_demand_forecast_item_sku', operator: 'anyof', values: item }];
         }
         if(account){
-            filters_sku .push({ name: 'custrecord_demand_forecast_account', operator: 'anyof', values: account }) 
+            filters_sku .push({ name: 'custrecord_demand_forecast_account', operator: 'anyof', values: account });
         }
         search.create({
             type: 'customrecord_demand_forecast',
@@ -355,11 +354,14 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         });
         log.debug('SKUIds',SKUIds);
         if (skuids.length == 0) {
-            return ""
+            rsJson.result = [];
+            rsJson.totalCount = 0;
+            rsJson.pageCount = 0;
+            return rsJson ;
         }
         //调拨计划量  ，取自修改的调拨计划量
         var filters = [
-            { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["22","6"] },
+            { name : 'custrecord_demand_forecast_l_data_type', join:'custrecord_demand_forecast_parent', operator:'anyof', values: ["22"] },
             { name : 'custrecord_demand_forecast_l_date', join:'custrecord_demand_forecast_parent', operator:'on', values: today },
         ];
         
@@ -383,12 +385,11 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
         });
         var totalCount = pageData_delivery_schedule.count; //总数
         var pageCount = pageData_delivery_schedule.pageRanges.length; //页数
-        log.debug("0000000查看查询页数",pageCount)
         if (totalCount == 0 && pageCount ==0) {
             rsJson.result = [];
             rsJson.totalCount = totalCount;
             rsJson.pageCount = pageCount;
-            return ;
+            return rsJson ;
         } else {
             pageData_delivery_schedule.fetch({
                 index: Number(nowPage-1)
@@ -465,9 +466,8 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             });
         }
         var pageSizeField = form.getField({ id: 'custpage_page_size' })
-        log.debug("查到的调拨计划：：",item_data)
         for(var i=1;i<=pageCount;i++){
-            pageSizeField.addSelectOption({ value: i, text: i, isSelected: pageSize == i ? true : false })
+            pageSizeField.addSelectOption({ value: i, text: i, isSelected: pageSize == i ? true : false });
         }
 
         var filters_locationquantityavailable =[];
@@ -483,7 +483,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             ]
         }).run().each(function (rec) {
             location.push(rec.id);
-            return true
+            return true;
         });
         log.debug('location',location);
         //自营仓在途量 数据来源采购单]
@@ -518,7 +518,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                             var item_time =  getWeek(item_date,func_type);
                             operated_warehouse.map(function(ld){
                                 if(ld.item_id == line.item_sku && ld.item_date == item_time){
-                                    ld["need_quantity"]  += need_quantity * 1
+                                    ld["need_quantity"]  += need_quantity * 1;
                                     fs = false;
                                 }
                             });
@@ -527,7 +527,7 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
                                 item_id : result.getValue('item'),
                                 item_date : item_time,
                                 item_quantity : need_quantity
-                            })
+                            });
                         }
                     }
                 })
@@ -1002,7 +1002,7 @@ if (totalCount1 == 0 && pageCount1 ==0) {
             week_hi.defaultValue = '0';
             week_hi.updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         }
-        var zl = 0, data_arr = [],num =0;
+        var zl = 0, data_arr = [],num =0,deliv = [],deliv_len;
         for(var key in acc_skus){
         for (var z = 0; z < SKUIds.length; z++) {
             if (result.length > 0) {
@@ -1038,7 +1038,8 @@ if (totalCount1 == 0 && pageCount1 ==0) {
                                 }
                             }
                             need1_zl = zl;
-                            zl++;
+                            deliv.push(zl);
+                            deliv_len = deliv.length;
                         }
                         
 
@@ -1081,7 +1082,6 @@ if (totalCount1 == 0 && pageCount1 ==0) {
                                 }
                             }
                             need2_zl = zl;
-                            zl++;
                         }
                         
                         if(result[a]['data_type'] == 5){//美西仓库存量
@@ -1111,11 +1111,11 @@ if (totalCount1 == 0 && pageCount1 ==0) {
                                 }
                             }
                             need3_zl = zl;
-                            zl++;
                         }
                         if(result[a]['data_type'] == 111){//其他自营仓与工厂仓库存
                             week_rs.map(function(wek){
                                 var sub_filed = 'custpage_quantity_week' + wek;
+                                var need_filed = 'custpage_quantity_weekhi' + (Number(wek)-1);
                                 if(wek== week_rs[0]){
                                     if(result[a]['warehouse_quantity']){
                                         sublist.setSublistValue({ id: sub_filed, value: result[a]['warehouse_quantity'].toString(), line: zl});
@@ -1125,13 +1125,16 @@ if (totalCount1 == 0 && pageCount1 ==0) {
                                 }else{
                                      //下一周的库存 =  上一周的库存 + 采购在途  - 调拨计划量 
                                      var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0; //采购在途
-                                     var x1 = need1_zl || need1_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need1_zl}) : 0; //调拨计划
+                                     var x1;
+                                      x1 = deliv_len || need1_zl == 0 ? sublist.getSublistValue({ id : need_filed, line: deliv[deliv_len - 1]}) : 0; //调拨计划
+                                      log.debug("库存看看，调拨"+x1,"x2: "+x2+",deliv: "+JSON.stringify(deliv)+" ,deliv_len: "+deliv_len+", deliv[deliv_len - 1] : "+ deliv[deliv_len - 1]);
                                      result[a]['warehouse_quantity'] = Number(result[a]['warehouse_quantity'])  + Number(x2)  - Number(x1) ;
                                     sublist.setSublistValue({ id: sub_filed, value: result[a]['warehouse_quantity'] .toString(), line: zl});
                                 }
                             })
                             for (var s = 1; s < 54; s++) {
                                 var sub_filed = 'custpage_quantity_weekhi' + s;
+                                var need_filed = 'custpage_quantity_weekhi' + (Number(s)-1);
                                 if(s== 1){
                                     if(result[a]['warehouse_quantity']){
                                         sublist.setSublistValue({ id: sub_filed, value: result[a]['warehouse_quantity'].toString(), line: zl});
@@ -1139,11 +1142,15 @@ if (totalCount1 == 0 && pageCount1 ==0) {
                                         sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
                                     }
                                 }else{
-                                    sublist.setSublistValue({ id: sub_filed, value: '0', line: zl});
+                                    //下一周的库存 =  上一周的库存 + 采购在途  - 调拨计划量 
+                                    var x2 = need2_zl || need2_zl == 0 ? sublist.getSublistValue({ id : sub_filed, line: need2_zl}) : 0; //采购在途
+                                    var x1;
+                                     x1 = deliv_len || need1_zl == 0 ? sublist.getSublistValue({ id : need_filed, line: deliv[deliv_len - 1]}) : 0; //调拨计划
+                                    result[a]['warehouse_quantity'] = Number(result[a]['warehouse_quantity'])  + Number(x2)  - Number(x1) ;
+                                   sublist.setSublistValue({ id: sub_filed, value: result[a]['warehouse_quantity'] .toString(), line: zl});
                                 }
                             }
                             need4_zl = zl;
-                            zl++;
                         }
                        //7 计划交货量  
                         if(result[a]['data_type'] == 7 ){
@@ -1179,7 +1186,6 @@ if (totalCount1 == 0 && pageCount1 ==0) {
                                 data_josn.item = arr_list;
                                 data_arr.push(data_josn);
                             }
-                            zl++;
                         }
                            //   8 15修改交货量 / 9 16 确认交货量
                            if(result[a]['data_type'] == 8 || result[a]['data_type'] == 9 || result[a]['data_type'] == 15|| result[a]['data_type'] == 16){
@@ -1234,8 +1240,9 @@ if (totalCount1 == 0 && pageCount1 ==0) {
                                 data_josn.item = arr_list;
                                 data_arr.push(data_josn);
                             }
-                            zl++;
+                        
                         }
+                        zl++;
                     }
                 }
             }

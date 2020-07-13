@@ -1,14 +1,12 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-09 20:00:14
+ * @LastEditTime   : 2020-07-12 10:40:54
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
-
-
 
 /**
  *@NApiVersion 2.x
@@ -369,11 +367,483 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
             return cost || false;
         }
 
+        /**
+         * 搜索 TO 的货品和地点
+         * @param {*} toId 
+         */
+        function searchItemTo(toId) {
+
+            var itemArr = [],
+                Loca,
+                limit = 3999;
+            search.create({
+                type: 'transferorder',
+                filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: toId
+                    },
+                    {
+                        name: 'mainline',
+                        operator: 'is',
+                        values: false
+                    },
+                    {
+                        name: 'taxline',
+                        operator: 'is',
+                        values: false
+                    },
+
+                ],
+                columns: [
+                    "item", "location"
+                ]
+            }).run().each(function (rec) {
+                itemArr.push(rec.getValue('item'));
+                Loca = rec.getValue('location');
+                return --limit > 0
+            });
+
+            var retObj = {
+                Location: Loca,
+                ItemArr: itemArr
+            }
+
+            return retObj || false;
+        }
+
+        /**
+         * 搜索货品对应店铺的库存平均成本
+         * @param {*} itemArr 
+         * @param {*} Location 
+         */
+        function searchItemAver(itemArr, Location) {
+            var priceArr = [];
+            search.create({
+                type: 'item',
+                filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: itemArr
+                    },
+                    {
+                        name: 'inventorylocation',
+                        operator: 'anyof',
+                        values: Location
+                    }
+                ],
+                columns: ['locationaveragecost', "averagecost", ]
+            }).run().each(function (rec) {
+                var it = {
+                    itemId: rec.id,
+                    averagecost: rec.getValue('averagecost')
+                }
+                priceArr.push(it);
+
+                return true;
+            });
+
+            return priceArr || false;
+
+        }
+
+        /**
+         * 设置 TO 货品行的 转让价格
+         * @param {*} toId 
+         * @param {*} valArr 
+         */
+        function setToValue(toId, valArr) {
+
+            var toRec = record.load({
+                type: 'transferorder',
+                id: toId,
+                isDynamic: false,
+            });
+
+            var cLine = toRec.getLineCount({
+                sublistId: "item"
+            });
+
+            for (var i = 0, len = valArr.length; i < len; i++) {
+
+                var t = valArr[i];
+
+                var lineNumber = toRec.findSublistLineWithValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    value: t.itemId
+                });
+                toRec.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'rate',
+                    value: t.averagecost,
+                    line: lineNumber
+                });
+            }
+
+            var toRec_id = toRec.save({
+                enableSourcing: true,
+                ignoreMandatoryFields: true
+            });
+            log.debug('toRec_id', toRec_id);
+        }
+
+
+        /**
+         * 搜索单据的货品、地点、子公司
+         * @param {String} recType 
+         * @param {number} recId 
+         * @returns {Object} {subsidiary: subs,itemArr: itemArr,location: loca,totalQty: totalQty};
+         */
+        function searchToLocationItem(recType, recId) {
+
+            log.debug('recId: ' + recId, "recType: " + recType);
+            var limit = 3999,
+                itemArr = [],
+                totalQty = 0,
+                loca, subs;
+            search.create({
+                type: recType,
+                filters: [{
+                        name: "internalid",
+                        operator: 'anyof',
+                        values: [recId]
+                    },
+                    {
+                        name: "mainline",
+                        operator: 'is',
+                        values: false
+                    },
+                    {
+                        name: "taxline",
+                        operator: 'is',
+                        values: false
+                    }
+                ],
+                columns: [
+                    "item",
+                    "quantity"
+                ]
+            }).run().each(function (rec) {
+                var it = rec.getValue('item')
+                if (itemArr.indexOf(it) == -1) {
+                    itemArr.push(rec.getValue('item'));
+                    totalQty += Math.abs(Number(rec.getValue('quantity')))
+                }
+                return --limit > 0;
+            });
+
+
+            search.create({
+                type: recType,
+                filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: recId
+                    },
+                    {
+                        name: 'mainline',
+                        operator: 'is',
+                        values: true
+                    }
+                ],
+                columns: [
+                    "location", "subsidiary"
+                ]
+            }).run().each(function (r) {
+                subs = r.getValue('subsidiary');
+                loca = r.getValue('location');
+            })
+
+            var it = {
+                subsidiary: subs,
+                itemArr: itemArr,
+                location: loca,
+                totalQty: totalQty
+            };
+
+            return it || false;
+
+        }
+
+
+        /**
+         * 搜索货品对应的所有地点,限制于子公司
+         * @param {String} sub 子公司
+         * @param {number} loca 一级地点
+         * @param {Array} locaArr 货品地点数组
+         * @returns {Array} loArr 货品对应的地点数组
+         */
+        function searchSecLoca(sub, loca, locaArr) {
+            var loArr = [],
+                limit = 3999
+
+            log.debug('sub: ' + sub + " loca: " + loca, "locaArr  typeof  " + typeof (locaArr) + "    " + locaArr)
+            search.create({
+                type: "location",
+                filters: [{
+                        name: 'custrecord_dps_parent_location',
+                        operator: 'anyof',
+                        values: [loca]
+                    }, // 父级地点
+                    {
+                        name: "subsidiary",
+                        operator: 'anyof',
+                        values: [sub]
+                    }, // 子公司
+                    {
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: locaArr
+                    }, // 地点
+                ]
+            }).run().each(function (rec) {
+
+                // log.debug('locaArr.indexOf(rec.id) ', locaArr.indexOf(rec.id))
+                if (locaArr.indexOf(rec.id) > -1) {
+                    log.debug('地点的内部ID', rec.id)
+                    loArr.push(rec.id);
+                }
+                return --limit > 0;
+            });
+            return loArr || false;
+        }
+
+
+        /**
+         * 搜索对应的地点 并返回
+         * @param {Array} secArr  地点数组
+         * @param {Array} loca 一级地点
+         * @returns {Array} thrArr 地点数组
+         */
+        function searchThrLoca(secArr, loca) {
+            var limit = 3999,
+                thrArr = secArr;
+
+            log.debug('thrArr', thrArr);
+            log.debug('secArr', secArr);
+            search.create({
+                type: 'location',
+                filters: [{
+                    name: 'custrecord_dps_parent_location',
+                    operator: 'anyof',
+                    values: secArr
+                }]
+            }).run().each(function (rec) {
+                thrArr.push(rec.id);
+                return --limit > 0;
+            });
+
+            thrArr.push(loca);
+            return thrArr || false;
+
+        }
+
+        /**
+         * 搜索对应货品、地点的库存量与延交订单量
+         * @param {Array} itemArr 货品数组
+         * @param {Array} LocaArr 地点数组
+         * @returns {Object} { totalQty (库存总量): totalQty, backOrderQty(延交订单总量): backOrderQty }
+         */
+        function searchItemQty(itemArr, LocaArr) {
+
+
+            log.debug('itemArr length: ' + itemArr.length, "LocaArr length: " + LocaArr.length)
+            var limit = 3999,
+                locationquantityonhand,
+                backOrderQty = 0,
+                totalQty = 0,
+                loca;
+            search.create({
+                type: 'item',
+                filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: itemArr
+                    },
+                    {
+                        name: 'inventorylocation',
+                        operator: 'anyof',
+                        values: LocaArr
+                    }
+                ],
+                columns: [
+                    "locationquantityonhand", // 库存量 Location On Hand
+                    "inventorylocation", // 库存地点    Inventory Location
+                    "locationquantitybackordered", // 延交订单 LOCATION BACK ORDERED
+                ]
+            }).run().each(function (rec) {
+
+                log.debug('locationquantityonhand: ' + rec.getValue('locationquantityonhand'), "loca: " + rec.getValue('inventorylocation'))
+                totalQty += Number(rec.getValue('locationquantityonhand'));
+                backOrderQty += Number(rec.getValue('locationquantitybackordered'));
+                return --limit > 0;
+            });
+
+            var it = {
+                totalQty: totalQty,
+                backOrderQty: backOrderQty
+            }
+
+            return it || false;
+        }
+
+
+
+        /**
+         * 搜索货品对应的地点
+         * @param {Array} itemArr 货品数组
+         * @param {Number} sub 子公司ID
+         * @returns {Array} locaArr 地点数组
+         */
+        function searchItemLocation(itemArr, sub) {
+
+            var limit = 3999,
+                locaArr = [];
+            search.create({
+                type: 'item',
+                filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: itemArr
+                    },
+                    {
+                        name: 'subsidiary',
+                        join: 'inventorylocation',
+                        operator: 'anyof',
+                        values: sub
+                    }
+                ],
+                columns: [
+                    "inventorylocation"
+                ]
+            }).run().each(function (rec) {
+                locaArr.push(rec.getValue('inventorylocation'));
+                return --limit > 0;
+            });
+
+            return locaArr || false;
+
+        }
+
+
+
+        /**
+         * 判断库存是否充足
+         * @param {String} recType 
+         * @param {Number} recId 
+         * @returns{Boolean} flag
+         */
+        function judgmentItemInventory(recType, recId) {
+
+            var flag = false;
+
+            // 获取单据对应的货品,子公司,地点,总数量
+            var a = searchToLocationItem(recType, recId);
+            log.debug('一级地点 a', a);
+
+            //  获取货品对应的地点
+            var al = searchItemLocation(a.itemArr, a.subsidiary);
+            log.debug("al", al);
+
+            // 搜索货品地点的库存
+            var bl = searchSecLoca(a.subsidiary, a.location, al)
+            log.debug('bl length' + bl.length, bl);
+            var cl, fl
+
+            if (bl && bl.length > 0) { // 存在库位, 则进行箱的搜索
+                // 搜索库存对应的箱
+                cl = searchThrLoca(bl, a.location)
+                log.debug('cl length: ' + cl.length, cl);
+            } else { // 不存在库存, 直接获取一级地点
+                cl = [a.location]
+            }
+            // 搜索货品对应的库存数量和延交订单数量
+            var dl = searchItemQty(a.itemArr, cl);
+            var fl = dl.totalQty - dl.backOrderQty - a.totalQty;
+            log.debug('fl', fl);
+            if (fl >= 0) {
+                log.debug('库存充足', "可以发货");
+                flag = true;
+            } else {
+                log.debug('库存不足', "无法发货");
+                flag = false;
+            }
+            log.debug('dl', dl);
+
+            return flag;
+        }
 
 
         var startTime, endTime, cost;
         try {
 
+
+
+
+            search.create({
+                type: 'purchaseorder',
+                filters: [{
+                        name: "internalid",
+                        operator: 'anyof',
+                        values: 446053
+                    },
+                    {
+                        name: 'mainline',
+                        operator: 'is',
+                        values: true
+                    }
+                ],
+                columns: [
+                    "createdby"
+                ]
+            }).run().each(function (r) {
+                log.debug("createdby", r.getValue('createdby'))
+                log.debug("createdby", r.getText('createdby'))
+
+            })
+
+            /*
+            log.debug('new Date ISO', new Date().toISOString())
+            var as = new Date().getTime();
+            log.debug('as', as);
+
+            var recId,
+                recType
+            recId = 363729
+            recType = "salesorder";
+            recId = 416544
+            recType = "transferorder"
+
+            recId = 416331
+
+            var fla = judgmentItemInventory(recType, recId);
+
+
+            log.debug('fla', fla);
+            var bs = new Date().getTime() - as;
+
+            log.debug('new Date ISO', new Date().toISOString())
+            log.debug('执行时间', bs);
+
+
+
+
+            /*
+            var to_id = 416339
+            var it = searchItemTo(to_id)
+
+            var ite = [32552],
+                loca = 202;
+            var a = searchItemAver(it.ItemArr, it.Location);
+
+            setToValue(to_id, a)
+
+            log.debug('a', a);
+
+
+
+            /*
             // log.debug('context.request.month', context.request.month)
 
             if (context.request.month == "POST") {

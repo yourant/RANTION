@@ -13,7 +13,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
             //     { name: 'custrecord_juge_wrong', operator: 'is', values: false }
             // ],
             columns: [
-                'custrecord_juge_po', 'custrecord_juge_time', 'custrecord_juge_product', 'custrecord_juge_quantiy', 'custrecord_juge_location',
+                'custrecord_juge_po_2', 'custrecord_juge_time_2', 'custrecord_juge_product_2', 'custrecord_juge_quantiy_2', 'custrecord_juge_location_2',
                 'custrecord_juge_sho', 'custrecord_juge_wrong'
             ]
         }).run().each(function (rec) {
@@ -29,7 +29,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
 
     function map(context) {
         var juge = JSON.parse(context.value);
-        log.debug('juge', juge.getValue('custrecord_juge_po') + ' _ ' + juge.getValue('custrecord_juge_sho'));
+        log.debug('juge', juge.getValue('custrecord_juge_po_2') + ' _ ' + juge.getValue('custrecord_juge_sho'));
     }
 
     function reduce(context) {

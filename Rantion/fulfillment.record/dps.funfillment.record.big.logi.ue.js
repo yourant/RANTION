@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-08 19:34:39
+ * @LastEditTime   : 2020-07-10 17:33:56
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -180,6 +180,24 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             try {
                 var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
                 if (rec_status == 6 || rec_status == 7) { // 陆行对应的库存转移订单  6	WMS已发运  7	WMS已部分发运
+
+
+                    var toId = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
+                    try {
+                        if (toId) {
+                            log.debug('toId: ' + toId, "存在调拨单")
+                            var it = searchItemTo(to_id);
+                            var a = searchItemAver(it.ItemArr, it.Location);
+                            setToValue(to_id, a);
+                        } else {
+                            log.debug('不存在调拨单', "不取库存平均成本");
+                        }
+
+                    } catch (error) {
+                        log.error('设置库存成本出错了', error);
+                    }
+
+
 
                     // try {
                     //     itemfulfillment(af_rec, tra_order_link);
@@ -714,6 +732,128 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
         }
 
+    }
+
+
+    /**
+     * 搜索 TO 的货品和地点
+     * @param {*} toId 
+     */
+    function searchItemTo(toId) {
+
+        var itemArr = [],
+            Loca,
+            limit = 3999;
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: toId
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                },
+
+            ],
+            columns: [
+                "item", "location"
+            ]
+        }).run().each(function (rec) {
+            itemArr.push(rec.getValue('item'));
+            Loca = rec.getValue('location');
+            return --limit > 0
+        });
+
+        var retObj = {
+            Location: Loca,
+            ItemArr: itemArr
+        }
+
+        return retObj || false;
+    }
+
+    /**
+     * 搜索货品对应店铺的库存平均成本
+     * @param {*} itemArr 
+     * @param {*} Location 
+     */
+    function searchItemAver(itemArr, Location) {
+        var priceArr = [];
+        search.create({
+            type: 'item',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: itemArr
+                },
+                {
+                    name: 'inventorylocation',
+                    operator: 'anyof',
+                    values: Location
+                }
+            ],
+            columns: ['locationaveragecost', "averagecost", ]
+        }).run().each(function (rec) {
+            var it = {
+                itemId: rec.id,
+                averagecost: rec.getValue('averagecost')
+            }
+            priceArr.push(it);
+
+            return true;
+        });
+
+        return priceArr || false;
+
+    }
+
+    /**
+     * 设置 TO 货品行的 转让价格
+     * @param {*} toId 
+     * @param {*} valArr 
+     */
+    function setToValue(toId, valArr) {
+
+        var toRec = record.load({
+            type: 'transferorder',
+            id: toId,
+            isDynamic: false,
+        });
+
+        var cLine = toRec.getLineCount({
+            sublistId: "item"
+        });
+
+        for (var i = 0, len = valArr.length; i < len; i++) {
+
+            var t = valArr[i];
+
+            var lineNumber = toRec.findSublistLineWithValue({
+                sublistId: 'item',
+                fieldId: 'item',
+                value: t.itemId
+            });
+            toRec.setSublistValue({
+                sublistId: 'item',
+                fieldId: 'rate',
+                value: t.averagecost,
+                line: lineNumber
+            });
+        }
+
+        var toRec_id = toRec.save({
+            enableSourcing: true,
+            ignoreMandatoryFields: true
+        });
+        log.debug('toRec_id', toRec_id);
     }
 
 
@@ -1748,149 +1888,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     }
 
 
-    /**
-     * 履行库存转移单
-     * @param {*} rec 
-     */
-    function itemfulfillment(rec, link) {
-
-        var objRecord = record.transform({
-            fromType: 'transferorder',
-            fromId: link,
-            toType: 'itemfulfillment',
-            // isDynamic: true,
-        });
-
-        objRecord.setValue({
-            fieldId: 'shipstatus',
-            value: 'C'
-        });
-
-        var numLines = rec.getLineCount({
-            sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link'
-        });
-        var item_ful = objRecord.getLineCount({
-            sublistId: 'item'
-        });
-
-        log.audit('numLines: ' + numLines, 'item_ful: ' + item_ful);
-
-        var line_num = [];
-        for (var i = 0; i < numLines; i++) {
-
-            var ful_item = rec.getSublistValue({
-                sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                fieldId: 'custrecord_dps_ship_box_item',
-                line: i,
-            });
-
-            log.debug('ful_item', ful_item);
-            for (var j = 0; j < item_ful; j++) {
-                var ful_quantity = 0;
-
-                var obj_item = objRecord.getSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'item',
-                    line: j,
-                });
-
-                log.debug('obj_item == ful_item', obj_item == ful_item);
-                ful_quantity = rec.getSublistValue({
-                    sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                    fieldId: 'custrecord_dps_ship_box_quantity',
-                    line: i,
-                });
-
-
-                log.debug('obj_item', obj_item);
-                if (obj_item == ful_item) {
-
-                    log.debug('obj_item == ful_item', obj_item == ful_item);
-                    ful_quantity = rec.getSublistValue({
-                        sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                        fieldId: 'custrecord_dps_ship_box_quantity',
-                        line: i,
-                    });
-
-                    ful_quantity += ful_quantity;
-                    log.debug('ful_quantity', ful_quantity);
-
-                    line_num.push(i);
-                    objRecord.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'quantity',
-                        line: j,
-                        value: ful_quantity
-                    });
-
-                    objRecord.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'itemreceive',
-                        value: true,
-                        line: j
-                    });
-                }
-            }
-        }
-        var objRecord_id = objRecord.save();
-        log.debug('objRecord_id', objRecord_id);
-        var itemreceipt_id;
-
-        var tranor_type = rec.getValue('custrecord_dps_ship_record_tranor_type');
-        if (objRecord_id /* && tranor_type == 3 */ ) {
-            itemreceipt_id = itemreceipt(link);
-            log.debug('itemreceipt_id', itemreceipt_id);
-        }
-
-        var load_af_rec = record.load({
-            type: rec.type,
-            id: rec.id
-        });
-
-        for (var z = 0; z < line_num.length; z++) {
-            load_af_rec.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                fieldId: 'custrecord_dps_ship_box_itemfulfillment',
-                value: objRecord_id,
-                line: line_num[z]
-            });
-            if (itemreceipt_id) {
-                load_af_rec.setSublistValue({
-                    sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                    fieldId: 'custrecord_dps_ship_box_itemreceipt',
-                    value: itemreceipt_id,
-                    line: line_num[z]
-                });
-            }
-            load_af_rec.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_ship_box_fa_record_link',
-                fieldId: 'custrecord_dps_ship_box_ship_ns',
-                value: true,
-                line: line_num[z]
-            });
-        }
-        var load_af_rec_id = load_af_rec.save();
-        log.debug('load_af_rec_id', load_af_rec_id);
-
-        return
-    }
-
-    /**
-     * 接受库存转移单的货品
-     * @param {*} rec 
-     */
-    function itemreceipt(link) {
-        var objRecord = record.transform({
-            fromType: 'transferorder',
-            fromId: link,
-            toType: 'itemreceipt',
-            // isDynamic: true,
-        });
-
-        var obj_id = objRecord.save();
-
-        return obj_id || false;
-    }
 
 
     /**

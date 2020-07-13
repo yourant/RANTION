@@ -1,3 +1,13 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-07-10 11:37:16
+ * @LastEditTime   : 2020-07-11 19:35:28
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
@@ -559,7 +569,8 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                                 }
                             }
                             if (flag) {
-                                l_po.save();
+                                var l_po_id = l_po.save();
+                                log.debug('l_po_id', l_po_id);
                             }
                         }
                     }

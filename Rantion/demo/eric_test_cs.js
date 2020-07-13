@@ -44,7 +44,30 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
 
         console.log('record_type:' + scriptContext.currentRecord.type);
         console.log('record_type:' + scriptContext.currentRecord.id);
-        testRequest();
+        // var info = record.create({
+        //     type: 'inventoryitem'
+        // });
+        // info.setValue({
+        //     fieldId: 'itemid',
+        //     value: 'test123124'
+        // })
+        // var id = info.save();
+        // search.create({
+        //     type: 'item',
+        //     filters: [{
+        //         name: 'internalid',
+        //         operator: 'anyof',
+        //         values: id
+        //     },],
+        //     columns: [{
+        //         name: 'internalid'
+        //     }]
+        // }).run().each(function (rec) {
+        //     result = rec.id
+        //     console.log(JSON.stringify(rec));
+        //     return false;
+        // });
+        // console.log('save-test' + id);
         console.log('end-test');
 
     }

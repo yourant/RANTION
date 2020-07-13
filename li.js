@@ -2,12 +2,136 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-07-02 17:57:50
+ * @LastEditTime   : 2020-07-10 17:34:24
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
+
+
+
+
+/**
+ * 搜索 TO 的货品和地点
+ * @param {*} toId 
+ */
+function searchItemTo(toId) {
+
+    var itemArr = [],
+        Loca,
+        limit = 3999;
+    search.create({
+        type: 'transferorder',
+        filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: toId
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            },
+
+        ],
+        columns: [
+            "item", "location"
+        ]
+    }).run().each(function (rec) {
+        itemArr.push(rec.getValue('item'));
+        Loca = rec.getValue('location');
+        return --limit > 0
+    });
+
+    var retObj = {
+        Location: Loca,
+        ItemArr: itemArr
+    }
+
+    return retObj || false;
+}
+
+/**
+ * 搜索货品对应店铺的库存平均成本
+ * @param {*} itemArr 
+ * @param {*} Location 
+ */
+function searchItemAver(itemArr, Location) {
+    var priceArr = [];
+    search.create({
+        type: 'item',
+        filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: itemArr
+            },
+            {
+                name: 'inventorylocation',
+                operator: 'anyof',
+                values: Location
+            }
+        ],
+        columns: ['locationaveragecost', "averagecost", ]
+    }).run().each(function (rec) {
+        var it = {
+            itemId: rec.id,
+            averagecost: rec.getValue('averagecost')
+        }
+        priceArr.push(it);
+
+        return true;
+    });
+
+    return priceArr || false;
+
+}
+
+/**
+ * 设置 TO 货品行的 转让价格
+ * @param {*} toId 
+ * @param {*} valArr 
+ */
+function setToValue(toId, valArr) {
+
+    var toRec = record.load({
+        type: 'transferorder',
+        id: toId,
+        isDynamic: false,
+    });
+
+    var cLine = toRec.getLineCount({
+        sublistId: "item"
+    });
+
+    for (var i = 0, len = valArr.length; i < len; i++) {
+
+        var t = valArr[i];
+
+        var lineNumber = toRec.findSublistLineWithValue({
+            sublistId: 'item',
+            fieldId: 'item',
+            value: t.itemId
+        });
+        toRec.setSublistValue({
+            sublistId: 'item',
+            fieldId: 'rate',
+            value: t.averagecost,
+            line: lineNumber
+        });
+    }
+
+    var toRec_id = toRec.save({
+        enableSourcing: true,
+        ignoreMandatoryFields: true
+    });
+    log.debug('toRec_id', toRec_id);
+}
 
 
 /**

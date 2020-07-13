@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-03 20:27:19
- * @LastEditTime   : 2020-06-04 12:09:11
+ * @LastEditTime   : 2020-07-11 15:55:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.cs.js
@@ -13,7 +13,9 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/url', 'N/log', 'N/https', 'N/ui/dialog'], function (url, log, https, dialog) {
+define(['N/url', 'N/log', 'N/https', 'N/ui/dialog', 'N/record', 'N/search',
+    '../Helper/commonTool.js'
+], function (url, log, https, dialog, record, search, commonTool) {
 
 
     function pageInit(scriptContext) {
@@ -172,6 +174,76 @@ define(['N/url', 'N/log', 'N/https', 'N/ui/dialog'], function (url, log, https, 
 
     }
 
+
+    /**
+     * 
+     * @param {*} recId 
+     */
+    function CreateFulRec(recId) {
+
+        commonTool.startMask('生成发运记录中,请耐心等待');
+
+        record.submitFields({
+            type: "transferorder",
+            id: recId,
+            values: {
+                memo: ""
+            }
+        });
+
+        var fulRecId;
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recId
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                }
+            ],
+            columns: [
+                "custbody_dps_fu_rec_link"
+            ]
+        }).run().each(function (rec) {
+            fulRecId = rec.getValue("custbody_dps_fu_rec_link")
+        });
+        commonTool.endMask();
+        if (fulRecId) {
+            dialog.alert({
+                title: '创建发运记录成功',
+                message: '创建发运记录成功'
+            }).then(success).catch(failure);
+
+            function success(result) {
+                window.location.reload(true);
+            }
+
+            function failure(reason) {
+                console.log('Failure: ' + reason)
+            }
+        } else {
+            dialog.alert({
+                title: '创建发运记录失败',
+                message: '创建发运记录失败'
+            }).then(success).catch(failure);
+
+            function success(result) {
+                window.location.reload(true);
+            }
+
+            function failure(reason) {
+                console.log('Failure: ' + reason)
+            }
+        }
+
+        console.log('创建', recId);
+
+    }
+
     return {
         pageInit: pageInit,
         fieldChanged: fieldChanged,
@@ -184,7 +256,8 @@ define(['N/url', 'N/log', 'N/https', 'N/ui/dialog'], function (url, log, https, 
         validateDelete: validateDelete,
         saveRecord: saveRecord,
         getPalletLabels: getPalletLabels,
-        fulfillment: fulfillment
+        fulfillment: fulfillment,
+        CreateFulRec: CreateFulRec
     };
 
 });

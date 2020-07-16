@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-11 15:50:52
+ * @LastEditTime   : 2020-07-15 11:38:14
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -83,18 +83,23 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }
                 }
             } else {
-                try {
-                    var form = context.form;
-                    form.addButton({
-                        id: 'custpage_dps_li_create_rec_button',
-                        label: '生成发运记录',
-                        functionName: "CreateFulRec(" + bl_rec.id + ")"
-                    });
 
-                    form.clientScriptModulePath = './dps.funfillment.record.transferorder.cs.js';
+                var orderstatus = bl_rec.getValue('orderstatus');
+                if (orderstatus == 'B') {
+                    // log.debug('status', status);
+                    try {
+                        var form = context.form;
+                        form.addButton({
+                            id: 'custpage_dps_li_create_rec_button',
+                            label: '生成发运记录',
+                            functionName: "CreateFulRec(" + bl_rec.id + ")"
+                        });
 
-                } catch (error) {
-                    log.audit('error', error);
+                        form.clientScriptModulePath = './dps.funfillment.record.transferorder.cs.js';
+
+                    } catch (error) {
+                        log.audit('error', error);
+                    }
                 }
             }
         }
@@ -662,13 +667,14 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             body: JSON.stringify(data)
         });
         log.debug('response', JSON.stringify(response));
-        retdata = JSON.parse(response.body);
-        if (response.code == 0) {
+        if (response.code == 200) {
+            retdata = JSON.parse(response.body);
             // 调用成功
             code = retdata.code;
         } else {
             code = 1;
             // 调用失败
+            retdata = "请求失败";
         }
         message.code = code;
         message.data = retdata;
@@ -779,8 +785,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 } else {
                     shippingType = 20;
                 }
-
-
 
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
@@ -1140,11 +1144,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
      * @param {*} rec
      */
     function createFulRecord(rec) {
+
+        var rec_account = rec.getValue('custbody_order_locaiton');
         var objRecord;
         var link = rec.getValue('custbody_dps_fu_rec_link');
         var link_status;
         if (link) {
-
             search.create({
                 type: 'customrecord_dps_shipping_record',
                 filters: [{
@@ -1203,7 +1208,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             fieldId: 'custrecord_dps_shipping_rec_shipmentsid',
             value: shipment_id
         }); // 设置shipmentID
-
 
         var numLines = rec.getLineCount({
             sublistId: 'item'
@@ -1419,47 +1423,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             value: rec.id
         });
 
-        // // 2020.6.10 16:50
-        // var target_loca = rec.getValue('custbody_actual_target_warehouse')
-        // search.create({
-        //     type: "location",
-        //     filters: [{
-        //         name: "internalidnumber",
-        //         operator: "equalto",
-        //         values: target_loca
-        //     }],
-        //     columns: [{
-        //             name: "custrecord_aio_contact_information"
-        //         },
-        //         {
-        //             name: "custrecord_aio_sender_address"
-        //         },
-        //         {
-        //             name: "custrecord_aio_sender_city"
-        //         },
-        //         {
-        //             name: "custrecord_aio_country_sender"
-        //         },
-        //         {
-        //             name: "custrecord_aio_sender_address_code"
-        //         },
-        //         {
-        //             name: "custrecord_aio_sender_name"
-        //         },
-        //         {
-        //             name: "custrecord_aio_sender_state"
-        //         }
-        //     ]
-        // }).run().each(function (e) {
-        //     for (key in receiptInfo_corr) {
-        //         objRecord.setValue({
-        //             fieldId: key,
-        //             value: e.getValue(receiptInfo_corr[key])
-        //         });
-        //     }
-        // })
-        // // ===============================================
-
         objRecord.setValue({
             fieldId: 'custrecord_dps_shipping_rec_to_location',
             value: target_loca
@@ -1494,6 +1457,68 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             fieldId: 'custrecord_dps_shipping_r_channelservice',
             value: rec.getValue('custbody_dps_transferor_channelservice')
         });
+
+
+        var itemToArr = [],
+            ToLimit = 3999,
+            itemObj = {},
+            itemToObj = {};
+        search.create({
+            type: rec.type,
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: rec.id
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                }
+            ],
+            columns: [
+                "item",
+            ]
+        }).run().each(function (rec) {
+            itemToArr.push(rec.getValue('item'));
+            itemObj[rec.getValue('item')] = rec.getValue('item');
+            return --ToLimit > 0;
+        });
+
+
+        var skuLimit = 3999;
+
+        if (rec_account) {
+            search.create({
+                type: 'customrecord_aio_amazon_seller_sku',
+                filters: [{
+                        name: 'custrecord_ass_sku',
+                        operator: 'anyof',
+                        values: itemToArr
+                    },
+                    {
+                        name: 'custrecord_ass_account',
+                        operator: 'anyof',
+                        values: rec_account
+                    }
+                ],
+                columns: [
+                    'name', "custrecord_ass_sku"
+                ]
+            }).run().each(function (rec) {
+                var nsItem = rec.getValue('custrecord_ass_sku');
+                itemToObj[nsItem] = rec.getValue('name');
+                return --skuLimit > 0;
+            });
+
+        }
+
+
         for (var i = 0; i < numLines; i++) {
             var item_sku = rec.getSublistValue({
                 sublistId: 'item',
@@ -1505,19 +1530,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 fieldId: 'item',
                 line: i
             });
-            // if (account) {
-            //     try {
-            //         item_sku = searchItemSku(item, account);
-            //     } catch (error) {
-            //         log.error('获取货品对应的SKU出错了', error);
-            //     }
-            // }
-            objRecord.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
-                fieldId: 'custrecord_dps_ship_record_sku_item',
-                line: i,
-                value: item_sku
-            });
+
+            if (itemToObj && itemToObj[item]) {
+                objRecord.setSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_ship_record_sku_item',
+                    line: i,
+                    value: itemToObj[item]
+                });
+            }
             objRecord.setSublistValue({
                 sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
                 fieldId: 'custrecord_dps_shipping_record_item',

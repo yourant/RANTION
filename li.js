@@ -2,12 +2,302 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-07-10 17:34:24
+ * @LastEditTime   : 2020-07-15 20:23:01
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
+
+
+
+{
+    "requestId": "202007151941",
+    "requestBody": {
+        "detailList": [{
+                "detailRecordList": [{
+                    "barcode": "101030",
+                    "positionCode": "HD2A0105",
+                    "shelvesQty": 10,
+                    "sku": "101030",
+                    "type": 2
+                }],
+                "planQty": 10,
+                "receivedQty": 10,
+                "shelvesQty": 10,
+                "sku": "101030",
+                "unqualifiedQty": 0
+            },
+            {
+                "detailRecordList": [{
+                    "barcode": "101001",
+                    "positionCode": "HD2A0104",
+                    "shelvesQty": 10,
+                    "sku": "101001",
+                    "type": 2
+                }],
+                "planQty": 10,
+                "receivedQty": 10,
+                "shelvesQty": 10,
+                "sku": "101001",
+                "unqualifiedQty": 0
+            }
+        ],
+        "sourceNo": "LN202007150004",
+        "sourceType": 10,
+        "remark": "DPS LI TEST"
+    }
+}
+
+交货单入库回传
+a = {
+    "requestId": "202007151933",
+    "requestBody": {
+        "detailList": [{
+                "detailRecordList": [{
+                    "barcode": "101030",
+                    "positionCode": "HD2A0105",
+                    "shelvesQty": 1,
+                    "sku": "101030",
+                    "type": 2
+                }],
+                "planQty": 1,
+                "receivedQty": 1,
+                "shelvesQty": 1,
+                "sku": "101030",
+                "unqualifiedQty": 0
+            },
+            {
+                "detailRecordList": [{
+                    "barcode": "101001",
+                    "positionCode": "HD2A0104",
+                    "shelvesQty": 1,
+                    "sku": "101001",
+                    "type": 2
+                }],
+                "planQty": 1,
+                "receivedQty": 1,
+                "shelvesQty": 1,
+                "sku": "101001",
+                "unqualifiedQty": 0
+            }
+        ],
+        "sourceNo": "LN202007150004",
+        "sourceType": 10,
+        "remark": "DPS LI TEST"
+    }
+}
+
+
+
+
+
+OutMasterResultNsDto: {
+    delivery(boolean, optional),
+    deliveryTime(string, optional): 发货时间,
+    skuList(Array[string], optional): 发运失败时SKU集合,
+    sourceNo(string, optional): 来源单号,
+    sourceType(integer, optional): 来源类型,
+    storageList(Array[StorageResultNsDto], optional): 发货SKU库存明细,
+    weight(number, optional): 发货包裹重量
+}
+StorageResultNsDto: {
+    barcode(string): 条码 装箱条码 / SKU,
+    positionCode(string): 库位编号,
+    qty(integer): 数量,
+    sku(string): SKU,
+    type(integer): 类型 1: 已装箱 2: 未装箱
+}
+
+
+// 出库回传
+a = {
+    "requestId": "202007151119",
+    "requestBody": {
+        "delivery": true,
+        "deliveryTime": "2020-07-15 17:59",
+        "skuList": [],
+        "sourceNo": "296832",
+        "sourceType": 10,
+        "storageList": [{
+                "barcode": "101001",
+                "positionCode": "HD2A0202",
+                "qty": 1,
+                "sku": "101001",
+                "type": 2
+            },
+            {
+                "barcode": "101030",
+                "positionCode": "HD2A0203",
+                "qty": 1,
+                "sku": "101030",
+                "type": 2
+            }
+        ],
+        "weight": 10
+    }
+}
+
+
+
+// 入库回传
+a = {
+    "requestId": "202007151119",
+    "requestBody": {
+        "detailList": [{
+                "detailRecordList": [{
+                    "barcode": "101030",
+                    "positionCode": "HD2A0104",
+                    "shelvesQty": 1,
+                    "sku": "101030",
+                    "type": 2
+                }],
+                "planQty": 1,
+                "receivedQty": 1,
+                "shelvesQty": 1,
+                "sku": "101030",
+                "unqualifiedQty": 0
+            },
+            {
+
+                "detailRecordList": [{
+                    "barcode": "101001",
+                    "positionCode": "HD2A0104",
+                    "shelvesQty": 1,
+                    "sku": "101001",
+                    "type": 2
+                }],
+
+                "planQty": 1,
+                "receivedQty": 1,
+                "shelvesQty": 1,
+                "sku": "101001",
+                "unqualifiedQty": 0
+            }
+        ],
+        "sourceNo": 610500,
+        "sourceType": 20,
+        "remark": "备注"
+    }
+
+}
+
+
+
+
+
+InDetailResultDto: {
+    detailRecordList(Array[InDetailRecordResultDto]): sku上架明细,
+    planQty(integer): 计划入库数,
+    receivedQty(integer): 实收数量,
+    shelvesQty(integer): 上架数量,
+    sku(string): sku,
+    unqualifiedQty(integer): 质检不合格数
+}
+InDetailRecordResultDto: {
+    barcode(string): 条码 装箱条码 / SKU,
+    positionCode(string): 库位编号,
+    shelvesQty(integer): 上架数量,
+    sku(string): sku,
+    type(integer): 类型 1: 已装箱 2: 未装箱
+}
+}
+
+
+
+
+
+InMasterResultDto: {
+    detailList(Array[InDetailResultDto]): 入库明细,
+    sourceNo(string): 来源单号,
+    sourceType(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 盘盈入库,
+    remark: 备注
+}
+InDetailResultDto: {
+    detailRecordList(Array[InDetailRecordResultDto]): sku上架明细,
+    planQty(integer): 计划入库数,
+    receivedQty(integer): 实收数量,
+    shelvesQty(integer): 上架数量,
+    sku(string): sku,
+    unqualifiedQty(integer): 质检不合格数
+}
+InDetailRecordResultDto: {
+    barcode(string): 条码 装箱条码 / SKU,
+    positionCode(string): 库位编号,
+    shelvesQty(integer): 上架数量,
+    sku(string): sku,
+    type(integer): 类型 1: 已装箱 2: 未装箱
+}
+
+
+
+InMasterResultDto: {
+    detailList(Array[InDetailResultDto]): 入库明细,
+    sourceNo(string): 来源单号,
+    sourceType(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 盘盈入库,
+    remark: 备注
+}
+InDetailResultDto: {
+    detailRecordList(Array[InDetailRecordResultDto]): sku上架明细,
+    planQty(integer): 计划入库数,
+    receivedQty(integer): 实收数量,
+    shelvesQty(integer): 上架数量,
+    sku(string): sku,
+    unqualifiedQty(integer): 质检不合格数
+}
+InDetailRecordResultDto: {
+    barcode(string): 条码 装箱条码 / SKU,
+    positionCode(string): 库位编号,
+    shelvesQty(integer): 上架数量,
+    sku(string): sku,
+    type(integer): 类型 1: 已装箱 2: 未装箱
+}
+
+
+
+var body = `<?xml version="1.0"?>
+<!-- Revision="$Revision: #3 $" -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+    <xsd:include schemaLocation="amzn-base.xsd"/>
+    <xsd:element name="CartonContentsRequest">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="ShipmentId">
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                            <xsd:pattern value="FBA[A-Z0-9]+" />
+                        </xsd:restriction>
+                    </xsd:simpleType>
+                </xsd:element>
+                <xsd:element name="NumCartons" type="xsd:positiveInteger" />
+                <xsd:element name="Carton" maxOccurs="unbounded">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="CartonId">
+                                <xsd:simpleType>
+                                    <xsd:restriction base="xsd:string">
+                                        <xsd:pattern value="[a-zA-Z0-9]+" />
+                                    </xsd:restriction>
+                                </xsd:simpleType>
+                            </xsd:element>
+                            <xsd:element name="Item" maxOccurs="200">
+                                <xsd:complexType>
+                                    <xsd:sequence>
+                                        <xsd:element ref="SKU"/>
+                                        <xsd:element name="QuantityShipped" type="xsd:positiveInteger" />
+                                        <xsd:element name="QuantityInCase" type="xsd:positiveInteger" default="1"/>
+                                        <xsd:element name="ExpirationDate" type="xsd:date" minOccurs="0" />
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+</xsd:schema>`
+
 
 
 

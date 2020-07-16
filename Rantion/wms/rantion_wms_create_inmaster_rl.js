@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-12 10:32:54
+ * @LastEditTime   : 2020-07-11 17:26:42
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -25,7 +25,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
         "estimateTime", //(string): 预计到货时间,
         "inspectionType", //(integer): 质检类型 10: 全检 20: 抽检,
         "planQty", //(integer): 计划入库数量,
-        // "purchaser", //(string): 采购员,
+        "purchaser", //(string): 采购员,
         "sourceNo", //(string): 来源单号,
         "sourceType", //(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 借调入库,
         "taxFlag", // (integer): 是否含税 0: 否1: 是,
@@ -41,7 +41,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
         "estimateTime": "预计到货时间 不存在", //(string): 预计到货时间,
         "inspectionType": "质检类型 不存在", //(integer): 质检类型 10: 全检 20: 抽检,
         "planQty": '计划入库数量 不存在', //(integer): 计划入库数量,
-        // "purchaser": '采购订单 采购员不存在', //(string): 采购员,
+        "purchaser": '采购订单 采购员不存在', //(string): 采购员,
         "sourceNo": '来源单号 不存在', //(string): 来源单号,
         "sourceType": '来源类型 不存在', //(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 借调入库,
         // "taxFlag": '含税 不存在', // (integer): 是否含税 0: 否1: 是,
@@ -138,7 +138,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
                     var inspectionType;
 
-
                     search.create({
                         type: 'customrecord_dps_delivery_order_item',
                         filters: [{
@@ -211,8 +210,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                             }, //地点
                         ]
                     }).run().each(function (rec) {
-
-                        // createdby = rec.getValue('createdby');
                         order_po_no = rec.getValue({
                             name: "custrecord_purchase_order_no",
                             join: "custrecord_dps_delivery_order_id"
@@ -313,8 +310,9 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         });
                         return true;
                     });
-
-                    // log.debug('createdby', createdby);
+                    if (!boxNum) {
+                        boxNum = 0;
+                    }
                     data['boxNum'] = boxNum;
                     data['planQty'] = planQty;
 
@@ -371,9 +369,6 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     }
                     data['skuList'] = item_arr;
                     data['purchaser'] = order_data.getText('employee'); //采购员
-                    // data['purchaser'] = order_data.getText('owner'); //采购员
-
-                    log.debug("order_data.getText('createdby ')", order_data.getText('owner'))
                     log.debug('data', data);
 
                     var flag = 0,

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-11 19:35:28
+ * @LastEditTime   : 2020-07-13 15:47:36
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -182,7 +182,7 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                     }
                 }
 
-                if (bf_rec.type == 'customrecord_dps_delivery_order' && type != 'delete') {
+                if (bf_rec.type == 'customrecord_dps_delivery_order' && type != 'delete' && type != 'create') {
                     var len = bf_rec.getLineCount({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id'
                     });
@@ -213,7 +213,6 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                             });
                         }
                     }
-
 
                 }
                 if (bf_rec.type == 'customrecord_dps_delivery_order' && context.type == 'delete') {
@@ -327,6 +326,116 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
 
                     log.debug('开始反写数据, 删除记录', 'End');
                 }
+
+                var userId = runtime.getCurrentUser();
+                // add 2020 - 07 - 13 14: 34
+                if (bf_rec.type == 'customrecord_dps_delivery_order' && context.type == 'create' /* && userId.id == 911 */ ) {
+
+                    var purchase_order_no = bf_rec.getValue('custrecord_purchase_order_no');
+
+                    var flag = false;
+                    var itemArr = [],
+                        limit = 3999;
+                    search.create({
+                        type: 'purchaseorder',
+                        filters: [{
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: [purchase_order_no]
+                            },
+                            {
+                                name: "mainline",
+                                operator: 'is',
+                                values: ["F"]
+                            },
+                            {
+                                name: "taxline",
+                                operator: 'is',
+                                values: ["F"]
+                            }
+                        ],
+                        columns: [
+                            "item", "quantity", "custcol_dps_undelivered_quantity"
+                        ]
+                    }).run().each(function (rec) {
+                        var it = {
+                            itemId: rec.getValue('item'),
+                            qty: rec.getValue('quantity'),
+                            unqty: rec.getValue('custcol_dps_undelivered_quantity')
+                        }
+                        itemArr.push(it);
+                        return --limit > 0;
+
+                    });
+
+                    log.debug('itemArr', itemArr);
+                    var len = bf_rec.getLineCount({
+                        sublistId: 'recmachcustrecord_dps_delivery_order_id'
+                    });
+                    for (var i = 0; i < len; i++) {
+                        var item_sku = bf_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_item_sku',
+                            line: i
+                        });
+
+                        for (var j = 0, jLen = itemArr.length; j < jLen; j++) {
+
+                            var temp = itemArr[j];
+
+                            log.debug('temp.itemId', temp.itemId);
+                            log.debug('item_sku', item_sku);
+                            if (temp.itemId == item_sku) {
+
+                                if (temp.unqty > 0) {
+
+                                    log.audit("设置行的值", "LI")
+                                    // 交货单 交货数量
+                                    var item_quantity = bf_rec.getSublistValue({
+                                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                        fieldId: 'custrecord_item_quantity',
+                                        line: i
+                                    });
+
+                                    log.debug('LI item_quantity: ' + item_quantity, "temp.unqty: " + temp.unqty)
+
+                                    var newQty = item_quantity;
+                                    if (item_quantity >= temp.unqty) {
+                                        newQty = temp.unqty;
+                                    }
+
+                                    log.debug("LI newQty", newQty);
+                                    // 交货单 原交货数量
+                                    bf_rec.setSublistValue({
+                                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                        fieldId: 'custrecord_item_quantity',
+                                        value: newQty,
+                                        line: i
+                                    });
+                                    // 交货单 原交货数量
+                                    bf_rec.setSublistValue({
+                                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                        fieldId: 'custrecord_hide_quantity',
+                                        value: temp.unqty,
+                                        line: i
+                                    });
+
+                                } else {
+                                    log.audit("移除行", "LI")
+                                    bf_rec.removeLine({
+                                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                        line: i,
+                                        ignoreRecalc: true
+                                    });
+                                }
+
+                            }
+                        }
+
+                    }
+
+                }
+
             } catch (error) {
                 log.error('beforeSubmit 设置交货单的值, 出错了', error);
             }
@@ -544,6 +653,14 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                                         line: lineNumber
                                     });
                                     var y_qty = Number(quantity_delivered) + Number(hide_quantity);
+                                    y_qty = Number(quantity_delivered) + Number(item_quantity);
+
+                                    /*
+                                    var userId = runtime.getCurrentUser();
+                                    if (userId.id == 911) {
+                                        y_qty = Number(quantity_delivered) + Number(item_quantity);
+                                    }
+                                    */
                                     // 已交货数量
                                     l_po.setSublistValue({
                                         sublistId: 'item',

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-07-09 16:50:23
+ * @LastEditTime   : 2020-07-15 14:26:00
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -120,6 +120,8 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
 
             if (rec_status == 6 || rec_status == 7) {
 
+
+                /* HACK 由出库回传接口直接履行
                 try {
 
                     var Laf_rec = record.load({
@@ -140,6 +142,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                 } catch (error) {
                     log.error('出错了', error);
                 }
+                */
             }
             if (rec_status == 3) {
 
@@ -758,6 +761,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
         } else {
             code = 1;
             // 调用失败
+            retdata = "请求失败";
         }
         message.code = code;
         message.data = retdata;

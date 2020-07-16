@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-10 17:33:56
+ * @LastEditTime   : 2020-07-15 09:52:58
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -572,13 +572,27 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 if (rec_status == 12) { // 12	WMS已装箱
                     var shipment_label_file = af_rec.getValue('custrecord_dps_shipment_label_file');
                     log.debug('shipment_label_file', shipment_label_file);
+
+
+                    var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account');
+                    var rec_shipmentsid = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+
+                    /*
+                    var gerep = core.amazon.submitCartonContent(rec_account, af_rec.id, rec_shipmentsid);
+
+                    log.audit('gerep', gerep);
+
+                    return;
+
+                    // edit 2020 - 07 - 13
+
+                    */
+
                     if ((tranor_type == 1 || tranor_type == 3) && !shipment_label_file) {
 
-                        var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account');
 
                         log.debug('rec_account', rec_account);
 
-                        var rec_shipmentsid = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
 
                         log.debug('rec_shipmentsid', rec_shipmentsid);
 
@@ -590,7 +604,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                         if (rec_shipmentsid) {
                             try {
-                                getRe = core.amazon.getPalletLabels(rec_account, total_number, rec_shipmentsid);
+                                getRe = core.amazon.GetPackageLabels(rec_account, total_number, rec_shipmentsid);
 
                             } catch (error) {
                                 log.error('获取箱唛出错了', error);
@@ -1400,68 +1414,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 data['allocationDetailCreateRequestDtos'] = item_info;
             }
 
-            // if (tranType == 1) {
-            //     var new_limit = 3999;
-            //     search.create({
-            //         type: 'customrecord_dps_amazon_seller_sku',
-            //         filters: [{
-            //                 name: "custrecord_dps_amazon_ns_sku",
-            //                 operator: 'anyof',
-            //                 values: itemArr
-            //             },
-            //             {
-            //                 name: 'custrecord_dps_amazon_sku_account',
-            //                 operator: 'anyof',
-            //                 values: fbaAccount
-            //             }
-            //         ],
-            //         columns: [{
-            //                 name: "custrecord_dps_amazon_sku_number",
-            //             },
-            //             {
-            //                 name: "custrecord_dps_amazon_ns_sku",
-            //             },
-            //             {
-            //                 name: "custrecord_ass_asin",
-            //                 join: "custrecord_dps_amazon_sku_number",
-            //             },
-            //             {
-            //                 name: "name",
-            //                 join: "custrecord_dps_amazon_sku_number",
-            //             },
-            //             {
-            //                 name: "custrecord_ass_fnsku",
-            //                 join: "custrecord_dps_amazon_sku_number",
-            //             }
-            //         ]
-            //     }).run().each(function (rec) {
-
-            //         var it = rec.getValue('custrecord_dps_amazon_ns_sku');
-            //         item_info.forEach(function (item, key) {
-            //             if (item.itemId == it) {
-
-            //                 item.asin = rec.getValue({
-            //                     name: "custrecord_ass_asin",
-            //                     join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-            //                 });
-            //                 item.fnsku = rec.getValue({
-            //                     name: "custrecord_ass_fnsku",
-            //                     join: "CUSTRECORD_DPS_AMAZON_SKU_NUMBER",
-            //                 })
-            //                 item.msku = rec.getValue('custrecord_dps_amazon_sku_number');
-
-            //                 newItemInfo.push(item);
-            //             }
-            //         });
-            //         return --new_limit > 0;
-            //     });
-
-            //     log.debug('newItemInfo', newItemInfo);
-
-            //     data['allocationDetailCreateRequestDtos'] = newItemInfo;
-            // } else {
-            //     data['allocationDetailCreateRequestDtos'] = item_info;
-            // }
 
             log.audit('newItemInfo', newItemInfo);
 
@@ -1874,13 +1826,14 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             body: JSON.stringify(data)
         });
         log.debug('response', JSON.stringify(response));
-        retdata = JSON.parse(response.body);
-        if (response.code == 0) {
+        if (response.code == 200) {
             // 调用成功
+            retdata = JSON.parse(response.body);
             code = retdata.code;
         } else {
             code = 1;
             // 调用失败
+            retdata = "请求失败"
         }
         message.code = code;
         message.data = retdata;

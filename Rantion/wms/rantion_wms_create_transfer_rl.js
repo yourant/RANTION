@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-02 15:50:12
+ * @LastEditTime   : 2020-07-14 21:07:27
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -510,8 +510,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             body: JSON.stringify(data)
         });
         log.debug('response', JSON.stringify(response));
-        retdata = JSON.parse(response.body);
         if (response.code == 200) {
+            retdata = JSON.parse(response.body);
             // 调用成功
             code = retdata.code;
         } else {

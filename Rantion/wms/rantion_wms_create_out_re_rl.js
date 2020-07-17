@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-16 10:42:15
+ * @LastEditTime   : 2020-07-16 14:48:01
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_re_rl.js
@@ -180,7 +180,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                             toType: 'itemfulfillment'
                         });
 
-                        storageList.forEach(function (stoItem) {
+                        storageList.map(function (stoItem) {
                             var sku = stoItem.sku,
                                 positionCode = stoItem.positionCode,
                                 barcode = stoItem.barcode,
@@ -273,7 +273,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                     retjson.msg = "传入的数据异常";
                 }
                 // retjson.msg = '操作成功';
-                // requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "outMaster");
+                requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "outMaster");
             }
         }
         return JSON.stringify(retjson);
@@ -334,7 +334,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
             value: 'C'
         });
 
-        itemList.forEach(function (item) {
+        itemList.map(function (item) {
 
             log.debug('item', item);
             for (var i = 0, iLen = itemArr.length; i < iLen; i++) {

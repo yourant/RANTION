@@ -34,7 +34,7 @@ define(['N/runtime'], function(runtime) {
         managerRoleId = 3;
         vendorRoleId = 16;
         countryCodeChinaID = 88;
-        WMS_Debugging_URL = 'http://47.107.254.110:18082/rantion-wms';
+        WMS_Debugging_URL = 'http://wms.rantion-admin.com/rantion-wms';
         panying_transfer_type = 32;
         deficit_transfer_type = 33;
         invoice_record_id = 185;

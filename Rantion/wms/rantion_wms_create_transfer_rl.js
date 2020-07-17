@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-14 21:07:27
+ * @LastEditTime   : 2020-07-16 16:43:03
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -126,11 +126,11 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     name: 'custrecord_ls_bubble_count',
                     join: 'custrecord_dps_shipping_r_channelservice'
                 }));
-                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
-                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');
+                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
                 data["logisticsLabelPath"] = 'logisticsLabelPath';
 
-                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');;
                 // data["logisticsProviderCode"] = rec.getValue({
                 //     name: 'custrecord_ls_service_code',
                 //     join: 'custrecord_dps_shipping_r_channelservice'
@@ -151,7 +151,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 data["logisticsFlag"] = logiFlag;
 
 
-                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
+                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
 
                 data["sourceWarehouseCode"] = rec.getValue({
                     name: 'custrecord_dps_wms_location',
@@ -510,8 +510,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             body: JSON.stringify(data)
         });
         log.debug('response', JSON.stringify(response));
+        retdata = JSON.parse(response.body);
         if (response.code == 200) {
-            retdata = JSON.parse(response.body);
             // 调用成功
             code = retdata.code;
         } else {

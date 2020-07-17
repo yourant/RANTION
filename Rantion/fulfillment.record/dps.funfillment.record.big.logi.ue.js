@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-15 09:52:58
+ * @LastEditTime   : 2020-07-16 20:42:11
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -17,8 +17,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     'SuiteScripts/dps/logistics/openapi/dps_openapi_request.js',
     'SuiteScripts/dps/logistics/yanwen/dps_yanwen_request.js',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
-    'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml", 'N/runtime'
-], function (record, search, core, log, http, jetstar, openapi, yanwen, endicia, Moment, file, xml, runtime) {
+    'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml", 'N/runtime', '../Helper/config'
+], function (record, search, core, log, http, jetstar, openapi, yanwen, endicia, Moment, file, xml, runtime, config) {
 
     function beforeLoad(context) {
 
@@ -32,7 +32,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         if (action_type == 'view') {
 
             var customs_information, bigRec_status, tracking_number, logistics_no, label, channel, logistStatus;
-
             search.create({
                 type: bf_cur.type,
                 filters: [{
@@ -56,11 +55,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 logistStatus = rec.getValue('custrecord_dps_push_state');
             });
 
-            // var customs_information = bf_cur.getValue('custrecord_dps_shipping_rec_information');
-
             log.debug('customs_information', customs_information);
 
-            // var bigRec_status = bf_cur.getValue('custrecord_dps_shipping_rec_status');
             log.debug('beforeLoad bigRec_status', bigRec_status);
             if (type == 'view' && (bigRec_status == 4 || bigRec_status == 12) && !logistics_no && channel == 1) {
                 form.addButton({
@@ -134,11 +130,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             }
             form.clientScriptModulePath = './dps.funfillment.record.big.logi.cs.js';
         }
-
     }
 
     function beforeSubmit(context) {
-        // log.debug('beforeSubmit', context.newRecord);
+
     }
 
     function afterSubmit(context) {
@@ -146,41 +141,36 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         var af_rec1 = context.newRecord;
         var actionType = context.type;
 
-        // log.audit('af_rec1', af_rec1);
-
-        af_rec = record.load({
-            type: af_rec1.type,
-            id: af_rec1.id
-        });
-
-        // 1	未发运，等待获取物流单号        2	匹配物流失败，手动处理      3	已获取物流单号，等待发运
-        // 4	获取物流信息失败               6	WMS已发运                 7	WMS已部分发运
-        // 8	WMS发运失败                 9	未发运，等待获取Shipment    10	已获取Shipment，等待装箱
-        // 11	申请Shipment失败            12	WMS已装箱                   13	WMS已部分装箱
-        // 14	已推送WMS                   15	已创建入库计划              16	已创建入库件
-        // 17	已获取标签                  18	已更新入库件                19	已推送 标签文件
-        // 20	推送标签文件至 WMS 失败         21	等待获取物流面单            22	获取标签文件失败
-
-        var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
-
-        log.audit('rec_status', rec_status);
-
-        // 1	FBA调拨         2	自营仓调拨      3	跨仓调拨
-        // 4	移库            5	公司间交易      6	报损        7	供应商直发
-
-        var tranor_type = af_rec.getValue('custrecord_dps_ship_record_tranor_type'); // 调拨单类型
-        log.debug('tranor_type', tranor_type);
-
-        var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account'); // 店铺
-        var type = 10;
-
-        var tra_order_link = af_rec.getValue('custrecord_dps_trans_order_link');
-
         if (actionType != 'delete') { // 删除动作, 不执行
+
+            af_rec = record.load({
+                type: af_rec1.type,
+                id: af_rec1.id
+            });
+
+            // 1 未发运， 等待获取物流单号      2 匹配物流失败， 手动处理       3 等待推送WMS发运
+            // 4 获取物流信息失败       5 请输入 shipmentId     6 WMS已发运
+            // 7 WMS已部分发运      8 WMS发运失败       9 未发运， 等待获取Shipment
+            // 10 已获取Shipment号， 等待装箱       11 申请Shipment失败     12 WMS已装箱
+            // 13 WMS已部分装箱     14 已推送WMS        15 已创建入库计划
+            // 16 已创建入库件      17 已获取标签       18 已更新入库件
+            // 19 已推送 标签文件       20 推送标签文件至 WMS 失败      21 等待获取物流面单
+            // 22 获取标签文件失败      23 渠道退件已入库       24 已上传装箱信息        25 上传装箱信息成功
+
+            var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
+            log.audit('rec_status', rec_status);
+
+            // 1 FBA调拨    2 自营仓调拨    3 跨仓调拨  4  移库  5  公司间交易   6  报损  7  供应商直发
+            var tranor_type = af_rec.getValue('custrecord_dps_ship_record_tranor_type'); // 调拨单类型
+            log.debug('tranor_type', tranor_type);
+
+            var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account'); // 店铺
+            var type = 10;
+
+            var tra_order_link = af_rec.getValue('custrecord_dps_trans_order_link');
             try {
                 var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
                 if (rec_status == 6 || rec_status == 7) { // 陆行对应的库存转移订单  6	WMS已发运  7	WMS已部分发运
-
 
                     var toId = af_rec.getValue('custrecord_dps_shipping_rec_order_num');
                     try {
@@ -197,13 +187,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         log.error('设置库存成本出错了', error);
                     }
 
-
-
-                    // try {
-                    //     itemfulfillment(af_rec, tra_order_link);
-                    // } catch (error) {
-                    //     log.debug('尝试陆行订单出错', error)
-                    // }
                 }
                 var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
                 if (rec_status == 3 || rec_status == 10) { //3	已获取物流单号，等待发运    10	已获取Shipment，等待装箱
@@ -363,7 +346,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 rep = response;
                             }
 
-
                             log.debug('createInboundShipmentPlan response', response);
                             if (util.isArray(response)) {
                                 log.debug('rep', rep);
@@ -403,12 +385,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         var newCi = record.create({
                                             type: 'customrecord_dps_port'
                                         });
-
                                         newCi.setValue({
                                             fieldId: 'name',
                                             value: City
                                         });
-
                                         cityId = newCi.save();
                                     }
                                 }
@@ -429,35 +409,20 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         var newCode = record.create({
                                             type: 'customrecord_country_code'
                                         });
-
                                         newCode.setValue({
                                             fieldId: 'name',
                                             value: CountryCode
                                         });
-
                                         newCode.setValue({
                                             fieldId: 'custrecord_cc_country_code',
                                             value: CountryCode
                                         });
-
                                         countryId = newCode.save();
-
                                         log.debug('countryId', countryId);
                                     }
                                 }
 
-
-                                // "ShipToAddress": {
-                                //     "id": "",
-                                //     "Name": "LGB3",
-                                //     "AddressLine1": "4950 Goodman Way",
-                                //     "AddressLine2": "",
-                                //     "City": "Eastvale",
-                                //     "DistrictOrCounty": "",
-                                //     "StateOrProvinceCode": "CA",
-                                //     "CountryCode": "US",
-                                //     "PostalCode": "91752-5087"
-                                // }
+                                // "ShipToAddress": { "id": "", "Name": "LGB3", "AddressLine1": "4950 Goodman Way", "AddressLine2": "", "City": "Eastvale","DistrictOrCounty": "", "StateOrProvinceCode": "CA", "CountryCode": "US", "PostalCode": "91752-5087"  }
 
                                 var id = record.submitFields({
                                     type: 'customrecord_dps_shipping_record',
@@ -495,7 +460,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         }
                                     });
 
-
                                 } else {
                                     var id = record.submitFields({
                                         type: 'customrecord_dps_shipping_record',
@@ -529,7 +493,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         });
                                     }
                                 }
-
                                 log.debug('response1', response1);
 
                             } else {
@@ -543,9 +506,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         custrecord_dps_shipment_info: JSON.stringify(rep)
                                     }
                                 });
-
                                 ret.msg = rep;
-
                             }
 
                         } catch (error) {
@@ -559,10 +520,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     custrecord_dps_shipment_info: JSON.stringify(error.message)
                                 }
                             });
-
                         }
-
-
                     }
 
                 }
@@ -577,29 +535,52 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account');
                     var rec_shipmentsid = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
 
-                    /*
+                    // 上传装箱信息
                     var gerep = core.amazon.submitCartonContent(rec_account, af_rec.id, rec_shipmentsid);
 
-                    log.audit('gerep', gerep);
+                    log.audit('上传装箱信息提交状态 gerep', gerep);
 
-                    return;
+                    var submission_id;
 
-                    // edit 2020 - 07 - 13
+                    search.create({
+                        type: af_rec.type,
+                        filters: [{
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: af_rec.id
+                        }],
+                        columns: [{
+                            name: 'custrecord_aio_feed_submission_id',
+                            join: 'custrecord_dps_upload_packing_rec'
+                        }]
+                    }).run().each(function (rec) {
+                        submission_id = rec.getValue({
+                            name: 'custrecord_aio_feed_submission_id',
+                            join: 'custrecord_dps_upload_packing_rec'
+                        });
+                    })
 
-                    */
+                    // 获取本次装箱信息提交的状态
+                    var a = core.amazon.getFeedSubmissionList(accountId, [submission_id]);
 
-                    if ((tranor_type == 1 || tranor_type == 3) && !shipment_label_file) {
+                    var MessagesWithError = a[0].MessagesWithError;
+                    log.debug('上传装箱信息错误 MessagesWithError', MessagesWithError);
+                    var subFlag = true;
+                    if (MessagesWithError > 0) {
+                        subFlag = false;
+                        log.debug('上传装箱信息报错', '上传信息有误');
+                    }
 
+                    // 装箱信息上传处理成功标记
+                    var amazon_box_flag = af_rec.getValue('custrecord_dps_amazon_box_flag');
+
+                    if ((tranor_type == 1 || tranor_type == 3) && !shipment_label_file && (subFlag || amazon_box_flag)) { // 不存在标签文件, 并且上传装箱信息返回无报错, 获取箱唛标签
 
                         log.debug('rec_account', rec_account);
-
-
                         log.debug('rec_shipmentsid', rec_shipmentsid);
-
                         var total_number = af_rec.getValue('custrecord_dps_total_number');
                         log.debug('total_number', total_number);
                         var getRe;
-
                         log.debug('获取箱外标签', 'start');
 
                         if (rec_shipmentsid) {
@@ -609,14 +590,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             } catch (error) {
                                 log.error('获取箱唛出错了', error);
                             }
-
                             log.debug('getRe', getRe);
-
                             log.debug('获取箱外标签', 'end');
                             if (getRe) {
-
                                 var add;
-
                                 if (channel_dealer == 6) {
                                     try {
                                         add = getShipAddByContent({
@@ -637,27 +614,19 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 });
 
                                 var fileObj_id = fileObj.save();
-
                                 log.debug('fileObj_id', fileObj_id);
-
                                 var recValue = {};
-
                                 recValue.custrecord_dps_shipping_rec_status = 17;
                                 recValue.custrecord_dps_shipment_label_file = fileObj_id;
-
                                 if (add && add.length > 0) {
-
                                     recValue.custrecord_dps_recpir_flag = add ? add : '';
-
                                     var addLen = add.length;
-
                                     recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人 
                                     recValue.custrecord_dps_street1_dh = add[1]; // 街道1
                                     if (addLen > 6) {
                                         recValue.custrecord_dps_street2_dh = add[2]; // 街道2
                                     }
                                     recValue.custrecord_dps_state_dh = add[addLen - 3]; // 州
-
                                     var temp1 = add[addLen - 1],
                                         temp2 = '',
                                         temp3 = temp1.split(" ");
@@ -675,7 +644,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     if (seaCout) {
                                         recValue.custrecord_dps_recipient_country_dh = seaCout; // 国家
                                     }
-
                                     var searCity;
                                     try {
                                         searCity = searchCreateCity(add[addLen - 2]);
@@ -685,17 +653,18 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     if (searCity) {
                                         recValue.custrecord_dps_recipient_city_dh = searCity; // 城市
                                     }
-
                                 }
+
+                                recValue.custrecord_dps_amazon_box_flag = true;
 
                                 var id = record.submitFields({
                                     type: 'customrecord_dps_shipping_record',
                                     id: af_rec.id,
                                     values: recValue
                                 });
-
                                 log.debug('id', id);
 
+                                /* HACK 已有相关字段关联对应的箱唛文件
                                 var atid = record.attach({
                                     record: {
                                         type: 'file',
@@ -707,17 +676,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     }
                                 });
                                 log.debug('atid', atid);
+                                */
                                 var channel_dealer = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer');
-
                                 if (channel_dealer == 6) { // 渠道为龙舟的, 获取到标签文件之后, 直接推送标签文件给WMS
                                     labelToWMS(af_rec);
                                 }
-
-
                             }
-
                         }
-
                     }
 
                     if (shipment_label_file) {
@@ -982,7 +947,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         };
         var response = http.post({
             // url: 'http://47.107.254.110:8066/swagger-ui.html#!/36890299922604127861/pdfParseToTextUsingPOST',
-            url: 'http://47.107.254.110:18082/rantion-wms/common/pdfParseToText',
+            // url: 'http://47.107.254.110:18082/rantion-wms/common/pdfParseToText',
+            url: config.WMS_Debugging_URL + '/common/pdfParseToText',
             headers: headerInfo,
             body: JSON.stringify(data)
         });
@@ -1020,13 +986,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     }
 
 
+    /**
+     * 推送 WMS 装箱
+     * @param {Object} af_rec 
+     */
     function orderToWMS(af_rec) {
 
         // 推送 WMS, 获取装箱信息
-
         var rec_transport = af_rec.getValue('custrecord_dps_shipping_rec_transport');
         var shippingType;
-
         if (rec_transport == 1) {
             shippingType = 10;
         } else if (rec_transport == 3) {
@@ -1135,13 +1103,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     name: 'custrecord_ls_bubble_count',
                     join: 'custrecord_dps_shipping_r_channelservice'
                 }));
-                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
-                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');
+                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
                 data["logisticsLabelPath"] = 'logisticsLabelPath';
 
-
-                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
-
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');;
 
                 var channel_dealer = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
                 var channel_dealerText = rec.getText('custrecord_dps_shipping_r_channel_dealer');
@@ -1155,7 +1121,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 // FIXME 需要判断物流渠道是否存在面单文件, 
                 data["logisticsFlag"] = logiFlag;
 
-                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
+                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
 
                 data["sourceWarehouseCode"] = rec.getValue({
                     name: 'custrecord_dps_wms_location',
@@ -1187,10 +1153,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
 
                 var type = 10;
-                // 1 FBA调拨
-                // 2 自营仓调拨
-                // 3 跨仓调拨
-                // 4 移库
+                // 1 FBA调拨     2 自营仓调拨   3 跨仓调拨  4 移库
 
                 var waybillNo;
 
@@ -1283,10 +1246,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     },
                     'custrecord_dps_shipping_record_item', // 货品
 
-                    // {
-                    //     name: 'taxamount',
-                    //     join: 'custrecord_dps_trans_order_link'
-                    // }
                 ]
             }).run().each(function (rec) {
 
@@ -1394,10 +1353,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     var it = rec.getValue('custrecord_ass_sku');
                     item_info.forEach(function (item, key) {
 
-                        // log.debug('item.itemId: ' + item.itemId, "it: " + it);
-
                         if (item.itemId == it) {
-
                             item.asin = rec.getValue("custrecord_ass_asin");
                             item.fnsku = rec.getValue("custrecord_ass_fnsku")
                             item.msku = rec.getValue('name');
@@ -1406,17 +1362,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     });
                     return --new_limit > 0;
                 });
-
                 log.debug('newItemInfo', newItemInfo);
-
                 data['allocationDetailCreateRequestDtos'] = newItemInfo;
             } else {
                 data['allocationDetailCreateRequestDtos'] = item_info;
             }
 
-
             log.audit('newItemInfo', newItemInfo);
-
             if (Number(taxamount) > 0) {
                 data["taxFlag"] = 1;
             } else {
@@ -1450,6 +1402,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     }
 
 
+    /**
+     * 标签文件推送 WMS
+     * @param {Object} af_rec 
+     */
     function labelToWMS(af_rec) {
 
         // if (rec_status == 17) {
@@ -1545,7 +1501,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     'access_token': token
                 };
                 var response = http.post({
-                    url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                    url: config.WMS_Debugging_URL + '/allocationMaster/callbackForBox',
                     headers: headerInfo,
                     body: JSON.stringify(data)
                 });
@@ -1640,7 +1596,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     'access_token': token
                 };
                 var response = http.post({
-                    url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                    url: config.WMS_Debugging_URL + "/allocationMaster/callbackForBox",
                     headers: headerInfo,
                     body: JSON.stringify(data)
                 });
@@ -1730,7 +1686,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     'access_token': token
                 };
                 var response = http.post({
-                    url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                    url: config.WMS_Debugging_URL + "/allocationMaster/callbackForBox",
                     headers: headerInfo,
                     body: JSON.stringify(data)
                 });
@@ -1821,7 +1777,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             'access_token': token
         };
         var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster',
+            url: config.WMS_Debugging_URL + '/allocationMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });

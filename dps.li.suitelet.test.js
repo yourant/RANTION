@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-15 16:37:51
+ * @LastEditTime   : 2020-07-16 21:06:05
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -12,7 +12,9 @@
  *@NApiVersion 2.x
  *@NScriptType Suitelet
  */
-define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/file'], function (search, record, log, core, file) {
+define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/file',
+    'N/xml', './Rantion/Helper/tool.li'
+], function (search, record, log, core, file, xml, tool) {
 
     function onRequest(context) {
 
@@ -91,9 +93,58 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             return itemObj || false;
 
         }
+
+
+        var recType = "transferorder";
+        var recId = 2710;
+
+        var a = tool.searchTransactionItemInfo(recType, recId);
+
+        log.debug('a', a);
+
+
+        /*
         // try {
+        var a_response;
+        search.create({
+            type: 'customrecord_aio_amazon_feed',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 9
+            }],
+            columns: [
+                "custrecord_aio_feed_response"
+            ]
+        }).run().each(function (rec) {
+            a_response = rec.getValue('custrecord_aio_feed_response');
+        })
+
+        var res = xml.Parser.fromString({
+            text: a_response
+        });
+
+        var MessagesWithError = getTextContentSafe(res, 'MessagesWithError');
+
+        log.debug('MessagesWithError', MessagesWithError);
+
+        function getTextContentSafe(res, tag) {
+            return res.getElementsByTagName({
+                tagName: tag
+            }).length ? res.getElementsByTagName({
+                tagName: tag
+            })[0].textContent : '';
+            // return xml.XPath.select({ node: res, xpath: path }).length ? xml.XPath.select({ node: res, xpath: path })[0].textContent : '';
+        }
 
 
+
+
+
+
+
+
+        /*
 
 
         var a = [{
@@ -126,7 +177,23 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             }
         ]
 
+        var recType = "transferorder";
+        var recId = 585591;
 
+
+        recType = "salesorder";
+        recId = 610497;
+
+
+        recType = "purchaseorder";
+        recId = 629807;
+
+
+        var a = tool.searchTransactionItemObj(recType, recId);
+
+        log.debug('a', a);
+
+        return;
         // var b = SummaryBinBox(a);
 
         // log.audit("b", b);
@@ -397,3 +464,17 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         onRequest: onRequest
     }
 });
+
+
+
+
+
+var a = [{
+        id: 1,
+        name: 'LI'
+    },
+    {
+        id: 2,
+        name: 'CAN'
+    }
+]

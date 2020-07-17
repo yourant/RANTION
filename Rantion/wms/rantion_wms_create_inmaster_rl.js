@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-11 17:26:42
+ * @LastEditTime   : 2020-07-17 10:30:54
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -12,7 +12,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format'], function (search, http, record, moment, format) {
+define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format', 'N/https'], function (config, search, http, record, moment, format, https) {
 
     function _get(context) {
 
@@ -216,9 +216,9 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         });
                         boxNum += Number(rec.getValue('custrecord_line_boxes_number'));
                         if (rec.getValue({
-                            name: 'custrecord_delivery_date',
-                            join: 'custrecord_dps_delivery_order_id'
-                        })) {
+                                name: 'custrecord_delivery_date',
+                                join: 'custrecord_dps_delivery_order_id'
+                            })) {
                             var estimateTime = format.parse({
                                 value: rec.getValue({
                                     name: 'custrecord_delivery_date',
@@ -262,13 +262,13 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                         }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
                         //rec.getValue({name: "custitem_dps_specifications",join: "custrecord_item_sku"});
                         var variant_arr = [{
-                            name: 'color',
-                            value: '白色'
-                        },
-                        {
-                            name: 'size',
-                            value: 'L'
-                        }
+                                name: 'color',
+                                value: '白色'
+                            },
+                            {
+                                name: 'size',
+                                value: 'L'
+                            }
                         ];
 
 
@@ -320,15 +320,15 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     search.create({
                         type: 'purchaseorder',
                         filters: [{
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: order_po_no
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: true
-                        }
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: order_po_no
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: true
+                            }
                         ],
                         columns: [
                             'tranid',
@@ -402,7 +402,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     var retArr = [];
                     for (var g = 0, gln = showArr.length; g < gln; g++) {
 
-                        if (showArr[g] == null || showArr[g] == undefined || showArr[g] == '') { } else {
+                        if (showArr[g] == null || showArr[g] == undefined || showArr[g] == '') {} else {
                             retArr.push(showArr[g])
                         }
                     }
@@ -443,20 +443,20 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                     search.create({
                         type: 'returnauthorization',
                         filters: [{
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: context.id
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: false
-                        },
-                        {
-                            name: 'taxline',
-                            operator: 'is',
-                            values: false
-                        }
+                                name: 'internalid',
+                                operator: 'anyof',
+                                values: context.id
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: false
+                            },
+                            {
+                                name: 'taxline',
+                                operator: 'is',
+                                values: false
+                            }
                         ],
                         // sku、价格、数量、客户名称、地点、日期、子公司、退货单号
                         columns: [
@@ -673,7 +673,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
                             id: context.id,
                             values: {
                                 // custrecord_delivery_order_status: sta,
-                                custrecord_dps_delivery_wms_info: message.data.msg
+                                custrecord_dps_delivery_wms_info: message.data.msg ? message.data.msg : message.data
                             }
                         });
                     }
@@ -681,7 +681,7 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
 
 
                     result_data.status = status;
-                    result_data.data = message.data.msg;
+                    result_data.data = message.data.msg ? message.data.msg : message.data;
                     log.audit('result_data', result_data);
                     return result_data;
                 }
@@ -751,23 +751,22 @@ define(['N/search', 'N/http', 'N/record', './../Helper/Moment.min.js', 'N/format
             'Accept': 'application/json',
             'access_token': token
         };
+        log.debug('headers', JSON.stringify(headerInfo));
+        log.debug('body', JSON.stringify(data));
         var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/inMaster',
+            url: config.WMS_Debugging_URL + '/inMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });
-        log.audit('response', JSON.stringify(response));
-        if (response.code == 200) {
+        log.debug('response', JSON.stringify(response));
+        if (response.code == 200) { // 调用成功
             retdata = JSON.parse(response.body);
-        } else {
-            retdata = '请求被拒'
+            code = 0;
+        } else { // 调用失败
+            retdata = '调用失败: ' + response.code;
+            code = 5
         }
-        if (response.code == 200) {
-            // 调用成功
-        } else {
-            code = 1;
-            // 调用失败
-        }
+
         message.code = code;
         message.data = retdata;
         return message;

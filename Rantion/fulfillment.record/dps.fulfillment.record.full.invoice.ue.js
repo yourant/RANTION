@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-07-15 14:26:00
+ * @LastEditTime   : 2020-07-16 20:36:46
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -746,8 +746,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
             'access_token': token
         };
         var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/outMaster',
-            // url: config.WMS_Debugging_URL + '/outMaster',
+            url: config.WMS_Debugging_URL + '/outMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });

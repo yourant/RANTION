@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-17 10:44:12
+ * @LastEditTime   : 2020-07-17 14:37:28
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -66,18 +66,23 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
                     return re_id;
                 } else if (sourceType == 40) {
-                    returnSubsidiaryTransfer(context.requestBody);
+                    re_id = returnSubsidiaryTransfer(context.requestBody);
+                    requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
+                    return re_id;
                 } else if (sourceType == 50) { // 渠道退件 小包
                     //小包
-                    logisticsReturnItemReceipt(context.requestBody);
+                    re_id = logisticsReturnItemReceipt(context.requestBody);
+                    requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
+                    return re_id;
                 } else if (sourceType == 60) { // 渠道退件 调拨
                     //大包
-                    logisticsReturnTransfer(context.requestBody);
+                    re_id = logisticsReturnTransfer(context.requestBody);
+                    requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
+                    return re_id;
                 }
                 retjson.code = 0;
                 retjson.data = null;
                 retjson.msg = 'success'
-                requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
             } catch (error) {
                 log.error('error', error);
                 retjson.code = 3;
@@ -286,6 +291,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         retObj.code = 0;
         retObj.data = null;
         retObj.msg = "NS 处理成功"
+
+        return retObj || false;
 
         // } catch (error) {
         //     log.debug('单主体调拨入库 error', error);
@@ -1000,244 +1007,559 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         return retObj || false;
     }
 
-    //大包退件入库
-    function logisticsReturnTransfer(body) {
-        try {
-            var sourceNo = body.sourceNo;
-            search.create({
-                type: 'customrecord_dps_shipping_record',
-                filters: [{
-                    name: 'custrecord_dps_shipping_rec_order_num',
-                    operator: 'is',
-                    values: sourceNo
-                }],
-                columns: [
-                    'custrecord_transfer_order3',
-                    {
-                        name: 'subsidiary',
-                        join: 'custrecord_dps_shipping_rec_order_num'
-                    },
-                    {
-                        name: 'transferlocation',
-                        join: 'custrecord_dps_shipping_rec_order_num'
-                    },
-                    {
-                        name: 'custbody_actual_target_warehouse',
-                        join: 'custrecord_dps_shipping_rec_order_num'
-                    }
-                ]
-            }).run().each(function (result) {
-                shipping_id = result.id;
-                to_id = result.getValue('custrecord_transfer_order3');
-                from_location = result.getValue({
-                    name: 'transferlocation',
-                    join: 'custrecord_dps_shipping_rec_order_num'
-                });
-                to_location = result.getValue({
-                    name: 'custbody_actual_target_warehouse',
-                    join: 'custrecord_dps_shipping_rec_order_num'
-                });
-                subsidiary = result.getValue({
-                    name: 'subsidiary',
-                    join: 'custrecord_dps_shipping_rec_order_num'
-                });
-
-                var transferorder = record.copy({
-                    type: record.Type.TRANSFER_ORDER,
-                    id: shipping_id,
-                    isDynamic: true
-                });
-
-                var custbody_dps_start_location = transferorder.getValue("custbody_dps_start_location");
-                var custbody_actual_target_warehouse = transferorder.getValue("custbody_actual_target_warehouse");
-                var transferlocation = transferorder.getValue("transferlocation");
-                var location = transferorder.getValue("location");
-                transferorder.setValue({
-                    fieldId: custbody_dps_start_location,
-                    value: custbody_actual_target_warehouse
-                });
-                transferorder.setValue({
-                    fieldId: custbody_actual_target_warehouse,
-                    value: custbody_dps_start_location
-                });
-                transferorder.setValue({
-                    fieldId: transferlocation,
-                    value: location
-                });
-                transferorder.setValue({
-                    fieldId: location,
-                    value: transferlocation
-                });
-
-                var transferorderId = transferorder.save();
-
-                var itemreceipt = record.transform({
-                    fromType: record.Type.TRANSFER_ORDER,
-                    toType: record.Type.ITEM_RECEIPT,
-                    fromId: Number(transferorderId),
-                });
-
-                var i = 0;
-                for (var index = 0; index < body.detailList.length; index++) {
-                    var line = body.detailList[index];
-                    for (var ss = 0, ssLen = line.detailRecordList.length; ss < ssLen; ss++) {
-                        var positionCode = line.detailRecordList[ss].positionCode;
-                        var type = line.detailRecordList[ss].type;
-                        var locationid, searchLocation;
-                        searchLocation = positionCode;
-                        if (type == 1) { // 装箱搜索箱号
-                            searchLocation = line.detailRecordList[ss].barcode;
-                        }
-                        locationid = searchLocationCode(searchLocation, subsidiary);
-                        if (!locationid && type == 1) { // 库位下的箱子, 不存在则创建
-                            var fLocation = searchLocationCode(positionCode, subsidiary);
-                            createBoxLocation(searchLocation, subsidiary, fLocation);
-                            locationid = searchLocationCode(searchLocation, subsidiary);
-                        }
-                        if (!locationid && type == 2) { // 属于库存, 但库位不存在
-                            msg = '对应的库位不存在： ' + searchLocation;
-                            // retFlag = false;
-                            // return '对应的库位不存在： ' + searchLocation;
-                        }
-                        var skuId;
-                        search.create({
-                            type: 'item',
-                            filters: [{
-                                name: 'itemid',
-                                operator: 'is',
-                                values: line.sku
-                            }, ],
-                            columns: ['itemid']
-                        }).run().each(function (rectiem) {
-                            skuId = rectiem.id;
-                        });
-                        itemreceipt.setSublistValue({
-                            sublistId: 'item',
-                            fieldId: 'location',
-                            value: locationid,
-                            line: i
-                        });
-                        itemreceipt.setSublistValue({
-                            sublistId: 'item',
-                            fieldId: 'item',
-                            value: skuId,
-                            line: i
-                        });
-                        itemreceipt.setSublistValue({
-                            sublistId: 'item',
-                            fieldId: 'quantity',
-                            value: line.detailRecordList[ss].shelvesQty,
-                            line: i
-                        });
-                        i++;
-                    }
-                }
-                itemreceipt.save();
-
-                record.submitFields({
-                    type: 'customrecord_dps_shipping_record',
-                    id: shipping_id,
-                    values: {
-                        custrecord_dps_shipping_rec_status: 23
-                    }
-                });
-                return false;
-            });
-        } catch (error) {
-            log.debug('大包渠道退件 error', error);
-        }
-    }
 
     /**
-     * 小包退件入库
-     * @param {*} body 
+     * 大包退件入库
+     * @param {Object} body 
      */
-    function logisticsReturnItemReceipt(body) {
-        var sourceNo = body.sourceNo;
-        var custbody_dps_small_fulfillment_record;
+    function logisticsReturnTransfer(body) {
+
+        var limit = 3999,
+            shipping_id, to_id, from_location, to_location, subsidiary, retObj = {},
+            sourceNo = body.sourceNo;
+
         search.create({
-            type: 'salesorder',
+            type: 'customrecord_dps_shipping_record',
             filters: [{
-                name: 'tranid',
+                name: 'custrecord_dps_shipping_rec_order_num',
                 operator: 'is',
                 values: sourceNo
             }],
             columns: [
-                'custbody_dps_small_fulfillment_record', 'subsidiary'
+                'custrecord_transfer_order3',
+                {
+                    name: 'subsidiary',
+                    join: 'custrecord_dps_shipping_rec_order_num'
+                },
+                {
+                    name: 'transferlocation',
+                    join: 'custrecord_dps_shipping_rec_order_num'
+                },
+                {
+                    name: 'custbody_actual_target_warehouse',
+                    join: 'custrecord_dps_shipping_rec_order_num'
+                }
             ]
         }).run().each(function (rec) {
-            custbody_dps_small_fulfillment_record = rec.getValue('custbody_dps_small_fulfillment_record');
-            log.audit('custbody_dps_small_fulfillment_record', custbody_dps_small_fulfillment_record);
+            shipping_id = rec.id;
+            to_id = rec.getValue('custrecord_transfer_order3');
+            from_location = rec.getValue({
+                name: 'transferlocation',
+                join: 'custrecord_dps_shipping_rec_order_num'
+            });
+            to_location = rec.getValue({
+                name: 'custbody_actual_target_warehouse',
+                join: 'custrecord_dps_shipping_rec_order_num'
+            });
+            subsidiary = rec.getValue({
+                name: 'subsidiary',
+                join: 'custrecord_dps_shipping_rec_order_num'
+            });
+        });
+
+        if (shipping_id) {
+
+            var detailList = body.detailList; // 入库明细
+            log.debug('detailList', detailList);
+            var getBinArr = tool.getAllBinBox(detailList);
+            var getArr = tool.judgmentBinBox('create', getBinArr); // 获取对应的库位, 箱号(若不存在,新建)
+
+            if (getArr && getArr.length > 0) { // 出货的库位不存在, 返回报错信息
+                retObj.code = 3;
+                retObj.data = null;
+                retObj.msg = 'unknown: ' + getArr;
+                log.debug('不存在库位 : ', retjson);
+                return retjson;
+            }
+
+            var transferorder = record.copy({
+                type: record.Type.TRANSFER_ORDER,
+                id: shipping_id,
+                isDynamic: true
+            }); // 复制调拨单
+
+            var custbody_dps_start_location = transferorder.getValue("custbody_dps_start_location");
+            var custbody_actual_target_warehouse = transferorder.getValue("custbody_actual_target_warehouse");
+            var transferlocation = transferorder.getValue("transferlocation");
+            var location = transferorder.getValue("location");
+            transferorder.setValue({
+                fieldId: custbody_dps_start_location,
+                value: custbody_actual_target_warehouse
+            });
+            transferorder.setValue({
+                fieldId: custbody_actual_target_warehouse,
+                value: custbody_dps_start_location
+            });
+            transferorder.setValue({
+                fieldId: transferlocation,
+                value: location
+            });
+            transferorder.setValue({
+                fieldId: location,
+                value: transferlocation
+            });
+
+            var transferorderId = transferorder.save();
+
+            var itemfulfillment = record.transform({
+                fromType: record.Type.TRANSFER_ORDER,
+                toType: "itemfulfillment",
+                fromId: transferorderId,
+            }); // 直接货品履行, 不需要考虑库位箱号
+
+            var itemfulfillment_id = itemfulfillment.save();
+
+            log.debug('itemfulfillment_id', itemfulfillment_id);
+
+            var irArr = [];
+            var binBoxObj = tool.SummaryBinBox(getBinArr);
+
+            log.debug('库位箱号分组 ', binBoxObj);
+
+            var boxObj = binBoxObj.BoxObj,
+                binObj = binBoxObj.BinObj;
+
+            var BoxObjKey = Object.keys(boxObj);
+            log.debug('箱号的值', BoxObjKey);
+            var BinObjKey = Object.keys(binObj);
+            log.debug('库位的值', BinObjKey);
+
+            log.debug('库位 BinObjKey', BinObjKey);
+            log.debug('箱号 BoxObjKey', BoxObjKey);
+
+            if (BoxObjKey && BoxObjKey.length > 0) { // 按箱号收货
+
+                var irObj = record.transform({
+                    fromType: 'transferorder',
+                    fromId: transferorderId,
+                    toType: 'itemreceipt'
+                }); //转换为货品收据
+
+                for (var i = 0, iLen = BoxObjKey.length; i < iLen; i++) { // 每个箱号履行
+
+                    var boxKey = BoxObjKey[i];
+                    var temp_obj = boxObj[boxKey];
+                    for (var j = 0, jLen = temp_obj.length; j < jLen; j++) {
+
+                        var dl_sku = temp_obj[i];
+
+                        for (var i_t = 0, i_t_len = fItemArr.length; i_t < i_t_len; i_t++) {
+                            var fi_temp = fItemArr[i_t];
+                            log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                            var lineNumber = irObj.findSublistLineWithValue({
+                                sublistId: 'item',
+                                fieldId: 'item',
+                                value: fi_temp.itemId
+                            });
+
+                            log.debug('货品行号', lineNumber);
+
+                            irObj.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'location',
+                                value: location,
+                                line: lineNumber
+                            }); // 设置地点
+
+                            if (dl_sku.sku == fi_temp.itemName) {
+                                var getLoca = irObj.getSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'location',
+                                    line: lineNumber
+                                })
+                                log.debug('地点 getLoca', getLoca);
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'quantity',
+                                    value: dl_sku.shelvesQty,
+                                    line: lineNumber
+                                }); // 设置数量
+
+                                irObj.setSublistText({
+                                    sublistId: 'item',
+                                    fieldId: 'custcol_location_bin',
+                                    text: dl_sku.positionCode,
+                                    line: lineNumber
+                                }); // 仓库编号
+
+                                irObj.setSublistText({
+                                    sublistId: 'item',
+                                    fieldId: 'custcol_case_number',
+                                    text: boxKey,
+                                    line: lineNumber
+                                }); // 箱号
+
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'itemreceive',
+                                    value: true,
+                                    line: lineNumber
+                                }); // 设置为收货
+                            } else {
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'itemreceive',
+                                    value: false,
+                                    line: lineNumber
+                                }); // 设置为不收货
+                            }
+                        }
+                    }
+
+                }
+                var irObj_id = irObj.save();
+
+                irArr.push(irObj_id);
+
+                log.debug("货品收据 irObj_id", irObj_id);
+            }
+
+            if (BinObjKey && BinObjKey.length > 0) { // 按库位收货
+                var irObj = record.transform({
+                    fromType: 'transferorder',
+                    fromId: transferorderId,
+                    toType: 'itemreceipt'
+                }); //转换为货品收据
+
+                for (var i = 0, iLen = BinObjKey.length; i < iLen; i++) { // 每个库位履行
+
+                    var binKey = BinObjKey[i];
+                    var temp_obj = binObj[binKey];
+
+                    log.debug('temp_obj', temp_obj);
+                    for (var j = 0, jLen = temp_obj.length; j < jLen; j++) {
+
+                        var dl_sku = temp_obj[j];
+
+                        log.debug('dl_sku: ' + j, dl_sku)
+                        for (var i_t = 0, i_t_len = fItemArr.length; i_t < i_t_len; i_t++) {
+                            var fi_temp = fItemArr[i_t];
+                            log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                            var lineNumber = irObj.findSublistLineWithValue({
+                                sublistId: 'item',
+                                fieldId: 'item',
+                                value: fi_temp.itemId
+                            });
+
+                            log.debug('货品行号', lineNumber);
+                            if (lineNumber > -1) {
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'location',
+                                    value: location,
+                                    line: lineNumber
+                                }); // 设置地点
+
+                                if (dl_sku.sku == fi_temp.itemName) {
+                                    var getLoca = irObj.getSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'location',
+                                        line: lineNumber
+                                    })
+                                    log.debug('地点 getLoca', getLoca);
+                                    irObj.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'quantity',
+                                        value: dl_sku.shelvesQty,
+                                        line: lineNumber
+                                    }); // 设置数量
+
+                                    irObj.setSublistText({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_location_bin',
+                                        text: binKey,
+                                        line: lineNumber
+                                    }); // 仓库编号
+
+                                    irObj.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: true,
+                                        line: lineNumber
+                                    }); // 设置为收货
+                                } else {
+                                    irObj.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: false,
+                                        line: lineNumber
+                                    }); // 设置为不收货
+                                }
+                            }
+                        }
+                    }
+                }
+                var irObj_id = irObj.save();
+                irArr.push(irObj_id);
+                log.debug("货品收据 irObj_id", irObj_id);
+            }
+
+            log.debug('NS 处理成功', "NS 处理成功");
+            retObj.code = 0;
+            retObj.data = null;
+            retObj.msg = 'NS 处理成功';
+
+        } else {
+            retObj.code = 3;
+            retObj.data = null;
+            retObj.msg = "unknown: " + sourceNo;
+            log.debug('不存在对应的调拨单据', sourceNo);
+
+            return retObj || false
+        }
+
+    }
+
+    /**
+     * 小包退件入库
+     * @param {Object} body 
+     */
+    function logisticsReturnItemReceipt(body) {
+        var sourceNo = body.sourceNo;
+
+        var subsidiary, soId, recId, retObj = {};
+        var custbody_dps_small_fulfillment_record;
+
+
+        search.create({
+            type: 'customrecord_dps_shipping_small_record',
+            filters: [{
+                name: 'custrecord_dps_ship_order_number',
+                operator: 'is',
+                values: sourceNo
+            }],
+            columns: [{
+                    name: 'subsidiary',
+                    join: 'custrecord_dps_ship_small_salers_order'
+                },
+                "custrecord_dps_ship_small_salers_order"
+            ]
+        }).run().each(function (rec) {
+            subsidiary = rec.getValue({
+                name: 'subsidiary',
+                join: 'custrecord_dps_ship_small_salers_order'
+            });
+            soId = rec.getValue('custrecord_dps_ship_small_salers_order');
+            recId = rec.id;
+        });
+
+        if (recId && soId) { // 发运记录和销售订单同时存在
+
+            var detailList = body.detailList; // 入库明细
+            log.debug('detailList', detailList);
+            var getBinArr = tool.getAllBinBox(detailList);
+            var getArr = tool.judgmentBinBox('create', getBinArr); // 获取对应的库位, 箱号(若不存在,新建)
+
+            if (getArr && getArr.length > 0) { // 出货的库位不存在, 返回报错信息
+                retObj.code = 3;
+                retObj.data = null;
+                retObj.msg = 'unknown: ' + getArr;
+                log.debug('不存在库位 : ', retObj);
+                return retObj;
+            }
+
 
             var returnauthorization = record.transform({
                 fromType: 'salesorder',
                 toType: record.Type.RETURN_AUTHORIZATION,
-                fromId: Number(rec.id),
-            });
+                fromId: soId,
+            }); // 创建退货授权
             var returnauthorizationId = returnauthorization.save();
+            log.debug('创建退货授权', returnauthorizationId);
 
-            var itemreceipt = record.transform({
-                fromType: record.Type.RETURN_AUTHORIZATION,
-                toType: record.Type.ITEM_RECEIPT,
-                fromId: Number(returnauthorizationId),
-            });
 
-            var i = 0;
-            for (var index = 0; index < body.detailList.length; index++) {
-                var line = body.detailList[index];
-                for (var ss = 0, ssLen = line.detailRecordList.length; ss < ssLen; ss++) {
-                    var positionCode = line.detailRecordList[ss].positionCode;
-                    var type = line.detailRecordList[ss].type;
-                    var locationid, searchLocation;
-                    searchLocation = positionCode;
-                    if (type == 1) { // 装箱搜索箱号
-                        searchLocation = line.detailRecordList[ss].barcode;
+            var irArr = [];
+            var getABox = tool.getAllBinBox(itemList);
+            log.debug('库位 箱号 ', getABox);
+            var binBoxObj = tool.SummaryBinBox(getABox);
+
+            log.debug('库位箱号分组 ', binBoxObj);
+
+            var boxObj = binBoxObj.BoxObj,
+                binObj = binBoxObj.BinObj
+
+            var BoxObjKey = Object.keys(boxObj);
+            log.debug('箱号的值', BoxObjKey);
+            var BinObjKey = Object.keys(binObj);
+            log.debug('库位的值', BinObjKey);
+
+            log.debug('库位 BinObjKey', BinObjKey);
+            log.debug('箱号 BoxObjKey', BoxObjKey);
+
+            var fItemArr = tool.searchTransactionItemInfo("salesorder", soId);
+
+            if (BoxObjKey && BoxObjKey.length > 0) {
+
+                var irObj = record.transform({
+                    fromType: record.Type.RETURN_AUTHORIZATION,
+                    toType: record.Type.ITEM_RECEIPT,
+                    fromId: returnauthorizationId,
+                }); //转换为货品收据
+
+                for (var i = 0, iLen = BoxObjKey.length; i < iLen; i++) { // 每个箱号履行
+
+                    var boxKey = BoxObjKey[i];
+                    var temp_obj = boxObj[boxKey];
+                    for (var j = 0, jLen = temp_obj.length; j < jLen; j++) {
+
+                        var dl_sku = temp_obj[i];
+
+                        for (var i_t = 0, i_t_len = fItemArr.length; i_t < i_t_len; i_t++) {
+                            var fi_temp = fItemArr[i_t];
+                            log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                            var lineNumber = irObj.findSublistLineWithValue({
+                                sublistId: 'item',
+                                fieldId: 'item',
+                                value: fi_temp.itemId
+                            });
+
+                            log.debug('货品行号', lineNumber);
+
+                            irObj.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'location',
+                                value: location,
+                                line: lineNumber
+                            }); // 设置地点
+
+                            if (dl_sku.sku == fi_temp.itemName) {
+                                var getLoca = irObj.getSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'location',
+                                    line: lineNumber
+                                })
+                                log.debug('地点 getLoca', getLoca);
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'quantity',
+                                    value: dl_sku.shelvesQty,
+                                    line: lineNumber
+                                }); // 设置数量
+
+                                irObj.setSublistText({
+                                    sublistId: 'item',
+                                    fieldId: 'custcol_location_bin',
+                                    text: dl_sku.positionCode,
+                                    line: lineNumber
+                                }); // 仓库编号
+
+                                irObj.setSublistText({
+                                    sublistId: 'item',
+                                    fieldId: 'custcol_case_number',
+                                    text: boxKey,
+                                    line: lineNumber
+                                }); // 箱号
+
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'itemreceive',
+                                    value: true,
+                                    line: lineNumber
+                                }); // 设置为收货
+                            } else {
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'itemreceive',
+                                    value: false,
+                                    line: lineNumber
+                                }); // 设置为不收货
+                            }
+                        }
                     }
-                    locationid = searchLocationCode(searchLocation, subsidiary);
-                    if (!locationid && type == 1) { // 库位下的箱子, 不存在则创建
-                        var fLocation = searchLocationCode(positionCode, subsidiary);
-                        createBoxLocation(searchLocation, subsidiary, fLocation);
-                        locationid = searchLocationCode(searchLocation, subsidiary);
-                    }
-                    if (!locationid && type == 2) { // 属于库存, 但库位不存在
-                        msg = '对应的库位不存在： ' + searchLocation;
-                        // retFlag = false;
-                        // return '对应的库位不存在： ' + searchLocation;
-                    }
-                    var skuId;
-                    search.create({
-                        type: 'item',
-                        filters: [{
-                            name: 'itemid',
-                            operator: 'is',
-                            values: line.sku
-                        }, ],
-                        columns: ['itemid']
-                    }).run().each(function (rectiem) {
-                        skuId = rectiem.id;
-                    });
-                    itemreceipt.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'location',
-                        value: locationid,
-                        line: i
-                    });
-                    itemreceipt.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'item',
-                        value: skuId,
-                        line: i
-                    });
-                    itemreceipt.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'quantity',
-                        value: line.detailRecordList[ss].shelvesQty,
-                        line: i
-                    });
-                    i++;
+
                 }
+                var irObj_id = irObj.save();
+
+                irArr.push(irObj_id);
+
+                log.debug("货品收据 irObj_id", irObj_id);
             }
-            itemreceipt.save();
+
+            if (BinObjKey && BinObjKey.length > 0) {
+                var irObj = record.transform({
+                    fromType: record.Type.RETURN_AUTHORIZATION,
+                    toType: record.Type.ITEM_RECEIPT,
+                    fromId: returnauthorizationId,
+                }); //转换为货品收据
+
+                for (var i = 0, iLen = BinObjKey.length; i < iLen; i++) { // 每个库位履行
+
+                    var binKey = BinObjKey[i];
+                    var temp_obj = binObj[binKey];
+
+                    log.debug('temp_obj', temp_obj);
+                    for (var j = 0, jLen = temp_obj.length; j < jLen; j++) {
+
+                        var dl_sku = temp_obj[j];
+
+                        log.debug('dl_sku: ' + j, dl_sku)
+                        for (var i_t = 0, i_t_len = fItemArr.length; i_t < i_t_len; i_t++) {
+                            var fi_temp = fItemArr[i_t];
+                            log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                            var lineNumber = irObj.findSublistLineWithValue({
+                                sublistId: 'item',
+                                fieldId: 'item',
+                                value: fi_temp.itemId
+                            });
+
+                            log.debug('货品行号', lineNumber);
+                            if (lineNumber > -1) {
+                                irObj.setSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'location',
+                                    value: location,
+                                    line: lineNumber
+                                }); // 设置地点
+
+                                if (dl_sku.sku == fi_temp.itemName) {
+                                    var getLoca = irObj.getSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'location',
+                                        line: lineNumber
+                                    })
+                                    log.debug('地点 getLoca', getLoca);
+                                    irObj.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'quantity',
+                                        value: dl_sku.shelvesQty,
+                                        line: lineNumber
+                                    }); // 设置数量
+
+                                    irObj.setSublistText({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_location_bin',
+                                        text: binKey,
+                                        line: lineNumber
+                                    }); // 仓库编号
+
+                                    irObj.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: true,
+                                        line: lineNumber
+                                    }); // 设置为收货
+                                } else {
+                                    irObj.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: false,
+                                        line: lineNumber
+                                    }); // 设置为不收货
+                                }
+                            }
+                        }
+                    }
+                }
+                var irObj_id = irObj.save();
+                irArr.push(irObj_id);
+                log.debug("货品收据 irObj_id", irObj_id);
+            }
+
+            retObj.code = 0;
+            retObj.data = null;
+            retObj.msg = 'NS 处理成功';
+
+            // 更改发运记录状态
             record.submitFields({
                 type: 'customrecord_dps_shipping_small_record',
                 id: custbody_dps_small_fulfillment_record,
@@ -1245,7 +1567,15 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     custrecord_dps_ship_small_status: 23
                 }
             });
-        });
+
+        } else {
+            retObj.code = 3;
+            retObj.data = null;
+            retObj.msg = 'unknown: 单号 ' + sourceNo
+        }
+
+        return retObj || false;
+
     }
 
     /**
@@ -1667,6 +1997,10 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         return locationId || false;
     }
 
+
+
+
+
     /**
      * 创建箱子
      * @param {*} boxName 
@@ -1797,13 +2131,9 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             return --limit > 0;
         });
 
-
-
         if (ret_id) { // 存在对应的退货授权记录
             // add 获取所有库位和箱号
-
             var detailList = context.detailList; // 入库明细
-
             var getBinArr = tool.getAllBinBox(detailList);
             var getArr = tool.judgmentBinBox('create', getBinArr);
 
@@ -1811,7 +2141,6 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 retjson.code = 3;
                 retjson.data = null;
                 retjson.msg = 'unknown: ' + getArr;
-
                 log.debug('不存在库位 : ', retjson);
 
                 return retjson;
@@ -1828,7 +2157,6 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 var unreceivedQty = detailList[i].planQty - receivedQty
 
                 var detailRecordList = detailList[i].detailRecordList;
-
                 log.debug('上架明细 detailRecordList： ' + detailRecordList.length, detailRecordList)
 
                 log.debug('sku[j] ' + sku.length, sku);
@@ -1898,10 +2226,6 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 value: 'B'
             });
 
-            // return {
-            //     code: 6,
-            //     msg: '测试中'
-            // }
             var objRecord_id = objRecord.save();
             var it = record.transform({
                 fromType: 'returnauthorization',
@@ -1912,17 +2236,12 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
             var retDate = {}
             if (objRecord_id && itId) {
-
                 retDate.code = 0;
-                retDate.data = {
-                    msg: 'NS 处理成功'
-                };
+                retDate.data = null;
                 retDate.msg = 'NS 处理成功';
             } else {
                 retDate.code = 3;
-                retDate.data = {
-                    msg: 'NS 处理异常'
-                };
+                retDate.data = null;
                 retDate.msg = 'NS 处理异常';
             }
         } else { // 不存在对应的退货授权记录

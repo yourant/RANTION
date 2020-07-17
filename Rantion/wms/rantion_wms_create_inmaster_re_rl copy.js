@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-17 10:44:29
+ * @LastEditTime   : 2020-07-17 10:45:34
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl copy.js
@@ -1930,10 +1930,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             retDate.data = null;
             retDate.msg = 'unknown: 单号 ' + sourceNo;
         }
-
         return retDate;
     }
-
 
     return {
         post: _post,

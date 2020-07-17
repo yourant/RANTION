@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-16 21:06:05
+ * @LastEditTime   : 2020-07-17 12:05:57
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -13,8 +13,8 @@
  *@NScriptType Suitelet
  */
 define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/file',
-    'N/xml', './Rantion/Helper/tool.li'
-], function (search, record, log, core, file, xml, tool) {
+    'N/xml', './Rantion/Helper/tool.li', 'N/runtime'
+], function (search, record, log, core, file, xml, tool, runtime) {
 
     function onRequest(context) {
 
@@ -94,7 +94,44 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
         }
 
+        var a = new Date().getTime();
+        log.debug("开始时间 a", a);
+        var limit = 99;
+        var mySearch = search.load({
+            id: "customsearch_dps_location_li"
+        });
 
+        mySearch.run().each(function (rec) {
+
+            try {
+                record.delete({
+                    type: 'location',
+                    id: rec.id
+                });
+
+                var scriptObj = runtime.getCurrentScript();
+
+                log.debug('scriptObj', scriptObj.getRemainingUsage());
+            } catch (error) {
+                log.audit('error', error);
+            }
+
+            return --limit > 0;
+        });
+
+        var b = new Date().getTime();
+        log.debug("结束时间 b", b);
+        log.debug('时间差 b-a', b - a)
+
+        var scriptObj = runtime.getCurrentScript();
+
+        log.debug('脚本剩余可用量', scriptObj.getRemainingUsage())
+
+
+
+        return;
+
+        /*
         var recType = "transferorder";
         var recId = 2710;
 

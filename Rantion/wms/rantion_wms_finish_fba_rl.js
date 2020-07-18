@@ -82,17 +82,13 @@ function(config, search, http) {
             body: JSON.stringify(data)
         });
         // log.error('response', JSON.stringify(response));
-        if (response.code == 200) {
+        if (response.code == 200) {            // 调用成功
             retdata = JSON.parse(response.body);
-        } else {
+        } else {            // 调用失败
+            code = 1;
             retdata = '请求被拒'
         }
-        if (response.code == 200) {
-            // 调用成功
-        } else {
-            code = 1;
-            // 调用失败
-        }
+
         message.code = code;
         message.data = retdata;
         return message;

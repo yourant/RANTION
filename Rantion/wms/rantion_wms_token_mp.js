@@ -21,6 +21,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             });
             return true;
         });
+        log.debug('company', JSON.stringify(company));
         return company;
     }
 
@@ -38,6 +39,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             headers: headerInfo,
             body: ["grant_type=client_credentials"].join('&')
         });
+        log.debug('response', JSON.stringify(response));
         if (response.code == 200) {
             var res = JSON.parse(response.body);
             record.submitFields({

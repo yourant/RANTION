@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-17 12:05:57
+ * @LastEditTime   : 2020-07-17 21:32:03
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -94,6 +94,45 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
         }
 
+
+        /*
+
+        var id = record.submitFields({
+            type: 'customrecord_dps_shipping_record',
+            id: 6,
+            values: {
+                custrecord_dps_amazon_box_flag: false,
+                // custrecord_dps_shipping_rec_status: 12
+                custrecord_dps_shipment_info: ''
+            }
+        });
+
+
+        /*
+        var createdby;
+
+        search.create({
+            type: 'purchaseorder',
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: 828132
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                }
+            ],
+            columns: [
+                "createdby"
+            ]
+        }).run().each(function (rec) {
+            createdby = rec.getText('createdby')
+        })
+        log.debug('createdby', createdby);
+
+        /*
         var a = new Date().getTime();
         log.debug("开始时间 a", a);
         var limit = 99;
@@ -379,10 +418,10 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         }
 
 
-        /*   
+        /*    
 
-        var accountId = 21,
-            submission_ids = [764979018457],
+        var accountId = 4,
+            submission_ids = [544788018460],
             account = core.amazon.getAuthByAccountId(accountId)
 
 

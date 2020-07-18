@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-07-04 15:50:38
+ * @LastEditTime   : 2020-07-17 20:12:47
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -11,7 +11,7 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, https, currentRecord, dialog) {
+define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog', '../Helper/commonTool'], function (url, https, currentRecord, dialog, commonTool) {
 
     /**
      * Function to be executed after page is initialized.
@@ -175,8 +175,6 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
     }
 
 
-
-
     /**
      * 重新WMS发运
      * @param {*} rec_id 
@@ -309,6 +307,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
             recordID: rec_id,
             action: "amazonShipment"
         };
+
         log.debug('body1', body1);
         log.debug('url1', url1);
         var response;
@@ -502,6 +501,32 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         dialog.confirm(options).then(success).catch(failure);
     }
 
+    /**
+     * 完成录入装箱信息
+     * @param {*} rec_id 
+     */
+    function finishPackage(rec_id) {
+        var options = {
+            title: "确认完成录入装箱信息",
+            message: "是否确认完成录入装箱信息?"
+        };
+        function success(result) {
+            if (result) {
+                record.submitFields({
+                    type: 'customrecord_dps_shipping_record',
+                    id: rec_id,
+                    values: {
+                        custrecord_dps_shipping_rec_status: 12
+                    }
+                });
+            }
+        }
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+    }
+
 
     /**
      * 生成报关资料
@@ -509,6 +534,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
      */
     function createInformation(rec_id) {
         console.log('生成报关资料', rec_id);
+
         var url1 = url.resolveScript({
             scriptId: 'customscript_dps_funf_rec_big_shipment',
             deploymentId: 'customdeploy_dps_funf_rec_big_shipment',
@@ -524,6 +550,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
             recordID: rec_id,
             action: "createInformation"
         };
+
         log.debug('body1', body1);
         log.debug('url1', url1);
         var response;
@@ -556,6 +583,54 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         dialog.confirm(options).then(success).catch(failure);
     }
 
+
+    function amazonFeedStatus(rec_id) {
+
+        // alert('记录ID： ' + rec_id);
+
+        commonTool.startMask('正在获取装箱信息处理结果...');
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_funf_rec_big_shipment',
+            deploymentId: 'customdeploy_dps_funf_rec_big_shipment',
+            returnExternalUrl: false
+        });
+
+        https.post.promise({
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8',
+                'Accept': 'application/json'
+            },
+            url: url1,
+            body: {
+                action: "amazonFeedStatus",
+                recordID: rec_id
+            }
+        }).then(function (response) {
+
+            var data = response.body;
+
+            commonTool.endMask();
+
+            // custbody_dps_wms_info
+            // record.submitFields({
+            //     type: 'vendorreturnauthorization',
+            //     id: id,
+            //     values: {
+            //         custbody_po_return_status: sta,
+            //         custbody_dps_wms_info: msggg
+            //     }
+            // });
+
+            dialog.alert({
+                title: '装箱信息处理结果',
+                message: data
+            }).then(function () {
+                window.location.reload();
+            });
+        });
+
+    }
+
     return {
         pageInit: pageInit,
         saveRecord: saveRecord,
@@ -573,6 +648,8 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog'], function (url, ht
         getTrackingNumber: getTrackingNumber,
         getLabel: getLabel,
         createInformation: createInformation,
-        LabelDocument: LabelDocument
+        LabelDocument: LabelDocument,
+        amazonFeedStatus: amazonFeedStatus,
+        finishPackage: finishPackage
     }
 });

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-07-16 20:36:46
+ * @LastEditTime   : 2020-07-18 12:20:23
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -753,8 +753,8 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
 
         log.debug('data20:', data);
         log.debug('response', JSON.stringify(response));
-        retdata = JSON.parse(response.body);
         if (response.code == 200) {
+            retdata = JSON.parse(response.body);
             // 调用成功
             code = retdata.code;
         } else {

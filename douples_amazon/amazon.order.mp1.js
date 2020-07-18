@@ -58,7 +58,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             log.error('getinput error 出错了', e);
         }
         log.audit("orders 总数：", orders.length);
-        return "1"
         return orders;
     }
 

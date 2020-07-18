@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-12 19:57:07
- * @LastEditTime   : 2020-07-11 14:42:55
+ * @LastEditTime   : 2020-07-18 17:36:36
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.rl.js
@@ -517,6 +517,9 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
     function createFulfillmentRecord(soid, sku) {
         var location, api_content, tranid, otherrefnum, account, marketplaceid, amount,
             first_name, cc_country, cc_state, cc_ctiy, cc_zip, cc_addr1, cc_addr2, cc_phone_number, recName;
+
+        var custbody_dps_distributors, custbody_dps_service_channels; // 渠道商, 渠道服务
+
         var item_arr = [],
             limit = 3999;
         search.create({
@@ -546,7 +549,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             columns: [
                 'location', 'item', 'quantity', 'custbody_aio_api_content', 'tranid', 'amount',
                 'otherrefnum', 'custbody_aio_account', 'custcol_dps_trans_order_item_sku',
-                'custbody_aio_marketplaceid',
+                'custbody_aio_marketplaceid', "custbody_dps_distributors", "custbody_dps_service_channels",
                 {
                     name: 'custitem_dps_heavy2',
                     join: 'item'
@@ -592,6 +595,9 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                 }, // 发货店铺
             ]
         }).run().each(function (rec) {
+
+            custbody_dps_distributors = rec.getValue('custbody_dps_distributors'); // 渠道商
+            custbody_dps_service_channels = rec.getValue('custbody_dps_service_channels'); // 渠道服务
 
             recName = rec.getValue({
                 name: 'name',
@@ -658,6 +664,17 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                 value: location
             });
         }
+
+        // 渠道商
+        ful_create_rec.setValue({
+            fieldId: 'custrecord_dps_ship_small_channel_dealer',
+            value: custbody_dps_distributors
+        });
+        // 渠道服务
+        ful_create_rec.setValue({
+            fieldId: 'custrecord_dps_ship_small_channelservice',
+            value: custbody_dps_service_channels
+        });
         // 订单号 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_order_number',
@@ -944,6 +961,9 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         var SKUs = [];
         var order = {};
         var flag = true;
+
+        var custbody_dps_distributors, // 渠道商
+            custbody_dps_service_channels; // 渠道服务
         // order info
         search.create({
             type: 'salesorder',
@@ -975,6 +995,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                 }
             ],
             columns: [
+                "custbody_dps_distributors", // 渠道商
+                "custbody_dps_service_channels", // 渠道服务
                 'custbody_aio_account', 'amount', 'subsidiary', 'item', 'quantity', 'location',
                 {
                     name: 'custrecord_aio_enabled_sites',
@@ -1014,6 +1036,10 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                 }
             ]
         }).run().each(function (result) {
+
+            custbody_dps_distributors = rec.getValue('custbody_dps_distributors'); // 渠道商
+            custbody_dps_service_channels = rec.getValue('custbody_dps_service_channels'); // 渠道服务
+
             if (flag) {
                 order.id = soid;
                 order.siteid = result.getValue({
@@ -1093,6 +1119,13 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             SKUs.push(jsonstr.skuid);
             return true;
         });
+
+
+        if (custbody_dps_distributors && custbody_dps_service_channels) { // 存在渠道商 和 渠道服务
+            log.debug('物流渠道', custbody_dps_distributors);
+            log.debug('渠道服务', custbody_dps_service_channels);
+            return;
+        }
         order.lwh = order.long + order.wide + order.high;
 
         var getFilter = [];

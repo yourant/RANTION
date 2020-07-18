@@ -59,6 +59,9 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
                 report_range = runtime.getCurrentScript().getParameter({
                     name: 'custscript_aio_obt_report_date_range2'
                 }),
+                 group_req = runtime.getCurrentScript().getParameter({
+                    name: 'custscript_acc_group_rep_H'
+                }),
                 report_start_date = Number(report_range) <= 3 ? moment.utc().subtract(1, ['', 'days', 'weeks', 'months'][report_range]).startOf('day').toISOString() : moment.utc().subtract(Number(report_range) - 2, 'days').startOf('day').toISOString();
             log.audit("report_type", report_type);
             log.audit("report_range", report_range);
@@ -68,9 +71,9 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             var startDate, endate;
 
             var sum = 0;
-
-            core.amazon.getReportAccountList().map(function (account) {
-                if(account.id !=caac) return
+            var acc_arrys =  core.amazon.getReportAccountList(group_req);
+            acc_arrys.map(function (account) {
+                if(account.id !=caac && caac) return;
                 // core.amazon.getAccountList().map(function (account) {
                 var marketplace = account.marketplace;
                 if (check_if_handle(account.extra_info, report_type)) {

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-17 10:30:54
+ * @LastEditTime   : 2020-07-18 17:10:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -208,6 +208,10 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                                 name: "custrecord_dsp_delivery_order_location",
                                 join: "custrecord_dps_delivery_order_id"
                             }, //地点
+                            {
+                                name: "itemid",
+                                join: "custrecord_item_sku"
+                            }, //产品编号
                         ]
                     }).run().each(function (rec) {
                         order_po_no = rec.getValue({
@@ -287,7 +291,8 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                                 name: "custrecord_item_quantity"
                             }),
                             productCode: rec.getValue({
-                                name: "custitem_dps_spucoding",
+                                // name: "custitem_dps_spucoding",
+                                name: "itemid",
                                 join: "custrecord_item_sku"
                             }),
                             productImageUrl: rec.getValue({
@@ -310,13 +315,40 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                         });
                         return true;
                     });
+
+                    search.create({
+                        type: 'customrecord_dps_delivery_order',
+                        filters: [{
+                            name: "internalid",
+                            operator: 'anyof',
+                            values: context.id
+                        }],
+                        columns: [{
+                                name: 'custrecord_dps_wms_location',
+                                join: 'custrecord_dsp_delivery_order_location'
+                            }, // //仓库编号
+                            {
+                                name: 'custrecord_dps_wms_location_name',
+                                join: 'custrecord_dsp_delivery_order_location'
+                            }, //仓库名称
+                        ]
+                    }).run().each(function (rec) {
+                        data['warehouseCode'] = rec.getValue({
+                            name: 'custrecord_dps_wms_location',
+                            join: 'custrecord_dsp_delivery_order_location'
+                        }); //rec.getValue({name: "custrecord_dps_wms_location",join: "location"});//仓库编号
+                        data['warehouseName'] = rec.getValue({
+                            name: 'custrecord_dps_wms_location_name',
+                            join: 'custrecord_dsp_delivery_order_location'
+                        }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
+                    })
                     if (!boxNum) {
                         boxNum = 0;
                     }
                     data['boxNum'] = boxNum;
                     data['planQty'] = planQty;
 
-
+                    var createdby;
                     search.create({
                         type: 'purchaseorder',
                         filters: [{
@@ -331,6 +363,7 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                             }
                         ],
                         columns: [
+                            "createdby",
                             'tranid',
                             'entity',
                             'subsidiary',
@@ -342,6 +375,8 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                             // {name: "custrecord_dps_wms_location_name",join: "location"},
                         ]
                     }).run().each(function (rec) {
+
+                        createdby = rec.getText('createdby');
                         var vendor_data = record.load({
                             type: 'vendor',
                             id: rec.getValue('entity')
@@ -358,17 +393,13 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                         data['tradeCompanyName'] = rec.getText('subsidiary').substr(rec.getText('subsidiary').lastIndexOf(' ') + 1); //交易主体名称
                         return false;
                     });
-                    var order_data = record.load({
-                        type: 'purchaseorder',
-                        id: order_po_no
-                    });
                     for (var i = 0; i < item_arr.length; i++) {
                         if (item_arr[i].inspectionType == null) {
                             item_arr[i].inspectionType = inspectionType;
                         }
                     }
                     data['skuList'] = item_arr;
-                    data['purchaser'] = order_data.getText('employee'); //采购员
+                    data['purchaser'] = createdby; //采购员 来源于采购订单的创建者
                     log.debug('data', data);
 
                     var flag = 0,
@@ -383,7 +414,7 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                             if (a[checkItemArr[i]]) {
                                 flag += 1;
                             } else {
-                                showArr.push(showItemObj[checkItemArr[i]])
+                                showArr.push("货品 " + z + ": " + showItemObj[checkItemArr[i]])
                                 // flag = false
                             }
                         }

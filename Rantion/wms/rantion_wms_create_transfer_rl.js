@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-16 16:43:03
+ * @LastEditTime   : 2020-07-18 16:03:34
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -10,7 +10,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
+define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search, http, record, config) {
 
     function _get(context) {
 
@@ -91,6 +91,9 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         name: 'custrecord_aio_marketplace',
                         join: 'custrecord_dps_shipping_rec_account'
                     }, // 站点 / 市场
+
+                    "custrecord_dps_shipping_rec_destinationf", // 仓库中心
+                    "custrecord_dps_ship_remark", // 备注
                 ]
             }).run().each(function (rec) {
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
@@ -104,6 +107,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 }
 
 
+                data["remark"] = rec.getValue('custrecord_dps_ship_remark') ? rec.getValue('custrecord_dps_ship_remark') : ''; // 备注字段
 
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
@@ -126,11 +130,11 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     name: 'custrecord_ls_bubble_count',
                     join: 'custrecord_dps_shipping_r_channelservice'
                 }));
-                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');
-                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
+                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
                 data["logisticsLabelPath"] = 'logisticsLabelPath';
 
-                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');;
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');;
                 // data["logisticsProviderCode"] = rec.getValue({
                 //     name: 'custrecord_ls_service_code',
                 //     join: 'custrecord_dps_shipping_r_channelservice'
@@ -151,7 +155,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 data["logisticsFlag"] = logiFlag;
 
 
-                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
+                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
 
                 data["sourceWarehouseCode"] = rec.getValue({
                     name: 'custrecord_dps_wms_location',
@@ -198,6 +202,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
                     waybillNo = rec.getValue('custrecord_dps_shipping_rec_shipments');
                 }
+
+                data["centerId"] = rec.getValue('custrecord_dps_shipping_rec_destinationf') ? rec.getValue('custrecord_dps_shipping_rec_destinationf') : ''; // 仓库中心
                 data["type"] = type;
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
                 data["waybillNo"] = waybillNo; // 运单号
@@ -387,29 +393,30 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             });
 
             log.debug('itemArr', itemArr);
-
             var newItemInfo = [];
 
             if (tranType == 1) {
                 var new_limit = 3999;
+                var fils = [{
+                        name: "custrecord_ass_sku",
+                        operator: 'anyof',
+                        values: itemArr
+                    },
+                    {
+                        name: 'custrecord_ass_account',
+                        operator: 'anyof',
+                        values: fbaAccount
+                    }
+                ];
+                log.debug("fils:::::", fils)
                 search.create({
                     type: 'customrecord_aio_amazon_seller_sku',
-                    filters: [{
-                            name: "custrecord_ass_sku",
-                            operator: 'anyof',
-                            values: itemArr
-                        },
-                        {
-                            name: 'custrecord_ass_account',
-                            operator: 'anyof',
-                            values: fbaAccount
-                        }
-                    ],
+                    filters: fils,
                     columns: [
                         "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
                 }).run().each(function (rec) {
-
+                    log.debug("rec.id ::::::: ", rec.id)
                     var it = rec.getValue('custrecord_ass_sku');
                     item_info.forEach(function (item, key) {
 
@@ -434,7 +441,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             }
 
             log.audit('newItemInfo', newItemInfo);
-
             if (Number(taxamount) > 0) {
                 data["taxFlag"] = 1;
             } else {
@@ -505,13 +511,13 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             'access_token': token
         };
         var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster',
+            url: config.WMS_Debugging_URL + "/allocationMaster",
             headers: headerInfo,
             body: JSON.stringify(data)
         });
         log.debug('response', JSON.stringify(response));
-        retdata = JSON.parse(response.body);
         if (response.code == 200) {
+            retdata = JSON.parse(response.body);
             // 调用成功
             code = retdata.code;
         } else {

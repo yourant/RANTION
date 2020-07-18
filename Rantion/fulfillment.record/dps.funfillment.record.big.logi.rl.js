@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-21 11:00:39
- * @LastEditTime   : 2020-07-11 14:26:22
+ * @LastEditTime   : 2020-07-18 14:10:02
  * @LastEditors    : Li
  * @Description    : 获取 shipmentID, 生成报关资料, 推送 标签面单文件
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -13,8 +13,8 @@
  *@NScriptType Restlet
  */
 define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log', 'N/http',
-    './dps.information.values'
-], function (record, search, core, log, http, informationValue) {
+    './dps.information.values', '../Helper/config'
+], function (record, search, core, log, http, informationValue, config) {
 
     function _post(context) {
 
@@ -83,49 +83,56 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             },
                             'custrecord_dps_shipping_rec_location', // 仓库
                             'custrecord_dps_shipping_rec_account', // 店铺
+                            {
+                                name: "custrecord_dps_ship_record_sku_item", // sleller sku
+                                join: "custrecord_dps_shipping_record_parentrec"
+                            },
                         ]
                     }).run().each(function (rec) {
                         shipping_rec_location = rec.getValue('custrecord_dps_shipping_rec_location');
                         rec_account = rec.getValue('custrecord_dps_shipping_rec_account');
 
-                        var nsItem = rec.getValue({
-                            name: "custrecord_dps_shipping_record_item",
-                            join: "custrecord_dps_shipping_record_parentrec"
-                        });
-                        log.debug('nsItem', nsItem);
+                        // var nsItem = rec.getValue({
+                        //     name: "custrecord_dps_shipping_record_item",
+                        //     join: "custrecord_dps_shipping_record_parentrec"
+                        // });
+                        // log.debug('nsItem', nsItem);
                         ship_to_country_code = rec.getValue({
                             name: 'custrecord_cc_country_code',
                             join: 'custrecord_dps_recipient_country_dh'
                         });
-                        var SellerSKU;
-
-                        search.create({
-                            type: 'customrecord_aio_amazon_seller_sku',
-                            filters: [{
-                                    name: 'custrecord_ass_sku',
-                                    operator: 'anyof',
-                                    values: nsItem
-                                },
-                                {
-                                    name: 'custrecord_ass_account',
-                                    operator: 'anyof',
-                                    values: rec_account
-                                }
-                            ],
-                            columns: [
-                                'name'
-                            ]
-                        }).run().each(function (rec) {
-                            SellerSKU = rec.getValue('name');
-                            return --lim2 > 0;
+                        //直接取MSKU
+                        var SellerSKU = rec.getValue({
+                            name: "custrecord_dps_ship_record_sku_item",
+                            join: "custrecord_dps_shipping_record_parentrec"
                         });
+                        // search.create({
+                        //     type: 'customrecord_aio_amazon_seller_sku',
+                        //     filters: [{
+                        //             name: 'custrecord_ass_sku',
+                        //             operator: 'anyof',
+                        //             values: nsItem
+                        //         },
+                        //         {
+                        //             name: 'custrecord_ass_account',
+                        //             operator: 'anyof',
+                        //             values: rec_account
+                        //         }
+                        //     ],
+                        //     columns: [
+                        //         'name'
+                        //     ]
+                        // }).run().each(function (rec) {
+                        //     SellerSKU = rec.getValue('name');
+                        //     return --lim2 > 0;
+                        // });
 
 
-                        log.debug('SellerSKU', SellerSKU);
+                        // log.debug('SellerSKU', SellerSKU);
 
-                        if (SellerSKU) {
-                            skuFlag = true;
-                        }
+                        // if (SellerSKU) {
+                        //     skuFlag = true;
+                        // }
                         var info = {
                             "SellerSKU": SellerSKU ? SellerSKU : '', // 这里使用固定 seller SKU 替代一下
                             ASIN: '',
@@ -446,7 +453,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             }
         }
 
-
         if (action == 'createInformation') {
 
             try {
@@ -694,7 +700,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         'access_token': token
                     };
                     var response = http.post({
-                        url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                        url: config.WMS_Debugging_URL + "/allocationMaster/callbackForBox",
                         headers: headerInfo,
                         body: JSON.stringify(data)
                     });
@@ -790,7 +796,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         'access_token': token
                     };
                     var response = http.post({
-                        url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                        url: config.WMS_Debugging_URL + "/allocationMaster/callbackForBox",
                         headers: headerInfo,
                         body: JSON.stringify(data)
                     });
@@ -881,7 +887,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         'access_token': token
                     };
                     var response = http.post({
-                        url: 'http://47.107.254.110:18082/rantion-wms/allocationMaster/callbackForBox',
+                        url: config.WMS_Debugging_URL + "/allocationMaster/callbackForBox",
                         headers: headerInfo,
                         body: JSON.stringify(data)
                     });
@@ -935,6 +941,78 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
         }
 
+
+        if (action == "amazonFeedStatus") {
+
+            var accountId, amazon_info, submission_ids = [];
+            search.create({
+                type: "customrecord_dps_shipping_record",
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recordID
+                }],
+                columns: [
+                    "custrecord_dps_shipping_rec_account", // 账号
+                    {
+                        name: 'custrecord_aio_feed_submission_id',
+                        join: 'custrecord_dps_upload_packing_rec'
+                    }, // feed ID 
+                    "custrecord_dps_shipment_info", // amazon 装运信息
+                ]
+            }).run().each(function (rec) {
+                amazon_info = rec.getValue('custrecord_dps_shipment_info');
+                submission_ids.push(rec.getValue({
+                    name: 'custrecord_aio_feed_submission_id',
+                    join: 'custrecord_dps_upload_packing_rec'
+                }));
+                accountId = rec.getValue('custrecord_dps_shipping_rec_account');
+            })
+
+            var a = core.amazon.getFeedSubmissionList(accountId, submission_ids);
+            log.debug('装箱信息处理情况', a);
+
+            var shipRec = record.load({
+                type: 'customrecord_dps_shipping_record',
+                id: recordID
+            });
+
+            shipRec.setValue({
+                fieldId: "custrecord_dps_amazon_box_flag",
+                value: true
+            });
+
+            log.debug('a[0].ResultMessageCode', a[0].ResultDescription);
+            if (a[0].MessagesWithError != 0) {
+                var s = a[0].ResultDescription,
+                    str;
+                if (amazon_info) {
+                    str = amazon_info + '\n' + s;
+                }
+                shipRec.setValue({
+                    fieldId: "custrecord_dps_shipment_info",
+                    value: str ? str : s
+                });
+            }
+            shipRec.setText({
+                fieldId: "custrecord_dps_amazon_press_status",
+                text: a[0].feed_processing_status
+            });
+            var shipRec_id = shipRec.save();
+
+            log.debug('更新发运记录', shipRec_id);
+
+            //  _AWAITING_ASYNCHRONOUS_REPLY_  等待异步答复    _CANCELLED_		取消     _DONE_		完成
+            // _IN_PROGRESS_	进行中       _IN_SAFETY_NET_      _SUBMITTED_  已提交      _UNCONFIRMED_   未确认
+
+            var str = "Amazon 未处理完成";
+            if (a[0].feed_processing_status == "_DONE_") {
+                str = "Amazon 已处理完成";
+            } else if (a[0].feed_processing_status == "_CANCELLED_") {
+                str = "Amazon 已取消";
+            }
+            ret.msg = "装箱信息处理状态：" + str;
+        }
 
         return ret || false;
     }

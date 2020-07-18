@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-15 17:08:44
- * @LastEditTime   : 2020-07-16 20:31:24
+ * @LastEditTime   : 2020-06-16 14:56:51
  * @LastEditors    : Li
  * @Description    : 定时搜索库存不足的发运记录, 定时判断库存, 自动履行
  * @FilePath       : \Rantion\fulfillment.record\dps.auto.ful.order.map.js
@@ -406,7 +406,7 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
             'access_token': token
         };
         var response = http.post({
-            url: WMS_Debugging_URL + '/outMaster',
+            url: 'http://47.107.254.110:18082/rantion-wms/outMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });

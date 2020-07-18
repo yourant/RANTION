@@ -55,14 +55,15 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             name: 'custscript_id_to1'
         });
         var group = runtime.getCurrentScript().getParameter({
-            name: 'custscript_id_to1'
+            name: 'custscript_acc_group'
         });
         log.debug("acc", acc);
         log.debug("group", group);
         var orders = [];
         core.amazon.getAccountList(group).map(function (account) {
-            if(account.id !=acc &&acc ) return;
-            var limit = 4000 // 999; //350
+            if(account.id !=acc && acc ) return;
+            // if(account.id !=79 && account.id !=164 ) return;
+            var limit = 300 // 999; //350
             var filters = [{
                     name: 'custrecord_aio_cache_resolved',
                     operator: search.Operator.IS,
@@ -735,7 +736,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 });
                 return mark_resolved(amazon_account_id, o.amazon_order_id);
             }
-            if (!line_items) {
+            if (!line_items || line_items.length ==0) {
                 line_items = core.amazon.getOrderItems(a, o.amazon_order_id);
                 log.debug("0000011line_items:" + obj.rec_id, line_items);
 

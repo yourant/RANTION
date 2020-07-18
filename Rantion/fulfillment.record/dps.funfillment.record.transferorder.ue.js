@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-16 20:36:09
+ * @LastEditTime   : 2020-07-18 14:55:25
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -187,7 +187,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     }
 
-
+    /**
+     * 创建完发运记录, 根据类型,进行 shipmentID的申请 或者 推送 WMS
+     * @param {Object} context 
+     */
     function sub(context) {
 
         var af_rec = context;
@@ -202,7 +205,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         }
 
         log.audit('rec_status', rec_status);
-
 
         var tranor_type = af_rec.getValue('custrecord_dps_ship_record_tranor_type');
         log.debug('tranor_type', tranor_type);
@@ -232,7 +234,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     sub_id = 'recmachcustrecord_dps_shipping_record_parentrec';
 
                 search.create({
-                    type: af_rec.type,
+                    type: af_rec.type, //发运记录，大货
                     filters: [{
                         name: 'internalid',
                         operator: 'anyof',
@@ -249,7 +251,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         {
                             name: 'custrecord_cc_country_code',
                             join: 'custrecord_dps_recipient_country_dh'
-                        }
+                        },
+                        {
+                            name: "custrecord_dps_ship_record_sku_item", // sleller sku
+                            join: "custrecord_dps_shipping_record_parentrec"
+                        },
                     ]
                 }).run().each(function (rec) {
                     var nsItem = rec.getValue({
@@ -261,27 +267,30 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         name: 'custrecord_cc_country_code',
                         join: 'custrecord_dps_recipient_country_dh'
                     });
-
-                    search.create({
-                        type: 'customrecord_aio_amazon_seller_sku',
-                        filters: [{
-                                name: 'custrecord_ass_sku',
-                                operator: 'anyof',
-                                values: nsItem
-                            },
-                            {
-                                name: 'custrecord_ass_account',
-                                operator: 'anyof',
-                                values: rec_account
-                            }
-                        ],
-                        columns: [
-                            'name'
-                        ]
-                    }).run().each(function (rec) {
-                        SellerSKU = rec.getValue('name');
-                        return --lim2 > 0;
+                    SellerSKU = rec.getValue({
+                        name: "custrecord_dps_ship_record_sku_item", // sleller sku
+                        join: "custrecord_dps_shipping_record_parentrec"
                     });
+                    // search.create({
+                    //     type: 'customrecord_aio_amazon_seller_sku',
+                    //     filters: [{
+                    //             name: 'custrecord_ass_sku',
+                    //             operator: 'anyof',
+                    //             values: nsItem
+                    //         },
+                    //         {
+                    //             name: 'custrecord_ass_account',
+                    //             operator: 'anyof',
+                    //             values: rec_account
+                    //         }
+                    //     ],
+                    //     columns: [
+                    //         'name'
+                    //     ]
+                    // }).run().each(function (rec) {
+                    //     SellerSKU = rec.getValue('name');
+                    //     return --lim2 > 0;
+                    // });
 
                     var info = {
                         SellerSKU: SellerSKU,
@@ -687,6 +696,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     'custrecord_dps_f_b_purpose', // 用途
                     'custrecord_dps_declare_currency_dh', // 申报币种
                     'custrecord_dps_shipping_rec_shipmentsid', // shipmentId
+                    "custrecord_dps_shipping_rec_destinationf", // 仓库中心编号
 
                     {
                         name: 'custrecord_dps_wms_location',
@@ -726,6 +736,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         name: 'custrecord_aio_marketplace',
                         join: 'custrecord_dps_shipping_rec_account'
                     }, // 站点 / 市场
+                    {
+                        name: "custrecord_dps_ship_remark"
+                    }, // 备注
                 ]
             }).run().each(function (rec) {
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
@@ -737,6 +750,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 } else {
                     shippingType = 20;
                 }
+
+                data["remark"] = rec.getValue('custrecord_dps_ship_remark') ? rec.getValue('custrecord_dps_ship_remark') : ''; // 备注字段
 
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
@@ -809,10 +824,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
 
                 var type = 10;
-                // 1 FBA调拨
-                // 2 自营仓调拨
-                // 3 跨仓调拨
-                // 4 移库
+                // 1 FBA调拨         2 自营仓调拨             3 跨仓调拨            4 移库
 
                 var waybillNo;
 
@@ -824,6 +836,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
                     waybillNo = rec.getValue('custrecord_dps_shipping_rec_shipments');
                 }
+                data["centerId"] = rec.getValue('custrecord_dps_shipping_rec_destinationf') ? rec.getValue('custrecord_dps_shipping_rec_destinationf') : ''; // 仓库中心
                 data["type"] = type;
                 // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
                 data["waybillNo"] = waybillNo; // 运单号
@@ -910,7 +923,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         join: 'custrecord_dps_shipping_record_item'
                     },
                     'custrecord_dps_shipping_record_item', // 货品
-
+                    'custrecord_dps_ship_record_sku_item', //seller sku
                     // {
                     //     name: 'taxamount',
                     //     join: 'custrecord_dps_trans_order_link'
@@ -955,10 +968,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         join: 'custrecord_dps_shipping_record_item',
                         name: 'custitem_dps_fnsku'
                     }),
-                    msku: rec.getValue({
-                        join: 'custrecord_dps_shipping_record_item',
-                        name: 'custitem_dps_msku'
-                    }),
+                    // msku: rec.getValue({
+                    //     join: 'custrecord_dps_shipping_record_item',
+                    //     name: 'custitem_dps_msku'
+                    // }),
+                    msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
                     englishTitle: rec.getValue({
                         name: 'custitem_dps_declaration_us',
                         join: 'custrecord_dps_shipping_record_item'
@@ -1011,42 +1025,61 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             });
 
             log.debug('itemArr', itemArr);
-
+            // 2020/7/18 13：44 改动 
+            var fils = []; //过滤
+            var len = item_info.length,
+                num = 0;
+            item_info.map(function (ld) {
+                num++;
+                fils.push([
+                    ["name", "is", ld.msku],
+                    "and",
+                    ["custrecord_ass_sku", "anyof", ld.itemId]
+                ]);
+                if (num < len)
+                    fils.push("or");
+            });
+            fils.push("and",
+                ["custrecord_ass_account", "anyof", fbaAccount]
+            );
+            log.debug('fils', fils);
+            log.debug('item_info', item_info);
             var newItemInfo = [];
 
             if (tranType == 1) {
                 var new_limit = 3999;
-
+                var fls_skus = [];
                 search.create({
-                    type: "customrecord_aio_amazon_seller_sku",
-                    filters: [{
-                            name: 'custrecord_ass_sku',
-                            operator: 'anyof',
-                            values: itemArr
-                        },
-                        {
-                            name: 'custrecord_ass_account',
-                            operator: 'anyof',
-                            values: fbaAccount
-                        }
-                    ],
+                    type: 'customrecord_aio_amazon_seller_sku',
+                    filters: fils,
+                    // filters: [{
+                    //         name: "custrecord_ass_sku",
+                    //         operator: 'anyof',
+                    //         values: itemArr
+                    //     },
+                    //     {
+                    //         name: 'custrecord_ass_account',
+                    //         operator: 'anyof',
+                    //         values: fbaAccount
+                    //     }
+                    // ],
                     columns: [
-                        "name", "custrecord_ass_asin", "custrecord_ass_fnsku", "custrecord_ass_sku"
+                        "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
                 }).run().each(function (rec) {
 
                     var it = rec.getValue('custrecord_ass_sku');
                     item_info.forEach(function (item, key) {
-                        if (item.itemId == it) {
+                        if (item.itemId == it && fls_skus.indexOf(it) == -1) {
                             item.asin = rec.getValue("custrecord_ass_asin");
-                            item.fnsku = rec.getValue("custrecord_ass_fnsku");
+                            item.fnsku = rec.getValue("custrecord_ass_fnsku")
                             item.msku = rec.getValue('name');
                             newItemInfo.push(item);
+                            fls_skus.push(it);
                         }
                     });
                     return --new_limit > 0;
                 });
-
                 log.debug('newItemInfo', newItemInfo);
 
                 data['allocationDetailCreateRequestDtos'] = newItemInfo;
@@ -1134,6 +1167,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             fieldId: 'custrecord_dps_shipping_rec_location',
             value: rec.getValue('location')
         });
+        objRecord.setValue({
+            fieldId: 'custrecord_dps_ship_remark',
+            value: rec.getValue('memo')
+        }); // 设置 备注字段
 
         // 1 FBA调拨
         // 2 自营仓调拨
@@ -1283,6 +1320,24 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 //     value: false
                 // });
             }
+            var location = rec.getValue('custbody_dps_start_location');
+            if (location) {
+                search.create({
+                    type: 'location',
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'is',
+                        values: location
+                    }],
+                    columns: ['custrecord_dps_financia_warehous']
+                }).run().each(function (rec) {
+                    var tttppp = rec.getValue('custrecord_dps_financia_warehous');
+                    if (tttppp == 3) {
+                        s = 27;
+                    }
+                    return false;
+                });
+            }
 
             log.debug('s', s);
             if (!link_status) {
@@ -1400,60 +1455,56 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             ToLimit = 3999,
             itemObj = {},
             itemToObj = {};
-        search.create({
-            type: rec.type,
-            filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: rec.id
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                }
-            ],
-            columns: [
-                "item",
-            ]
-        }).run().each(function (rec) {
-            itemToArr.push(rec.getValue('item'));
-            itemObj[rec.getValue('item')] = rec.getValue('item');
-            return --ToLimit > 0;
-        });
-
-
-        var skuLimit = 3999;
-
-        if (rec_account) {
-            search.create({
-                type: 'customrecord_aio_amazon_seller_sku',
-                filters: [{
-                        name: 'custrecord_ass_sku',
-                        operator: 'anyof',
-                        values: itemToArr
-                    },
-                    {
-                        name: 'custrecord_ass_account',
-                        operator: 'anyof',
-                        values: rec_account
-                    }
-                ],
-                columns: [
-                    'name', "custrecord_ass_sku"
-                ]
-            }).run().each(function (rec) {
-                var nsItem = rec.getValue('custrecord_ass_sku');
-                itemToObj[nsItem] = rec.getValue('name');
-                return --skuLimit > 0;
-            });
-
-        }
+        // search.create({
+        //     type: rec.type,
+        //     filters: [{
+        //             name: 'internalid',
+        //             operator: 'anyof',
+        //             values: rec.id
+        //         },
+        //         {
+        //             name: 'mainline',
+        //             operator: 'is',
+        //             values: false
+        //         },
+        //         {
+        //             name: 'taxline',
+        //             operator: 'is',
+        //             values: false
+        //         }
+        //     ],
+        //     columns: [
+        //         "item",
+        //     ]
+        // }).run().each(function (rec) {
+        //     itemToArr.push(rec.getValue('item'));
+        //     itemObj[rec.getValue('item')] = rec.getValue('item');
+        //     return --ToLimit > 0;
+        // });
+        // var skuLimit = 3999;
+        // if (rec_account) {
+        //     search.create({
+        //         type: 'customrecord_aio_amazon_seller_sku',
+        //         filters: [{
+        //                 name: 'custrecord_ass_sku',
+        //                 operator: 'anyof',
+        //                 values: itemToArr
+        //             },
+        //             {
+        //                 name: 'custrecord_ass_account',
+        //                 operator: 'anyof',
+        //                 values: rec_account
+        //             }
+        //         ],
+        //         columns: [
+        //             'name', "custrecord_ass_sku"
+        //         ]
+        //     }).run().each(function (rec) {
+        //         var nsItem = rec.getValue('custrecord_ass_sku');
+        //         itemToObj[nsItem] = rec.getValue('name'); //seller sku
+        //         return --skuLimit > 0;
+        //     });
+        // }
 
 
         for (var i = 0; i < numLines; i++) {
@@ -1467,15 +1518,22 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 fieldId: 'item',
                 line: i
             });
-
-            if (itemToObj && itemToObj[item]) {
-                objRecord.setSublistValue({
-                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
-                    fieldId: 'custrecord_dps_ship_record_sku_item',
-                    line: i,
-                    value: itemToObj[item]
-                });
+            //2020/7/18  lc
+            var msku = rec.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcol_aio_amazon_msku',
+                line: i
+            });
+            if (!msku) {
+                //需要选择MSKU ，在生成发运记录
+                return false;
             }
+            objRecord.setSublistValue({
+                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                fieldId: 'custrecord_dps_ship_record_sku_item', //seller sku msku
+                line: i,
+                value: msku
+            });
             objRecord.setSublistValue({
                 sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
                 fieldId: 'custrecord_dps_shipping_record_item',

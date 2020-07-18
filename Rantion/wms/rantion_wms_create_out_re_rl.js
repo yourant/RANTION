@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-16 14:48:01
+ * @LastEditTime   : 2020-07-17 15:33:54
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_re_rl.js
@@ -135,7 +135,6 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
 
                         return retjson;
                     }
-
 
                     var vLimit = 3999,
                         vRecId,
@@ -400,7 +399,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
 
     /**
      * 创建发票
-     * @param {Number} recId 
+     * @param {Number} recId 记录ID
      */
     function createInvoice(recId) {
         var inv = record.transform({

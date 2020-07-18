@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, log, search, url, https) {
+define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function (record, log, search, url, https) {
 
     function _post(context) {
 
@@ -47,14 +47,14 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
                     'custitem_dps_spucoding', //产品编号
                     'custitem_dps_picture', //图片路径
                     'custitem_dps_ctype', //产品类型 10:成品 20:半成品 30:组合产品 40:包装材料 ,
-                    'vendorname', //产品标题
+                    'custitem_dps_skuchiense', //产品标题
                     //'custitem_dps_skuenglish', //sku
                     'custitem_dps_specifications', //变体规格
                 ]
-            }).run().each(function(res) {
+            }).run().each(function (res) {
                 productCode = res.getValue('custitem_dps_spucoding');
                 productImageUrl = res.getValue('custitem_dps_picture');
-                productTitle = res.getValue('vendorname');
+                productTitle = res.getValue('custitem_dps_skuchiense');
                 productType = res.getValue('custitem_dps_ctype');
                 variants = res.getValue('custitem_dps_specifications');
             });
@@ -62,10 +62,6 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
 
             if (productImageUrl == '') {
                 productImageUrl = 'https://cdn.shopify.com/s/files/1/1384/9629/files/ACOUSTIC-GUITAR.jpg';
-            }
-
-            if (productTitle == '') {
-                productTitle = '假的';
             }
 
             if (productType == '') {
@@ -106,7 +102,7 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
             }
 
             //设置默认总数
-            if (typeof(all_qty[wms_location]) == 'undefined') {
+            if (typeof (all_qty[wms_location]) == 'undefined') {
                 all_qty[wms_location] = 0;
             }
 
@@ -120,7 +116,7 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
             if (variants != '')
                 OutDetailCreateRequestDto.variants = variants;
 
-            if (typeof(OutDetailCreateRequestDtos[wms_location]) == 'undefined')
+            if (typeof (OutDetailCreateRequestDtos[wms_location]) == 'undefined')
                 OutDetailCreateRequestDtos[wms_location] = [];
             OutDetailCreateRequestDtos[wms_location].push(OutDetailCreateRequestDto);
         }
@@ -147,7 +143,6 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
 
         //供应商手机
         var mobilePhone = entity.getValue('phone');
-        if (mobilePhone == '') mobilePhone = '假的';
 
         //获取平台信息
         var platformCode = p_record.getValue('custitem_dps_platformcode');
@@ -182,14 +177,14 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function(record, l
             columns: [
                 'custrecord_ls_logistics_company'
             ]
-        }).run().each(function(res) {
+        }).run().each(function (res) {
             customrecord_logistics_service_id = res.id;
             customrecord_logistics_company_id = res.getValue('custrecord_ls_logistics_company');
         });
 
 
         //根据wms仓库合并数据生成出库单
-        locations.forEach(function(location) {
+        locations.forEach(function (location) {
 
 
             OutMasterCreateRequestDto = {

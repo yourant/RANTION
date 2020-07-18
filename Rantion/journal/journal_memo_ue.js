@@ -140,51 +140,53 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
                     line: 0
                 })
 
-                var vendorbillRecord = record.load({
-                    type: 'vendorbill',
-                    id: billId
-                });
-
-                var lineCount = vendorbillRecord.getLineCount({
-                    sublistId: 'purchaseorders'
-                })
-                log.debug('lineCount', lineCount);
-                var poId;
-                for (var i = 0; i < lineCount; i++) {
-                    poId = vendorbillRecord.getSublistValue({
-                        sublistId: 'purchaseorders',
-                        fieldId: 'id',
-                        line: i
+                if (billId) {
+                    var vendorbillRecord = record.load({
+                        type: 'vendorbill',
+                        id: billId
                     });
+
+                    var lineCount = vendorbillRecord.getLineCount({
+                        sublistId: 'purchaseorders'
+                    })
+                    log.debug('lineCount', lineCount);
+                    var poId;
+                    for (var i = 0; i < lineCount; i++) {
+                        poId = vendorbillRecord.getSublistValue({
+                            sublistId: 'purchaseorders',
+                            fieldId: 'id',
+                            line: i
+                        });
+                    }
+                    log.debug('poId', poId);
+                    var purchaseRecord = record.load({
+                        type: 'purchaseorder',
+                        id: poId
+                    });
+
+                    var purchaseOrderType = purchaseRecord.getValue({ fieldId: 'custbody_dps_type' })
+                    log.debug('purchaseOrderType', purchaseOrderType);
+                    documentType = getPOTypeToDocumentType(purchaseOrderType);
+
+                    var lineCount = purchaseRecord.getLineCount({
+                        sublistId: 'recmachcustrecord_purchase_order_no'
+                    })
+                    var LNNO = '';
+                    for (var i = 0; i < lineCount; i++) {
+                        LNNO += '[' + purchaseRecord.getSublistValue({
+                            sublistId: 'recmachcustrecord_purchase_order_no',
+                            fieldId: 'name',
+                            line: i
+                        }) + ']';
+                    }
+                    log.debug('LNNO', LNNO);
+
+                    // documentList = getDocumentList('Vendor Payment');
+                    noNumber = {
+                        BillPaymentNO: journalRecord.getValue({ fieldId: 'transactionnumber' }),
+                        LNNO: LNNO
+                    };
                 }
-                log.debug('poId', poId);
-                var purchaseRecord = record.load({
-                    type: 'purchaseorder',
-                    id: poId
-                });
-
-                var purchaseOrderType = purchaseRecord.getValue({ fieldId: 'custbody_dps_type' })
-                log.debug('purchaseOrderType', purchaseOrderType);
-                documentType = getPOTypeToDocumentType(purchaseOrderType);
-
-                var lineCount = purchaseRecord.getLineCount({
-                    sublistId: 'recmachcustrecord_purchase_order_no'
-                })
-                var LNNO = '';
-                for (var i = 0; i < lineCount; i++) {
-                    LNNO += '[' + purchaseRecord.getSublistValue({
-                        sublistId: 'recmachcustrecord_purchase_order_no',
-                        fieldId: 'name',
-                        line: i
-                    }) + ']';
-                }
-                log.debug('LNNO', LNNO);
-
-                // documentList = getDocumentList('Vendor Payment');
-                noNumber = {
-                    BillPaymentNO: journalRecord.getValue({ fieldId: 'transactionnumber' }),
-                    LNNO: LNNO
-                };
                 break;
             //出库发运 2
             case 'itemfulfillment':
@@ -281,10 +283,7 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
                 modular = getCustrecordModular('采购模块');
                 process = getCustrecordProcess('采购订单');
                 documentList = 17;
-                var vendorbillRecord = record.load({
-                    type: 'vendorbill',
-                    id: id
-                });
+                var vendorbillRecord = scriptContext.newRecord;
 
                 var lineCount = vendorbillRecord.getLineCount({
                     sublistId: 'purchaseorders'
@@ -299,48 +298,49 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
                     });
                 }
                 log.debug('poId', poId);
-                var purchaseRecord = record.load({
-                    type: 'purchaseorder',
-                    id: poId
-                });
+                if (poId) {
+                    var purchaseRecord = record.load({
+                        type: 'purchaseorder',
+                        id: poId
+                    });
+                    var purchaseOrderType = purchaseRecord.getValue({ fieldId: 'custbody_dps_type' })
+                    documentType = getPOTypeToDocumentType(purchaseOrderType);
+                    // links
+                    var lineCount = vendorbillRecord.getLineCount({
+                        sublistId: 'links'
+                    })
+                    for (var i = 0; i < lineCount; i++) {
+                        if (vendorbillRecord.getSublistValue({ sublistId: 'links', fieldId: 'type', line: i }) == '账单付款') {
+                            //vendorpayment transactionnumber
 
-                var purchaseOrderType = purchaseRecord.getValue({ fieldId: 'custbody_dps_type' })
-                documentType = getPOTypeToDocumentType(purchaseOrderType);
-                // links
-                var lineCount = vendorbillRecord.getLineCount({
-                    sublistId: 'links'
-                })
-                for (var i = 0; i < lineCount; i++) {
-                    if (vendorbillRecord.getSublistValue({ sublistId: 'links', fieldId: 'type', line: i }) == '账单付款') {
-                        //vendorpayment transactionnumber
-
-                        search.create({
-                            type: 'vendorpayment',
-                            filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: vendorbillRecord.getSublistValue({ sublistId: 'links', fieldId: 'id', line: i })
-                            }],
-                            columns: ['transactionnumber']
-                        }).run().each(function (rec) {
-                            noNumber = { 'PaymentNO': rec.getValue('transactionnumber') };
-                            log.debug('noNumber', noNumber);
-                        });
+                            search.create({
+                                type: 'vendorpayment',
+                                filters: [{
+                                    name: 'internalid',
+                                    operator: 'anyof',
+                                    values: vendorbillRecord.getSublistValue({ sublistId: 'links', fieldId: 'id', line: i })
+                                }],
+                                columns: ['transactionnumber']
+                            }).run().each(function (rec) {
+                                noNumber = { 'PaymentNO': rec.getValue('transactionnumber') };
+                                log.debug('noNumber', noNumber);
+                            });
+                        }
                     }
-                }
-                //计划/备库存采购 公司间交易 采购补货
-                if (purchaseOrderType == 2
-                    || purchaseOrderType == 6
-                    || purchaseOrderType == 8) {
-                }
-                //固定资产/办公用品
-                if (purchaseOrderType == 5) {
-                }
-                //物料和配件
-                if (purchaseOrderType == 4) {
-                }
-                //采购运费
-                if (purchaseOrderType == 7) {
+                    //计划/备库存采购 公司间交易 采购补货
+                    if (purchaseOrderType == 2
+                        || purchaseOrderType == 6
+                        || purchaseOrderType == 8) {
+                    }
+                    //固定资产/办公用品
+                    if (purchaseOrderType == 5) {
+                    }
+                    //物料和配件
+                    if (purchaseOrderType == 4) {
+                    }
+                    //采购运费
+                    if (purchaseOrderType == 7) {
+                    }
                 }
                 break;
             //订单预收款 2

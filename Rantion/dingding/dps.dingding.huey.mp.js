@@ -20,10 +20,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                 '&status=COMPLETED&result=agree&eventType=bpms_instance_change' +
                 '&beginCreateTime='
                 // + beginDate.format("yyyy-MM-dd 00:00:00")
-                + beginDate.format("2020-06-25 00:00:00")
-                + '&endCreateTime='
+                +
+                beginDate.format("2020-06-25 00:00:00") +
+                '&endCreateTime='
                 // + endDate.format("yyyy-MM-dd 23:59:59");
-                + endDate.format("2020-06-30 23:59:59");
+                +
+                endDate.format("2020-06-30 23:59:59");
             message = sendRequest(url, token);
             message = JSON.parse(JSON.parse(message.data))
             if (message.code == 0) {
@@ -56,7 +58,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         return;
     }
 
-    function reduce(context) { }
+    function reduce(context) {}
 
     function summarize(summary) {
 
@@ -316,9 +318,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                             operator: 'is',
                                             values: custrecord_dps_rbsm_detailtype2_name
                                         }],
-                                        columns: [
-                                            { name: 'custrecord_dps_fee_debitaccount' },
-                                            { name: 'custrecord_expense_report_class' },
+                                        columns: [{
+                                                name: 'custrecord_dps_fee_debitaccount'
+                                            },
+                                            {
+                                                name: 'custrecord_expense_report_class'
+                                            },
                                         ],
                                     }).run().each(function (res) {
                                         custrecord_dps_rbsm_detailtype2 = res.id;
@@ -563,9 +568,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                         operator: 'is',
                                         values: custrecord_dps_rbsm_detailtype2_name
                                     }],
-                                    columns: [
-                                        { name: 'custrecord_dps_fee_debitaccount' },
-                                        { name: 'custrecord_expense_report_class' },
+                                    columns: [{
+                                            name: 'custrecord_dps_fee_debitaccount'
+                                        },
+                                        {
+                                            name: 'custrecord_expense_report_class'
+                                        },
                                     ],
                                 }).run().each(function (res) {
                                     custrecord_dps_rbsm_detailtype2 = res.id;
@@ -636,9 +644,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                         operator: 'is',
                         values: custrecord_dps_rbsm_detailtype2_name
                     }],
-                    columns: [
-                        { name: 'custrecord_dps_fee_debitaccount' },
-                        { name: 'custrecord_expense_report_class' },
+                    columns: [{
+                            name: 'custrecord_dps_fee_debitaccount'
+                        },
+                        {
+                            name: 'custrecord_expense_report_class'
+                        },
                     ],
                 }).run().each(function (res) {
                     custrecord_dps_rbsm_detailtype2 = res.id;
@@ -825,7 +836,9 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         });
 
         if (typeof (detail) == 'undefined') {
-            detail = { length: 1 }
+            detail = {
+                length: 1
+            }
         }
 
         //--设置日记账贷记信息
@@ -961,7 +974,11 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         var token;
         search.create({
             type: 'customrecord_wms_token',
-            filters: [{ name: 'internalid', operator: 'anyof', values: 1 }],
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1
+            }],
             columns: ['custrecord_wtr_token']
         }).run().each(function (result) {
             token = result.getValue('custrecord_wtr_token');
@@ -985,13 +1002,14 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         });
 
         //log.error('error',response.toJSON());
-        retdata = JSON.stringify(response.body);
         if (response.code == 200) {
+            retdata = JSON.stringify(response.body);
             // 调用成功
             code = retdata.code;
         } else {
             code = 1;
             // 调用失败
+            retdata = "请求失败"
         }
         message.code = code;
         message.data = retdata;

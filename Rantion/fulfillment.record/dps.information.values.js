@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-06-22 16:02:31
+ * @LastEditTime   : 2020-07-18 18:44:45
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -641,11 +641,11 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             }); // 数量	custrecord_dps_us_b_i_qty
 
             var a = Number(temp.rate) + Number(temp.taxamount); // 含税单价
-            log.debug('a', a);
+            log.debug('含税单价 a', a);
             var b = a / 1.13; // 未含税单价
-            log.debug('b', b);
+            log.debug('未含税单价 b', b);
             var c = a * Number(temp.qty); // 含税金额
-            log.debug('c', c);
+            log.debug('含税金额 c', c);
 
             usbil.setValue({
                 fieldId: 'custrecord_dps_us_b_i_tax',

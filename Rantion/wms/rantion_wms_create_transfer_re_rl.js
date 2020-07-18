@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-15 12:02:38
+ * @LastEditTime   : 2020-07-18 11:47:40
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -160,26 +160,29 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'],
                         var LoId, positionCode;
 
 
-                        var cn_no = searchLoadingInformation(containerNo);
-                        if (cn_no) { // 存在对应的装柜记录, 更新装柜记录
-                            l_rec.setValue({
-                                fieldId: 'custrecord_dps_ship_rec_load_links',
-                                value: cn_no
-                            });
-                            val.custrecord_dps_ship_rec_load_links = cn_no;
+                        if (containerNo) {
+                            var cn_no = searchLoadingInformation(containerNo);
+                            if (cn_no) { // 存在对应的装柜记录, 更新装柜记录
+                                l_rec.setValue({
+                                    fieldId: 'custrecord_dps_ship_rec_load_links',
+                                    value: cn_no
+                                });
+                                val.custrecord_dps_ship_rec_load_links = cn_no;
 
-                            var l_con = record.load({
-                                type: 'customrecord_dps_cabinet_record',
-                                id: cn_no
-                            });
-                            var conVolume = l_con.getValue("custrecord_dps_cabinet_rec_volume");
-                            l_con.setValue({
-                                fieldId: 'custrecord_dps_cabinet_rec_remai_volume',
-                                value: Number(conVolume) - Number(volume)
-                            });
-                            var l_con_id = l_con.save();
+                                var l_con = record.load({
+                                    type: 'customrecord_dps_cabinet_record',
+                                    id: cn_no
+                                });
+                                var conVolume = l_con.getValue("custrecord_dps_cabinet_rec_volume");
+                                l_con.setValue({
+                                    fieldId: 'custrecord_dps_cabinet_rec_remai_volume',
+                                    value: Number(conVolume) - Number(volume)
+                                });
+                                var l_con_id = l_con.save();
 
-                            log.debug('更新装柜里成功', l_con_id);
+                                log.debug('更新装柜里成功', l_con_id);
+                            }
+
                         }
 
                         // 设置调拨单的状态

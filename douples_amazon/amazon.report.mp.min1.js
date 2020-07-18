@@ -100,7 +100,6 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             }
             // core.amazon.getReportAccountList().map(function (account) {
             log.debug(report_type, "店铺数量:" + acc_arrys.length );
-            return 
                 acc_arrys.map(function (account) {
                 if(account.id !=stroe && stroe) return;
                 var marketplace = account.marketplace;
@@ -673,7 +672,7 @@ define(["N/format", "require", "exports", "./Helper/core.min", "N/log", "N/recor
             reason ?
                 mo.setValue({
                     fieldId: 'custrecord_amazon_missing_reason',
-                    value: reason
+                    value: JSON.stringify(reason)
                 }) : "";
             //设置为false，重新拉一次
             record.submitFields({

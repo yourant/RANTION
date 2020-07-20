@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-21 11:00:39
- * @LastEditTime   : 2020-07-18 14:10:02
+ * @LastEditTime   : 2020-07-20 14:28:39
  * @LastEditors    : Li
  * @Description    : 获取 shipmentID, 生成报关资料, 推送 标签面单文件
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -515,6 +515,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     //         statusId == 10 || statusText == "已获取Shipment，等待装箱" ||
                     //         statusId == 8 || statusText == "WMS发运失败") &&
                     //     !information) { // 状态为 WMS已发运 并且 关联的报关资料
+
+                    var a = Math.floor(Math.random() * Math.floor(6));
+                    gross_margin = Number((0.3 + (a / 100)).toFixed(2));
 
                     var info = informationValue.searchPOItem(order_num);
                     log.debug('info', info);

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-07-18 18:44:45
+ * @LastEditTime   : 2020-07-20 15:20:20
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -487,8 +487,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             // });
 
             log.debug('cur_rate', cur_rate);
+            if (!gross_margin) {
+                gross_margin = 0.3;
+            }
 
             var num = 1 + Number(gross_margin);
+
             log.debug('num', num);
 
             log.debug('temp.rate', temp.rate);
@@ -567,6 +571,8 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
      * @param {*} batchNum 
      */
     function createBillInformation(info, informaId, batchNum) {
+
+        log.debug('开票资料')
         var USBil = [];
         for (var i = 0, len = info.length; i < len; i++) {
             var temp = info[i];
@@ -783,7 +789,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                         values: transfer_head
                     }
                 ],
-                columns: [
+                columns: [ // taxamount 总量 = 数量 X 单价 X 税率
                     'rate', 'item', 'quantity', "taxamount", "custcol_realted_transfer_detail", 'entity',
                     {
                         name: 'custitem_dps_declaration_cn',
@@ -834,12 +840,18 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                     }
                 }
 
+                var temp_taxAmt = rec.getValue('taxamount');
+                var tem_tax = 0;
+                if (temp_taxAmt) { // 获取到的 taxamount 为负, 取绝对值, 且为总和, 需要除以数量
+                    tem_tax = Math.abs(temp_taxAmt / rec.getValue('quantity'))
+                }
+
                 var it = {
                     name: rec.getValue({
                         name: 'custitem_dps_declaration_cn',
                         join: 'item'
                     }),
-                    taxamount: rec.getValue('taxamount'),
+                    taxamount: tem_tax,
                     buyer: rec.getValue({
                         name: 'custentity_dps_buyer',
                         join: 'vendor'

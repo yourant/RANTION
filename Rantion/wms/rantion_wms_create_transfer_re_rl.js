@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-18 11:47:40
+ * @LastEditTime   : 2020-07-18 23:17:46
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -84,9 +84,6 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'],
                         storageList = temp.storageList,
                         abno = temp.abno;
                     var aono_id = searchFulRec(aono); // 查找对应的调拨单
-
-
-
 
                     var val = {};
                     if (aono_id) { // 存在对应的调拨单
@@ -238,14 +235,14 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'],
                         retjson.msg = 'success';
                         requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "transfer");
                     } else { // 找不到对应的调拨单
-                        retjson.code = 5;
+                        retjson.code = 3;
                         retjson.data = null;
-                        retjson.msg = 'unknown: 找不到对应的调拨单';
+                        retjson.msg = 'unknown: 找不到对应的调拨单 ' + aono;
                     }
                 }
             } catch (error) {
                 log.debug('调拨单回传处理出错 error', error);
-                retjson.code = 3;
+                retjson.code = 5;
                 retjson.data = null;
                 retjson.msg = 'error';
                 requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 2, "transfer");
@@ -693,14 +690,15 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record'],
 
         /**
          * 根据调拨单号, 获取对应的调拨单
-         * @param {*} aono 
+         * @param {String} aono 
          */
         function searchFulRec(aono) {
             var ful_id;
             search.create({
                 type: 'customrecord_dps_shipping_record',
                 filters: [{
-                    name: 'custrecord_dps_shipping_rec_order_num',
+                    name: 'tranid',
+                    join: 'custrecord_dps_shipping_rec_order_num',
                     operator: 'is',
                     values: aono
                 }]

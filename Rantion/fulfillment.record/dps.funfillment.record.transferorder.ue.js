@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-18 14:55:25
+ * @LastEditTime   : 2020-07-20 00:21:05
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -38,55 +38,54 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
         if (type == "view") {
             var bl_rec = context.newRecord;
-            var link = bl_rec.getValue('custbody_dps_fu_rec_link');
+            var link, tranType;
+            search.create({
+                type: bl_rec.type,
+                filters: [{
+                        name: 'internalid',
+                        operator: 'is',
+                        values: bl_rec.id
+                    },
+                    {
+                        name: 'mainline',
+                        operator: 'is',
+                        values: true
+                    }
+                ],
+                columns: [
+                    "custbody_dps_fu_rec_link", // 关联的发运记录
+                    "custbody_dps_transferor_type", // 调拨单类型
+                ]
+            }).run().each(function (rec) {
+                link = rec.getValue('custbody_dps_fu_rec_link');
+                tranType = rec.getValue('custbody_dps_transferor_type');
+            })
 
-            log.debug('link', link);
+            log.debug('关联的发运记录', link);
+            log.debug('调拨单类型', tranType);
             var link_status;
             if (link) {
-                search.create({
-                    type: 'customrecord_dps_shipping_record',
-                    filters: [{
-                        name: 'internalid',
-                        operator: 'anyof',
-                        values: link
-                    }],
-                    columns: ['custrecord_dps_shipping_rec_status']
-                }).run().each(function (rec) {
-                    link_status = rec.getValue('custrecord_dps_shipping_rec_status');
-                });
-                /*
-                if (type == 'edit' && (link_status == 14 || link_status == 10 || link_status == 3)) {
-                    // 这些状态下,  不允许更改库存转移订单
-                    redirect.toRecord({
-                        type: bl_rec.type,
-                        id: bl_rec.id
+                var transferor_type = bl_rec.getValue('custbody_dps_transferor_type');
+                if (transferor_type == 7) {
+                    var form = context.form;
+                    form.addButton({
+                        id: 'custpage_dps_li_get_label_button',
+                        label: '获取标签',
+                        functionName: "getPalletLabels(" + bl_rec.id + ")"
                     });
-                }
-                */
-                if (type == 'view') {
 
-                    var transferor_type = bl_rec.getValue('custbody_dps_transferor_type');
-                    if (transferor_type == 7) {
-                        var form = context.form;
-                        form.addButton({
-                            id: 'custpage_dps_li_get_label_button',
-                            label: '获取标签',
-                            functionName: "getPalletLabels(" + bl_rec.id + ")"
-                        });
+                    form.addButton({
+                        id: 'custpage_dps_li_get_label_button',
+                        label: '调拨单发运',
+                        functionName: "fulfillment(" + bl_rec.id + ")"
+                    });
 
-                        form.addButton({
-                            id: 'custpage_dps_li_get_label_button',
-                            label: '调拨单发运',
-                            functionName: "fulfillment(" + bl_rec.id + ")"
-                        });
-
-                        form.clientScriptModulePath = './dps.funfillment.record.transferorder.cs.js';
-                    }
+                    form.clientScriptModulePath = './dps.funfillment.record.transferorder.cs.js';
                 }
             } else {
 
                 var orderstatus = bl_rec.getValue('orderstatus');
-                if (orderstatus == 'B') {
+                if (orderstatus == 'B' && !link && (tranType == 1 || tranType == 2 || tranType == 3 || tranType == 7)) { // 库存转移订单的状态为 等待履行, 并且不存在关联的发运记录
                     // log.debug('status', status);
                     try {
                         var form = context.form;
@@ -103,6 +102,18 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }
                 }
             }
+        }
+        if (type == "copy") { // 复制调拨单时,置空关联的发运记录, 生成发运记录信息
+
+            var bl_rec = context.newRecord;
+            bl_rec.setValue({
+                fieldId: 'custbody_dps_fu_rec_link',
+                value: ''
+            });
+            bl_rec.setValue({
+                fieldId: 'custbody_dps_to_create_fulrec_info',
+                value: ''
+            });
         }
     }
 
@@ -135,12 +146,22 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                     var link = af_rec.getValue('custbody_dps_fu_rec_link');
                     if (!link) {
-
-                        var flag = judgmentItemInventory(af_rec.type, af_rec.id);
-                        if (flag) {
+                        var ck = false;
+                        search.create({
+                            type: "location",
+                            filters: ["internalidnumber", "equalto", af_rec.getValue('custbody_actual_target_warehouse')],
+                            columns: ["custrecord_dps_financia_warehous", "name"]
+                        }).run().each(function (sf) {
+                            if (sf.getValue("custrecord_dps_financia_warehous") == 1 || sf.getValue("name").indexOf("FBA") > -1) {
+                                ck == true;
+                            }
+                        })
+                        // var flag = judgmentItemInventory(af_rec.type, af_rec.id);
+                        var flag = qtyBackOrdered(af_rec.id); // 判断是否存在延交订单
+                        if (flag) { // 不存在延交订单, 允许创建发运记录
                             // 创建大货发运记录
-                            var rec_id = createFulRecord(af_rec);
-                            if (rec_id) {
+                            var rec_id = createFulRecord(af_rec, ck);
+                            if (JSON.stringify(rec_id).indexOf("error") == -1) {
                                 record.submitFields({
                                     type: af_rec.type,
                                     id: af_rec.id,
@@ -150,18 +171,23 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     }
                                 });
 
-                                // if (rec_id && context.type == 'create') {
-                                // if (rec_id) {
                                 var con = record.load({
                                     type: 'customrecord_dps_shipping_record',
                                     id: rec_id
                                 });
-                                // if (context.type == 'create') {
                                 sub(con);
-                                // }
-                                // }
+
                                 log.debug('context.type', context.type);
 
+                            } else {
+                                record.submitFields({
+                                    type: af_rec.type,
+                                    id: af_rec.id,
+                                    values: {
+                                        // 'custbody_dps_fu_rec_link': rec_id,
+                                        custbody_dps_to_create_fulrec_info: rec_id ? rec_id : ""
+                                    }
+                                });
                             }
                         } else {
                             record.submitFields({
@@ -623,7 +649,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             'access_token': token
         };
         var response = http.post({
-            url: config.WMS_Debugging_URL + '/allocationMaster ',
+            url: config.WMS_Debugging_URL + "/allocationMaster",
             headers: headerInfo,
             body: JSON.stringify(data)
         });
@@ -736,9 +762,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         name: 'custrecord_aio_marketplace',
                         join: 'custrecord_dps_shipping_rec_account'
                     }, // 站点 / 市场
-                    {
-                        name: "custrecord_dps_ship_remark"
-                    }, // 备注
                 ]
             }).run().each(function (rec) {
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
@@ -750,8 +773,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 } else {
                     shippingType = 20;
                 }
-
-                data["remark"] = rec.getValue('custrecord_dps_ship_remark') ? rec.getValue('custrecord_dps_ship_remark') : ''; // 备注字段
 
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
@@ -1124,553 +1145,629 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     }
 
 
+
+
+    /**
+     * 搜索当前记录是否关联有发运记录
+     * @param {Number} toId 
+     */
+    function searchFulRec(toId) {
+        var fulId;
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                    name: 'mainline',
+                    operator: "is",
+                    values: true
+                },
+                {
+                    name: 'internalid',
+                    operator: 'is',
+                    values: toId
+                }
+            ],
+            columns: [
+                "custbody_dps_fu_rec_link", // 发运记录
+            ]
+        }).run().each(function (rec) {
+            fulId = rec.id;
+        });
+        return fulId || false;
+
+    }
+
+
     /**
      * 创建大货发运记录
      * @param {*} rec
+     * ck , 判断是否属于FBA 仓
      */
-    function createFulRecord(rec) {
+    function createFulRecord(rec, ck) {
+        try {
+            var rec_account = rec.getValue('custbody_order_locaiton');
+            var objRecord;
+            var link = rec.getValue('custbody_dps_fu_rec_link');
 
-        var rec_account = rec.getValue('custbody_order_locaiton');
-        var objRecord;
-        var link = rec.getValue('custbody_dps_fu_rec_link');
-        var link_status;
-        if (link) {
-            search.create({
-                type: 'customrecord_dps_shipping_record',
-                filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: link
-                }]
-            }).run().each(function (rec) {
-                link_status = rec.getValue('custrecord_dps_shipping_rec_status');
-            });
-            objRecord = record.load({
-                type: 'customrecord_dps_shipping_record',
-                id: link
-            });
-
-            // 若对应的发运记录为 "WMS已发运" 或者 "WMS一部分发运" 直接退出,不做任何修改
-            var rec_status = objRecord.getValue('custrecord_dps_shipping_rec_status');
-            if (rec_status == 6 || rec_status == 7) {
-                return;
-            }
-        } else {
-            objRecord = record.create({
-                type: 'customrecord_dps_shipping_record'
-            });
-        }
-        if (link_status == 1 || link_status == 4 || link_status == 9 || link_status == 11) {
-
-        }
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_location',
-            value: rec.getValue('location')
-        });
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_ship_remark',
-            value: rec.getValue('memo')
-        }); // 设置 备注字段
-
-        // 1 FBA调拨
-        // 2 自营仓调拨
-        // 3 跨仓调拨
-        var tran_type = rec.getValue('custbody_dps_transferor_type');
-        log.audit('tran_type', tran_type);
-        // 调拨单类型
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_ship_record_tranor_type',
-            value: Number(tran_type)
-        });
-        var s;
-        // 渠道商
-        var channel_dealer = rec.getValue('custbody_dps_transferor_channel_dealer');
-        var channelservice = rec.getValue('custbody_dps_transferor_channelservice');
-        var target_loca = rec.getValue('custbody_actual_target_warehouse')
-        var city;
-        var location = target_loca;
-
-
-        var shipment_id = rec.getValue('custbody_shipment_id'); // shipmentId
-
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_shipmentsid',
-            value: shipment_id
-        }); // 设置shipmentID
-
-        var numLines = rec.getLineCount({
-            sublistId: 'item'
-        });
-        var allWeight = 0;
-        for (var i = 0; i < numLines; i++) {
-            var item = rec.getSublistValue({
-                sublistId: 'item',
-                fieldId: 'item',
-                line: i
-            });
-            var quantity = rec.getSublistValue({
-                sublistId: 'item',
-                fieldId: 'quantity',
-                line: i
-            })
-            search.create({
-                type: 'item',
-                filters: [{
-                    name: 'internalId',
-                    operator: 'anyof',
-                    values: item
-                }, ],
-                columns: [{
-                    name: 'custitem_dps_heavy2'
-                }]
-            }).run().each(function (skurec) {
-                var weight = skurec.getValue("custitem_dps_heavy2")
-                if (quantity) allWeight += Number(weight) * Number(quantity)
-                return true;
-            });
-        }
-
-        if (tran_type) {
-            if (tran_type == 2 && channelservice) { // 2	自营仓调拨
-                var limit = 3999;
-                var rec_country, serverID = channelservice,
-                    cost = 0;
-                var zip;
-                log.audit("serverID rec_country city location allWeight", serverID + '-' + rec_country + '-' + city + '-' + location + '-' + allWeight);
-
+            var link_status;
+            if (link) {
                 search.create({
-                    type: 'location',
+                    type: 'customrecord_dps_shipping_record',
                     filters: [{
                         name: 'internalid',
                         operator: 'anyof',
-                        values: target_loca
-                    }],
-                    columns: [{
-                        name: "custrecord_aio_sender_city"
-                    }, {
-                        name: 'custrecord_cc_country_code',
-                        join: 'custrecord_aio_country_sender'
-                    }, 'custrecord_aio_sender_address_code']
-                }).run().each(function (e) {
-                    // city = e.getValue('custrecord_aio_sender_city');
-                    city = e.getValue('custrecord_aio_sender_city');
-                    zip = e.getValue('custrecord_aio_sender_address_code');
-                    rec_country = e.getValue({
-                        name: 'custrecord_cc_country_code',
-                        join: 'custrecord_aio_country_sender'
-                    });
-                    return true;
-                })
-
-                log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + location);
-                cost = costCal.calculation(serverID, rec_country, zip, allWeight, '', '', '', city, '', location, '', '');
-                log.audit("cost", cost);
-                objRecord.setValue({
-                    fieldId: 'custrecord_dps_shipping_rec_estimatedfre',
-                    value: cost
+                        values: link
+                    }]
+                }).run().each(function (rec) {
+                    link_status = rec.getValue('custrecord_dps_shipping_rec_status');
                 });
-                s = 3;
-            } else if (tran_type == 1) { // 1	FBA调拨
-                s = 9;
-            } else if (tran_type == 3) { // 3	跨仓调拨
-                s = 3;
+                objRecord = record.load({
+                    type: 'customrecord_dps_shipping_record',
+                    id: link
+                });
 
-                var lofba;
-
-                try {
-                    search.create({
-                        type: rec.type,
-                        filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: [rec.id]
-                            },
-                            {
-                                name: 'mainline',
-                                operator: 'is',
-                                values: true
-                            }
-                        ],
-                        columns: [{
-                            name: 'custrecord_dps_financia_warehous',
-                            join: "custbody_actual_target_warehouse"
-                        }]
-                    }).run().each(function (rec) {
-                        lofba = rec.getValue({
-                            name: 'custrecord_dps_financia_warehous',
-                            join: "custbody_actual_target_warehouse"
-                        })
-                    });
-                } catch (error) {
-                    log.debug('获取目标仓的财务分仓出错了', error)
+                // 若对应的发运记录为 "WMS已发运" 或者 "WMS一部分发运" 直接退出,不做任何修改
+                var rec_status = objRecord.getValue('custrecord_dps_shipping_rec_status');
+                if (rec_status == 6 || rec_status == 7) {
+                    return;
                 }
-
-                if (lofba == 1) {
-                    s = 9;
-                }
+            } else {
+                objRecord = record.create({
+                    type: 'customrecord_dps_shipping_record'
+                });
             }
+            if (link_status == 1 || link_status == 4 || link_status == 9 || link_status == 11) {
 
+            }
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_location',
+                value: rec.getValue('location')
+            });
+
+            // 1 FBA调拨
+            // 2 自营仓调拨
+            // 3 跨仓调拨
+            var tran_type = rec.getValue('custbody_dps_transferor_type');
+            log.audit('tran_type', tran_type);
+            // 调拨单类型
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_ship_record_tranor_type',
+                value: Number(tran_type)
+            });
+            var s;
             // 渠道商
             var channel_dealer = rec.getValue('custbody_dps_transferor_channel_dealer');
-            // 6 Amazon龙舟     1	捷仕
-            if (channel_dealer == 6) {
-                s = 5;
-                // objRecord.setValue({
-                //     fieldId: 'custrecord_dps_shipping_rec_logisticsfla',
-                //     value: false
-                // });
-            }
-            var location = rec.getValue('custbody_dps_start_location');
-            if (location) {
-                search.create({
-                    type: 'location',
-                    filters: [{
-                        name: 'internalid',
-                        operator: 'is',
-                        values: location
-                    }],
-                    columns: ['custrecord_dps_financia_warehous']
-                }).run().each(function (rec) {
-                    var tttppp = rec.getValue('custrecord_dps_financia_warehous');
-                    if (tttppp == 3) {
-                        s = 27;
-                    }
-                    return false;
+            var channelservice = rec.getValue('custbody_dps_transferor_channelservice');
+            var target_loca = rec.getValue('custbody_actual_target_warehouse')
+            var city;
+            var location = target_loca;
+
+            var shipment_id = rec.getValue('custbody_shipment_id'); // shipmentId
+
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_shipmentsid',
+                value: shipment_id
+            }); // 设置shipmentID
+
+            var locationNO = rec.getValue('custbody_dps_ama_location_centerid');
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_destinationf',
+                value: locationNO
+            }); // 设置仓库中心编码
+
+            var numLines = rec.getLineCount({
+                sublistId: 'item'
+            });
+            var allWeight = 0;
+            for (var i = 0; i < numLines; i++) {
+                var item = rec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    line: i
                 });
-            }
-
-            log.debug('s', s);
-            if (!link_status) {
-                objRecord.setValue({
-                    fieldId: 'custrecord_dps_shipping_rec_status',
-                    value: s
-                });
-            }
-        }
-
-        if (tran_type == 2 || tran_type == 3) {
-            // 2020.6.10 16:50
-
-            search.create({
-                type: "location",
-                filters: [{
-                    name: "internalidnumber",
-                    operator: "equalto",
-                    values: target_loca
-                }],
-                columns: [{
-                        name: "custrecord_aio_contact_information"
-                    },
-                    {
-                        name: "custrecord_aio_sender_address"
-                    },
-                    {
-                        name: "custrecord_aio_sender_city"
-                    },
-                    {
-                        name: "custrecord_aio_country_sender"
-                    },
-                    {
-                        name: "custrecord_aio_sender_address_code"
-                    },
-                    {
-                        name: "custrecord_aio_sender_name"
-                    },
-                    {
-                        name: "custrecord_aio_sender_state"
-                    }
-                ]
-            }).run().each(function (e) {
-                for (key in receiptInfo_corr) {
-                    objRecord.setValue({
-                        fieldId: key,
-                        value: e.getValue(receiptInfo_corr[key])
-                    });
-                }
-            })
-            // ===============================================
-        }
-
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_department',
-            value: rec.getValue('department')
-        });
-
-
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_r_channel_dealer',
-            text: channel_dealer
-        });
-
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_r_channelservice',
-            text: channelservice
-        });
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_transa_subje',
-            value: rec.getValue('subsidiary')
-        });
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_trans_order_link',
-            value: rec.id
-        });
-
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_to_location',
-            value: target_loca
-        });
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_create_date',
-            value: rec.getValue('trandate')
-        });
-        var account = rec.getValue('custbody_order_locaiton');
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_account',
-            value: account
-        });
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_order_num',
-            value: rec.id
-        });
-        var weight = getItemWeight(rec);
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_rec_weight',
-            value: weight
-        });
-        var employee = rec.getValue('employee');
-
-        // 渠道商
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_r_channel_dealer',
-            value: rec.getValue('custbody_dps_transferor_channel_dealer')
-        });
-        // 渠道服务
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_shipping_r_channelservice',
-            value: rec.getValue('custbody_dps_transferor_channelservice')
-        });
-
-
-        var itemToArr = [],
-            ToLimit = 3999,
-            itemObj = {},
-            itemToObj = {};
-        // search.create({
-        //     type: rec.type,
-        //     filters: [{
-        //             name: 'internalid',
-        //             operator: 'anyof',
-        //             values: rec.id
-        //         },
-        //         {
-        //             name: 'mainline',
-        //             operator: 'is',
-        //             values: false
-        //         },
-        //         {
-        //             name: 'taxline',
-        //             operator: 'is',
-        //             values: false
-        //         }
-        //     ],
-        //     columns: [
-        //         "item",
-        //     ]
-        // }).run().each(function (rec) {
-        //     itemToArr.push(rec.getValue('item'));
-        //     itemObj[rec.getValue('item')] = rec.getValue('item');
-        //     return --ToLimit > 0;
-        // });
-        // var skuLimit = 3999;
-        // if (rec_account) {
-        //     search.create({
-        //         type: 'customrecord_aio_amazon_seller_sku',
-        //         filters: [{
-        //                 name: 'custrecord_ass_sku',
-        //                 operator: 'anyof',
-        //                 values: itemToArr
-        //             },
-        //             {
-        //                 name: 'custrecord_ass_account',
-        //                 operator: 'anyof',
-        //                 values: rec_account
-        //             }
-        //         ],
-        //         columns: [
-        //             'name', "custrecord_ass_sku"
-        //         ]
-        //     }).run().each(function (rec) {
-        //         var nsItem = rec.getValue('custrecord_ass_sku');
-        //         itemToObj[nsItem] = rec.getValue('name'); //seller sku
-        //         return --skuLimit > 0;
-        //     });
-        // }
-
-
-        for (var i = 0; i < numLines; i++) {
-            var item_sku = rec.getSublistValue({
-                sublistId: 'item',
-                fieldId: 'custcol_dps_trans_order_item_sku',
-                line: i
-            });
-            var item = rec.getSublistValue({
-                sublistId: 'item',
-                fieldId: 'item',
-                line: i
-            });
-            //2020/7/18  lc
-            var msku = rec.getSublistValue({
-                sublistId: 'item',
-                fieldId: 'custcol_aio_amazon_msku',
-                line: i
-            });
-            if (!msku) {
-                //需要选择MSKU ，在生成发运记录
-                return false;
-            }
-            objRecord.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
-                fieldId: 'custrecord_dps_ship_record_sku_item', //seller sku msku
-                line: i,
-                value: msku
-            });
-            objRecord.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
-                fieldId: 'custrecord_dps_shipping_record_item',
-                line: i,
-                value: item
-            });
-            objRecord.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
-                fieldId: 'custrecord_dps_ship_record_item_location',
-                line: i,
-                value: rec.getValue('transferlocation')
-            });
-            objRecord.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
-                fieldId: 'custrecord_dps_ship_rec_item_account',
-                line: i,
-                value: rec.getValue('custbody_order_locaiton')
-            });
-            objRecord.setSublistValue({
-                sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
-                fieldId: 'custrecord_dps_ship_record_item_quantity',
-                line: i,
-                value: rec.getSublistValue({
+                var quantity = rec.getSublistValue({
                     sublistId: 'item',
                     fieldId: 'quantity',
                     line: i
                 })
-            });
-        }
+                search.create({
+                    type: 'item',
+                    filters: [{
+                        name: 'internalId',
+                        operator: 'anyof',
+                        values: item
+                    }, ],
+                    columns: [{
+                        name: 'custitem_dps_heavy2'
+                    }]
+                }).run().each(function (skurec) {
+                    var weight = skurec.getValue("custitem_dps_heavy2")
+                    if (quantity) allWeight += Number(weight) * Number(quantity)
+                    return true;
+                });
+            }
 
-        var custrecord_dps_declare_currency_dh;
-        var custrecord_dps_declared_value_dh = 0;;
-        search.create({
-            type: 'customrecord_transfer_order_details',
-            filters: [{
-                name: 'custrecord_transfer_code',
-                operator: 'anyof',
-                values: rec.id
-            }],
-            columns: [{
-                    name: 'custrecord__realted_transfer_head'
-                },
-                {
-                    name: 'custrecord_transfer_quantity'
-                }
-            ]
-        }).run().each(function (rec1) {
-            var custrecord__realted_transfer_head = rec1.getValue('custrecord__realted_transfer_head');
-            var custrecord_transfer_quantity = rec1.getValue('custrecord_transfer_quantity');
-            log.debug('custrecord__realted_transfer_head', custrecord__realted_transfer_head);
-            log.debug('custrecord_transfer_quantity', custrecord_transfer_quantity);
+            if (tran_type) {
+                if (tran_type == 2 && channelservice) { // 2	自营仓调拨
+                    var limit = 3999;
+                    var rec_country, serverID = channelservice,
+                        cost = 0;
+                    var zip;
+                    log.audit("serverID rec_country city location allWeight", serverID + '-' + rec_country + '-' + city + '-' + location + '-' + allWeight);
 
-            search.create({
-                type: 'purchaseorder',
-                filters: [{
-                        name: "mainline",
-                        operator: "is",
-                        values: ["F"]
-                    },
-                    {
-                        name: "taxline",
-                        operator: "is",
-                        values: ["F"]
-                    },
-                    {
-                        name: "item",
-                        operator: "noneof",
-                        values: ["@NONE@"]
-                    },
-                    {
-                        name: "type",
-                        operator: "anyof",
-                        values: ["PurchOrd"]
-                    },
-                    {
-                        name: "custbody_dps_type",
-                        operator: "anyof",
-                        values: ["2"]
-                    },
-                    // { name: "subsidiary", operator: "is", values: [subsidiary] },
-                    // { name: "item", operator: "anyof", values: itemArray },
-                    {
-                        name: 'custcol_realted_transfer_detail',
-                        operator: "anyof",
-                        values: custrecord__realted_transfer_head
+                    search.create({
+                        type: 'location',
+                        filters: [{
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: target_loca
+                        }],
+                        columns: [{
+                            name: "custrecord_aio_sender_city"
+                        }, {
+                            name: 'custrecord_cc_country_code',
+                            join: 'custrecord_aio_country_sender'
+                        }, 'custrecord_aio_sender_address_code']
+                    }).run().each(function (e) {
+                        // city = e.getValue('custrecord_aio_sender_city');
+                        city = e.getValue('custrecord_aio_sender_city');
+                        zip = e.getValue('custrecord_aio_sender_address_code');
+                        rec_country = e.getValue({
+                            name: 'custrecord_cc_country_code',
+                            join: 'custrecord_aio_country_sender'
+                        });
+                        return true;
+                    })
+
+                    log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + location);
+                    cost = costCal.calculation(serverID, rec_country, zip, allWeight, '', '', '', city, '', location, '', '');
+                    log.audit("cost", cost);
+                    objRecord.setValue({
+                        fieldId: 'custrecord_dps_shipping_rec_estimatedfre',
+                        value: cost
+                    });
+                    s = 3;
+                } else if (tran_type == 1) { // 1	FBA调拨
+                    s = 9;
+                } else if (tran_type == 3) { // 3	跨仓调拨
+                    s = 3;
+
+                    var lofba;
+
+                    try {
+                        search.create({
+                            type: rec.type,
+                            filters: [{
+                                    name: 'internalid',
+                                    operator: 'anyof',
+                                    values: [rec.id]
+                                },
+                                {
+                                    name: 'mainline',
+                                    operator: 'is',
+                                    values: true
+                                }
+                            ],
+                            columns: [{
+                                name: 'custrecord_dps_financia_warehous',
+                                join: "custbody_actual_target_warehouse"
+                            }]
+                        }).run().each(function (rec) {
+                            lofba = rec.getValue({
+                                name: 'custrecord_dps_financia_warehous',
+                                join: "custbody_actual_target_warehouse"
+                            })
+                        });
+                    } catch (error) {
+                        log.debug('获取目标仓的财务分仓出错了', error)
                     }
-                ],
+
+                    if (lofba == 1) {
+                        s = 9;
+                    }
+                }
+
+                // 渠道商
+                var channel_dealer = rec.getValue('custbody_dps_transferor_channel_dealer');
+                // 6 Amazon龙舟     1	捷仕
+                if (channel_dealer == 6) {
+                    s = 5;
+                    // objRecord.setValue({
+                    //     fieldId: 'custrecord_dps_shipping_rec_logisticsfla',
+                    //     value: false
+                    // });
+                }
+                var location = rec.getValue('custbody_dps_start_location');
+                if (location) {
+                    search.create({
+                        type: 'location',
+                        filters: [{
+                            name: 'internalid',
+                            operator: 'is',
+                            values: location
+                        }],
+                        columns: ['custrecord_dps_financia_warehous']
+                    }).run().each(function (rec) {
+                        var tttppp = rec.getValue('custrecord_dps_financia_warehous');
+                        if (tttppp == 3) {
+                            s = 27;
+                        }
+                        return false;
+                    });
+                }
+
+                log.debug('s', s);
+                if (!link_status) {
+                    objRecord.setValue({
+                        fieldId: 'custrecord_dps_shipping_rec_status',
+                        value: s
+                    });
+                }
+            }
+
+            if (tran_type == 2 || tran_type == 3) {
+                // 2020.6.10 16:50
+
+                search.create({
+                    type: "location",
+                    filters: [{
+                        name: "internalidnumber",
+                        operator: "equalto",
+                        values: target_loca
+                    }],
+                    columns: [{
+                            name: "custrecord_aio_contact_information"
+                        },
+                        {
+                            name: "custrecord_aio_sender_address"
+                        },
+                        {
+                            name: "custrecord_aio_sender_city"
+                        },
+                        {
+                            name: "custrecord_aio_country_sender"
+                        },
+                        {
+                            name: "custrecord_aio_sender_address_code"
+                        },
+                        {
+                            name: "custrecord_aio_sender_name"
+                        },
+                        {
+                            name: "custrecord_aio_sender_state"
+                        }
+                    ]
+                }).run().each(function (e) {
+                    for (key in receiptInfo_corr) {
+                        objRecord.setValue({
+                            fieldId: key,
+                            value: e.getValue(receiptInfo_corr[key])
+                        });
+                    }
+                })
+                // ===============================================
+            }
+
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_department',
+                value: rec.getValue('department')
+            });
+
+
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_r_channel_dealer',
+                text: channel_dealer
+            });
+
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_r_channelservice',
+                text: channelservice
+            });
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_transa_subje',
+                value: rec.getValue('subsidiary')
+            });
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_trans_order_link',
+                value: rec.id
+            });
+
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_to_location',
+                value: target_loca
+            });
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_create_date',
+                value: rec.getValue('trandate')
+            });
+            var account = rec.getValue('custbody_order_locaiton');
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_account',
+                value: account
+            });
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_order_num',
+                value: rec.id
+            });
+            var weight = getItemWeight(rec);
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_weight',
+                value: weight
+            });
+            var employee = rec.getValue('employee');
+
+            // 渠道商
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_r_channel_dealer',
+                value: rec.getValue('custbody_dps_transferor_channel_dealer')
+            });
+            // 渠道服务
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_r_channelservice',
+                value: rec.getValue('custbody_dps_transferor_channelservice')
+            });
+
+
+            var itemToArr = [],
+                ToLimit = 3999,
+                itemObj = {},
+                itemToObj = {};
+            // search.create({
+            //     type: rec.type,
+            //     filters: [{
+            //             name: 'internalid',
+            //             operator: 'anyof',
+            //             values: rec.id
+            //         },
+            //         {
+            //             name: 'mainline',
+            //             operator: 'is',
+            //             values: false
+            //         },
+            //         {
+            //             name: 'taxline',
+            //             operator: 'is',
+            //             values: false
+            //         }
+            //     ],
+            //     columns: [
+            //         "item",
+            //     ]
+            // }).run().each(function (rec) {
+            //     itemToArr.push(rec.getValue('item'));
+            //     itemObj[rec.getValue('item')] = rec.getValue('item');
+            //     return --ToLimit > 0;
+            // });
+            // var skuLimit = 3999;
+            // if (rec_account) {
+            //     search.create({
+            //         type: 'customrecord_aio_amazon_seller_sku',
+            //         filters: [{
+            //                 name: 'custrecord_ass_sku',
+            //                 operator: 'anyof',
+            //                 values: itemToArr
+            //             },
+            //             {
+            //                 name: 'custrecord_ass_account',
+            //                 operator: 'anyof',
+            //                 values: rec_account
+            //             }
+            //         ],
+            //         columns: [
+            //             'name', "custrecord_ass_sku"
+            //         ]
+            //     }).run().each(function (rec) {
+            //         var nsItem = rec.getValue('custrecord_ass_sku');
+            //         itemToObj[nsItem] = rec.getValue('name'); //seller sku
+            //         return --skuLimit > 0;
+            //     });
+            // }
+
+
+            for (var i = 0; i < numLines; i++) {
+                var item_sku = rec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_dps_trans_order_item_sku',
+                    line: i
+                });
+                var item = rec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    line: i
+                });
+                //2020/7/18  lc
+                var msku = rec.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_aio_amazon_msku',
+                    line: i
+                });
+                if (!msku && ck) {
+                    //需要选择MSKU ，在生成发运记录
+                    return "error: 货品缺少MSKU";
+                }
+                objRecord.setSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_ship_record_sku_item', //seller sku msku
+                    line: i,
+                    value: msku
+                });
+                objRecord.setSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_shipping_record_item',
+                    line: i,
+                    value: item
+                });
+                objRecord.setSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_ship_record_item_location',
+                    line: i,
+                    value: rec.getValue('transferlocation')
+                });
+                objRecord.setSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_ship_rec_item_account',
+                    line: i,
+                    value: rec.getValue('custbody_order_locaiton')
+                });
+                objRecord.setSublistValue({
+                    sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+                    fieldId: 'custrecord_dps_ship_record_item_quantity',
+                    line: i,
+                    value: rec.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'quantity',
+                        line: i
+                    })
+                });
+            }
+
+            var custrecord_dps_declare_currency_dh;
+            var custrecord_dps_declared_value_dh = 0;;
+            search.create({
+                type: 'customrecord_transfer_order_details',
+                filters: [{
+                    name: 'custrecord_transfer_code',
+                    operator: 'anyof',
+                    values: rec.id
+                }],
                 columns: [{
-                        name: "quantity",
-                        label: "采购数量",
-                        type: "float"
+                        name: 'custrecord__realted_transfer_head'
                     },
                     {
-                        name: "custcol_realted_transfer_detail",
-                        label: "关联调拨单号",
-                        type: "select"
-                    },
-                    {
-                        name: "rate"
-                    },
-                    {
-                        name: 'currency'
+                        name: 'custrecord_transfer_quantity'
                     }
                 ]
-            }).run().each(function (result) {
-                log.debug("testest1 ", JSON.stringify(result));
-                custrecord_dps_declare_currency_dh = result.getValue('currency');
-                var value = {
-                    quantity: result.getValue('quantity'),
-                    link: result.getValue('custcol_realted_transfer_detail')
-                }
-                custrecord_dps_declared_value_dh = custrecord_dps_declared_value_dh + result.getValue('rate') * custrecord_transfer_quantity;
-                log.debug("testest ", JSON.stringify(value));
+            }).run().each(function (rec1) {
+                var custrecord__realted_transfer_head = rec1.getValue('custrecord__realted_transfer_head');
+                var custrecord_transfer_quantity = rec1.getValue('custrecord_transfer_quantity');
+                log.debug('custrecord__realted_transfer_head', custrecord__realted_transfer_head);
+                log.debug('custrecord_transfer_quantity', custrecord_transfer_quantity);
+
+                search.create({
+                    type: 'purchaseorder',
+                    filters: [{
+                            name: "mainline",
+                            operator: "is",
+                            values: ["F"]
+                        },
+                        {
+                            name: "taxline",
+                            operator: "is",
+                            values: ["F"]
+                        },
+                        {
+                            name: "item",
+                            operator: "noneof",
+                            values: ["@NONE@"]
+                        },
+                        {
+                            name: "type",
+                            operator: "anyof",
+                            values: ["PurchOrd"]
+                        },
+                        {
+                            name: "custbody_dps_type",
+                            operator: "anyof",
+                            values: ["2"]
+                        },
+                        // { name: "subsidiary", operator: "is", values: [subsidiary] },
+                        // { name: "item", operator: "anyof", values: itemArray },
+                        {
+                            name: 'custcol_realted_transfer_detail',
+                            operator: "anyof",
+                            values: custrecord__realted_transfer_head
+                        }
+                    ],
+                    columns: [{
+                            name: "quantity",
+                            label: "采购数量",
+                            type: "float"
+                        },
+                        {
+                            name: "custcol_realted_transfer_detail",
+                            label: "关联调拨单号",
+                            type: "select"
+                        },
+                        {
+                            name: "rate"
+                        },
+                        {
+                            name: 'currency'
+                        }
+                    ]
+                }).run().each(function (result) {
+                    log.debug("testest1 ", JSON.stringify(result));
+                    custrecord_dps_declare_currency_dh = result.getValue('currency');
+                    var value = {
+                        quantity: result.getValue('quantity'),
+                        link: result.getValue('custcol_realted_transfer_detail')
+                    }
+                    custrecord_dps_declared_value_dh = custrecord_dps_declared_value_dh + result.getValue('rate') * custrecord_transfer_quantity;
+                    log.debug("testest ", JSON.stringify(value));
+                    return true;
+                });
                 return true;
             });
-            return true;
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_declare_currency_dh',
+                value: custrecord_dps_declare_currency_dh
+            });
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_declared_value_dh',
+                value: custrecord_dps_declared_value_dh
+            });
+
+            var objRecord_id;
+            objRecord_id = objRecord.save();
+
+            var la_rec = record.load({
+                type: 'customrecord_dps_shipping_record',
+                id: objRecord_id
+            });
+            var la_rec_id = la_rec.save();
+            log.debug('la_rec_id', la_rec_id);
+            log.debug('objRecord_id', objRecord_id);
+            return objRecord_id || false;
+        } catch (error) {
+            log.debug("error:", error);
+            return "error:" + JSON.stringify(error.message);
+        }
+    }
+
+
+    /**
+     * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 false; 否则返回 true;
+     * @param {Number} toId 
+     * @returns {Boolean} true || false
+     */
+    function qtyBackOrdered(toId) {
+        var flag = true;
+        var backOrder = 0;
+
+        var toObj = record.load({
+            type: 'transferorder',
+            id: toId
         });
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_declare_currency_dh',
-            value: custrecord_dps_declare_currency_dh
-        });
-        objRecord.setValue({
-            fieldId: 'custrecord_dps_declared_value_dh',
-            value: custrecord_dps_declared_value_dh
+        var numLines = toObj.getLineCount({
+            sublistId: 'item'
         });
 
-        var objRecord_id;
-        objRecord_id = objRecord.save();
+        for (var i = 0; i < numLines; i++) {
 
-        var la_rec = record.load({
-            type: 'customrecord_dps_shipping_record',
-            id: objRecord_id
-        });
-        var la_rec_id = la_rec.save();
-        log.debug('la_rec_id', la_rec_id);
-        log.debug('objRecord_id', objRecord_id);
-        return objRecord_id || false;
+            var backQty = toObj.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantitybackordered',
+                line: i
+            });
+            backOrder += Number(backQty);
+            // backOrder += Math.abs(Number(backQty));
+        }
+        log.debug('backOrder', backOrder);
+
+        if (backOrder != 0) {
+            flag = false;
+        }
+
+        return flag;
     }
 
 

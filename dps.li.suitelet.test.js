@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-17 21:32:03
+ * @LastEditTime   : 2020-07-20 15:09:25
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -17,6 +17,231 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 ], function (search, record, log, core, file, xml, tool, runtime) {
 
     function onRequest(context) {
+
+        var limit = 10,
+            toIds = [419506, 419503, 413152],
+            ordArr = [];
+        search.create({
+            type: 'purchaseorder',
+            filters: [{
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: toIds
+                }
+            ],
+            columns: [
+                "item", "rate", "taxamount", "quantity"
+            ]
+        }).run().each(function (rec) {
+
+            var it = {
+                id: rec.id,
+                item: rec.getValue('item'),
+                quantity: rec.getValue('quantity'),
+                rate: rec.getValue('rate'),
+                taxamount: 0 - (rec.getValue('taxamount') / rec.getValue('quantity')),
+                totaltaxamount: 0 - (rec.getValue('taxamount')),
+                // taxrate: rec.getValue('taxrate')
+            }
+            ordArr.push(it);
+
+            return --limit > 0;
+        })
+
+
+        context.response.writeLine(JSON.stringify(ordArr))
+
+
+
+
+
+        /**
+         * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
+         * @param {Number} toId 
+         * @returns {Boolean} true || false
+         */
+
+        /*
+        function qtyBackOrdered(toId) {
+            var flag = true;
+            var backOrder = 0;
+
+            var toObj = record.load({
+                type: 'transferorder',
+                id: toId
+            });
+            var numLines = toObj.getLineCount({
+                sublistId: 'item'
+            });
+
+            for (var i = 0; i < numLines; i++) {
+
+                var backQty = toObj.getSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'quantitybackordered',
+                    line: i
+                });
+                backOrder += Number(backQty);
+                // backOrder += Math.abs(Number(backQty));
+            }
+            log.debug('backOrder', backOrder);
+
+            if (backOrder != 0) {
+                flag = false;
+            }
+
+            return flag;
+        }
+
+        var toId = 977332;
+        var a = qtyBackOrdered(toId);
+        context.response.writeLine("展示 a " + a);
+
+
+
+
+
+
+        /*
+
+
+
+        function searchTranRec(aono) {
+
+            var bigRec;
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [{
+                        name: 'tranid',
+                        join: 'custrecord_dps_shipping_rec_order_num',
+                        operator: 'is',
+                        values: aono
+                    }
+                ]
+            }).run().each(function (rec) {
+                bigRec = rec.id;
+            });
+
+            return bigRec || false;
+
+        }
+
+
+        var a = searchTranRec(5691);
+
+        log.debug('searchTranRec', a);
+
+
+
+        return;
+
+
+        var order_num, recordId, statusText,
+            statusId, subText, subId,
+            ship_tran_abno,
+            information,
+            legalname, gross_margin
+
+        search.create({
+            type: "customrecord_dps_shipping_record",
+            filters: [{
+                name: 'internalid',
+                operator: 'is',
+                values: recordID
+            }],
+            columns: [
+                'custrecord_dps_shipping_rec_status', 'custrecord_dps_shipping_rec_transa_subje',
+                'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_ship_tran_abno',
+                'custrecord_dps_shipping_rec_information',
+                'custrecord_dps_shipping_rec_order_num', 'custrecord_dps_shipping_rec_transa_subje',
+                {
+                    name: 'custrecord_gross_margin',
+                    join: 'custrecord_dps_shipping_rec_transa_subje'
+                }, // 交易主体的毛利率
+                {
+                    name: 'legalname',
+                    join: 'custrecord_dps_shipping_rec_transa_subje'
+                }, // 交易主体 法定名称
+            ]
+        }).run().each(function (rec) {
+            legalname = rec.getValue({
+                name: 'legalname',
+                join: 'custrecord_dps_shipping_rec_transa_subje'
+            });
+            gross_margin = rec.getValue({
+                name: 'custrecord_gross_margin',
+                join: 'custrecord_dps_shipping_rec_transa_subje'
+            });
+            recordId = rec.id;
+            statusText = rec.getText('custrecord_dps_shipping_rec_status');
+            statusId = rec.getValue('custrecord_dps_shipping_rec_status');
+
+            subText = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+            subId = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
+
+            order_num = rec.getValue('custrecord_dps_shipping_rec_order_num');
+
+            ship_tran_abno = rec.getValue('custrecord_dps_ship_tran_abno');
+            information = rec.getValue('custrecord_dps_shipping_rec_information');
+
+        });
+
+        log.debug('statusId: ' + statusId, 'statusText: ' + statusText);
+
+
+        var info = informationValue.searchPOItem(order_num);
+        log.debug('info', info);
+        if (info && info.length > 0) {
+            log.debug('存在对应的货品', info.length);
+            // 创建报关资料
+            var informaId = informationValue.createInformation(recordId, order_num);
+            log.debug('报关资料 ID', informaId);
+
+            if (informaId) {
+                // 创建报关发票
+                var invId = informationValue.createCusInv(info, informaId, gross_margin);
+
+                log.debug('invId', invId);
+
+                // 创建报关装箱
+                var boxId = informationValue.createBoxRec(info, informaId);
+                log.debug('boxId', boxId);
+
+                // 创建报关合同
+                var conId = informationValue.createContract(info, informaId, subId);
+                log.debug('conId', conId);
+
+                // 创建报关单
+                var decId = informationValue.createDeclaration(info, informaId, gross_margin, legalname);
+                log.debug('decId', decId);
+
+                // 创建报关要素
+                var eleArr = informationValue.CreateElementsOfDeclaration(info, informaId);
+                log.debug('eleArr', eleArr);
+
+                // 创建 开票资料
+                var usbArr = informationValue.createBillInformation(info, informaId, ship_tran_abno);
+                log.debug('usbArr', usbArr);
+            } else {
+                log.debug('创建报关资料失败', "创建报关资料失败");
+            }
+
+        } else {
+            log.debug('不存在对应的货品', '搜索到的货品信息为空');
+
+        }
+        // }
+
 
 
         function SummaryBinBox(itemList) {

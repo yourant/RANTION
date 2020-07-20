@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-18 16:03:34
+ * @LastEditTime   : 2020-07-18 19:13:54
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -94,6 +94,11 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
 
                     "custrecord_dps_shipping_rec_destinationf", // 仓库中心
                     "custrecord_dps_ship_remark", // 备注
+
+                    {
+                        name: "tranid",
+                        join: "custrecord_dps_shipping_rec_order_num"
+                    }, // 调拨单号
                 ]
             }).run().each(function (rec) {
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
@@ -110,7 +115,11 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                 data["remark"] = rec.getValue('custrecord_dps_ship_remark') ? rec.getValue('custrecord_dps_ship_remark') : ''; // 备注字段
 
                 data["shippingType"] = shippingType;
-                data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                data["aono"] = rec.getValue({
+                    name: "tranid",
+                    join: "custrecord_dps_shipping_rec_order_num"
+                });
+                // data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
                 data["createBy"] = rec.getValue({
                     name: "entityid",
                     join: "owner"

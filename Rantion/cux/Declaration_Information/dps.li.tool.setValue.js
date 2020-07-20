@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-26 10:25:55
- * @LastEditTime   : 2020-06-23 14:15:55
+ * @LastEditTime   : 2020-07-20 15:29:06
  * @LastEditors    : Li
  * @Description    :  用于渲染表格
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.li.tool.setValue.js
@@ -139,6 +139,9 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
             return --limit > 0;
         });
+
+
+        log.debug('itemInfo', itemInfo);
 
 
         printData["invNO"] = inv_number;
@@ -646,7 +649,8 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
                 sku = 'sku' + Number(add),
                 util = 'util' + Number(add),
                 qty = 'qty' + Number(add),
-                price = 'price' + Number(add),
+                uprice = 'uprice' + Number(add),
+                // price = 'price' + Number(add),
                 amount = 'amount' + Number(add),
                 tax = 'tax' + Number(add),
                 taxamount = 'taxamount' + Number(add),
@@ -672,7 +676,8 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
             printData[util] = rec.getValue('custrecord_dps_us_b_i_unit');
             printData[qty] = rec.getValue('custrecord_dps_us_b_i_qty');
 
-            printData[price] = rec.getValue('custrecord_dps_us_b_i_unit_price');
+            // printData[price] = rec.getValue('custrecord_dps_us_b_i_unit_price');
+            printData[uprice] = rec.getValue('custrecord_dps_us_b_i_unit_price');
             printData[amount] = rec.getValue('custrecord_dps_us_b_i_amount');
             printData[tax] = rec.getValue('custrecord_dps_us_b_i_tax_rate');
             printData[taxamount] = rec.getValue('custrecord_dps_us_b_i_tax');

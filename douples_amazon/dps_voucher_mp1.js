@@ -56,6 +56,7 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
       "GiftwrapChargeback",
       "GiftWrap",
       "GiftWrapTax",
+      "Tax",
       "SalesTaxCollectionFee",
       "Shipping",
       "ShippingTax",
@@ -76,6 +77,11 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
     const martk_corr={   //科目配置表的报告类型字段
       "EU":2,
       "JP":2,
+      "UK":2,
+      "IT":2,
+      "ES":2,
+      "DE":2,
+      "FR":2,
       "US":1,
       "CA":1,
       "MX":1,
@@ -540,59 +546,29 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
 '114-9889214-6990648'
     ]
     function getInputData() {
-    var limit =1000,orders = [],ors = []
-      search.create({
-        type:'customrecord_shipment_ors',
-          filters:[
-          // {name:'custrecordffff',operator:'isnot',values:"找不到财务报告"},
-          {name:'custrecordffff',operator:'isnot',values:"已生成预估凭证"},
-          ],columns:[
-        {name:"custrecord_shipmentosrs_amazon_order_id"}//站点
-      ]
-      }).run().each(function(e){
-        ors.push({
-          "oid":e.getValue("custrecord_shipmentosrs_amazon_order_id"),
-          "rs_id":e.id
-        })
-        return true
-       })
-       log.debug("",ors)
-       ors.map(function(ori){
-         var ff =true
+          var limit =1,orders = [],ors = [];
+         var oid = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_oid' }); //订单号
+         var fils = [];
+         fils.push(  {name:'custrecord_is_generate_voucher',operator:'isnot',values:'T'});
+         if(oid)
+         fils.push(  {name:'custrecord_l_amazon_order_id',operator:'is',values:oid});
+         fils.push(  {name:'custrecord_financetype',operator:'is',values:'orders'});
         search.create({ 
           type:'customrecord_amazon_listfinancialevents',
-            filters:[
-            //  {name:'custrecord_fin_to_amazon_account',operator:'anyof',values:'1'},
-             {name:'custrecord_is_generate_voucher',operator:'isnot',values:'T'},
-             {name:'custrecord_l_amazon_order_id',operator:'is',values:ori.oid},
-             {name:'custrecord_financetype',operator:'is',values:"orders"}
-            ],columns:[
+            filters:fils,
+            columns:[
           {name:"custrecord_aio_seller_id",join:"custrecord_fin_to_amazon_account"},
           {name:"custrecord_aio_enabled_sites",join:"custrecord_fin_to_amazon_account"}//站点
         ]
         }).run().each(function(e){
-          ff=false
           orders.push({
           rec_id:e.id,
-          rs_id:ori.rs_id,
           seller_id:e.getValue(e.columns[0]),
           enabled_sites:e.getText(e.columns[1]),
-          })
-         return --limit >0
+          });
+         return --limit >0;
         })
-        if(ff){
-          record.submitFields({
-            type: "customrecord_shipment_ors",
-            id: ori.rs_id,
-            values: {
-              custrecordffff:"找不到财务报告"
-            }
-          })
-        }
-       })
-      
-      
-        log.audit("待冲销总数",orders.length)
+        log.audit("待冲销总数",orders.length);
         return orders;
     }
 
@@ -602,32 +578,31 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
         value: (moment(new Date().getTime()).format(dateFormat)),
         type: format.Type.DATE
 	  });
-    var obj = JSON.parse(context.value)
-    var rs_id = obj.rs_id
-	  var fin_id = obj.rec_id, enabled_sites = obj.enabled_sites.split(" ")[1]
+    var obj = JSON.parse(context.value);
+	  var fin_id = obj.rec_id, enabled_sites = obj.enabled_sites.split(" ")[1];
       var order_id,postdate,entity,so_id,subsidiary,pr_store,currency;
-      var ship_recid,shipment_date, fee_line,fil_channel,merchant_order_id
+      var ship_recid,shipment_date, fee_line,fil_channel,merchant_order_id;
 	    try{
-	      var rec_finance = record.load({type:"customrecord_amazon_listfinancialevents",id:fin_id})
-        order_id = rec_finance.getValue('custrecord_l_amazon_order_id')
-        pr_store = rec_finance.getValue('custrecord_fin_to_amazon_account')
+	      var rec_finance = record.load({type:"customrecord_amazon_listfinancialevents",id:fin_id});
+        order_id = rec_finance.getValue('custrecord_l_amazon_order_id');
+        pr_store = rec_finance.getValue('custrecord_fin_to_amazon_account');
         // postdate = rec_finance.getValue('custrecord_posteddate_txt') //去财务报告的发布日期
-        postdate = rec_finance.getText('custrecord_posteddate') //去财务报告的发布日期
-        merchant_order_id  = rec_finance.getValue('custrecord_seller_order_id')  
+        postdate = rec_finance.getText('custrecord_posteddate'); //去财务报告的发布日期
+        merchant_order_id  = rec_finance.getValue('custrecord_seller_order_id');  
         if(!order_id){
           order_id = rec_finance.getValue('custrecord_seller_order_id');
         }
           
         
-        var fils = [],sku = rec_finance.getValue('custrecord_sellersku') ,qty = rec_finance.getValue('custrecord_quantityshipped')
-        fils.push({ name: 'custrecord_amazon_order_id', operator: 'is', values:order_id })
-        sku?fils.push( { name: 'custrecord_sku', operator: 'is', values:sku}):""
-        qty?fils.push( { name: 'custrecord_quantity_shipped', operator: 'is', values:qty}):""
+        var fils = [],sku = rec_finance.getValue('custrecord_sellersku') ,qty = rec_finance.getValue('custrecord_quantityshipped');
+        fils.push({ name: 'custrecord_amazon_order_id', operator: 'is', values:order_id });
+        sku?fils.push( { name: 'custrecord_sku', operator: 'is', values:sku}):"";
+        qty?fils.push( { name: 'custrecord_quantity_shipped', operator: 'is', values:qty}):"";
 		    //搜索发货报告的发货时间在此时间或者之前的，然后按时间倒叙，取最近的一个
           // postdate = interfun.getFormatedDate("", "", endDate).date
-          fils.push({ name: 'custrecord_shipment_date', operator: 'ON', values:postdate})
+          fils.push({ name: 'custrecord_shipment_date', operator: 'ON', values:postdate});
         
-        log.debug("fils:"+postdate,JSON.stringify(fils))
+        log.debug("fils:"+postdate,JSON.stringify(fils));
         search.create({
 	        type:  "customrecord_amazon_sales_report",
 	        filters: fils,
@@ -636,35 +611,28 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
 	          {name:'custrecord_shipment_date_text'},
 	        ]
 	      }).run().each(function (rec) {
-          ship_recid = rec.id
-          shipment_date = rec.getValue("custrecord_shipment_date_text")
+          ship_recid = rec.id;
+          shipment_date = rec.getValue("custrecord_shipment_date_text");
         })
-        log.debug("postdate："+postdate,",shipment_date:"+shipment_date)
+        log.debug("postdate："+postdate,",shipment_date:"+shipment_date);
         var flss = [],acc_search=interfun.getSearchAccount(obj.seller_id);
-        log.debug("查询的店铺acc_search:",acc_search)
+        log.debug("查询的店铺acc_search:",acc_search);
           //搜索销售订单获取客户
      
-        var so_obj = interfun.SearchSO(order_id,merchant_order_id,acc_search)
-        so_id = so_obj.so_id
-        pr_store = so_obj.acc
-        acc_text = so_obj.acc_text
-        entity = so_obj.entity
-        subsidiary = so_obj.subsidiary
-        currency = so_obj.currency
-        fil_channel = so_obj.fulfill_channel
-        orderid = so_obj.otherrefnum
+        var so_obj = interfun.SearchSO(order_id,merchant_order_id,acc_search);
+        so_id = so_obj.so_id;
+        pr_store = so_obj.acc;
+        acc_text = so_obj.acc_text;
+        entity = so_obj.entity;
+        subsidiary = so_obj.subsidiary;
+        currency = so_obj.currency;
+        fil_channel = so_obj.fulfill_channel;
+        orderid = so_obj.otherrefnum;
 
-	      log.audit("fil_channel",fil_channel)
+	      log.audit("fil_channel",fil_channel);
 	      //TODO 判断订单状态，如果已经全额收款或者已关闭，则不再生成日记账
 	      //如果该财务报告生成过凭证，先删除掉
         if(so_id ){
-          if(fil_channel != "MFN" &&!ship_recid){
-            log.debug("找不到发货报告,且不是FBM 标识暂不处理 NSH",order_id);
-            rec_finance.setValue({ fieldId: 'custrecord_is_generate_voucher', value: 'NSH' });
-            rec_finance.save({ ignoreMandatoryFields: true });
-            return 
-          }
-       
           search.create({
             type:'journalentry',
             filters:[
@@ -681,22 +649,22 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
                 log.debug("delete error",e)
               // err.push(e.message);
             }
-            return true
+            return true;
           }) 
         //开始生成日记账凭证
 
-	      var fv=[]
-	      var jour = record.create({type:'journalentry',isDynamic:true})
-        jour.setText({fieldId: 'trandate', text:postdate})
-        jour.setValue({fieldId:'memo',value:"01"})
-        jour.setValue({fieldId:'subsidiary',value:subsidiary})
-        jour.setValue({fieldId:'custbody_order_locaiton',value:pr_store})
-        jour.setValue({fieldId:'custbody_jour_orderid',value:order_id})
-        jour.setValue({fieldId:'custbody_curr_voucher',value:"预估凭证"})	
-        jour.setValue({fieldId:'custbody_rel_salesorder',value:so_id})  //关联销售订单
-        jour.setValue({fieldId:'currency',value: currency })
-        jour.setValue({fieldId:'custbody_jour_type',value: "orders" }) //记录凭证类型 orders / refunds
-	      log.debug("order_id",order_id)
+	      var fv=[];
+	      var jour = record.create({type:'journalentry',isDynamic:true});
+        jour.setText({fieldId: 'trandate', text:postdate});
+        jour.setValue({fieldId:'memo',value:"01"});
+        jour.setValue({fieldId:'subsidiary',value:subsidiary});
+        jour.setValue({fieldId:'custbody_order_locaiton',value:pr_store});
+        jour.setValue({fieldId:'custbody_jour_orderid',value:order_id});
+        jour.setValue({fieldId:'custbody_curr_voucher',value:"预估凭证"})	;
+        jour.setValue({fieldId:'custbody_rel_salesorder',value:so_id}) ; //关联销售订单
+        jour.setValue({fieldId:'currency',value: currency });
+        jour.setValue({fieldId:'custbody_jour_type',value: "orders" }); //记录凭证类型 orders / refunds
+	      log.debug("order_id",order_id);
 	      var dr=0,cr=0,num=0;
 	      
         var item_name,incomeaccount;
@@ -734,7 +702,7 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
                 ],
 	             columns:[{name:'custrecord_account_type'}]
 	         }).run().each(function(iem){
-	             incomeaccount = iem.getValue(iem.columns[0])
+	             incomeaccount = iem.getValue(iem.columns[0]);
            })
 	         if(incomeaccount){
 	             jour.selectNewLine({sublistId:'line'})
@@ -750,8 +718,7 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
 	         }
 	      })
 	      fv.push(fin_id)
-	     
-	           jour.setValue({fieldId:'custbody_relative_finanace_report',value:fv})
+	           jour.setValue({fieldId:'custbody_relative_finanace_report',value:fv});
              log.debug("贷项总额："+dr.toFixed(2))
              if(!Number(dr)){
               log.debug("贷项总额为零，Resovle 返回",Number(dr))
@@ -781,13 +748,6 @@ define(['N/search','N/record','./Helper/Moment.min','N/format','N/runtime','./He
                 id: ship_recid,
                 values: {
                     custrecord_is_check_invoucher:true
-                }
-              })
-              record.submitFields({
-                type: "customrecord_shipment_ors",
-                id: rs_id,
-                values: {
-                  custrecordffff:"已生产预估凭证"
                 }
               })
             }else{

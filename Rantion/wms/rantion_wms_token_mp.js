@@ -27,6 +27,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
 
     function map(context) {
         var company = JSON.parse(context.value);
+        log.debug('company111', JSON.stringify(company));
         var url = company.url;
         var Authorization = 'Basic bnMtc2VydmVyOm5zLXNlcnZlci10ZXN0';
         var headerInfo = {
@@ -34,11 +35,13 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             "Accept": "application/json",
             "Authorization": Authorization
         };
+        log.debug('company111222', JSON.stringify(company));
         var response = http.post({
             url: url,
             headers: headerInfo,
             body: ["grant_type=client_credentials"].join('&')
         });
+        log.debug('company11331', JSON.stringify(company));
         log.debug('response', JSON.stringify(response));
         if (response.code == 200) {
             var res = JSON.parse(response.body);

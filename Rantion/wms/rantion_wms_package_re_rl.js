@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-07-19 21:59:54
+ * @LastEditTime   : 2020-07-18 23:06:46
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -112,7 +112,6 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
             var tLocation;
             var city;
             var rid = searchTranRec(data[0].aono);
-            log.debug('发运记录', rid);
             if (rid) {
                 search.create({
                     type: 'customrecord_dps_shipping_record',
@@ -177,6 +176,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                         log.debug('发运记录装箱明细行数 status', numLines + '-' + status);
                         if (status != 14 && numLines > -1) {
                             var it = {
+
                                 code: 1,
                                 data: null,
                                 msg: '非法操作'

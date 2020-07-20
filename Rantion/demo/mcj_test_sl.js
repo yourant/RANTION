@@ -7,11 +7,64 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
 
     function onRequest(context) {
         // var response = context.response;
-        // var soid = '20362';
+        // var soid = '448138';
         // var idid = '3';
         // createLogisticsStrategy(soid, idid);
 
         // log.debug('runtime', JSON.stringify(runtime));
+
+        try {
+            var id;
+            search.create({
+                type: 'customrecord_dps_juge_po',
+                filters: [
+                    { name: 'custrecord_juge_sho', operator: 'is', values: false },
+                    { name: 'custrecord_juge_wrong', operator: 'is', values: false }
+                ],
+                columns: [ 'custrecord_juge_po', 'custrecord_juge_time' ]
+            }).run().each(function (rec) {
+                id = rec.id;
+                var itemFulfillment = record.transform({
+                    fromType: 'transferorder',
+                    toType: record.Type.ITEM_FULFILLMENT,
+                    fromId: Number(rec.getValue('custrecord_juge_po')),
+                });
+                itemFulfillment.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: rec.getValue('custrecord_juge_time') }) });
+                itemFulfillment.setValue({ fieldId: 'shipstatus', value: 'C' });
+                var ifId = itemFulfillment.save();
+                log.debug('if生成成功', ifId);
+    
+                // 生成货品收据
+                var itemReceipt = record.transform({
+                    fromType: 'transferorder',
+                    toType: record.Type.ITEM_RECEIPT,
+                    fromId: Number(rec.getValue('custrecord_juge_po')),
+                });
+                itemReceipt.setValue({ fieldId: 'shipstatus', value: 'C' });
+                itemReceipt.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: rec.getValue('custrecord_juge_time') }) });
+                var irId = itemReceipt.save();
+                log.debug('货品收据生成成功', irId);
+    
+                record.submitFields({
+                    type: 'customrecord_dps_juge_po',
+                    id: rec.id,
+                    values: {
+                        custrecord_juge_sho: 'T'
+                    }
+                });
+                return false;
+            });
+        } catch (error) {
+            record.submitFields({
+                type: 'customrecord_dps_juge_po',
+                id: id,
+                values: {
+                    custrecord_juge_wrong: 'T'
+                }
+            });
+            log.debug('error', JSON.stringify(error));
+        }
+
 
         // var poRec = record.create({ type: 'purchaseorder', isDynamic: true });
         // poRec.setValue({ fieldId: 'entity', value: 8060 });
@@ -30,56 +83,337 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         // // }
         // poid = poRec.save();
 
-        search.create({
-            type: 'customrecord_dps_juge_po',
-            filters: [
-                { name: 'custrecord_juge_sho', operator: 'is', values: false }
-            ],
-            columns: [
-                'custrecord_juge_po_2', 'custrecord_juge_time_2', 'custrecord_juge_product_2', 'custrecord_juge_quantiy_2', 'custrecord_juge_location_2'
-            ]
-        }).run().each(function (rec) {
-            
-            var po = rec.getValue('custrecord_juge_po_2');
-            var sku = rec.getValue('custrecord_juge_product_2');
-            var qty = Number(rec.getValue('custrecord_juge_quantiy_2'));
-            var location_IR = rec.getValue('custrecord_juge_location_2');
-            var date = rec.getValue('custrecord_juge_time_2');
-            log.debug('date', date);
-            log.debug('date', format.format({ type: format.Type.DATE, value: date }));
-            log.debug('采购订单收货', 'po:' + po + ',sku:' + sku + ',qty:' + qty + ',location_IR:' + location_IR);
+        // try {
+        //     search.create({
+        //         type: 'customrecord_dps_juge_po',
+        //         filters: [
+        //             { name: 'custrecord_juge_sho', operator: 'is', values: false },
+        //             { name: 'custrecord_juge_wrong', operator: 'is', values: false }
+        //         ],
+        //         columns: [
+        //             'custrecord_juge_po', 'custrecord_juge_time', 'custrecord_juge_product', 'custrecord_juge_quantiy', 'custrecord_juge_location',
+        //             'custrecord_juge_sho', 'custrecord_juge_wrong', 'custrecord_dps_location_bin'
+        //         ]
+        //     }).run().each(function (rec) {
+        //         var po = rec.getValue('custrecord_juge_po');
+        //         var sku = rec.getValue('custrecord_juge_product');
+        //         var qty = Number(rec.getValue('custrecord_juge_quantiy'));
+        //         var date = rec.getValue('custrecord_juge_time');
+        //         var location = rec.getValue('custrecord_juge_location');
+        //         var bin = rec.getValue('custrecord_dps_location_bin');
+    
+        //         log.debug('采购订单收货', 'po:' + po + ',sku:' + sku + ',qty:' + qty + ',date:' + date);
+        //         // 生成货品收据
+        //         var itemReceipt = record.transform({
+        //             fromType: 'purchaseorder',
+        //             toType: record.Type.ITEM_RECEIPT,
+        //             fromId: Number(po),
+        //         });
+        //         var ttttt = false;
+        //         var lineIR = itemReceipt.getLineCount({ sublistId: 'item' });
+        //         itemReceipt.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: date }) });
+        //         for (var i = 0; i < lineIR; i++) {
+        //             var itemre = itemReceipt.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
+        //             if (itemre != sku) {
+        //                 itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'itemreceive', value: false, line: i });
+        //                 continue;
+        //             }
+        //             ttttt = true;
+        //             itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'custcol_location_bin', value: bin, line: i });
+        //             itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location, line: i });
+        //             itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: qty, line: i });
+        //         }
+        //         if (ttttt) {
+        //             var idididididid = itemReceipt.save();
+        //             if (idididididid) {
+        //                 var venderBill = record.transform({
+        //                     fromType:'purchaseorder',
+        //                     toType: record.Type.VENDOR_BILL,
+        //                     fromId: Number(po),
+        //                 });
+        //                 venderBill.setValue({ fieldId: 'approvalstatus', value: 2 });
+        //                 venderBill.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: date }) });
+        //                 var lineIR = venderBill.getLineCount({ sublistId: 'item' });
+        //                 var kkk = false;
+        //                 var tt = 0;
+        //                 for (var i = 0; i < lineIR; i++) {
+        //                     var itemre = venderBill.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
+        //                     if (itemre != sku) {
+        //                         venderBill.removeLine({ sublistId: 'item', line: (i - tt), ignoreRecalc: true });
+        //                         tt++;
+        //                         continue;
+        //                     }
+        //                     kkk = true;
+        //                     venderBill.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: qty, line: i });
+        //                 }
+        //                 if (kkk) {
+        //                     venderBill.save();
+        //                     log.debug('采购订单收货账单', 'po:' + po + ',sku:' + sku + ',qty:' + qty);
+        //                     record.submitFields({
+        //                         type: 'customrecord_dps_juge_po',
+        //                         id: rec.id,
+        //                         values: {
+        //                             custrecord_juge_sho: 'T'
+        //                         }
+        //                     });
+        //                 }
+        //             } else {
+        //                 record.submitFields({
+        //                     type: 'customrecord_dps_juge_po',
+        //                     id: rec.id,
+        //                     values: {
+        //                         custrecord_juge_wrong: 'T'
+        //                     }
+        //                 });
+        //             }
+        //         } else {
+        //             record.submitFields({
+        //                 type: 'customrecord_dps_juge_po',
+        //                 id: rec.id,
+        //                 values: {
+        //                     custrecord_juge_wrong: 'T'
+        //                 }
+        //             });
+        //         }
+        //         return false;
+        //     });
+        // } catch (error) {
+        //     log.debug('error', JSON.stringify(error));
+        // }
 
-            var itemReceipt = record.transform({
-                fromType:'purchaseorder',
-                toType: record.Type.ITEM_RECEIPT,
-                fromId: Number(po),
-            });
-            itemReceipt.setValue({ fieldId: 'trandate', value: format.format({ type: format.Type.DATE, value: date }) });
-            var lineIR = itemReceipt.getLineCount({ sublistId: 'item' });
-            for (var i = 0; i < lineIR; i++) {
-                var itemre = itemReceipt.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
-                if (itemre != sku) {
-                    itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'itemreceive', value: false, line: i });
-                    continue;
+        try {
+            search.create({
+                type: 'customrecord_juge_po_so',
+                filters: [
+                    { name: 'custrecord_juge_poso_soshipped', operator: 'is', values: false },
+                    { name: 'custrecord_juge_poso_poreceipt', operator: 'is', values: false },
+                    { name: 'custrecord_juge_poso_invoice', operator: 'is', values: false },
+                    { name: 'custrecord_juge_poso_pobill', operator: 'is', values: false },
+                    { name: 'isinactive', operator: 'is', values: false }
+                ],
+                columns: [
+                    'custrecord_juge_poso_po', 'custrecord_juge_poso_so',
+                    'custrecord_dps_delivery_time', 'custrecord_dps_po_location_bin',
+                    { name: 'custrecord_dps_financia_warehous', join: 'custrecord_dps_so_location' }
+                ]
+            }).run().each(function (rec) {
+                var po_id = rec.getValue('custrecord_juge_poso_po');
+                var so_id = rec.getValue('custrecord_juge_poso_so');
+                var location_bin = rec.getValue('custrecord_dps_po_location_bin');
+                var po_so_date = rec.getValue('custrecord_dps_delivery_time'); // 收发货日期
+
+                log.debug('data', 'po_id:' + po_id);
+
+                // 生成货品履行
+                var itemFulfillment = record.transform({
+                    fromType: 'salesorder',
+                    toType: record.Type.ITEM_FULFILLMENT,
+                    fromId: Number(so_id),
+                });
+                itemFulfillment.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: po_so_date }) });
+                itemFulfillment.setValue({ fieldId: 'shipstatus', value: 'C' });
+                var lineIF = itemFulfillment.getLineCount({ sublistId: 'item' });
+                for (var i = 0; i < lineIF; i++) {
+                    if (location_bin) {
+                        itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'custcol_location_bin', value: location_bin, line: i });
+                    }
                 }
-                itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location_IR, line: i });
-                itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: qty, line: i });
-            }
-            itemReceipt.save();
-
-            record.submitFields({
-                type: 'customrecord_dps_juge_po',
-                id: rec.id,
-                values: {
-                    custrecord_juge_sho: 'T'
-                }
+                var ifId = itemFulfillment.save();
+                record.submitFields({
+                    type: 'customrecord_juge_po_so',
+                    id: rec.id,
+                    values: {
+                        custrecord_juge_poso_soshipped: 'T'
+                    }
+                });
+                log.debug('if生成成功', ifId);
+    
+                // 生成发票
+                var Invoice = record.transform({
+                    fromType: 'salesorder',
+                    toType: record.Type.INVOICE,
+                    fromId: Number(so_id),
+                })
+                Invoice.setValue({ fieldId: 'approvalstatus', value: 2 });
+                Invoice.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: po_so_date }) });
+                var InvoiceId = Invoice.save();
+                record.submitFields({
+                    type: 'customrecord_juge_po_so',
+                    id: rec.id,
+                    values: {
+                        custrecord_juge_poso_invoice: 'T'
+                    }
+                });
+                log.debug('Invoice生成成功', InvoiceId);
+    
+                // 生成货品收据
+                var itemReceipt = record.transform({
+                    fromType: 'purchaseorder',
+                    toType: record.Type.ITEM_RECEIPT,
+                    fromId: Number(po_id),
+                });
+                itemReceipt.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: po_so_date }) });
+                var irId = itemReceipt.save();
+                record.submitFields({
+                    type: 'customrecord_juge_po_so',
+                    id: rec.id,
+                    values: {
+                        custrecord_juge_poso_poreceipt: 'T'
+                    }
+                });
+                log.debug('货品收据生成成功', irId);
+    
+                // 生成应付账单
+                var venderBill = record.transform({
+                    fromType: 'purchaseorder',
+                    toType: record.Type.VENDOR_BILL,
+                    fromId: Number(po_id),
+                });
+                venderBill.setValue({ fieldId: 'approvalstatus', value: 2 });
+                venderBill.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: po_so_date }) });
+                var venderBillId = venderBill.save();
+                record.submitFields({
+                    type: 'customrecord_juge_po_so',
+                    id: rec.id,
+                    values: {
+                        custrecord_juge_poso_pobill: 'T'
+                    }
+                });
+                log.debug('应付账单生成成功', venderBillId);
+                return true;
             });
+        } catch (error) {
+            log.debug('error', JSON.stringify(error));
+        }
+    }
 
-            return false;
-        });
+    function internalcompany() {
+        try {
+            var index = 1;
+            search.create({
+                type: 'customrecord_juge_po_so',
+                filters: [
+                    { name: 'custrecord_juge_poso_so', operator: 'anyof', values: ['@NONE@'] },
+                    { name: 'custrecord_juge_poso_soshipped', operator: 'is', values: false },
+                    { name: 'custrecord_juge_poso_poreceipt', operator: 'is', values: false },
+                    { name: 'custrecord_juge_poso_invoice', operator: 'is', values: false },
+                    { name: 'custrecord_juge_poso_pobill', operator: 'is', values: false }
+                ],
+                columns: [
+                    'custrecord_juge_poso_po', 'custrecord_juge_poso_client', 'custrecord_juge_poso_date',
+                    'custrecord_dps_delivery_time', 'custrecord_dps_so_location', 'custrecord_dps_po_location_bin',
+                    { name: 'subsidiary', join: 'custrecord_juge_poso_client' },
+                    { name: 'tranid', join: 'custrecord_juge_poso_po' }
+                ]
+            }).run().each(function (rec) {
+                var id = rec.id;
+                var po_id = rec.getValue('custrecord_juge_poso_po');
+                var po_no = rec.getValue({ name: 'tranid', join: 'custrecord_juge_poso_po' });
+                var client_id = rec.getValue('custrecord_juge_poso_client');
+                var client_name = rec.getText('custrecord_juge_poso_client');
+                var client_subsidiary = rec.getValue({ name: 'subsidiary', join: 'custrecord_juge_poso_client' });
+                var so_date = rec.getValue('custrecord_juge_poso_date'); // SO日期
+
+                var so_location_id = rec.getValue('custrecord_dps_so_location');
+                var so_location_name = rec.getText('custrecord_dps_so_location');
+                var location_bin = rec.getValue('custrecord_dps_po_location_bin');
+                var po_so_date = rec.getValue('custrecord_dps_delivery_time'); // 收发货日期
 
 
+                log.debug('getParameters', 'po_id:' + po_id + ',po_no:' + po_no + ',client_id:' + 
+                    client_id + ',client_name:' + client_name + ',client_subsidiary:' + client_subsidiary + ',so_location_id:' + 
+                    so_location_id + ',so_location_name:' + so_location_name + ',location_bin:' + location_bin + ',po_so_date:' + 
+                    po_so_date);
 
+                var parameters_str = getParameters(client_name, client_id, client_subsidiary, po_id, po_no, so_date, so_location_id);
+                var auth = 'NLAuth nlauth_account=6188472,nlauth_email=157086326@qq.com,nlauth_signature=Welcome1234,nlauth_role=3';
+                var url_str = 'https://6188472.app.netsuite.com/app/accounting/transactions/interco/salesordqueue.nl';
+                var intercompany_body = https.post({
+                    url: url_str,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Accept-Encoding': 'zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7',
+                        'Authorization': auth,
+                        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'
+                    },
+                    body: parameters_str
+                });
+
+                log.debug('intercompany_info', JSON.stringify(intercompany_body));
+                var so_id;
+                search.create({
+                    type: 'purchaseorder',
+                    filters: [{ name: 'internalid', operator: 'is', values: po_id }],
+                    columns: [ 'intercotransaction' ]
+                }).run().each(function (result) {
+                    so_id = result.getValue('intercotransaction');
+                    return false;
+                });
+                if (so_id) {
+                    record.submitFields({
+                        type: 'customrecord_juge_po_so',
+                        id: id,
+                        values: {
+                            custrecord_juge_poso_so: so_id
+                        }
+                    });
+                    record.submitFields({
+                        type: 'salesorder',
+                        id: so_id,
+                        values: {
+                            custbody_order_type: 6,
+                            location: so_location_id
+                        }
+                    });
+                }
+                // if (index < 5) {
+                //     index++;
+                //     return true;
+                // } else {
+                    return false;
+                // }
+            });
+        } catch (error) {
+            log.debug('intercompany_error', JSON.stringify(error));
+        }
+    }
+
+    function getParameters(client_name, client_id, client_subsidiary, po_id, po_no, so_date, so_location_id) {
+        var parametersJson = {};
+        // 动态参数
+        // parametersJson.inpt_entity = '274 蓝深贸易有限公司'; // 客户名称，带编号
+        // parametersJson.entity = '2821'; // 客户内部id
+        // parametersJson.subsidiary = '2'; // po供应商的代表子公司内部id，so的子公司
+        parametersJson.inpt_entity = client_name; // 客户名称，带编号
+        parametersJson.entity = client_id; // 客户内部id
+        parametersJson.subsidiary = client_subsidiary; // po供应商的代表子公司内部id，so的子公司
+        parametersJson.nextorderidx = '2'; // po数量+1
+        var po_info = {};
+        // po_info.po_id = '231'; // PO内部id
+        // po_info.po_number = 'PO2006230025'; // PO编号
+        po_info.po_id = po_id; // PO内部id
+        po_info.po_number = po_no; // PO编号
+        var po_parameter_str = 'T{po_id}Purchase Order {po_number}/app/accounting/transactions/transaction.nl?id={po_id}1Sales Order';
+        parametersJson.orderdata = po_parameter_str.format(po_info);
+        // parametersJson.trandate = '2020-6-23'; // 日期
+        parametersJson.trandate = so_date; // 日期
+        parametersJson.location = so_location_id; // 地点
+
+        // 静态参数，写死即可
+        parametersJson.inpt_currency = 'CNY';
+        parametersJson.currency = '1';
+        parametersJson.orderaction = 'autogen';
+        parametersJson.orderlabels = 'SelectIntercompany Purchase OrderCreate Manually';
+        parametersJson.ordervalid = 'T';
+        parametersJson.orderfields = 'applyorderidorderlinkorderurlcurrencypairedlinkpairedurl';
+        parametersJson.ordertypes = 'checkboxtexttexttexttexttexttext';
+        parametersJson.ordersortidx = '-1';
+        parametersJson.submitted = 'T';
+        parametersJson.orderflags = '4000000';
+
+        var parameters_str = 'inpt_entity={inpt_entity}&entity={entity}&inpt_currency={inpt_currency}&currency={currency}&subsidiary={subsidiary}&orderaction={orderaction}&nextorderidx={nextorderidx}&orderlabels={orderlabels}&orderdata={orderdata}&ordervalid={ordervalid}&trandate={trandate}&orderfields={orderfields}&ordertypes={ordertypes}&ordersortidx={ordersortidx}&submitted={submitted}&orderflags={orderflags}&location={location}';
+        var parameters = parameters_str.format(parametersJson);
+        return parameters;
     }
 
     function splitMonthToWeek(monthStartDate, skuqty) {
@@ -209,6 +543,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
                 order.high = high;
             }
             var weight = Number(result.getValue({ name: 'custitem_dps_heavy2', join: 'item' }));
+            log.debug('weight:', jsonstr.skuid + ' = ' + weight);
             order.weight = order.weight + weight;
             SKUs.push(jsonstr.skuid);
             return true;
@@ -269,7 +604,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         getFilter.push({ name: 'custrecord_lmr_site', operator: 'isempty' });
         searchVRe = getRecBySearch(getFilter);
         searchRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        log.debug('站点', searchRe);
+        // log.debug('站点', searchRe);
 
         // 账号
         getFilter = [];
@@ -285,7 +620,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('账号', searchRe);
+        // log.debug('账号', searchRe);
 
         // 仓库
         getFilter = [];
@@ -301,7 +636,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('仓库', searchRe);
+        // log.debug('仓库', searchRe);
 
         // 目的地
         getFilter = [];
@@ -317,7 +652,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('目的地', searchRe);
+        // log.debug('目的地', searchRe);
 
         // 产品
         getFilter = [];
@@ -333,7 +668,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('产品', searchRe);
+        // log.debug('产品', searchRe);
 
         // 物流分组
         getFilter = [];
@@ -349,7 +684,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('物流分组', searchRe);
+        // log.debug('物流分组', searchRe);
 
         // 金额范围
         getFilter = [];
@@ -367,7 +702,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('重量范围', searchRe);
+        // log.debug('重量范围', searchRe);
 
         // 重量范围
         getFilter = [];
@@ -385,7 +720,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('重量范围', searchRe);
+        // log.debug('重量范围', searchRe);
 
         // 长度范围
         getFilter = [];
@@ -403,7 +738,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('长度范围', searchRe);
+        // log.debug('长度范围', searchRe);
 
         // 宽度范围
         getFilter = [];
@@ -421,7 +756,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('宽度范围', searchRe);
+        // log.debug('宽度范围', searchRe);
 
         // 高度范围
         getFilter = [];
@@ -439,7 +774,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('高度范围', searchRe);
+        // log.debug('高度范围', searchRe);
 
         // 长宽高范围
         getFilter = [];
@@ -457,7 +792,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         searchVRe = getRecBySearch(getFilter);
         searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
         searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        log.debug('长宽高范围', searchRe);
+        // log.debug('长宽高范围', searchRe);
         
         log.debug('searchRe', JSON.stringify(searchRe) + JSON.stringify(order));
         // 计算预估运费

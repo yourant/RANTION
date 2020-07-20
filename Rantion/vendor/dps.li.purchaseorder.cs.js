@@ -51,7 +51,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             fieldId: 'quantity'
         });
 
-        if (context.fieldId == 'matchbilltoreceipt' || context.fieldId == 'quantity') {
+        if (context.fieldId == 'matchbilltoreceipt' || context.fieldId == 'quantity'|| context.fieldId == 'item') {
             var supplier = rec.getValue('entity');
             // console.log('supplier', supplier);
             var subs = rec.getValue('subsidiary');

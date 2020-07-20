@@ -55,8 +55,8 @@ define([], function() {
             body: data
         });
 
+        retdata = JSON.stringify(response.body);
         if (response.code == 200) {
-            retdata = JSON.stringify(response.body);
             // 调用成功
             code = retdata.code;
         } else {

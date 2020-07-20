@@ -33,6 +33,9 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
      * @Since 2015.2
      */
     function beforeSubmit(scriptContext) {
+      try{
+        
+     
         var journalRecord = scriptContext.newRecord;
         var type = journalRecord.type;
         var id = journalRecord.id;
@@ -134,12 +137,25 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
                 modular = getCustrecordModular('采购模块');
                 process = getCustrecordProcess('采购订单');
                 documentList = 18;
-                var billId = journalRecord.getSublistValue({
-                    sublistId: 'apply',
-                    fieldId: 'internalid',
-                    line: 0
-                })
-
+                var applyCount = journalRecord.getLineCount({
+                    sublistId: 'apply'
+                });
+                var billId = false;
+                for (var index = 0; index < applyCount; index++) {
+                    var type = journalRecord.getSublistValue({
+                        sublistId: 'apply',
+                        fieldId: 'type',
+                        line: index
+                    })
+                    if (type == '账单') {
+                        billId = journalRecord.getSublistValue({
+                            sublistId: 'apply',
+                            fieldId: 'internalid',
+                            line: index
+                        })
+                    }
+                }
+						log.debug('billId', billId);
                 if (billId) {
                     var vendorbillRecord = record.load({
                         type: 'vendorbill',
@@ -516,6 +532,9 @@ define(['N/log', 'N/record', 'N/ui/serverWidget', 'N/search'], function (log, re
             //     });
             // }
         }
+         }catch(e){
+        
+      }
     }
 
     /**

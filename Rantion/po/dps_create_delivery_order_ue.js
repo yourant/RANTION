@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-20 19:54:07
+ * @LastEditTime   : 2020-07-20 21:10:09
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_create_delivery_order_ue.js
@@ -649,6 +649,36 @@ define(['./../Helper/core.min', 'N/runtime', 'N/search', 'N/record', 'N/format',
                     id: order_po_no
                 });
                 data['purchaser'] = order_data.getText('employee');
+
+
+                search.create({
+                    type: 'customrecord_dps_delivery_order',
+                    filters: [{
+                        name: "internalid",
+                        operator: 'anyof',
+                        values: newRecord.id
+                    }],
+                    columns: [{
+                            name: 'custrecord_dps_wms_location',
+                            join: 'custrecord_dsp_delivery_order_location'
+                        }, // //仓库编号
+                        {
+                            name: 'custrecord_dps_wms_location_name',
+                            join: 'custrecord_dsp_delivery_order_location'
+                        }, //仓库名称
+                    ]
+                }).run().each(function (rec) {
+                    data['warehouseCode'] = rec.getValue({
+                        name: 'custrecord_dps_wms_location',
+                        join: 'custrecord_dsp_delivery_order_location'
+                    }); //rec.getValue({name: "custrecord_dps_wms_location",join: "location"});//仓库编号
+                    data['warehouseName'] = rec.getValue({
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'custrecord_dsp_delivery_order_location'
+                    }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
+                });
+
+
                 log.debug('data', data);
                 if (token) {
                     message = sendRequest(token, data);

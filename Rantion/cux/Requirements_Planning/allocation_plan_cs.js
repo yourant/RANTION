@@ -139,6 +139,7 @@ function(moment,currentRecord, url, https, dialog, format,runtime,search,record)
         var week_arr = week_date.split(',');
         var item_arr = [];
         console.log("len:",curr.getLineCount({sublistId:sublistId}));
+        var un_line =[];
         for(var i = 0; i < curr.getLineCount({sublistId:sublistId}); i++){
             
             var data_type = curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_data_type_id',line:i});
@@ -153,12 +154,14 @@ function(moment,currentRecord, url, https, dialog, format,runtime,search,record)
                         }
                     })
                     console.log("quantity:"+quantity);
-                    if(quantity){
+                    if(quantity <=0){
+                        un_line.push({"wek":line,"line":i})
+                    }else{
                         item_arr.push({
                             item_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_item_sku_id',line:i}),
                             account_id: curr.getSublistValue({sublistId:sublistId,fieldId:'custpage_store_name_id',line:i}),
                             week_date: line,
-                            item_quantity: Math.abs(quantity)
+                            item_quantity:quantity
                         })
                     }
                 })
@@ -206,6 +209,18 @@ function(moment,currentRecord, url, https, dialog, format,runtime,search,record)
         function failure(reason) { 
             console.log("Failure: " + reason); 
         }
+         if(un_line.length >0){
+             var mess =""
+            un_line.map(function(ln){
+                mess +="第"+ln.line+"行，"+"第"+ln.wek+"周的SKU不需要调拨 \n"
+            })
+            var options = {
+                title: "Tip",
+                message: "选择的数据中："+mess
+            };
+            dialog.confirm(options).then(success2).catch(failure);
+         }
+      
 
         if(item_arr.length == 0) {
             var options = {

@@ -12,15 +12,25 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
       var orderid = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_orderid' });
       var shipdate_ed = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_shipdate_ed' });
       var shipdate_st = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_shipdate_st' });
+      var group_req = runtime.getCurrentScript().getParameter({ name: 'custscript_fulfill_accgroup' });
+      var full_bj = runtime.getCurrentScript().getParameter({ name: 'custscript_full_bj' })?runtime.getCurrentScript().getParameter({ name: 'custscript_full_bj' }):"F"; //搜索对应的标记
       log.debug("shipdate_st:"+shipdate_st,"shipdate_ed:"+shipdate_ed);
       var fils = [];
-      fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: "is", values: "F" }));
-      // if(acc == 78)
-      // fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.de" }));
-      // if(acc == 164 )
-      // fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.com" }));
+      fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: "is", values: full_bj }));
+      if(acc == 78)
+      fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.de" }));
+      if(acc == 164 )
+      fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.com" }));
       // fils.push(search.createFilter({ name: 'internalidnumber', operator: "equalto", values: 50977 }));
-      acc ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.IS, values: acc })) : "";
+      var acc_arrys = [];
+      if(group_req){//根据拉单分组去履行
+        core.amazon.getReportAccountList(group_req).map(function(acount){
+          acc_arrys.push(acount.id) ;
+        })
+      }
+     
+      acc ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc })) : "";
+      acc_arrys.length>0?fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc_arrys })):""
       shipdate_st ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORAFTER, values: shipdate_st })) : "";
       shipdate_ed ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORBEFORE, values: shipdate_ed })) : "";
       orderid ? fils.push(search.createFilter({ name: 'custrecord_amazon_order_id', operator: search.Operator.IS, values: orderid })) : "";
@@ -59,6 +69,7 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
       log.audit("订单总数"+orders.length,orders);
       var endmap = new Date().getTime();
       log.debug("000getInputData endTime " + (endmap - startT), new Date().getTime());
+      
       return orders;
     }
 
@@ -86,7 +97,7 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
         repid = obj.reporid;
       try {
         //查询有没有关联此发货报告的发票
-        var inv_id,fulfill_id;
+        var inv_id =[],fulfill_id=[];
         search.create({
           type: "invoice",
           filters: [
@@ -94,7 +105,8 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
             { name: 'mainline', operator: 'is', values: true }
           ]
         }).run().each(function (rec) {
-          inv_id = rec.id;
+          inv_id .push( rec.id);
+          return true;
         })
          //查询有没有关联此发货报告的货品实施单
         search.create({
@@ -104,10 +116,11 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
             { name: 'mainline', operator: 'is', values: true }
           ]
         }).run().each(function (rec) {
-          fulfill_id = rec.id;
+          fulfill_id .push( rec.id);
+          return true;
         })
-        if(inv_id){
-           //已存在此报告的发票，就设置为T
+        if(inv_id.length == 1 && fulfill_id.length==1){
+           //已存在此报告的发票，并且只有一个，就设置为T
           record.submitFields({
             type: "customrecord_amazon_sales_report",
             id: repid,
@@ -116,12 +129,24 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
             }
           }); 
           return;
-        }
-        if(fulfill_id &&!inv_id){
-           //如果是已发货，但是没开票，考虑到要保持一个发货一份发票，所以要把这个发货单删除，重新发货开票
-           var de = record.delete({type:"itemfulfillment",id:fulfill_id});
+        }else if(inv_id.length == 0 && fulfill_id.length>0){
+          fulfill_id.map(function(dls){
+             //如果是已发货，但是没开票，考虑到要保持一个发货一份发票，所以要把这个发货单删除，重新发货开票
+           var de = record.delete({type:"itemfulfillment",id:dls});
            log.debug("已删除发货单，重新发货发票",de);
+          })
+        }else if(inv_id.length > 0 && fulfill_id.length>0){
+          // 发货有问题，停止发货，需要人工检查问题
+          record.submitFields({
+            type: "customrecord_amazon_sales_report",
+            id: repid,
+            values: {
+                custrecord_fulfill_in_ns: "error"
+            }
+          }); 
+          return;
         }
+       
 
         var flss = [],acc_search=interfun.getSearchAccount(obj.seller_id);
         var ord_status;
@@ -166,9 +191,10 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
           if(order_id .indexOf("S") == -1){
             var cach;
             var T_acc = interfun.GetstoreInEU(report_acc, market, report_acc_txt).acc; 
+            log.error(" 找不到订单 T_acc",T_acc)
             var fil=[];
-            fil.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.IS, values: T_acc })) ;
-            fils.push(search.createFilter({ name: 'custrecord_amazon_order_id', operator: search.Operator.IS, values: order_id }));
+            fil.push(search.createFilter({ name: 'custrecord_aio_cache_acc_id', operator: search.Operator.IS, values: T_acc })) ;
+            fil.push(search.createFilter({ name: 'custrecord_aio_cache_order_id', operator: search.Operator.IS, values: order_id }));
             search.create({
               type: 'customrecord_aio_order_import_cache',
               filters: fil,

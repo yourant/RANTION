@@ -173,12 +173,12 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             isOnline: true
                         });
                         // 保存文件 folder表示文件柜里面的文件夹的id
-                        fileObj.folder = 542;
+                        fileObj.folder = 644;
                         var fileId = fileObj.save();
                         fileObj = file.load({
                             id: fileId
                         });
-                        submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, "https://6188472-sb1.app.netsuite.com" + fileObj.url)
+                        submitIdAndTackingNumber(rec.id, shipment_id, TrackingNumber, Base64LabelImage, fileId, "https://6188472.app.netsuite.com" + fileObj.url)
                     } else {
                         record.submitFields({
                             type: 'customrecord_dps_shipping_small_record',
@@ -340,13 +340,38 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         //     isInline: true
                         // })
                         // 保存文件 folder表示文件柜里面的文件夹的id
-                        fileObj.folder = 543;
+                        fileObj.folder = 643;
                         var fileId = fileObj.save();
                         result = { code: 200, data: {} }
                         fileObj = file.load({
                             id: fileId
                         });
-                        updateLabel(rec_id, fileId, "https://6188472-sb1.app.netsuite.com" + fileObj.url)
+                        updateLabel(rec_id, fileId, "https://6188472.app.netsuite.com" + fileObj.url)
+                    } else {
+                        result = { code: 500, msg: reqParam.msg }
+                    }
+                    break
+                case "5":
+                    yanwenApi.init(http, xml, file)
+                    var orderId = rec.getValue("custrecord_dps_ship_small_logistics_orde")
+                    var reqParam = yanwenApi.CreateSingleLabel(orderId, 'A4L')
+                    if (reqParam.code == "200") {
+                        //切到页面上显示标签
+                        var fileObj = file.create({
+                            name: Moment().format("YYYYMMDDHHmmssSSS") + ".pdf",
+                            fileType: file.Type.PDF,
+                            contents: reqParam.data,
+                            description: '燕文面单',
+                            encoding: file.Encoding.UTF8,
+                            isOnline: true
+                        });
+                        fileObj.folder = 646;
+                        var fileId = fileObj.save();
+                        result = { code: 200, data: {} }
+                        fileObj = file.load({
+                            id: fileId
+                        });
+                        updateLabel(rec_id, fileId, "https://6188472.app.netsuite.com" + fileObj.url)
                     } else {
                         result = { code: 500, msg: reqParam.msg }
                     }

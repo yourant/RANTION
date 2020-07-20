@@ -9,7 +9,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
     exports.rsf = function (item_id, store_id) {
     };
     /** 销售速度计算 */
-    exports.calculate_sales_speed = function (date) {
+    exports.calculate_sales_speed = function (date,store_arr) {
         try {
             var date_quan = mGetDate(date.getYear(), date.getMonth() + 1);
             var speed_table = {};
@@ -27,8 +27,26 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
                 factor_dict[Number(rec.getValue('custrecord_rsf_factor'))] = 0.01 * Number(rec.getValue('custrecord_rsf_factor_reference_value').replace('%', ''));
                 return true;
             });
+            log.debug('factor_dict', factor_dict);
+            //获取环比增长率
+            var growth_rate = {};
+            search.create({
+                type: 'customrecord_rsf_sequential_growth_rate',
+                columns: [
+                    { name: 'custrecord_rsf_category' },
+                    { name: 'custrecord_rsf_department' },
+                    { name: 'custrecord_rsf_growth_rate' }
+                ]
+            }).run().each(function (rec) {
+                growth_rate[rec.getValue('custrecord_rsf_category') + '-' + rec.getValue('custrecord_rsf_department')] = rec.getValue('custrecord_rsf_growth_rate');
+                return true;
+            });
+            log.debug('growth_rate', growth_rate);
             search.create({
                 type: 'customrecord_rsf_daily_sales',
+                filters: [
+                    { name: 'custrecord_rsf_store', operator: search.Operator.ANYOF, values: store_arr }
+                ],
                 columns: [
                     { name: 'custrecord_rsf_store', summary: search.Summary.GROUP },
                     { name: 'custrecord_rsf_item', summary: search.Summary.GROUP },
@@ -42,48 +60,19 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
                     { name: 'formulanumeric', formula: "CASE WHEN ROUND({today}-{custrecord_rsf_date}, 0) <= " + (offset + 60) + " AND ROUND({today}-{custrecord_rsf_date}, 0) > " + (offset + 30) + " THEN {custrecord_rsf_sales_alter}/30 ELSE 0 END", summary: search.Summary.SUM },
                     /** 默认因子5 最近61~90天销量 */
                     { name: 'formulanumeric', formula: "CASE WHEN ROUND({today}-{custrecord_rsf_date}, 0) <= " + (offset + 90) + " AND ROUND({today}-{custrecord_rsf_date}, 0) > " + (offset + 60) + " THEN {custrecord_rsf_sales_alter}/30 ELSE 0 END", summary: search.Summary.SUM },
+                    { name: 'class', join: 'custrecord_rsf_item', summary: search.Summary.GROUP},
+                    { name: 'department', join: 'custrecord_rsf_item', summary: search.Summary.GROUP},
                 ]
             }).run().each(function (rec) {
-                //获取环比增长率
-                var category1, division;
-                search.create({
-                    type: 'item',
-                    filters: [
-                        { name: 'internalid', operator: search.Operator.IS, values: rec.getValue(rec.columns[1]) }
-                    ],
-                    columns: [
-                        { name: 'class' },
-                        { name: 'department' }
-                    ]
-                }).run().each(function (rec) {
-                    category1 = rec.getValue('class');
-                    division = rec.getValue('department');
-                    return false;
-                });
-                if (division && category1) {
-                    var growth_rate;
-                    search.create({
-                        type: 'customrecord_rsf_sequential_growth_rate',
-                        filters: [
-                            { name: 'custrecord_rsf_category', operator: search.Operator.ANYOF, values: category1 },
-                            { name: 'custrecord_rsf_department', operator: search.Operator.ANYOF, values: division }
-                        ],
-                        columns: [
-                            { name: 'custrecord_rsf_growth_rate' }
-                        ]
-                    }).run().each(function (rec) {
-                        growth_rate = rec.getValue('custrecord_rsf_growth_rate');
-                        return false;
-                    });
-                    var speed = [
-                        Number(rec.getValue(rec.columns[2])) * factor_dict[1 /* 最近7天销量 */],
-                        Number(rec.getValue(rec.columns[3])) * factor_dict[2 /* 最近14天销量 */],
-                        Number(rec.getValue(rec.columns[4])) * factor_dict[3 /* 最近30天销量 */],
-                        Number(rec.getValue(rec.columns[5])) * factor_dict[4 /* "最近31~60天销量" */],
-                        Number(rec.getValue(rec.columns[6])) * factor_dict[5 /* "最近61~90天销量" */],
-                    ].reduce(function (p, c) { return p + c; }, 0);
-                    speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Math.round(speed * growth_rate * date_quan);
-                }
+                var growth_rate_data = growth_rate[rec.getValue(rec.columns[7]) + '-' + rec.getValue(rec.columns[8])];
+                var speed = [
+                    Number(rec.getValue(rec.columns[2])) * factor_dict[1 /* 最近7天销量 */],
+                    Number(rec.getValue(rec.columns[3])) * factor_dict[2 /* 最近14天销量 */],
+                    Number(rec.getValue(rec.columns[4])) * factor_dict[3 /* 最近30天销量 */],
+                    Number(rec.getValue(rec.columns[5])) * factor_dict[4 /* "最近31~60天销量" */],
+                    Number(rec.getValue(rec.columns[6])) * factor_dict[5 /* "最近61~90天销量" */],
+                ].reduce(function (p, c) { return p + c; }, 0);
+                speed_table[rec.getValue(rec.columns[0]) + "-" + rec.getValue(rec.columns[1])] = Math.round(speed * growth_rate_data * date_quan);
                 return --limit > 0;
             });
             return speed_table;
@@ -92,7 +81,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         }
     };
 
-    exports.calculate_sales_speed1 = function (dt, speed_data) {
+    exports.calculate_sales_speed1 = function (dt, speed_data,store_arr) {
         var now_date = dt.getDate();
         var date = new Date(dt.getFullYear(), dt.getMonth(), 0);
         var date_quan = mGetDate(date.getYear(), date.getMonth() + 1);
@@ -102,6 +91,9 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         var limit = 4000;
         search.create({
             type: 'customrecord_rsf_daily_sales',
+            filters: [
+                { name: 'custrecord_rsf_store', operator: search.Operator.ANYOF, values: store_arr }
+            ],
             columns: [
                 { name: 'custrecord_rsf_store', summary: search.Summary.GROUP },
                 { name: 'custrecord_rsf_item', summary: search.Summary.GROUP },
@@ -121,7 +113,7 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         return speed_table;
     };
 
-    exports.calculate_sales_speed2 = function (dt, speed_data, speed1_data) {
+    exports.calculate_sales_speed2 = function (dt, speed_data, speed1_data,store_arr) {
         var now_date = dt.getDate();
         var date = new Date(dt.getFullYear(), dt.getMonth(), 0);
         var date_quan = mGetDate(date.getYear(), date.getMonth() + 1);
@@ -129,6 +121,9 @@ define(["require", "exports", "N/search"], function (require, exports, search) {
         var limit = 4000;
         search.create({
             type: 'customrecord_rsf_daily_sales',
+            filters: [
+                { name: 'custrecord_rsf_store', operator: search.Operator.ANYOF, values: store_arr }
+            ],
             columns: [
                 { name: 'custrecord_rsf_store', summary: search.Summary.GROUP },
                 { name: 'custrecord_rsf_item', summary: search.Summary.GROUP },

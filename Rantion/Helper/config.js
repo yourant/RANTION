@@ -11,6 +11,8 @@ define(['N/runtime'], function(runtime) {
     var countryCodeChinaID;
     // WMS接口URL
     var WMS_Debugging_URL;
+    // 获取订单联系人
+    var order_GJ_URL;
     // 交货单
     var invoice_record_id;
 
@@ -25,6 +27,7 @@ define(['N/runtime'], function(runtime) {
         vendorRoleId = 16;
         countryCodeChinaID = 88;
         WMS_Debugging_URL = 'http://47.107.254.110:18082/rantion-wms';
+        order_GJ_URL = 'http://47.107.254.110:18082';
         panying_transfer_type = 32;
         deficit_transfer_type = 33;
         invoice_record_id = 185;
@@ -35,6 +38,7 @@ define(['N/runtime'], function(runtime) {
         vendorRoleId = 16;
         countryCodeChinaID = 88;
         WMS_Debugging_URL = 'http://wms.rantion-admin.com/rantion-wms';
+        order_GJ_URL = 'http://wms.rantion-admin.com';
         panying_transfer_type = 32;
         deficit_transfer_type = 33;
         invoice_record_id = 185;
@@ -47,6 +51,7 @@ define(['N/runtime'], function(runtime) {
         WMS_Debugging_URL: WMS_Debugging_URL,
         panying_transfer_type: panying_transfer_type,
         deficit_transfer_type: deficit_transfer_type,
-        invoice_record_id: invoice_record_id
+        invoice_record_id: invoice_record_id,
+        order_GJ_URL: order_GJ_URL
     }
 });

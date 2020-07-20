@@ -8,8 +8,8 @@ define([], function() {
         if (context.type == 'view') {
             var newRecord = context.newRecord;
             var status = newRecord.getValue('custrecord_declaration_status');
-            var soid = newRecord.getValue('custrecord_inter_so_report');
-            if (status == 1 && !soid) {
+            var po_id = newRecord.getValue('custrecord_inter_po_report');
+            if (status == 1 && !po_id) {
                 var transferId = newRecord.getValue('custrecord_transfer_order');
                 var shippingId = newRecord.getValue('custrecord_fulfillment_record');
                 var informationId = newRecord.id;

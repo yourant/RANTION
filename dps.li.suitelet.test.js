@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-20 20:51:23
+ * @LastEditTime   : 2020-07-20 21:11:15
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -20,13 +20,14 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
 
 
-        /*
 
+
+        /*
         record.submitFields({
             type: 'customrecord_dps_delivery_order',
-            id: 16,
+            id: 17,
             values: {
-                custrecord_delivery_order_status: 4
+                custrecord_delivery_order_status: 6
             }
         });
 

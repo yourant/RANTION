@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript
  */
-define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, record, http) {
+define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], function (search, log, record, http, config) {
 
     function getInputData() {
         var message = {};
@@ -10,7 +10,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         var token = getToken();
         if (token) {
             //dingtalk
-            var url = 'http://47.107.254.110:18082/rantion-dingtalk/dingtalkRecord';
+            var url = config.order_GJ_URL + '/rantion-dingtalk/dingtalkRecord';
 
             var endDate = new Date((new Date).toDateString());
             var beginDate = new Date(endDate.getTime() - 57600000);
@@ -19,13 +19,14 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                 //'processCodeList=PROC-7EB449A0-A953-4DF1-9203-D5429FEE2AFF,PROC-1092FF21-2C38-4CC3-97F4-3A5F91D0DE8E,PROC-ACB6A139-97C2-4A85-ACDB-14DF102BBED8' +//测试用
                 '&status=COMPLETED&result=agree&eventType=bpms_instance_change' +
                 '&beginCreateTime='
-                // + beginDate.format("yyyy-MM-dd 00:00:00")
-                +
-                beginDate.format("2020-06-25 00:00:00") +
-                '&endCreateTime='
-                // + endDate.format("yyyy-MM-dd 23:59:59");
-                +
-                endDate.format("2020-06-30 23:59:59");
+                //+ beginDate.format("yyyy-MM-dd 00:00:00")
+                + beginDate.format("2020-06-19 00:00:00")
+                + '&endCreateTime='
+                //+ endDate.format("yyyy-MM-dd 23:59:59")
+                + endDate.format("2020-06-23 23:59:59")
+				     + '&processInstanceId='
+                + 'baae7d21-e921-4515-8700-4260a226cea8'
+          			;
             message = sendRequest(url, token);
             message = JSON.parse(JSON.parse(message.data))
             if (message.code == 0) {
@@ -42,9 +43,10 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                         //log.error('add-record-fail:', detail.businessId);
                         log.error('add-record-fail-msg-id:', item.processInstanceId);
                     } else {
-                        log.error('add-record-success-msg-id:', item.processInstanceId);
+                        //log.error('add-record-success-msg-id:', item.processInstanceId);
                     }
                 });
+              log.error('end:', url);
             }
 
         } else {
@@ -58,7 +60,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         return;
     }
 
-    function reduce(context) {}
+    function reduce(context) { }
 
     function summarize(summary) {
 
@@ -98,7 +100,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                 values: business_id
             }],
         }).run().each(function (res) {
-            go = false;
+            go = true;
         });
 
         if (!go) {
@@ -231,12 +233,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         }).run().each(function (res) {
             applicant_name_id = res.id;
         });
-        if (applicant_name_id == '') {
-            go = false;
-            log.error('-报销人', applicant_name);
-            log.error('报销人对应id不存在', applicant_name);
-            return false;
-        }
+       // if (applicant_name_id == '') {
+       //     go = false;
+       //     log.error('-报销人', applicant_name);
+       //     log.error('报销人对应id不存在', applicant_name);
+       //     return false;
+       // }
         //#endregion
 
         //#region  创建新记录------------------------------------
@@ -290,7 +292,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                         }).run().each(function (res) {
                                             custrecord_dps_rbsm_department = res.id;
                                         });
-                                        log.debug('custrecord_dps_rbsm_department_name arr', custrecord_dps_rbsm_department_name);
+                                        //log.debug('custrecord_dps_rbsm_department_name arr', custrecord_dps_rbsm_department_name);
                                     } else {
                                         search.create({
                                             type: 'department',
@@ -306,11 +308,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                     }
                                     if (custrecord_dps_rbsm_department_name == '' || !custrecord_dps_rbsm_department_name) {
                                         go = false;
-                                        log.error('error', 'department_name' + custrecord_dps_rbsm_department_name);
+                                        //log.error('error', 'department_name' + custrecord_dps_rbsm_department_name);
                                     }
                                     break;
                                 case "费用明细":
                                     var custrecord_dps_rbsm_detailtype2_name = _e.value;
+                                log.error('custrecord_dps_rbsm_detailtype2_name', custrecord_dps_rbsm_detailtype2_name);
                                     search.create({
                                         type: 'customrecord_dps_fee_type',
                                         filters: [{
@@ -318,17 +321,16 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                             operator: 'is',
                                             values: custrecord_dps_rbsm_detailtype2_name
                                         }],
-                                        columns: [{
-                                                name: 'custrecord_dps_fee_debitaccount'
-                                            },
-                                            {
-                                                name: 'custrecord_expense_report_class'
-                                            },
+                                        columns: [
+                                            { name: 'custrecord_dps_fee_debitaccount' },
+                                            { name: 'custrecord_expense_report_class' },
+                                            { name: 'custrecord_dps_fee_type_name' }
                                         ],
                                     }).run().each(function (res) {
                                         custrecord_dps_rbsm_detailtype2 = res.id;
                                         custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
                                         custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
+                                      log.error('custrecord_dps_fee_type_name', res.getValue('custrecord_dps_fee_type_name'));
                                     });
                                     if (custrecord_dps_rbsm_detailtype2 == '') {
                                         var new_rbsm_detailtype2 = record.create({
@@ -403,7 +405,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                         });
 
                         //--设置日记账科目信息
-                        //log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
+                        log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
                         new_ns_record.setSublistValue({
                             sublistId: ns_sub_id,
                             fieldId: 'account',
@@ -501,7 +503,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                             value: Number(custrecord_dps_o_amount),
                             line: i
                         });
-                        total_amount += custrecord_dps_o_amount;
+                       total_amount = accAdd(total_amount, custrecord_dps_o_amount);
                     }
                 }
             })
@@ -561,6 +563,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                 break;
                             case '费用明细':
                                 var custrecord_dps_rbsm_detailtype2_name = e.value;
+                            log.error('custrecord_dps_rbsm_detailtype2_name', custrecord_dps_rbsm_detailtype2_name);
                                 search.create({
                                     type: 'customrecord_dps_fee_type',
                                     filters: [{
@@ -568,17 +571,16 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                                         operator: 'is',
                                         values: custrecord_dps_rbsm_detailtype2_name
                                     }],
-                                    columns: [{
-                                            name: 'custrecord_dps_fee_debitaccount'
-                                        },
-                                        {
-                                            name: 'custrecord_expense_report_class'
-                                        },
+                                    columns: [
+                                        { name: 'custrecord_dps_fee_debitaccount' },
+                                        { name: 'custrecord_expense_report_class' },
+                                        { name: 'custrecord_dps_fee_type_name' }
                                     ],
                                 }).run().each(function (res) {
                                     custrecord_dps_rbsm_detailtype2 = res.id;
                                     custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
                                     custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
+                                  log.error('custrecord_dps_fee_type_name', res.getValue('custrecord_dps_fee_type_name'));
                                 });
                                 if (custrecord_dps_rbsm_detailtype2 == '') {
                                     var new_rbsm_detailtype2 = record.create({
@@ -644,12 +646,9 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                         operator: 'is',
                         values: custrecord_dps_rbsm_detailtype2_name
                     }],
-                    columns: [{
-                            name: 'custrecord_dps_fee_debitaccount'
-                        },
-                        {
-                            name: 'custrecord_expense_report_class'
-                        },
+                    columns: [
+                        { name: 'custrecord_dps_fee_debitaccount' },
+                        { name: 'custrecord_expense_report_class' },
                     ],
                 }).run().each(function (res) {
                     custrecord_dps_rbsm_detailtype2 = res.id;
@@ -686,7 +685,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
                 });
 
                 //--设置日记账科目信息
-                //log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
+                log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
                 new_ns_record.setSublistValue({
                     sublistId: ns_sub_id,
                     fieldId: 'account',
@@ -836,9 +835,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         });
 
         if (typeof (detail) == 'undefined') {
-            detail = {
-                length: 1
-            }
+            detail = { length: 1 }
         }
 
         //--设置日记账贷记信息
@@ -944,6 +941,16 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         try {
             var ns_record_id = new_ns_record.save();
         } catch (error) {
+          var content = JSON.stringify(new_ns_record);
+          var logLen = 3000;
+          var len = Math.ceil(content.length/logLen);
+          for(var i = 0;i<len;i++){  
+            if(len-1==i){
+              log.error('new_ns_record',content.substring((i)*logLen));
+            }else{
+              log.error('new_ns_record',content.substring(i*logLen,(i+1)*logLen));
+            } 
+          }
             log.error('new_ns_record', error);
             /*
                         var j_new_ns_record = new_ns_record.toJSON();
@@ -974,11 +981,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         var token;
         search.create({
             type: 'customrecord_wms_token',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: 1
-            }],
+            filters: [{ name: 'internalid', operator: 'anyof', values: 1 }],
             columns: ['custrecord_wtr_token']
         }).run().each(function (result) {
             token = result.getValue('custrecord_wtr_token');
@@ -1002,18 +1005,34 @@ define(['N/search', 'N/log', 'N/record', 'N/http'], function (search, log, recor
         });
 
         //log.error('error',response.toJSON());
+        retdata = JSON.stringify(response.body);
         if (response.code == 200) {
-            retdata = JSON.stringify(response.body);
             // 调用成功
             code = retdata.code;
         } else {
             code = 1;
             // 调用失败
-            retdata = "请求失败"
         }
         message.code = code;
         message.data = retdata;
         return message;
+    }
+  
+      function accAdd(num1, num2) {
+        var r1, r2, m;
+        try {
+            r1 = num1.toString().split('.')[1].length;
+        } catch (e) {
+            r1 = 0;
+        }
+        try {
+            r2 = num2.toString().split(".")[1].length;
+        } catch (e) {
+            r2 = 0;
+        }
+        m = Math.pow(10, Math.max(r1, r2));
+        // return (num1*m+num2*m)/m;
+        return Math.round(num1 * m + num2 * m) / m;
     }
 
     return {

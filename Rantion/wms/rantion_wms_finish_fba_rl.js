@@ -84,6 +84,7 @@ function(config, search, http) {
         // log.error('response', JSON.stringify(response));
         if (response.code == 200) {            // 调用成功
             retdata = JSON.parse(response.body);
+            code = retdata.code;
         } else {            // 调用失败
             code = 1;
             retdata = '请求被拒'

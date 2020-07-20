@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-17 14:37:28
+ * @LastEditTime   : 2020-07-20 20:52:26
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -85,7 +85,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 retjson.msg = 'success'
             } catch (error) {
                 log.error('error', error);
-                retjson.code = 3;
+                retjson.code = 5;
                 retjson.data = null;
                 retjson.msg = 'failure';
                 requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 2, "putOn");
@@ -1605,7 +1605,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
     function returnDelivery(context) {
         var ret = {};
         var sourceNo = context.sourceNo;
-        var ret_id;
+        var ret_id, wmsLocCode;
         search.create({
             type: 'customrecord_dps_delivery_order',
             filters: [{
@@ -1613,88 +1613,229 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 operator: 'is',
                 values: sourceNo
             }],
+            columns: [{
+                    name: 'custrecord_dps_wms_location',
+                    join: 'custrecord_dsp_delivery_order_location'
+                }, // WMS仓库编码
+            ]
         }).run().each(function (rec) {
             ret_id = rec.id;
+            wmsLocCode = rec.getValue({
+                name: 'custrecord_dps_wms_location',
+                join: 'custrecord_dsp_delivery_order_location'
+            })
         });
+
+
+        // GC
 
         if (ret_id) {
 
-            var detailList = context.detailList; // 入库明细
-            log.debug('detailList', detailList);
-            var getBinArr = tool.getAllBinBox(detailList);
-            var getArr = tool.judgmentBinBox('create', getBinArr); // 获取对应的库位, 箱号(若不存在,新建)
+            if (wmsLocCode == "GC") {
 
-            if (getArr && getArr.length > 0) { // 出货的库位不存在, 返回报错信息
-                retjson.code = 3;
-                retjson.data = null;
-                retjson.msg = 'unknown: ' + getArr;
-                log.debug('不存在库位 : ', retjson);
-                return retjson;
-            }
+                var de_ord = [],
+                    poNo, Loca,
+                    limit = 3999;
 
-            log.debug('开始加载 交货单记录', "load")
-            var objRecord = record.load({
-                type: 'customrecord_dps_delivery_order',
-                id: ret_id
-            });
+                search.create({
+                    type: 'customrecord_dps_delivery_order',
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: ret_id
+                    }],
+                    columns: [{
+                            name: 'custrecord_item_sku',
+                            join: "custrecord_dps_delivery_order_id"
+                        }, // 交货货品
+                        {
+                            name: 'custrecord_item_quantity',
+                            join: "custrecord_dps_delivery_order_id"
+                        }, // 交货数量
+                        "custrecord_dsp_delivery_order_location", // 地点
+                        "custrecord_purchase_order_no", // 采购订单
+                    ]
+                }).run().each(function (r) {
+                    poNo = r.getValue('custrecord_purchase_order_no');
+                    Loca = r.getValue('custrecord_dsp_delivery_order_location');
 
-            objRecord.setValue({
-                fieldId: 'custrecord_delivery_order_status',
-                value: 4
-            });
+                    var it = {
+                        itemId: r.getValue({
+                            name: 'custrecord_item_sku',
+                            join: "custrecord_dps_delivery_order_id"
+                        }),
+                        qty: r.getValue({
+                            name: 'custrecord_item_quantity',
+                            join: "custrecord_dps_delivery_order_id"
+                        })
+                    }
+                    de_ord.push(it);
+                    return --limit > 0;
+                });
 
-            objRecord.setValue({
-                fieldId: 'custrecord_dps_warehousing_end',
-                value: true
-            });
+                log.debug('地点', Loca);
+                log.debug('采购订单', poNo);
 
-            var count = objRecord.getLineCount({
-                sublistId: 'recmachcustrecord_dps_delivery_order_id'
-            });
-            log.debug('开始修改交货单', '货品行上的值');
-            if (context.detailList.length > 0) {
-                context.detailList.map(function (line) {
-                    for (var i = 0; i < count; i++) {
-                        var item_sku = objRecord.getSublistText({
-                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                            fieldId: 'custrecord_item_sku',
-                            line: i
+                log.debug('de_ord', de_ord);
+                if (poNo) {
+                    var irObj = record.transform({
+                        fromType: 'purchaseorder',
+                        fromId: poNo,
+                        toType: 'itemreceipt'
+                    }); //转换为货品收据
+
+
+                    var irObj_id;
+                    for (var i = 0, iLen = de_ord.length; i < iLen; i++) {
+                        var temp = de_ord[i];
+                        var lineNumber = irObj.findSublistLineWithValue({
+                            sublistId: 'item',
+                            fieldId: 'item',
+                            value: temp.itemId
                         });
-                        if (line.sku == item_sku) {
-                            objRecord.setSublistValue({
-                                sublistId: 'recmachcustrecord_dps_delivery_order_id',
-                                fieldId: 'custrecord_stock_quantity',
-                                value: line.shelvesQty,
-                                line: i
-                            })
+
+                        log.debug('lineNumber', lineNumber);
+
+                        if (lineNumber > -1) {
+                            irObj.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'quantity',
+                                value: temp.qty,
+                                line: lineNumber
+                            });
+                            irObj.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'location',
+                                value: Loca,
+                                line: lineNumber
+                            });
+
+
+                            var lo = irObj.getSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'location',
+                                // value: Loca,
+                                line: lineNumber
+                            });
+
+                            log.debug('货品行地点', lo)
+
                         }
                     }
-                });
-            }
 
-            var devLocation = objRecord.getValue('custrecord_dsp_delivery_order_location'); // 获取交货单的地点
-            var poId = objRecord.getValue('custrecord_purchase_order_no'); // 关联的采购订单
-            log.debug('履行采购订单', 'Starts');
-            var receipt_id = createItemReceipt(poId, context.detailList, devLocation);
-            log.debug('履行采购订单', 'End');
-            if (receipt_id && receipt_id.length > 0) { // 存在货品收据
+                    var irObj_id = irObj.save();
 
-                var objRecord_id = objRecord.save();
+                    // 更改发运记录状态
+                    record.submitFields({
+                        type: 'customrecord_dps_delivery_order',
+                        id: ret_id,
+                        values: {
+                            custrecord_delivery_order_status: 4
+                        }
+                    });
+                    log.debug('工厂直发生成货品收据', irObj_id);
 
-                log.debug('更新交货单成功 objRecord_id', objRecord_id);
+                    ret.code = 0;
+                    ret.data = null;
+                    ret.msg = 'NS 收货成功';
+                    return ret;
+                } else {
 
-                log.debug('NS 处理成功', "NS 处理成功");
-                ret.code = 0;
-                ret.data = null;
-                ret.msg = 'NS 处理成功';
-                return ret;
+                    log.debug('交货单不存在对应的采购订单', "数据异常");
+                    ret.code = 3;
+                    ret.data = null;
+                    ret.msg = 'unknown';
+                    return ret;
+                }
+
             } else {
-                log.debug('NS 处理异常', "NS 处理异常");
-                ret.code = 6;
-                ret.data = null;
-                ret.msg = 'NS 处理异常';
-                return ret;
+
+                var detailList = context.detailList; // 入库明细
+                log.debug('detailList', detailList);
+                if (!detailList) {
+                    log.debug('数据异常', "数据异常");
+                    ret.code = 7;
+                    ret.data = null;
+                    ret.msg = '传入的数据异常';
+                    return ret;
+                }
+
+                var getBinArr = tool.getAllBinBox(detailList);
+                var getArr = tool.judgmentBinBox('create', getBinArr); // 获取对应的库位, 箱号(若不存在,新建)
+
+                if (getArr && getArr.length > 0) { // 出货的库位不存在, 返回报错信息
+                    retjson.code = 3;
+                    retjson.data = null;
+                    retjson.msg = 'unknown: ' + getArr;
+                    log.debug('不存在库位 : ', retjson);
+                    return retjson;
+                }
+
+                log.debug('开始加载 交货单记录', "load")
+                var objRecord = record.load({
+                    type: 'customrecord_dps_delivery_order',
+                    id: ret_id
+                });
+
+                objRecord.setValue({
+                    fieldId: 'custrecord_delivery_order_status',
+                    value: 4
+                });
+
+                objRecord.setValue({
+                    fieldId: 'custrecord_dps_warehousing_end',
+                    value: true
+                });
+
+                var count = objRecord.getLineCount({
+                    sublistId: 'recmachcustrecord_dps_delivery_order_id'
+                });
+                log.debug('开始修改交货单', '货品行上的值');
+                if (context.detailList.length > 0) {
+                    context.detailList.map(function (line) {
+                        for (var i = 0; i < count; i++) {
+                            var item_sku = objRecord.getSublistText({
+                                sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                fieldId: 'custrecord_item_sku',
+                                line: i
+                            });
+                            if (line.sku == item_sku) {
+                                objRecord.setSublistValue({
+                                    sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                    fieldId: 'custrecord_stock_quantity',
+                                    value: line.shelvesQty,
+                                    line: i
+                                })
+                            }
+                        }
+                    });
+                }
+
+                var devLocation = objRecord.getValue('custrecord_dsp_delivery_order_location'); // 获取交货单的地点
+                var poId = objRecord.getValue('custrecord_purchase_order_no'); // 关联的采购订单
+                log.debug('履行采购订单', 'Starts');
+                var receipt_id = createItemReceipt(poId, context.detailList, devLocation);
+                log.debug('履行采购订单', 'End');
+                if (receipt_id && receipt_id.length > 0) { // 存在货品收据
+
+                    var objRecord_id = objRecord.save();
+
+                    log.debug('更新交货单成功 objRecord_id', objRecord_id);
+
+                    log.debug('NS 处理成功', "NS 处理成功");
+                    ret.code = 0;
+                    ret.data = null;
+                    ret.msg = 'NS 处理成功';
+                    return ret;
+                } else {
+                    log.debug('NS 处理异常', "NS 处理异常");
+                    ret.code = 6;
+                    ret.data = null;
+                    ret.msg = 'NS 处理异常';
+                    return ret;
+                }
             }
+
         } else {
             log.debug('未知单号', sourceNo)
             ret.code = 3;

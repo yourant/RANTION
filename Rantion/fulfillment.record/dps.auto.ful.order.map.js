@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-15 17:08:44
- * @LastEditTime   : 2020-06-16 14:56:51
+ * @LastEditTime   : 2020-07-20 20:39:55
  * @LastEditors    : Li
  * @Description    : 定时搜索库存不足的发运记录, 定时判断库存, 自动履行
  * @FilePath       : \Rantion\fulfillment.record\dps.auto.ful.order.map.js
@@ -12,7 +12,7 @@
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript
  */
-define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
+define(['N/record', 'N/search', 'N/log', "../Helper/config"], function (record, search, log, config) {
 
     function getInputData() {
 
@@ -412,8 +412,8 @@ define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
         });
 
         log.debug('data20:', data);
-        log.debug('response', JSON.stringify(response));
         retdata = JSON.parse(response.body);
+        log.debug('response', JSON.stringify(response));
         if (response.code == 200) {
             // 调用成功
             code = retdata.code;

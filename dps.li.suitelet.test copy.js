@@ -1,10 +1,10 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-13 17:24:57
+ * @LastEditTime   : 2020-07-20 20:37:28
  * @LastEditors    : Li
  * @Description    : 
- * @FilePath       : \dps.li.suitelet.test.js
+ * @FilePath       : \dps.li.suitelet.test copy.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
@@ -170,6 +170,7 @@ define(['N/task', 'N/log', 'N/search', 'N/record', 'N/file', 'N/currency', 'N/ru
                 body: JSON.stringify(data)
             });
             log.debug('response', JSON.stringify(response));
+
             retdata = JSON.parse(response.body);
             return retdata;
         }

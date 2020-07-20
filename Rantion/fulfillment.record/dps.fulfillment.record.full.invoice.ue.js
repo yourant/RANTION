@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-09 12:04:27
- * @LastEditTime   : 2020-07-18 12:20:23
+ * @LastEditTime   : 2020-07-20 20:36:02
  * @LastEditors    : Li
  * @Description    : FBM发货平台发运处理功能(小包)
  * @FilePath       : \Rantion\fulfillment.record\dps.fulfillment.record.full.invoice.ue.js
@@ -417,12 +417,6 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
      */
     function TOWMS(af_rec) {
 
-        // var Laf_rec = record.load({
-        //     type: af_rec.type,
-        //     id: af_rec.id
-        // });
-
-
         var soId;
         soId = af_rec.getValue('custrecord_dps_ship_small_salers_order');
         search.create({
@@ -752,8 +746,8 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
         });
 
         log.debug('data20:', data);
-        log.debug('response', JSON.stringify(response));
         if (response.code == 200) {
+            log.debug('response', JSON.stringify(response));
             retdata = JSON.parse(response.body);
             // 调用成功
             code = retdata.code;

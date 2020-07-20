@@ -2,10 +2,10 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http'], function(search, http) {
+define(['../Helper/config.js', 'N/search', 'N/http'], function (config, search, http) {
 
     function _get(context) {
-        
+
     }
 
     // {
@@ -82,7 +82,7 @@ define(['N/search', 'N/http'], function(search, http) {
                 };
                 var market = context.market;
                 var saleOrderNo = context.saleOrderNo;
-                var url = 'http://47.107.254.110:18082/rantion-gj/esaleOrder/saleOrder?market=' + market + '&saleOrderNo=' + saleOrderNo;
+                var url = config.order_GJ_URL + '/rantion-gj/esaleOrder/saleOrder?market=' + market + '&saleOrderNo=' + saleOrderNo;
                 log.debug('url', url);
                 var response = http.get({
                     url: url,
@@ -105,11 +105,11 @@ define(['N/search', 'N/http'], function(search, http) {
     }
 
     function _put(context) {
-        
+
     }
 
     function _delete(context) {
-        
+
     }
 
     /**
@@ -119,7 +119,11 @@ define(['N/search', 'N/http'], function(search, http) {
         var token;
         search.create({
             type: 'customrecord_wms_token',
-            filters: [{ name: 'internalid', operator: 'anyof', values: 1 }],
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1
+            }],
             columns: ['custrecord_wtr_token']
         }).run().each(function (result) {
             token = result.getValue('custrecord_wtr_token');
@@ -142,22 +146,20 @@ define(['N/search', 'N/http'], function(search, http) {
             'access_token': token
         };
         var response = http.post({
-            url: 'http://47.107.254.110:18082/rantion-wms/inMaster',
+            url: config.WMS_Debugging_URL + '/inMaster',
             headers: headerInfo,
             body: JSON.stringify(data)
         });
         // log.error('response', JSON.stringify(response));
-        if (response.code == 200) {
+        if (response.code == 200) { // 调用成功
             retdata = JSON.parse(response.body);
-        } else {
-            retdata = '请求被拒'
-        }
-        if (response.code == 200) {
-            // 调用成功
-        } else {
+            code = retdata.code;
+        } else { // 调用失败
+            retdata = '请求被拒';
             code = 1;
-            // 调用失败
+
         }
+
         message.code = code;
         message.data = retdata;
         return message;

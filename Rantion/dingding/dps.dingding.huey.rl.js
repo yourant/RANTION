@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/log', 'N/http'], function(log, http) {
+define(['N/log', 'N/http'], function (log, http) {
 
     var _url = 'http://47.107.254.110/dingtalk/';
 
@@ -40,7 +40,7 @@ define(['N/log', 'N/http'], function(log, http) {
             return message;
 
             if (message.code == 0) {
-                message.data.forEach(function(item) {
+                message.data.forEach(function (item) {
                     if (!getProcessinstance(item)) {
                         log.error('add-record-fail:', item);
                     }
@@ -68,7 +68,7 @@ define(['N/log', 'N/http'], function(log, http) {
         //#region  数据校验--------------------------------------
         //获取费用报销编码
         var business_id = process_instance.business_id;
-        if (business_id == '' || typeof(business_id) == 'undefined') {
+        if (business_id == '' || typeof (business_id) == 'undefined') {
             log.error('value_error_business_id', business_id);
             return false;
         }
@@ -81,7 +81,7 @@ define(['N/log', 'N/http'], function(log, http) {
                 'operator': 'is',
                 'value': business_id
             }]
-        }).run(function(res) {
+        }).run(function (res) {
             go = false;
         })
 
@@ -92,12 +92,12 @@ define(['N/log', 'N/http'], function(log, http) {
 
         //核算主体
         var accounting_entity;
-        process_instance.form_component_values.forEach(function(e) {
+        process_instance.form_component_values.forEach(function (e) {
             if (e.name == '费用归属于哪个公司') {
                 accounting_entity = e.value;
             }
         })
-        if (accounting_entity == '' || typeof(accounting_entity) == 'undefined') {
+        if (accounting_entity == '' || typeof (accounting_entity) == 'undefined') {
             log.error('value_error_accounting_entity', accounting_entity);
             return false;
         }
@@ -112,7 +112,7 @@ define(['N/log', 'N/http'], function(log, http) {
         //报销人
         var applicant_name = process_instance.title;
         applicant_name.substring(0, applicant_name.indexOf('提交的费用报销'));
-        if (applicant_name == '' || typeof(applicant_name) == 'undefined') {
+        if (applicant_name == '' || typeof (applicant_name) == 'undefined') {
             log.error('value_error_applicant_name', applicant_name);
             return false;
         }
@@ -124,24 +124,24 @@ define(['N/log', 'N/http'], function(log, http) {
         //报销总金额
         var total_amount;
         var detail;
-        process_instance.form_component_values.forEach(function(e) {
+        process_instance.form_component_values.forEach(function (e) {
             if (e.name == '报销明细') {
                 var ext_value = JSON.parse(e.ext_value);
                 detail = JSON.parse(e.value);
-                ext_value.statValue.forEach(function(e) {
+                ext_value.statValue.forEach(function (e) {
                     if (e.label == "总人民币金额") {
                         total_amount = e.num
                     }
                 })
             }
         })
-        if (total_amount == '' || typeof(total_amount) == 'undefined') {
+        if (total_amount == '' || typeof (total_amount) == 'undefined') {
             log.error('value_error_total_amount', total_amount);
             return false;
         }
         //付款日期
         var paydate;
-        process_instance.form_component_values.forEach(function(e) {
+        process_instance.form_component_values.forEach(function (e) {
             if (e.name == '付款日期') {
                 paydate = e.value;
             }
@@ -154,7 +154,7 @@ define(['N/log', 'N/http'], function(log, http) {
 
         //其他备注
         var remark;
-        process_instance.form_component_values.forEach(function(e) {
+        process_instance.form_component_values.forEach(function (e) {
             if (e.name == '备注') {
                 remark = e.value == "null" ? '' : e.value;
             }
@@ -162,19 +162,19 @@ define(['N/log', 'N/http'], function(log, http) {
 
         //付款银行类型
         var pay_bank_type;
-        process_instance.form_component_values.forEach(function(e) {
-            if (typeof(e.name) != 'undefined' && e.name.indexOf('付款账号') != -1) {
+        process_instance.form_component_values.forEach(function (e) {
+            if (typeof (e.name) != 'undefined' && e.name.indexOf('付款账号') != -1) {
                 if (e.value != "null")
                     pay_bank_type = e.value;
             }
         });
-        if (pay_bank_type == '' || typeof(pay_bank_type) == 'undefined') {
+        if (pay_bank_type == '' || typeof (pay_bank_type) == 'undefined') {
             log.error('value_error_pay_bank_type', pay_bank_type);
             return false;
         }
 
         //遍历报销明细
-        if (typeof(detail) == 'undefined' || detail.length == 0) {
+        if (typeof (detail) == 'undefined' || detail.length == 0) {
             log.error('detail_error', '缺乏报销明细');
             return false;
         }
@@ -185,7 +185,7 @@ define(['N/log', 'N/http'], function(log, http) {
             type: 'customrecord_dps_rbsm_record'
         });
 
-        detail.forEach(function(e, i) {
+        detail.forEach(function (e, i) {
             if (go) {
                 var item = e.rowValue;
                 var custrecord_dps_rbsm_detailtype1 = ''; //无
@@ -197,8 +197,8 @@ define(['N/log', 'N/http'], function(log, http) {
                 var custrecord_dps_rbsm_purpose;
                 var custrecord_dps_o_currency; //未知
                 var custrecord_dps_o_amount; //未知
-                item.forEach(function(_e) {
-                    if (typeof(_e.value) == 'undefined' || _e.value == '' || _e.value == 'null') {
+                item.forEach(function (_e) {
+                    if (typeof (_e.value) == 'undefined' || _e.value == '' || _e.value == 'null') {
                         log.error('detail_value_error', e)
                         go = false;
                     }
@@ -407,7 +407,7 @@ define(['N/log', 'N/http'], function(log, http) {
                     'custrecord_dps_dingding_token_value',
                     'custrecord_dps_dingding_token_time'
                 ]
-            }).run().each(function(result) {
+            }).run().each(function (result) {
                 token = result.getValue('custrecord_dps_dingding_token_value');
                 time = result.getValue('custrecord_dps_dingding_token_time');
             });
@@ -462,9 +462,13 @@ define(['N/log', 'N/http'], function(log, http) {
         var token;
         search.create({
             type: 'customrecord_wms_token',
-            filters: [{ name: 'internalid', operator: 'anyof', values: 1 }],
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1
+            }],
             columns: ['custrecord_wtr_token']
-        }).run().each(function(result) {
+        }).run().each(function (result) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;
@@ -490,8 +494,8 @@ define(['N/log', 'N/http'], function(log, http) {
             body: data
         });
 
-        retdata = JSON.stringify(response.body);
         if (response.code == 200) {
+            retdata = JSON.stringify(response.body);
             // 调用成功
             code = retdata.code;
         } else {

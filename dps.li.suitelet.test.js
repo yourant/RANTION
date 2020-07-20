@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-20 15:09:25
+ * @LastEditTime   : 2020-07-20 20:51:23
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -17,6 +17,50 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 ], function (search, record, log, core, file, xml, tool, runtime) {
 
     function onRequest(context) {
+
+
+
+        /*
+
+        record.submitFields({
+            type: 'customrecord_dps_delivery_order',
+            id: 16,
+            values: {
+                custrecord_delivery_order_status: 4
+            }
+        });
+
+
+
+        /*
+
+        var id = record.submitFields({
+            type: af_rec.type,
+            id: af_rec.id,
+            values: {
+                custrecord_dps_ship_small_status: 8,
+                custrecord_dps_ship_small_wms_info: JSON.stringify(temp)
+            }
+        });
+
+
+
+        /*
+
+        record.submitFields({
+            type: 'customrecord_dps_delivery_order',
+            id: 16,
+            values: {
+                custrecord_delivery_order_status: 5,
+                custrecord_dps_wms_end: false,
+                custrecord_dps_delivery_wms_info: ""
+            }
+        });
+
+
+
+
+        /*
 
         var limit = 10,
             toIds = [419506, 419503, 413152],

@@ -31,6 +31,37 @@ define(['N/search', 'N/record'],
          */
         function beforeSubmit(scriptContext) {
             var oldrec = scriptContext.oldRecord;
+          var rec = scriptContext.newRecord;
+            var skuCount = rec.getLineCount({
+                sublistId: 'recmachcustrecord_sku_product_code'
+            });
+            for (var index = 0; index < skuCount; index++) {
+                rec.setSublistValue({
+                    sublistId: 'recmachcustrecord_sku_product_code',
+                    fieldId: 'custrecord_product_sku_department',
+                    line: index,
+                    value: rec.getValue("custrecord_product_department")
+                })
+                rec.setSublistValue({
+                    sublistId: 'recmachcustrecord_sku_product_code',
+                    fieldId: 'custrecord_product_sku_category',
+                    line: index,
+                    value: rec.getValue("custrecord_product_category")
+                })
+              record.submitFields({
+                        type: 'customrecord_product_sku',
+                        id: rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_sku_product_code',
+                            fieldId: 'id',
+                            line: index
+                        }),
+                        ignoreMandatoryFields: true,
+                        values: {
+                            custrecord_product_sku_department: rec.getValue("custrecord_product_department"),
+                            custrecord_product_sku_category: rec.getValue("custrecord_product_category")
+                        }
+                    });
+            }
         }
 
         /**
@@ -223,6 +254,19 @@ define(['N/search', 'N/record'],
                         , custrecord_logistics_group: rec.getValue("custrecord_logistics_group")
                         , custrecord_product_nature: rec.getValue("custrecord_product_nature")
                     }
+                    // record.submitFields({
+                    //     type: 'customrecord_product_sku',
+                    //     id: rec.getSublistValue({
+                    //         sublistId: 'recmachcustrecord_sku_product_code',
+                    //         fieldId: 'id',
+                    //         line: index
+                    //     }),
+                    //     ignoreMandatoryFields: true,
+                    //     values: {
+                    //         custrecord_product_sku_department: rec.getValue("custrecord_product_department"),
+                    //         custrecord_product_sku_category: rec.getValue("custrecord_product_category")
+                    //     }
+                    // });
                     saveSku(rec.id, sku);
                 }
 
@@ -366,7 +410,7 @@ define(['N/search', 'N/record'],
                 });
                 inventoryitem.setValue({
                     fieldId: 'customform',
-                    value: 33
+                    value: -200
                 })
                 setProduct(inventoryitem, body);
                 inventoryitem.setValue({
@@ -380,6 +424,10 @@ define(['N/search', 'N/record'],
                 inventoryitem.setValue({
                     fieldId: 'itemid',
                     value: body.custrecord_product_sku
+                })
+                inventoryitem.setValue({
+                    fieldId: 'taxschedule',
+                    value: 1
                 })
                 inventoryitem.setValue({
                     fieldId: 'custitem_dps_skuchiense',
@@ -465,6 +513,7 @@ define(['N/search', 'N/record'],
                     id: skuId,
                     ignoreMandatoryFields: true,
                     values: {
+                        customform:-200,
                         custitem_dps_skuchiense: body.custrecord_product_sku_name,
                         custitem_dps_spuenglishnames: body.custrecord_product_sku_name_en,
                         custitem_dps_skureferred: body.custrecord_product_sku_abbr,

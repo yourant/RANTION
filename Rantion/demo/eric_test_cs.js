@@ -44,16 +44,44 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
 
         console.log('record_type:' + scriptContext.currentRecord.type);
         console.log('record_type:' + scriptContext.currentRecord.id);
-      		var itemList = [
-        ];
-        for (var index = 0; index < itemList.length; index++) {
-            var element = itemList[index];
-            console.log(index + '-' + element);
-                record.delete({
-                    type: 'inventoryitem',
-                    id: element
-                });
-        }
+      		search.create({
+            type: 'customrecord_product',
+            filters: [
+                { name: 'name', operator: 'is', values: 'DODN3012' }
+            ],
+            columns: [
+                'custrecord_product_code',
+                'custrecord_product_name_cn',
+                'custrecord_product_name_en',
+                'custrecord_product_abbr',
+                'custrecord_product_brand',
+                'custrecord_product_category',
+                'custrecord_product_status',
+                'custrecord_product_class',
+                'custrecord_product_name_cn',
+                'custrecord_product_type',
+                'custrecord_product_department',
+                'custrecord_product_line',
+                'custrecord_product_owner',
+                'custrecord_product_purchaser',
+                'custrecord_product_planner',
+                'custrecord_product_declare_cn',
+                'custrecord_product_declare_en',
+                'custrecord_product_added_tax',
+                'custrecord_product_taxrebates',
+                'custrecord_product_declare_memo',
+                'custrecord_product_hacode_cn',
+                'custrecord_product_hscode_en',
+                'custrecord_product_use',
+                'custrecord_product_made_country',
+                'custrecord_product_expirydate',
+                'custrecord_logistics_group',
+                'custrecord_product_nature'
+            ]
+        }).run().each(function (rec) {
+            console.log(JSON.stringify(rec));
+            return false;
+        });
         console.log('end-test');
 
     }

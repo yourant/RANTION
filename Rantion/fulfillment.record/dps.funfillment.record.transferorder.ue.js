@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-20 00:21:05
+ * @LastEditTime   : 2020-07-21 20:03:04
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -259,6 +259,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     items = [],
                     sub_id = 'recmachcustrecord_dps_shipping_record_parentrec';
 
+                var Lim = 3999;
                 search.create({
                     type: af_rec.type, //发运记录，大货
                     filters: [{
@@ -297,26 +298,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         name: "custrecord_dps_ship_record_sku_item", // sleller sku
                         join: "custrecord_dps_shipping_record_parentrec"
                     });
-                    // search.create({
-                    //     type: 'customrecord_aio_amazon_seller_sku',
-                    //     filters: [{
-                    //             name: 'custrecord_ass_sku',
-                    //             operator: 'anyof',
-                    //             values: nsItem
-                    //         },
-                    //         {
-                    //             name: 'custrecord_ass_account',
-                    //             operator: 'anyof',
-                    //             values: rec_account
-                    //         }
-                    //     ],
-                    //     columns: [
-                    //         'name'
-                    //     ]
-                    // }).run().each(function (rec) {
-                    //     SellerSKU = rec.getValue('name');
-                    //     return --lim2 > 0;
-                    // });
 
                     var info = {
                         SellerSKU: SellerSKU,
@@ -329,6 +310,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         QuantityInCase: '',
                     }
                     items.push(info);
+
+                    return --Lim > 0;
                 });
 
                 log.debug('items', items);
@@ -676,6 +659,37 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     function wms(af_rec) {
         // 推送 WMS, 获取装箱信息
 
+
+        var flagLocation;
+
+        //     1 FBA仓   2 自营仓   3 工厂仓   4 虚拟仓    5 虚拟在途仓
+        // 先判断起始仓库是否为工厂仓
+        search.create({
+            type: af_rec.type,
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: af_rec.id
+            }],
+            columns: [{
+                    name: 'custrecord_dps_financia_warehous',
+                    join: 'custrecord_dps_shipping_rec_location'
+                }, // 财务分仓 类型
+            ]
+        }).run().each(function (rec) {
+            flagLocation = rec.getValue({
+                name: 'custrecord_dps_financia_warehous',
+                join: 'custrecord_dps_shipping_rec_location'
+            });
+        });
+
+        if (flagLocation == 3) { // 属于财务分仓属于 工厂仓
+
+            log.debug('发出仓库属于工厂仓', "直接退出, 不推送WMS")
+            return;
+        }
+
+
         var rec_transport = af_rec.getValue('custrecord_dps_shipping_rec_transport');
         var shippingType;
 
@@ -707,7 +721,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 columns: [
                     'custrecord_dps_ship_record_tranor_type', // 调拨单类型
                     'custrecord_dps_shipping_rec_transport',
-                    'custrecord_dps_shipping_rec_order_num',
+                    {
+                        name: 'tranid',
+                        join: 'custrecord_dps_shipping_rec_order_num'
+                    },
                     // 'owner',
                     'custrecord_dps_shipping_rec_currency',
                     'custrecord_dps_declared_value_dh',
@@ -762,6 +779,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         name: 'custrecord_aio_marketplace',
                         join: 'custrecord_dps_shipping_rec_account'
                     }, // 站点 / 市场
+                    {
+                        name: 'custrecord_dps_ship_remark'
+                    }, // 备注
                 ]
             }).run().each(function (rec) {
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
@@ -775,7 +795,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 }
 
                 data["shippingType"] = shippingType;
-                data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                data["aono"] = rec.getValue({
+                    name: 'tranid',
+                    join: 'custrecord_dps_shipping_rec_order_num'
+                });
                 data["createBy"] = rec.getValue({
                     name: "entityid",
                     join: "owner"
@@ -859,7 +882,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 }
                 data["centerId"] = rec.getValue('custrecord_dps_shipping_rec_destinationf') ? rec.getValue('custrecord_dps_shipping_rec_destinationf') : ''; // 仓库中心
                 data["type"] = type;
-                // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
+                data["remark"] = rec.getValue('custrecord_dps_ship_remark'); // 备注字段
                 data["waybillNo"] = waybillNo; // 运单号
             });
 
@@ -872,6 +895,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
 
             var itemArr = [];
+            var ful_limit = 3999;
             search.create({
                 type: 'customrecord_dps_shipping_record_item',
                 filters: [{
@@ -952,24 +976,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 ]
             }).run().each(function (rec) {
 
-                // AllocationDetailCreateRequestDto{
-                //     asin(string): ASIN,
-                //     brandName(string): 品牌名称,
-                //     englishTitle(string): 产品英文标题,
-                //     fnsku(string): FNSKU,
-                //     msku(string): MSKU,
-                //     productCode(string, optional): 产品编号,
-                //     productHeight(number): 产品高(cm),
-                //     productImageUrl(string): 图片路径,
-                //     productLength(number): 产品长(cm),
-                //     productTitle(string): 产品标题,
-                //     productWeight(number): 产品重量(g),
-                //     productWidth(number): 产品宽(cm),
-                //     purpose(string): 用途,
-                //     qty(integer): 数量,
-                //     sku(string): SKU,
-                //   }
-
                 itemArr.push(rec.getValue('custrecord_dps_shipping_record_item'));
                 var it = {
                     itemId: rec.getValue('custrecord_dps_shipping_record_item'),
@@ -989,10 +995,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         join: 'custrecord_dps_shipping_record_item',
                         name: 'custitem_dps_fnsku'
                     }),
-                    // msku: rec.getValue({
-                    //     join: 'custrecord_dps_shipping_record_item',
-                    //     name: 'custitem_dps_msku'
-                    // }),
+
                     msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
                     englishTitle: rec.getValue({
                         name: 'custitem_dps_declaration_us',
@@ -1043,6 +1046,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 });
                 item_info.push(it);
 
+                return --ful_limit > 0;
             });
 
             log.debug('itemArr', itemArr);
@@ -1063,6 +1067,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             fils.push("and",
                 ["custrecord_ass_account", "anyof", fbaAccount]
             );
+            fils.push("and",
+                ["isinactive", "is", false]
+            );
             log.debug('fils', fils);
             log.debug('item_info', item_info);
             var newItemInfo = [];
@@ -1073,17 +1080,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 search.create({
                     type: 'customrecord_aio_amazon_seller_sku',
                     filters: fils,
-                    // filters: [{
-                    //         name: "custrecord_ass_sku",
-                    //         operator: 'anyof',
-                    //         values: itemArr
-                    //     },
-                    //     {
-                    //         name: 'custrecord_ass_account',
-                    //         operator: 'anyof',
-                    //         values: fbaAccount
-                    //     }
-                    // ],
                     columns: [
                         "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
@@ -1115,8 +1111,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             } else {
                 data["taxFlag"] = 0;
             }
-            // log.error('item_info', item_info);
-            // data['allocationDetailCreateRequestDtos'] = newItemInfo;
 
             // 发送请求
             message = sendRequest(token, data);
@@ -1221,6 +1215,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             objRecord.setValue({
                 fieldId: 'custrecord_dps_shipping_rec_location',
                 value: rec.getValue('location')
+            });
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_ship_remark',
+                value: rec.getValue('memo')
             });
 
             // 1 FBA调拨

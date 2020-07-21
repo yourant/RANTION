@@ -11,7 +11,8 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog', '../Helper/commonTool'], function (url, https, currentRecord, dialog, commonTool) {
+define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog', '../Helper/commonTool'],
+function (commonTool, url, https, currentRecord, dialog, commonTool) {
 
     /**
      * Function to be executed after page is initialized.
@@ -502,22 +503,96 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog', '../Helper/commonT
     }
 
     /**
+     * 确认出库
+     * @param {*} rec_id 
+     */
+    function confirmOut(rec_id) {
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_fulfillment_big_btn_rl',
+            deploymentId: 'customdeploy_dps_fulfillment_big_btn_rl',
+            returnExternalUrl: false
+        });
+        var header3 = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
+        var body2 = {
+            action: 'confirmOut',
+            recordID: rec_id
+        };
+        var options = {
+            title: "确认出库履行",
+            message: "是否确认出库履行?"
+        };
+        function success(result) {
+            if (result) {
+                commonTool.startMask('正在确认出库履行中，请耐心等待');
+                https.post.promise({
+                    url: url1,
+                    body: body2,
+                    headers: header3
+                }).then(function (response) {
+                    var rebody = JSON.parse(response.body);
+                    commonTool.endMask();
+                    var msg;
+                    if (rebody.code == 500) {
+                        msg = '完成出库履行失败：' + rebody.msg;
+                    } else {
+                        msg = '完成出库履行成功';
+                    }
+                    dialog.alert({ title: '提示', message: msg }).then(function () {
+                        window.location.reload();
+                    });
+                });
+            }
+        }
+        function failure(reason) {
+            log.debug('reason', reason)
+        }
+        dialog.confirm(options).then(success).catch(failure);
+    }
+
+    /**
      * 完成录入装箱信息
      * @param {*} rec_id 
      */
     function finishPackage(rec_id) {
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_fulfillment_big_btn_rl',
+            deploymentId: 'customdeploy_dps_fulfillment_big_btn_rl',
+            returnExternalUrl: false
+        });
+        var header3 = {
+            "Content-Type": "application/json;charset=utf-8",
+            "Accept": "application/json"
+        };
+        var body2 = {
+            action: 'finishPackage',
+            recordID: rec_id
+        };
         var options = {
             title: "确认完成录入装箱信息",
             message: "是否确认完成录入装箱信息?"
         };
         function success(result) {
             if (result) {
-                record.submitFields({
-                    type: 'customrecord_dps_shipping_record',
-                    id: rec_id,
-                    values: {
-                        custrecord_dps_shipping_rec_status: 12
+                commonTool.startMask('正在确认完成录入装箱信息中，请耐心等待');
+                https.post.promise({
+                    url: url1,
+                    body: body2,
+                    headers: header3
+                }).then(function (response) {
+                    var rebody = JSON.parse(response.body);
+                    commonTool.endMask();
+                    var msg;
+                    if (rebody.code == 500) {
+                        msg = '完成录入装箱信息失败：' + rebody.msg;
+                    } else {
+                        msg = '完成录入装箱信息成功';
                     }
+                    dialog.alert({ title: '提示', message: msg }).then(function () {
+                        window.location.reload();
+                    });
                 });
             }
         }
@@ -650,6 +725,7 @@ define(['N/url', 'N/https', 'N/currentRecord', 'N/ui/dialog', '../Helper/commonT
         createInformation: createInformation,
         LabelDocument: LabelDocument,
         amazonFeedStatus: amazonFeedStatus,
-        finishPackage: finishPackage
+        finishPackage: finishPackage,
+        confirmOut: confirmOut
     }
 });

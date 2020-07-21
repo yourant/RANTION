@@ -43,6 +43,14 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 log.debug('GetLabel', action);
                 return GetLabel(recordID);
 
+            case 'finishPackage':
+                log.debug('finishPackage', action);
+                return finishPackage(recordID);
+
+            case 'confirmOut':
+                log.debug('confirmOut', action);
+                return confirmOut(recordID);
+
             default:
                 return false;
         }
@@ -50,8 +58,95 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
         return info || false;
     }
 
+    /**
+     * 完成出库履行
+     * @param {*} rec_id 
+     */
+    function confirmOut(rec_id) {
+        var result
+        try {
+            var to_id;
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [
+                    { name: 'internalid', operator: 'is', values: rec_id }
+                ],
+                columns: [ 'custrecord_dps_shipping_rec_order_num' ]
+            }).run().each(function (rec) {
+                to_id = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                return false;
+            });
+            if (to_id) {
+                var objRecord = record.transform({
+                    fromType: 'transferorder',
+                    fromId: to_id,
+                    toType: 'itemfulfillment'
+                });
+                objRecord.setValue({ fieldId: 'shipstatus', value: 'C' });
+                var objRecord_id = objRecord.save();
+                if (objRecord_id) {
+                    var itemReceipt = record.transform({
+                        fromType: 'transferorder',
+                        toType: record.Type.ITEM_RECEIPT,
+                        fromId: to_id,
+                    });
+                    var irId = itemReceipt.save();
+                    if (irId) {
+                        record.submitFields({
+                            type: 'customrecord_dps_shipping_record',
+                            id: rec_id,
+                            values: {
+                                custrecord_dps_shipping_rec_status: 6
+                            }
+                        });
+                        result = { code: 200 }
+                    } else {
+                        result = { code: 500 }
+                    }
+                } else {
+                    result = { code: 500 }
+                }
+            } else {
+                result = { code: 500 }
+            }
+        } catch (error) {
+            result = { code: 500 }
+        }
+        if (!result) result = {
+            code: 500,
+            msg: "未知错误"
+        }
+        return result;
+    }
 
-
+    /**
+     * 完成录入装箱信息
+     * @param {*} rec_id 
+     */
+    function finishPackage(rec_id) {
+        var result
+        try {
+            record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: rec_id,
+                values: {
+                    custrecord_dps_shipping_rec_status: 12
+                }
+            });
+            result = {
+                code: 200
+            }
+        } catch (error) {
+            result = {
+                code: 500
+            }
+        }
+        if (!result) result = {
+            code: 500,
+            msg: "未知错误"
+        }
+        return result;
+    }
 
     /**
      * 重新匹配物流供应商

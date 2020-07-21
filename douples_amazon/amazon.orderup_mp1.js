@@ -63,7 +63,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         core.amazon.getAccountList(group).map(function (account) {
             if(account.id !=acc && acc ) return;
             // if(account.id !=79 && account.id !=164 ) return;
-            var limit = 300 // 999; //350
+            var limit = 100 // 999; //350
             var filters = [{
                     name: 'custrecord_aio_cache_resolved',
                     operator: search.Operator.IS,
@@ -1010,7 +1010,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 });
             }
             if (error_message.length) {
-                log.debug('error_message', error_message.length);
                 var mid = mark_missing_order(externalid, amazon_account_id, o.amazon_order_id, itemAry + error_message.join('\n'), order_trandate);
                 log.debug(externalid, externalid + " | \u5305\u542B\u9519\u8BEF\u4FE1\u606F\uFF0C\u8BA2\u5355\u63A8\u81F3MISSING ORDER! #" + mid + " order: " + JSON.stringify(o, null, 2));
             } else {
@@ -1078,11 +1077,10 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         value: JSON.stringify(line_items) ? JSON.stringify(line_items) : ''
                     });
 
-                    log.debug('ord', ord);
                     var soId = ord.save({
                         ignoreMandatoryFields: true
                     });
-                    log.debug('订单生成成功', soId);
+                    log.audit('订单生成成功', soId);
                     //如果状态是已取消，则关闭销售订单
                     if(o.order_status == 'Canceled'){
                         var so = record.load({ type: "salesorder", id:soId });

@@ -25,10 +25,10 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
       var acc_arrys = [];
       if(group_req){//根据拉单分组去履行
         core.amazon.getReportAccountList(group_req).map(function(acount){
-          acc_arrys.push(acount.id) ;
+          acc_arrys.push(acount.id);
         })
       }
-     
+      log.debug("店铺分组：",acc_arrys);
       acc ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc })) : "";
       acc_arrys.length>0?fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc_arrys })):""
       shipdate_st ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORAFTER, values: shipdate_st })) : "";
@@ -187,19 +187,18 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
 
         }
          else {
-          log.debug("找不到订单:"+order_id,"市场名称： "+market);
           if(order_id .indexOf("S") == -1){
             var cach;
             var T_acc = interfun.GetstoreInEU(report_acc, market, report_acc_txt).acc; 
-            log.error(" 找不到订单 T_acc",T_acc)
+            log.error(" 找不到订单 T_acc"+T_acc,"order_id: "+order_id);
             var fil=[];
             fil.push(search.createFilter({ name: 'custrecord_aio_cache_acc_id', operator: search.Operator.IS, values: T_acc })) ;
             fil.push(search.createFilter({ name: 'custrecord_aio_cache_order_id', operator: search.Operator.IS, values: order_id }));
+            fil.push(search.createFilter({ name: 'custrecord_aio_cache_status', operator: search.Operator.IS, values: "shipped" }));
             search.create({
               type: 'customrecord_aio_order_import_cache',
               filters: fil,
             }).run().each(function(e){
-              log.debug("已存在cache里面",e.id);
               cach = e.id;
             })
             if(!cach)
@@ -389,18 +388,13 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
       var location = so.getValue("location")
       if(!location)
       location = loca
-      var ord_sta = so.getValue("orderstatus")
-      var ord_stas = so.getValue("status")
       var acc = so.getValue('custbody_aio_account')
       var order_id = so.getValue("otherrefnum")
-      log.audit("fullfillment orderstatus :" + JSON.stringify(ord_sta), "status" + ord_stas)
-      // if (ord_sta == 'B' || ord_sta == 'E' || ord_sta == 'D') { //待履行，部分發貨，部分開票
         var f = record.transform({
           fromType: record.Type.SALES_ORDER,
           toType: record.Type.ITEM_FULFILLMENT,
           fromId: Number(so_id)
         });
-        log.audit("000000shipDate_text ", JSON.stringify(shipdate))
         // f.setValue({ fieldId: 'trandate', value:so.getValue('trandate')});
         f.setText({ fieldId: 'trandate', text: shipdate });
         f.setValue({ fieldId: 'shipstatus', value: 'C' });
@@ -411,43 +405,40 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
         var ful, unrec = [],fulfill_line,fulfill_qty
         for (var ln = 0; ln < lc; ln++) {
           var n = 0
-          log.debug(" ln = 0  n", n)
           var onhand = f.getSublistValue({ sublistId: 'item', fieldId: 'onhand', line: ln })  //可用
           var quantity = f.getSublistValue({ sublistId: 'item', fieldId: 'quantityremaining', line: ln })
           var itemid = f.getSublistValue({ sublistId: 'item', fieldId: 'item', line: ln });
           var itemtype = f.getSublistValue({ sublistId: 'item', fieldId: 'itemtype', line: ln });		//货品类型
           if (ful == 'full') {//取消后续的发货 full  :这一天发货报告的发货数量已经发完
             if (ln == fulfill_line && itemtype == "OthCharge"){
-              continue
+              continue;
             }else {
-              unrec.push(ln)
-              continue
+              unrec.push(ln);
+              continue;
             }
           } else if ( ful == 'full_blot') {  // full_blot  :这一天发货报告的发货数量还没发完
             if (ln == fulfill_line && itemtype == "OthCharge")
-              continue
+              continue;
           } else if(itemtype == 'OthCharge'){   // OthCharge  : 费用类型不发
-             unrec.push(ln)
-             continue
+             unrec.push(ln);
+             continue;
           }
           var c
           try {
             if ((ln + 1) < lc) c = f.getSublistValue({ sublistId: 'item', fieldId: 'itemtype', line: ln + 1 });		//货品类型
           } catch (e) {
-            log.error("cc error", e)
+            log.error("cc error", e);
           }
           var  skuid = interfun.getskuId(ship_sku.trim(),acc,order_id)
-          log.audit("发货对应的货品信息：","qty: " + qty + "，ship_sku：" + ship_sku+",itemid:"+skuid)
-          log.audit("skuid.indexOf(itemid): " + itemid, skuid.indexOf(itemid))
           if (JSON.stringify(skuid).indexOf(itemid) > -1 && onhand>=qty) {
             if (quantity < qty) {
-              ful = "full_blot",fulfill_line =ln+1
+              ful = "full_blot",fulfill_line =ln+1;
               log.debug("此行货品的剩余数量少于发货报告", quantity+' ：'+qty)
-              fulfill_qty = quantity
-              qty =  qty - quantity
+              fulfill_qty = quantity;
+              qty =  qty - quantity;
             }else{
-              ful = "full",fulfill_line =ln+1
-              fulfill_qty = qty
+              ful = "full",fulfill_line =ln+1;
+              fulfill_qty = qty;
             }
             
             f.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: fulfill_qty, line: ln });
@@ -455,14 +446,11 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
           } else if(JSON.stringify(skuid).indexOf(itemid) > -1 && onhand<qty){
             var NewSku = getIteminfo(itemid)
             TakeNote(acc, order_id, location, NewSku, ship_sku, qty);
-            return "SKU库存不足: " + ship_sku
+            return "SKU库存不足: " + ship_sku;
           } else {
-            log.debug("这行不发货，记起来 :" + ln, JSON.stringify(unrec))
-            unrec.push(ln)
+            unrec.push(ln);
           }
         }
-        log.debug("ful::", ful);
-        log.debug("unrec::", JSON.stringify(unrec));
         //不用发货
         unrec.map(function (l) {
           f.setSublistValue({ sublistId: 'item', fieldId: 'itemreceive', value: false, line: l });
@@ -481,7 +469,6 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
         }else{
           log.debug("不满足发货条件 qty:"+qty,"发货报告ID:"+rei)
         }
-      // } 
       return "OK"
     }
 
@@ -506,9 +493,7 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
     
 
     function createInvioce(soid, shipdate, acc,rei) {
-      // var so = record.load({ type: 'salesorder', id: soid });
       try {
-        // var curr_time = new Date(
         var inv = record.transform({
           fromType: record.Type.SALES_ORDER,
           toType: record.Type.INVOICE,
@@ -527,7 +512,7 @@ define(["N/format", "N/runtime", 'N/search', 'N/record', './Helper/Moment.min.js
             custrecord_fulfill_in_ns: 'T'
           }
         })
-        return first_save
+        return first_save;
       } catch (e) {
         log.error("error", e);
       }

@@ -20,12 +20,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                 '&status=COMPLETED&result=agree&eventType=bpms_instance_change' +
                 '&beginCreateTime='
                 //+ beginDate.format("yyyy-MM-dd 00:00:00")
-                + beginDate.format("2020-06-19 00:00:00")
+                + beginDate.format("2020-07-02 00:00:00")
                 + '&endCreateTime='
                 //+ endDate.format("yyyy-MM-dd 23:59:59")
-                + endDate.format("2020-06-23 23:59:59")
-				     + '&processInstanceId='
-                + 'baae7d21-e921-4515-8700-4260a226cea8'
+                + endDate.format("2020-07-05 23:59:59")
+				     //+ '&processInstanceId='
+                //+ 'baae7d21-e921-4515-8700-4260a226cea8'
           			;
             message = sendRequest(url, token);
             message = JSON.parse(JSON.parse(message.data))
@@ -313,7 +313,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                     break;
                                 case "费用明细":
                                     var custrecord_dps_rbsm_detailtype2_name = _e.value;
-                                log.error('custrecord_dps_rbsm_detailtype2_name', custrecord_dps_rbsm_detailtype2_name);
+                                //log.error('custrecord_dps_rbsm_detailtype2_name', custrecord_dps_rbsm_detailtype2_name);
                                     search.create({
                                         type: 'customrecord_dps_fee_type',
                                         filters: [{
@@ -330,7 +330,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                         custrecord_dps_rbsm_detailtype2 = res.id;
                                         custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
                                         custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
-                                      log.error('custrecord_dps_fee_type_name', res.getValue('custrecord_dps_fee_type_name'));
+                                      //log.error('custrecord_dps_fee_type_name', res.getValue('custrecord_dps_fee_type_name'));
                                     });
                                     if (custrecord_dps_rbsm_detailtype2 == '') {
                                         var new_rbsm_detailtype2 = record.create({
@@ -405,7 +405,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                         });
 
                         //--设置日记账科目信息
-                        log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
+                        //log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
                         new_ns_record.setSublistValue({
                             sublistId: ns_sub_id,
                             fieldId: 'account',
@@ -563,7 +563,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                 break;
                             case '费用明细':
                                 var custrecord_dps_rbsm_detailtype2_name = e.value;
-                            log.error('custrecord_dps_rbsm_detailtype2_name', custrecord_dps_rbsm_detailtype2_name);
+                            //log.error('custrecord_dps_rbsm_detailtype2_name', custrecord_dps_rbsm_detailtype2_name);
                                 search.create({
                                     type: 'customrecord_dps_fee_type',
                                     filters: [{
@@ -580,7 +580,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                     custrecord_dps_rbsm_detailtype2 = res.id;
                                     custrecord_dps_rbsm_detailtype2_relation = res.getValue('custrecord_dps_fee_debitaccount');
                                     custrecord_dps_rbsm_detailtype1 = res.getValue('custrecord_expense_report_class');
-                                  log.error('custrecord_dps_fee_type_name', res.getValue('custrecord_dps_fee_type_name'));
+                                  //log.error('custrecord_dps_fee_type_name', res.getValue('custrecord_dps_fee_type_name'));
                                 });
                                 if (custrecord_dps_rbsm_detailtype2 == '') {
                                     var new_rbsm_detailtype2 = record.create({
@@ -685,7 +685,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                 });
 
                 //--设置日记账科目信息
-                log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
+                //log.error('custrecord_dps_rbsm_detailtype2_relation', custrecord_dps_rbsm_detailtype2_relation)
                 new_ns_record.setSublistValue({
                     sublistId: ns_sub_id,
                     fieldId: 'account',

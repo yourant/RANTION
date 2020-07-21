@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-21 11:00:39
- * @LastEditTime   : 2020-07-20 14:28:39
+ * @LastEditTime   : 2020-07-21 20:04:51
  * @LastEditors    : Li
  * @Description    : 获取 shipmentID, 生成报关资料, 推送 标签面单文件
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -13,10 +13,14 @@
  *@NScriptType Restlet
  */
 define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log', 'N/http',
-    './dps.information.values', '../Helper/config'
-], function (record, search, core, log, http, informationValue, config) {
+    './dps.information.values', '../Helper/config', 'N/runtime'
+], function (record, search, core, log, http, informationValue, config, runtime) {
 
     function _post(context) {
+
+        var userObj = runtime.getCurrentUser();
+
+        log.audit('当前用户', userObj);
 
         log.debug('context', context);
         var recordID = context.recordID,
@@ -47,11 +51,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                 // 创建入库装运计划     createInboundShipmentPlan
 
-
                 var skuFlag = false;
-                if (rec_account) {
-
-                    // }
+                if (rec_account) { // 存在店铺
 
                     var ship_to_country_code = "",
                         address_id = {},
@@ -105,34 +106,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         var SellerSKU = rec.getValue({
                             name: "custrecord_dps_ship_record_sku_item",
                             join: "custrecord_dps_shipping_record_parentrec"
-                        });
-                        // search.create({
-                        //     type: 'customrecord_aio_amazon_seller_sku',
-                        //     filters: [{
-                        //             name: 'custrecord_ass_sku',
-                        //             operator: 'anyof',
-                        //             values: nsItem
-                        //         },
-                        //         {
-                        //             name: 'custrecord_ass_account',
-                        //             operator: 'anyof',
-                        //             values: rec_account
-                        //         }
-                        //     ],
-                        //     columns: [
-                        //         'name'
-                        //     ]
-                        // }).run().each(function (rec) {
-                        //     SellerSKU = rec.getValue('name');
-                        //     return --lim2 > 0;
-                        // });
+                        }); // 直接获取发运记录货品行的 SellerSKU 
 
-
-                        // log.debug('SellerSKU', SellerSKU);
-
-                        // if (SellerSKU) {
-                        //     skuFlag = true;
-                        // }
+                        if (SellerSKU) {
+                            skuFlag = true;
+                        } else {
+                            skuFlag = false;
+                        }
                         var info = {
                             "SellerSKU": SellerSKU ? SellerSKU : '', // 这里使用固定 seller SKU 替代一下
                             ASIN: '',
@@ -147,9 +127,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         return --lim > 0;
                     });
 
-
                     log.debug('items', items);
-
 
                     var str = '';
                     if (shipping_rec_location) {
@@ -195,13 +173,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }
 
                     log.debug('rec_account', rec_account);
-                    // if (rec_account) {
-
-                    // log.debug('shipping_rec_shipmentsid', shipping_rec_shipmentsid);
 
                     var reItem = [],
                         upresp;
-
 
                     if (skuFlag) {
                         try {
@@ -209,7 +183,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             log.debug('申请shipmentID', '申请shipmentID');
                             // 创建入库计划, 获取 shipment
 
-                            log.error('createInboundShipmentPlan items', items);
+                            log.audit('createInboundShipmentPlan items', items);
 
                             ship_to_country_code = '';
                             var response = core.amazon.createInboundShipmentPlan(rec_account, address_id, ship_to_country_code, label_prep_preference, items);
@@ -417,11 +391,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 id: recordID,
                                 values: {
                                     custrecord_dps_shipping_rec_status: 11,
-                                    custrecord_dps_shipment_info: JSON.stringify(error)
+                                    custrecord_dps_shipment_info: JSON.stringify(error.message)
                                 }
                             });
 
-                            ret.msg = error;
+                            ret.msg = error.message;
                         }
                     } else {
                         var id = record.submitFields({
@@ -429,11 +403,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             id: recordID,
                             values: {
                                 custrecord_dps_shipping_rec_status: 11,
-                                custrecord_dps_shipment_info: 'SellerSKU 为空, 请检查映射关系'
+                                custrecord_dps_shipment_info: '货品存在 SellerSKU 为空, 请检查'
                             }
                         });
 
-                        ret.msg = 'SellerSKU 为空, 请检查映射关系'
+                        ret.msg = '货品存在 SellerSKU 为空, 请检查'
                     }
 
                 } else {
@@ -642,7 +616,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     'custrecord_dps_shipment_label_file', // 装运标签文件
                     'custrecord_dps_shipping_r_channelservice', // 渠道服务
                     'custrecord_dps_shipping_r_channel_dealer', //渠道商
-                    'custrecord_dps_shipping_rec_order_num', // 调拨单号
+                    {
+                        name: "tranid",
+                        join: "custrecord_dps_shipping_rec_order_num"
+                    }, // 调拨单号
                     'custrecord_dps_ship_record_tranor_type', // 调拨单类型
                     'custrecord_fulfill_dh_label_addr', // 面单地址,
                     'custrecord_dps_shipping_rec_logistics_no', // 物流运单号
@@ -652,7 +629,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 waybillNo = rec.getValue('custrecord_dps_shipping_rec_logistics_no');
 
                 tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
-                aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
+                aono = rec.getValue({
+                    name: "tranid",
+                    join: "custrecord_dps_shipping_rec_order_num"
+                });
                 fileId = rec.getValue('custrecord_dps_shipment_label_file');
 
                 service_code = rec.getValue("custrecord_dps_shipping_r_channelservice");

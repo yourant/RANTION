@@ -13,7 +13,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             search.create({
                 type: 'returnauthorization',
                 filters: [{
-                    name: 'custbody_dps_link_so',
+                    name: 'createdfrom',
                     operator: 'anyof',
                     values: curr.id
                 }],

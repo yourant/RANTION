@@ -56,7 +56,7 @@ define(["N/search", "N/https", "N/task", "N/format", "N/ui/message", "N/ui/serve
         var limit = 4000;
         var dict = [];
         var s = search.load({ type: 'customrecord_rsf_sales_forcast', id: 'customsearch_rsf_sales_forcast' });
-        
+        log.debug('s.columns',s.columns);
         filters.push.apply(filters, s.filters);
         search.create({
             type: 'customrecord_rsf_sales_forcast',
@@ -68,14 +68,15 @@ define(["N/search", "N/https", "N/task", "N/format", "N/ui/message", "N/ui/serve
                 store_id: rec.getValue(rec.columns[0]),
                 sku: rec.getText(rec.columns[1]),
                 sku_id: rec.getValue(rec.columns[1]),
-                date: rec.getValue(rec.columns[2]),
-                month: rec.getValue(rec.columns[3]),
-                quantity: rec.getValue(rec.columns[4]),
-                alter: rec.getValue(rec.columns[5]),
-                created: rec.getValue(rec.columns[6]),
-                updated: rec.getValue(rec.columns[7]),
+                unit: rec.getValue(rec.columns[2]),
+                date: rec.getValue(rec.columns[3]),
+                month: rec.getValue(rec.columns[4]),
+                quantity: rec.getValue(rec.columns[5]),
+                alter: rec.getValue(rec.columns[6]),
+                created: rec.getValue(rec.columns[7]),
+                updated: rec.getValue(rec.columns[8]),
             });
-            return --limit < 4000;
+            return --limit > 0;
         });
         if (limit == 0) {
             form.addPageInitMessage({ type: message.Type.WARNING, message: '注意：数据超过了当前页面4000的最大限制，部分数据没有显示完全！', });
@@ -85,6 +86,7 @@ define(["N/search", "N/https", "N/task", "N/format", "N/ui/message", "N/ui/serve
             sb_02.setSublistValue({ id: 'store_id', value: "" + (d.store_id || '-'), line: line });
             sb_02.setSublistValue({ id: 'sku', value: "" + (d.sku || '-'), line: line });
             sb_02.setSublistValue({ id: 'sku_id', value: "" + (d.sku_id || '-'), line: line });
+            sb_02.setSublistValue({ id: 'unit', value: "" + (d.unit || '-'), line: line });
             sb_02.setSublistValue({ id: 'date', value: "" + (d.date || '-'), line: line });
             sb_02.setSublistValue({ id: 'month', value: "" + (d.month || '-'), line: line });
             sb_02.setSublistValue({ id: 'quantity', value: "" + (d.quantity || '0'), line: line });

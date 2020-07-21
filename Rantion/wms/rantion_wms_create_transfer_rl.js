@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-18 19:13:54
+ * @LastEditTime   : 2020-07-21 17:04:07
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -196,10 +196,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                 tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
 
                 var type = 10;
-                // 1 FBA调拨
-                // 2 自营仓调拨
-                // 3 跨仓调拨
-                // 4 移库
+                // 1 FBA调拨    2 自营仓调拨   3 跨仓调拨   4 移库
 
                 var waybillNo;
 
@@ -214,7 +211,6 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
 
                 data["centerId"] = rec.getValue('custrecord_dps_shipping_rec_destinationf') ? rec.getValue('custrecord_dps_shipping_rec_destinationf') : ''; // 仓库中心
                 data["type"] = type;
-                // data["type"] = af_rec.getText('custrecord_dps_ship_record_tranor_type');
                 data["waybillNo"] = waybillNo; // 运单号
             });
 
@@ -344,10 +340,8 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                         join: 'custrecord_dps_shipping_record_item',
                         name: 'custitem_dps_fnsku'
                     }),
-                    msku: rec.getValue({
-                        join: 'custrecord_dps_shipping_record_item',
-                        name: 'custitem_dps_msku'
-                    }),
+
+                    msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
                     englishTitle: rec.getValue({
                         name: 'custitem_dps_declaration_us',
                         join: 'custrecord_dps_shipping_record_item'
@@ -402,21 +396,33 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
             });
 
             log.debug('itemArr', itemArr);
+
+            // 2020/7/18 13：44 改动 
+            var fils = []; //过滤
+            var len = item_info.length,
+                num = 0;
+            item_info.map(function (ld) {
+                num++;
+                fils.push([
+                    ["name", "is", ld.msku],
+                    "and",
+                    ["custrecord_ass_sku", "anyof", ld.itemId]
+                ]);
+                if (num < len)
+                    fils.push("or");
+            });
+            fils.push("and",
+                ["custrecord_ass_account", "anyof", fbaAccount]
+            );
+            fils.push("and",
+                ["isinactive", "is", false]
+            );
+            log.debug('fils', fils);
+            log.debug('item_info', item_info);
             var newItemInfo = [];
 
             if (tranType == 1) {
                 var new_limit = 3999;
-                var fils = [{
-                        name: "custrecord_ass_sku",
-                        operator: 'anyof',
-                        values: itemArr
-                    },
-                    {
-                        name: 'custrecord_ass_account',
-                        operator: 'anyof',
-                        values: fbaAccount
-                    }
-                ];
                 log.debug("fils:::::", fils)
                 search.create({
                     type: 'customrecord_aio_amazon_seller_sku',

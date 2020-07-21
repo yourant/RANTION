@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-20 21:06:51
+ * @LastEditTime   : 2020-07-18 17:10:50
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_rl.js
@@ -341,7 +341,7 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                             name: 'custrecord_dps_wms_location_name',
                             join: 'custrecord_dsp_delivery_order_location'
                         }); //rec.getValue({name: "custrecord_dps_wms_location_name",join: "location"});//仓库名称
-                    });
+                    })
                     if (!boxNum) {
                         boxNum = 0;
                     }

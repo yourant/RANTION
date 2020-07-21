@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-20 21:02:30
- * @LastEditTime   : 2020-07-21 14:05:29
+ * @LastEditTime   : 2020-07-21 14:03:14
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\to\ue\TONumber_ue.js
@@ -15,7 +15,37 @@
 define(['N/search', 'N/record'], function (search, record) {
 
     function beforeLoad(context) {
-
+        // var newRec = context.newRecord;
+        // try{
+        //     var type = context.type;
+        //     log.debug(" beforeLoad context.type",context.type);
+        //     if (type == "create") {
+        //         var trandate = newRec.getValue('tranid');
+        //         log.debug(" beforeLoad tranid",trandate);
+        //         var T_loca = newRec.getText('custbody_actual_target_warehouse');
+        //         log.debug("beforeLoad T_loca",T_loca);
+        //         country = T_loca.split(".")[1];
+        //         trandate =  JSON.stringify(trandate).split("T")[0].replace(/[-"]/g,"").substring(0,6);
+        //         var pn = "TO"+country+trandate;
+        //         var number = 0;
+        //         search.create({
+        //             type:"transferorder",
+        //             filters:[
+        //                 {name:"tranid",operator:"contains",values:pn}
+        //             ],columns:[{name:"tranid",sort:"DESC"}]
+        //         }).run().each(function(e){
+        //             number = e.getValue(e.columns[0]);
+        //             number = number.substring(number.length - 4);
+        //         })
+        //         log.debug("beforeLoad number",number);
+        //         pn = pn+"000"+(Number(number)+1); 
+        //         log.debug("beforeLoad pn",pn);
+        //         newRec.setValue({fieldId:"tranid",value:pn});
+        //         // TO + country + 日期 6 位  + 4 流水号
+        //      }
+        // }catch(e){
+        //        log.error("error ",e);
+        // }
     }
 
 
@@ -46,8 +76,40 @@ define(['N/search', 'N/record'], function (search, record) {
                 // country = T_loca.split(".")[1];
                 log.debug("guojia：", country)
                 if (country) {
+                    // trandate = JSON.stringify(trandate).split("T")[0].replace(/[-"]/g, "").substring(0, 6);
                     trandate = JSON.stringify(trandate).split("T")[0].replace(/[-"]/g, "").substring(2, 8); // 获取年月日
                     var pn = "TO" + country + trandate;
+
+                    /* HACK
+                    var number = 0;
+                    search.create({
+                        type: "transferorder",
+                        filters: [{
+                                name: "tranid",
+                                operator: "contains",
+                                values: pn
+                            },
+                            {
+                                name: 'mainline',
+                                operator: 'is',
+                                values: true
+                            }
+                        ],
+                        columns: [{
+                                name: "internalid",
+                                sort: "DESC"
+                            },
+                            {
+                                name: "tranid"
+                            }
+                        ]
+                    }).run().each(function (e) {
+                        number = e.getValue(e.columns[1]);
+                        number = number.substring(number.length - 4);
+                        log.debug('内部id', e.id)
+                    });
+                    
+                    */
 
                     var serial_number = 0;
                     search.create({

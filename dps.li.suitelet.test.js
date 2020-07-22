@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-22 15:49:43
+ * @LastEditTime   : 2020-07-22 16:24:59
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -18,8 +18,17 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
     function onRequest(context) {
 
+        /*
+        var id = record.submitFields({
+            type: 'customrecord_dps_shipping_record',
+            id: 51,
+            values: {
+                custrecord_dps_shipping_rec_status: 14,
+                // custrecord_dps_shipping_rec_wms_info: '推送调拨单： ' + JSON.stringify(message.data)
+            }
+        });
 
-
+        /*
 
         var delArr = [];
         search.create({

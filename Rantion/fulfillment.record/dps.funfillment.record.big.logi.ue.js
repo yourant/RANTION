@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-22 13:06:56
+ * @LastEditTime   : 2020-07-22 15:59:01
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -681,6 +681,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         add = getShipAddByContent({
                                             "base64": getRe
                                         });
+
+                                        log.audit('返回解析PDF的文本', add);
                                     } catch (error) {
                                         log.audit('解析PDF error', error);
                                     }

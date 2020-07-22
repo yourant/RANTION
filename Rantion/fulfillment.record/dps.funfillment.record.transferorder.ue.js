@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-21 20:03:04
+ * @LastEditTime   : 2020-07-22 14:01:08
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -659,7 +659,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     function wms(af_rec) {
         // 推送 WMS, 获取装箱信息
 
-
         var flagLocation;
 
         //     1 FBA仓   2 自营仓   3 工厂仓   4 虚拟仓    5 虚拟在途仓
@@ -711,6 +710,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var data = {};
             var tranType, fbaAccount, logisticsFlag = 0;
 
+
+
+            var ful_to_link;
             search.create({
                 type: 'customrecord_dps_shipping_record',
                 filters: [{
@@ -721,6 +723,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 columns: [
                     'custrecord_dps_ship_record_tranor_type', // 调拨单类型
                     'custrecord_dps_shipping_rec_transport',
+                    'custrecord_dps_shipping_rec_order_num', // 调拨单号
                     {
                         name: 'tranid',
                         join: 'custrecord_dps_shipping_rec_order_num'
@@ -784,6 +787,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }, // 备注
                 ]
             }).run().each(function (rec) {
+
+                ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
 
                 if (rec_transport == 1) {
@@ -885,6 +890,23 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 data["remark"] = rec.getValue('custrecord_dps_ship_remark'); // 备注字段
                 data["waybillNo"] = waybillNo; // 运单号
             });
+
+            var createdBy;
+            search.create({
+                type: 'transferorder',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: ful_to_link
+                }],
+                columns: [
+                    "createdby"
+                ]
+            }).run().each(function (rec) {
+                createdBy = rec.getText('createdby');
+            });
+
+            data["createBy"] = createdBy; // 设置调拨单创建者
 
             var taxamount;
             var item_info = [];
@@ -1051,19 +1073,21 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
             log.debug('itemArr', itemArr);
             // 2020/7/18 13：44 改动 
-            var fils = []; //过滤
+            var fils = [],
+                add_fils = []; //过滤
             var len = item_info.length,
                 num = 0;
             item_info.map(function (ld) {
                 num++;
-                fils.push([
+                add_fils.push([
                     ["name", "is", ld.msku],
                     "and",
                     ["custrecord_ass_sku", "anyof", ld.itemId]
                 ]);
                 if (num < len)
-                    fils.push("or");
+                    add_fils.push("or");
             });
+            fils.push(add_fils);
             fils.push("and",
                 ["custrecord_ass_account", "anyof", fbaAccount]
             );
@@ -1098,6 +1122,23 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     return --new_limit > 0;
                 });
                 log.debug('newItemInfo', newItemInfo);
+
+                if (newItemInfo && newItemInfo.length == 0) {
+
+                    message.code = 3;
+                    message.data = 'Amazon Seller SKU 中找不到对应的映射关系';
+                    var id = record.submitFields({
+                        type: 'customrecord_dps_shipping_record',
+                        id: context.recordID,
+                        values: {
+                            custrecord_dps_shipping_rec_status: 8,
+                            custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
+                        }
+                    });
+
+                    return message;
+                }
+
 
                 data['allocationDetailCreateRequestDtos'] = newItemInfo;
             } else {
@@ -1300,11 +1341,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             values: target_loca
                         }],
                         columns: [{
-                            name: "custrecord_aio_sender_city"
-                        }, {
-                            name: 'custrecord_cc_country_code',
-                            join: 'custrecord_aio_country_sender'
-                        }, 'custrecord_aio_sender_address_code']
+                                name: "custrecord_aio_sender_city"
+                            },
+                            {
+                                name: 'custrecord_cc_country_code',
+                                join: 'custrecord_aio_country_sender'
+                            }, 'custrecord_aio_sender_address_code'
+                        ]
                     }).run().each(function (e) {
                         // city = e.getValue('custrecord_aio_sender_city');
                         city = e.getValue('custrecord_aio_sender_city');
@@ -1391,6 +1434,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         }
                         return false;
                     });
+                }
+
+                if (rec.getValue('custbody_shipment_id')) { // 若存在shipmentId, 则设置
+                    s = 5;
                 }
 
                 log.debug('s', s);
@@ -1619,7 +1666,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             }
 
             var custrecord_dps_declare_currency_dh;
-            var custrecord_dps_declared_value_dh = 0;;
+            var custrecord_dps_declared_value_dh = 0;
             search.create({
                 type: 'customrecord_transfer_order_details',
                 filters: [{

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-21 19:56:18
+ * @LastEditTime   : 2020-07-22 13:06:56
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -162,6 +162,20 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 });
             }
             form.clientScriptModulePath = './dps.funfillment.record.big.logi.cs.js';
+        } else if (action_type == "copy") {
+            bf_cur.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_order_num',
+                value: ''
+            }); // 置空关联的调拨单
+            bf_cur.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_status',
+                value: ''
+            }); // 设置相关状态为空
+            bf_cur.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_wms_info',
+                value: '属于复制发运记录,置空相关字段'
+            }); // 设置提示信息
+
         }
     }
 
@@ -211,7 +225,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             log.debug('toId: ' + toId, "存在调拨单")
                             var it = searchItemTo(toId);
                             var a = searchItemAver(it.ItemArr, it.Location);
-                            setToValue(to_id, a);
+                            setToValue(toId, a);
                         } else {
                             log.debug('不存在调拨单', "不取库存平均成本");
                         }
@@ -594,6 +608,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                     log.audit('上传装箱信息提交状态 gerep', gerep);
 
+
+                    if (gerep == "_SUBMITTED_") {
+
+                    }
                     var submission_ids = [];
 
                     search.create({
@@ -627,6 +645,14 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         subFlag = false;
                         log.debug('上传装箱信息报错', '上传信息有误');
                     }
+
+                    var feed_processing_status = a[0].feed_processing_status;
+                    if (feed_processing_status != "_DONE_") {
+                        subFlag = false;
+                    }
+
+                    log.debug('feed_processing_status', feed_processing_status);
+                    log.debug('subFlag', subFlag);
 
                     // 装箱信息上传处理成功标记
                     var amazon_box_flag = af_rec.getValue('custrecord_dps_amazon_box_flag');
@@ -725,8 +751,17 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 labelToWMS(af_rec);
                             }
                         }
-                    } else {
 
+                    } else {
+                        var id = record.submitFields({
+                            type: 'customrecord_dps_shipping_record',
+                            id: af_rec.id,
+                            values: {
+                                custrecord_dps_shipping_rec_status: 25,
+                                // custrecord_dps_amazon_box_flag: false
+                                // custrecord_dps_shipping_rec_wms_info: '推送调拨单： ' + JSON.stringify(message.data)
+                            }
+                        });
                     }
 
                     if (shipment_label_file) {
@@ -1054,6 +1089,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var data = {};
             var tranType, fbaAccount;
 
+            var ful_to_link;
+
             search.create({
                 type: 'customrecord_dps_shipping_record',
                 filters: [{
@@ -1116,6 +1153,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }, // 站点 / 市场
                 ]
             }).run().each(function (rec) {
+
+                ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num');
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
 
                 if (rec_transport == 1) {
@@ -1127,11 +1166,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 }
 
                 data["shippingType"] = shippingType;
-                data["aono"] = rec.getValue('custrecord_dps_shipping_rec_order_num');
-                data["createBy"] = rec.getValue({
-                    name: "entityid",
-                    join: "owner"
-                });
 
                 data["marketplaces"] = rec.getText({
                     name: 'custrecord_aio_marketplace',
@@ -1213,6 +1247,28 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                 data["waybillNo"] = waybillNo; // 运单号
             });
+
+
+            var createdBy, tranId;
+            search.create({
+                type: 'transferorder',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: ful_to_link
+                }],
+                columns: [
+                    "createdby", "tranid"
+                ]
+            }).run().each(function (rec) {
+                createdBy = rec.getText('createdby');
+                tranId = rec.getValue('tranid');
+            });
+
+            data["createBy"] = createdBy; // 设置调拨单创建者
+
+            data["aono"] = tranId;
+
 
             var taxamount;
             var item_info = [];
@@ -1478,6 +1534,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 {
                     name: 'custrecord_dps_financia_warehous',
                     join: 'custrecord_dps_shipping_rec_location'
+                },
+                {
+                    name: 'tranid',
+                    join: 'custrecord_dps_shipping_rec_order_num'
                 }
             ]
         }).run().each(function (rec) {
@@ -1485,7 +1545,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             waybillNo = rec.getValue('custrecord_dps_shipping_rec_logistics_no');
 
             tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
-            aono = rec.getValue('custrecord_dps_shipping_rec_order_num');
+            aono = rec.getValue({
+                name: 'tranid',
+                join: 'custrecord_dps_shipping_rec_order_num'
+            });
             fileId = rec.getValue('custrecord_dps_shipment_label_file');
 
             location_financia = rec.getValue({

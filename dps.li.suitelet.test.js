@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-07-21 15:55:01
+ * @LastEditTime   : 2020-07-22 15:49:43
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -13,12 +13,175 @@
  *@NScriptType Suitelet
  */
 define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/file',
-    'N/xml', './Rantion/Helper/tool.li', 'N/runtime'
-], function (search, record, log, core, file, xml, tool, runtime) {
+    'N/xml', './Rantion/Helper/tool.li', 'N/runtime', 'N/file'
+], function (search, record, log, core, file, xml, tool, runtime, file) {
 
     function onRequest(context) {
 
 
+
+
+        var delArr = [];
+        search.create({
+            type: 'customrecord_dps_shipping_record_box',
+            filters: [{
+                name: 'custrecord_dps_ship_box_fa_record_link',
+                operator: 'anyof',
+                values: 51
+            }]
+        }).run().each(function (rec) {
+            delArr.push(rec.id);
+
+            record.delete({
+                type: 'customrecord_dps_shipping_record_box',
+                id: rec.id
+            });
+
+            return true;
+        })
+
+        log.debug('length ' + delArr.length, delArr)
+
+
+        /*
+
+        if (rec_shipmentsid) {
+            try {
+                getRe = core.amazon.GetPackageLabels(rec_account, total_number, rec_shipmentsid);
+            } catch (error) {
+                log.error('获取箱唛出错了', error);
+            }
+            log.debug('getRe', getRe);
+            log.debug('获取箱外标签', 'end');
+            if (getRe) {
+                var add;
+
+                var fileObj = file.create({
+                    name: rec_shipmentsid + '.ZIP',
+                    fileType: file.Type.ZIP,
+                    contents: getRe,
+                    // description: 'This is a plain text file.',
+                    // encoding: file.Encoding.MAC_ROMAN,
+                    folder: 36,
+                    isOnline: true
+                });
+
+                var fileObj_id = fileObj.save();
+                log.debug('fileObj_id', fileObj_id);
+                var recValue = {};
+                recValue.custrecord_dps_shipping_rec_status = 17;
+                recValue.custrecord_dps_shipment_label_file = fileObj_id;
+
+                recValue.custrecord_dps_amazon_box_flag = true;
+
+
+            }
+        }
+
+
+
+
+
+        var id = record.submitFields({
+            type: 'customrecord_dps_shipping_record',
+            id: 40,
+            values: {
+                // custrecord_dps_shipping_rec_status: 12,
+                custrecord_dps_amazon_box_flag: false,
+                custrecord_dps_shipment_label_file: ''
+                // custrecord_dps_shipping_rec_wms_info: '推送调拨单： ' + JSON.stringify(message.data)
+            }
+        });
+
+        /*
+
+        var ids = [28, 56, 53, 66];
+
+        for (var i = 0, len = ids.length; i < len; i++) {
+            var id = record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: ids[i],
+                values: {
+                    custrecord_dps_shipping_rec_status: 8,
+                    // custrecord_dps_shipping_rec_wms_info: '推送调拨单： ' + JSON.stringify(message.data)
+                }
+            });
+
+        }
+
+
+
+        /*
+
+        var a = new Date();
+        var b = a.toISOString();
+
+        var c = b.split('T')[0];
+
+        var d = c + "T16:00:00.000Z"
+        context.response.writeLine(d)
+
+        log.debug('b', b);
+
+        context.response.writeLine(b)
+
+        var e = new Date(d).getTime() - new Date(b).getTime();
+        log.debug("e", e)
+
+        context.response.writeLine('' + e)
+
+        var f = a.getTimezoneOffset();
+
+        context.response.writeLine('' + f)
+
+
+        search.create({
+            type: "customrecord_dps_shipping_record",
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 66
+            }],
+            columns: [{
+                //     name: 'createdby',
+                //     join: 'custrecord_dps_shipping_rec_order_num'
+                // },
+                // {
+                name: 'custrecord_dps_shipping_rec_order_num'
+            }]
+        }).run().each(function (rec) {
+
+            var createdBy = rec.getValue({
+                name: 'custrecord_dps_shipping_rec_order_num'
+            })
+
+            log.debug("rec id: " + rec.id, createdBy);
+            return true;
+        })
+
+
+        var createdBy;
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1540811
+            }],
+            columns: [
+                "createdby"
+            ]
+        }).run().each(function (rec) {
+            createdBy = rec.getText('createdby');
+        });
+
+        context.response.writeLine(createdBy)
+
+
+
+
+
+        /*
         function getToken() {
             var token;
             search.create({

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-01 19:21:16
- * @LastEditTime   : 2020-07-02 16:50:04
+ * @LastEditTime   : 2020-07-22 13:34:36
  * @LastEditors    : Li
  * @Description    : 更改调拨单的状态为 WMS已装箱
  * @FilePath       : \Rantion\wms\dps.setValue.fulRecord.li.rl.js
@@ -75,8 +75,9 @@ define(['N/record', 'N/https', 'N/url', 'N/task', 'N/search', 'N/log'], function
         search.create({
             type: 'customrecord_dps_shipping_record',
             filters: [{
-                name: 'custrecord_dps_shipping_rec_order_num',
-                operator: 'anyof',
+                name: 'tranid',
+                join: 'custrecord_dps_shipping_rec_order_num',
+                operator: 'is',
                 values: aono
             }]
         }).run().each(function (rec) {

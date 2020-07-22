@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-07-22 15:45:39
+ * @LastEditTime   : 2020-07-22 15:06:32
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -71,8 +71,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
         // }
 
 
-        var a_start_time = new Date().getTime();
-        log.audit("处理数据开始时间, Starts", new Date().toISOString());
+        log.debug("处理数据开始时间, Starts", new Date().toISOString());
         var data = context;
 
 
@@ -89,7 +88,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
 
         try {
 
-            log.audit('data length', data.length);
+            log.debug('data length', data.length);
 
 
             // 用于标记当前发运记录是否发运完成, 默认 为 false
@@ -139,165 +138,198 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                 });
                 log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + tLocation);
 
-
-                var objRecord = record.load({
-                    type: 'customrecord_dps_shipping_record',
-                    id: rid
-                });
-
-
-                var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
-
-                var status = objRecord.getValue("custrecord_dps_shipping_rec_status");
-                var numLines = objRecord.getLineCount({
-                    sublistId: sub_id
-                });
-
-
-                var boxNum = objRecord.getValue('custrecord_dps_total_number'),
-                    addNum = 1;
-
-                var add = 0;
-
-                // log.debug('objRecord', JSON.stringify(objRecord));
-                log.debug('发运记录装箱明细行数 status', numLines + '-' + status);
-                if (status != 14 && numLines > -1) {
-                    var it = {
-
-                        code: 1,
-                        data: null,
-                        msg: '非法操作'
-                    }
-                    log.debug('单据状态不是 已推送WMS, 直接返回', new Date().toISOString());
-                    return it;
-                }
-
-
                 for (var i = 0, len = data.length; i < len; i++) {
-                    log.audit('存在明细: ' + i, detailModels);
+
                     var temp = data[i];
                     totalWeight += temp.weight;
                     var detailModels = temp.detailModels;
                     aono = temp.aono;
+                    var bigRec = searchTranRec(aono);
 
+                    // var objRecord;
+                    if (bigRec) {
+                        var objRecord = record.load({
+                            type: 'customrecord_dps_shipping_record',
+                            id: bigRec
+                        });
 
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_box_length',
-                        line: i,
-                        value: temp.length
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ship_box_weight',
-                        line: i,
-                        value: temp.weight
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_big_box_width',
-                        line: i,
-                        value: temp.width
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_big_box_hight',
-                        line: i,
-                        value: temp.height
-                    });
+                        fulRecArr.push(bigRec);
 
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ship_box_box_number',
-                        line: i,
-                        value: temp.boxNo
-                    });
+                        var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
 
-                    // 若存在分箱明细
-                    if (detailModels) {
+                        var status = objRecord.getValue("custrecord_dps_shipping_rec_status");
+                        var numLines = objRecord.getLineCount({
+                            sublistId: sub_id
+                        });
+                        log.debug('objRecord', JSON.stringify(objRecord));
+                        log.debug('发运记录装箱明细行数 status', numLines + '-' + status);
+                        if (status != 14 && numLines > -1) {
+                            var it = {
 
-                        log.debug('detailModels.length', detailModels.length)
-                        for (var j = 0, j_len = detailModels.length; j < j_len; j++) {
+                                code: 1,
+                                data: null,
+                                msg: '非法操作'
+                            }
+                            log.debug('单据状态不是 已推送WMS, 直接返回', new Date().toISOString());
+                            return it;
+                        }
 
-                            add++;
+                        var boxNum = objRecord.getValue('custrecord_dps_total_number'),
+                            addNum = 1;
 
-                            // var a = j + i;
-                            var a = i;
-                            var arrTemp = detailModels[j];
+                        var numLines = objRecord.getLineCount({
+                            sublistId: sub_id
+                        });
 
-                            if (numLines > -1) {
-                                a += numLines;
+                        var add = 0;
+
+                        log.debug('numLines', numLines);
+                        // 若存在分箱明细
+                        if (detailModels) {
+
+                            log.debug('detailModels.length', detailModels.length)
+                            for (var j = 0, j_len = detailModels.length; j < j_len; j++) {
+
+                                // addNum++;
+
+                                add++;
+
+                                if (add > 10) {
+                                    break;
+                                }
+                                var a = j;
+                                var arrTemp = detailModels[j];
+                                // var itemID = searchItem(arrTemp.sku);
+
+                                if (numLines > -1) {
+                                    a += numLines;
+                                }
+
+                                objRecord.setSublistText({
+                                    sublistId: sub_id,
+                                    fieldId: 'custrecord_dps_ship_box_item',
+                                    line: a,
+                                    text: arrTemp.sku
+                                });
+                                objRecord.setSublistValue({
+                                    sublistId: sub_id,
+                                    fieldId: 'custrecord_dps_ship_box_box_number',
+                                    line: a,
+                                    value: arrTemp.boxNo
+                                });
+                                objRecord.setSublistValue({
+                                    sublistId: sub_id,
+                                    fieldId: 'custrecord_dps_ful_rec_box_length',
+                                    line: a,
+                                    value: temp.length
+                                });
+                                objRecord.setSublistValue({
+                                    sublistId: sub_id,
+                                    fieldId: 'custrecord_dps_ship_box_weight',
+                                    line: a,
+                                    value: temp.weight
+                                });
+                                objRecord.setSublistValue({
+                                    sublistId: sub_id,
+                                    fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                                    line: a,
+                                    value: temp.width
+                                });
+                                objRecord.setSublistValue({
+                                    sublistId: sub_id,
+                                    fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                                    line: a,
+                                    value: temp.height
+                                });
+
+                                objRecord.setSublistValue({
+                                    sublistId: sub_id,
+                                    fieldId: 'custrecord_dps_ship_box_quantity',
+                                    line: a,
+                                    value: arrTemp.qty
+                                });
+
+                                log.debug("Remaining governance units: " + scriptObj.getRemainingUsage());
                             }
 
-                            objRecord.setSublistText({
-                                sublistId: sub_id,
-                                fieldId: 'custrecord_dps_ship_box_item',
-                                line: i,
-                                text: arrTemp.sku
+                            log.debug('Number(addNum) + Number(boxNum)', Number(addNum) + Number(boxNum));
+                            objRecord.setValue({
+                                fieldId: 'custrecord_dps_total_number',
+                                value: Number(addNum) + Number(boxNum)
                             });
+                            // 更改发运记录的状态为 WMS已装箱
+                            // objRecord.setValue({
+                            //     fieldId: 'custrecord_dps_shipping_rec_status',
+                            //     value: 12
+                            // });
+
+
+                        } else {
+
+                            var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
 
                             objRecord.setSublistValue({
                                 sublistId: sub_id,
-                                fieldId: 'custrecord_dps_ship_box_quantity',
-                                line: i,
-                                value: arrTemp.qty
+                                fieldId: 'custrecord_dps_ship_box_box_number',
+                                line: 0,
+                                value: temp.boxNo
                             });
-                            // log.debug("Remaining governance units: " + scriptObj.getRemainingUsage());
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_box_length',
+                                line: 0,
+                                value: temp.length
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_weight',
+                                line: 0,
+                                value: temp.weight
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                                line: 0,
+                                value: temp.width
+                            });
+                            objRecord.setSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                                line: 0,
+                                value: temp.height
+                            });
+
+                            // objRecord.setValue({
+                            //     fieldId: 'custrecord_dps_shipping_rec_status',
+                            //     value: 12
+                            // });
+
+                            // var objRecord_id = objRecord.save();
+                            // log.audit('objRecord_id', objRecord_id);
+
+                            // retjson.code = 0;
+                            // retjson.data = null;
+                            // retjson.msg = 'success';
                         }
 
+                        var objRecord_id = objRecord.save();
+                        log.audit('objRecord_id', objRecord_id);
+
+                        retjson.code = 0;
+                        retjson.data = null;
+                        retjson.msg = 'success';
+
                     } else {
-
-                        log.audit('不存在明细')
-                        var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
-
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ship_box_box_number',
-                            line: 0,
-                            value: temp.boxNo
+                        ord.push({
+                            aono: aono,
+                            msg: 'NS 找不到对应的调拨单'
                         });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ful_rec_box_length',
-                            line: 0,
-                            value: temp.length
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ship_box_weight',
-                            line: 0,
-                            value: temp.weight
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_width',
-                            line: 0,
-                            value: temp.width
-                        });
-                        objRecord.setSublistValue({
-                            sublistId: sub_id,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_hight',
-                            line: 0,
-                            value: temp.height
-                        });
-
+                        retjson.code = 5;
+                        retjson.data = null;
+                        retjson.msg = 'unknown';
                     }
 
                 }
-
-
-                objRecord.setValue({
-                    fieldId: 'custrecord_dps_total_number',
-                    value: data.length
-                });
-
-                var objRecord_id = objRecord.save();
-                log.audit('objRecord_id', objRecord_id);
-
-                retjson.code = 0;
-                retjson.data = null;
-                retjson.msg = 'success';
-
                 var cost = costCal.calculation(serverID, rec_country, zip, totalWeight, '', '', '', city, '', tLocation, '', '');
                 log.audit("cost", cost);
                 record.submitFields({
@@ -308,7 +340,6 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                     }
                 });
 
-                log.audit("执行总共使用量: " + scriptObj.getRemainingUsage());
             } else {
                 log.error('找不到对应的发运记录', "找不到对应的发运记录");
                 retjson.code = 3;
@@ -327,12 +358,8 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
         // retjson.data = {};
         // retjson.msg = 'string';
 
-        log.audit("处理时间, End", new Date().toISOString());
+        log.debug("处理时间, End", new Date().toISOString());
 
-        var a_end_time = new Date().getTime();
-        a_start_time
-
-        log.audit('处理数据总共耗时： ', (a_end_time - a_start_time) / 1000 + " s");
         return JSON.stringify(retjson);
     }
 

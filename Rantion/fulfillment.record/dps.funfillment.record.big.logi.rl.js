@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-21 11:00:39
- * @LastEditTime   : 2020-07-22 13:26:20
+ * @LastEditTime   : 2020-07-23 18:00:09
  * @LastEditors    : Li
  * @Description    : 获取 shipmentID, 生成报关资料, 推送 标签面单文件
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -928,85 +928,123 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
         if (action == "amazonFeedStatus") {
 
-            var accountId, amazon_info, submission_ids = [];
-            search.create({
-                type: "customrecord_dps_shipping_record",
-                filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: recordID
-                }],
-                columns: [
-                    "custrecord_dps_shipping_rec_account", // 账号
-                    {
-                        name: 'custrecord_aio_feed_submission_id',
-                        join: 'custrecord_dps_upload_packing_rec'
-                    }, // feed ID 
-                    "custrecord_dps_shipment_info", // amazon 装运信息
-                ]
-            }).run().each(function (rec) {
-                amazon_info = rec.getValue('custrecord_dps_shipment_info');
-                submission_ids.push(rec.getValue({
+            ret = amazonFeedStatus(recordID);
+
+        }
+
+
+        if (action == "amazonBoxInfo") {
+
+
+            // return {
+            //     msg: 'DPS LI TEST'
+            // }
+            ret = amazonBoxInfo(recordID);
+
+        }
+
+
+
+
+
+        return ret || false;
+    }
+
+
+
+    /**
+     * 获取装箱信息处理情况, 若处理成功, 则推送标签文件给 WMS
+     * @param {Number} recordID 
+     */
+    function amazonFeedStatus(recordID) {
+
+        var ret = {};
+        var accountId, amazon_info, submission_ids = [];
+        search.create({
+            type: "customrecord_dps_shipping_record",
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: recordID
+            }],
+            columns: [
+                "custrecord_dps_shipping_rec_account", // 账号
+                {
                     name: 'custrecord_aio_feed_submission_id',
                     join: 'custrecord_dps_upload_packing_rec'
-                }));
-                accountId = rec.getValue('custrecord_dps_shipping_rec_account');
-            })
+                }, // feed ID 
+                "custrecord_dps_shipment_info", // amazon 装运信息
+            ]
+        }).run().each(function (rec) {
+            amazon_info = rec.getValue('custrecord_dps_shipment_info');
+            submission_ids.push(rec.getValue({
+                name: 'custrecord_aio_feed_submission_id',
+                join: 'custrecord_dps_upload_packing_rec'
+            }));
+            accountId = rec.getValue('custrecord_dps_shipping_rec_account');
+        })
 
-            var a = core.amazon.getFeedSubmissionList(accountId, submission_ids);
-            log.debug('装箱信息处理情况', a);
+        var a = core.amazon.getFeedSubmissionList(accountId, submission_ids);
+        log.debug('装箱信息处理情况', a);
 
-            var shipRec = record.load({
-                type: 'customrecord_dps_shipping_record',
-                id: recordID
+        var shipRec = record.load({
+            type: 'customrecord_dps_shipping_record',
+            id: recordID
+        });
+
+        var feed_processing_status = a[0].feed_processing_status;
+        if (feed_processing_status == "_DONE_" && a[0].MessagesWithError == 0 && !a[0].ResultDescription) {
+            shipRec.setValue({
+                fieldId: "custrecord_dps_amazon_box_flag",
+                value: true
             });
+            // subFlag = false;
+        }
 
-            var feed_processing_status = a[0].feed_processing_status;
-            if (feed_processing_status == "_DONE_") {
-                shipRec.setValue({
-                    fieldId: "custrecord_dps_amazon_box_flag",
-                    value: true
-                });
-                // subFlag = false;
+        log.debug('a[0].ResultMessageCode', a[0].ResultDescription);
+        if (a[0].MessagesWithError != 0) {
+            var s = a[0].ResultDescription,
+                str;
+            if (amazon_info) {
+                str = amazon_info + '\n' + s;
             }
-
-            log.debug('a[0].ResultMessageCode', a[0].ResultDescription);
-            if (a[0].MessagesWithError != 0) {
-                var s = a[0].ResultDescription,
-                    str;
-                if (amazon_info) {
-                    str = amazon_info + '\n' + s;
-                }
-                shipRec.setValue({
-                    fieldId: "custrecord_dps_shipment_info",
-                    value: str ? str : s
-                });
-            }
-            shipRec.setText({
-                fieldId: "custrecord_dps_amazon_press_status",
-                text: a[0].feed_processing_status
+            shipRec.setValue({
+                fieldId: "custrecord_dps_shipment_info",
+                value: str ? str : s
             });
-            var shipRec_id = shipRec.save();
+        }
+        shipRec.setValue({
+            fieldId: "custrecord_dps_shipment_info",
+            value: a[0].ResultDescription
+        });
 
-            log.debug('更新发运记录', shipRec_id);
-
-            //  _AWAITING_ASYNCHRONOUS_REPLY_  等待异步答复    _CANCELLED_		取消     _DONE_		完成
-            // _IN_PROGRESS_	进行中       _IN_SAFETY_NET_      _SUBMITTED_  已提交      _UNCONFIRMED_   未确认
-
-            var str = "Amazon 未处理完成";
-            if (a[0].feed_processing_status == "_DONE_") {
-                str = "Amazon 已处理完成";
-            } else if (a[0].feed_processing_status == "_CANCELLED_") {
-                str = "Amazon 已取消";
-            }
-            ret.msg = "装箱信息处理状态：" + str;
+        shipRec.setText({
+            fieldId: "custrecord_dps_amazon_press_status",
+            text: a[0].feed_processing_status
+        });
 
 
+        var shipRec_id = shipRec.save();
+
+        log.debug('更新发运记录', shipRec_id);
+
+        //  _AWAITING_ASYNCHRONOUS_REPLY_  等待异步答复    _CANCELLED_		取消     _DONE_		完成
+        // _IN_PROGRESS_	进行中       _IN_SAFETY_NET_      _SUBMITTED_  已提交      _UNCONFIRMED_   未确认
+
+        var str = "Amazon 未处理完成";
+        if (a[0].feed_processing_status == "_DONE_") {
+            str = "Amazon 已处理完成";
+        } else if (a[0].feed_processing_status == "_CANCELLED_") {
+            str = "Amazon 已取消";
+        }
+        ret.msg = "装箱信息处理状态：" + str;
+
+
+        if (feed_processing_status == "_DONE_" && a[0].MessagesWithError == 0 && !a[0].ResultDescription) {
             var af_rec = record.load({
                 type: 'customrecord_dps_shipping_record',
                 id: recordID
             });
-
 
             var rec_account = af_rec.getValue('custrecord_dps_shipping_rec_account');
             var rec_shipmentsid = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
@@ -1086,7 +1124,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }
                 }
 
-                recValue.custrecord_dps_amazon_box_flag = true;
+                // recValue.custrecord_dps_amazon_box_flag = true;
 
                 var id = record.submitFields({
                     type: 'customrecord_dps_shipping_record',
@@ -1099,14 +1137,77 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 // }
                 labelToWMS(af_rec);
             }
-            // }
 
+        } else {
+            var st = 26;
+            if (feed_processing_status == "_DONE_") {
+                st = 28
+            }
+            ret.msg = "装箱信息处理状态：" + str;
+
+            var id = record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: recordID,
+                values: {
+                    custrecord_dps_shipping_rec_status: st,
+                    custrecord_dps_shipment_info: a[0].ResultDescription
+                }
+            });
         }
 
-        return ret || false;
+
+        return ret;
     }
 
 
+    /**
+     * 重新上传装箱信息, 若已完成, 且无报错信息, 则获取标签文件并推送 WMS
+     * @param {Number} recId 
+     */
+    function amazonBoxInfo(recId) {
+
+        var retObj = {};
+        var rec_account, rec_shipmentsid;
+        search.create({
+            type: "customrecord_dps_shipping_record",
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: recId
+            }],
+            columns: [
+                "custrecord_dps_shipping_rec_account", // 账号
+                "custrecord_dps_shipping_rec_shipmentsid", // shipmentId 
+            ]
+        }).run().each(function (rec) {
+            rec_account = rec.getValue('custrecord_dps_shipping_rec_account');
+            rec_shipmentsid = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+
+        })
+
+        // 上传装箱信息
+        var gerep = core.amazon.submitCartonContent(rec_account, recId, rec_shipmentsid);
+
+        if (gerep == "_SUBMITTED_") {
+            var id = record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: recId,
+                values: {
+                    custrecord_dps_shipping_rec_status: 24,
+                    custrecord_dps_shipment_info: "装箱信息已经上传Amazon"
+                }
+            });
+
+            retObj.msg = "装箱信息已经上传Amazon"
+            return retObj;
+        }
+
+
+        retObj = amazonFeedStatus(recId);
+
+        return retObj;
+
+    }
 
     /**
      * 获取token

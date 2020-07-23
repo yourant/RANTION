@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-21 23:16:00
+ * @LastEditTime   : 2020-07-23 18:02:47
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -10,7 +10,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search, http, record, config) {
+define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li'], function (search, http, record, config, tool) {
 
     function _get(context) {
 
@@ -26,8 +26,11 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
         log.debug('context', context);
         var message = {};
         // 获取token
+
         var token = getToken();
         if (token) {
+
+            var tranOrder;
             var data = {};
             var tranType, fbaAccount;
             var ful_to_link;
@@ -102,6 +105,8 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                 ]
             }).run().each(function (rec) {
 
+                tranOrder = rec.getValue('custrecord_dps_shipping_rec_order_num')
+
                 ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
 
@@ -140,11 +145,11 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                     name: 'custrecord_ls_bubble_count',
                     join: 'custrecord_dps_shipping_r_channelservice'
                 }));
-                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer');
-                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer');
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');
+                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
                 data["logisticsLabelPath"] = 'logisticsLabelPath';
 
-                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer'); // 渠道商
 
                 // data["logisticsProviderCode"] = rec.getValue({
                 //     name: 'custrecord_ls_service_code',
@@ -164,7 +169,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                 data["logisticsFlag"] = logiFlag;
 
 
-                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
+                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer'); // 渠道商名称
 
                 data["sourceWarehouseCode"] = rec.getValue({
                     name: 'custrecord_dps_wms_location',
@@ -396,7 +401,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                     })),
 
                     productLength: Number(rec.getValue({
-                        name: 'custitem_dps_heavy2',
+                        name: 'custitem_dps_long',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 
@@ -405,7 +410,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                         join: 'custrecord_dps_shipping_record_item'
                     })),
                     productWidth: Number(rec.getValue({
-                        name: 'custitem_dps_heavy2',
+                        name: 'custitem_dps_wide',
                         join: 'custrecord_dps_shipping_record_item'
                     })),
 
@@ -432,13 +437,20 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                 add_fils = []; //过滤
             var len = item_info.length,
                 num = 0;
+            var checkArr = [];
             item_info.map(function (ld) {
                 num++;
-                add_fils.push([
-                    ["name", "is", ld.msku],
-                    "and",
-                    ["custrecord_ass_sku", "anyof", ld.itemId]
-                ]);
+                if (ld.msku) { // 存在 msku
+                    add_fils.push([
+                        ["name", "is", ld.msku],
+                        "and",
+                        ["custrecord_ass_sku", "anyof", ld.itemId]
+                    ]);
+                } else { // 不存在 msku
+                    add_fils.push([
+                        ["custrecord_ass_sku", "anyof", ld.itemId]
+                    ]);
+                }
                 if (num < len)
                     add_fils.push("or");
             });
@@ -470,7 +482,6 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                         log.debug('item.itemId: ' + item.itemId, "it: " + it);
 
                         if (item.itemId == it) {
-                            log.audit('')
                             item.asin = rec.getValue("custrecord_ass_asin");
                             item.fnsku = rec.getValue("custrecord_ass_fnsku")
                             item.msku = rec.getValue('name');
@@ -498,6 +509,29 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
                     return message;
                 }
 
+                // 判断一下, 对应的货品在映射关系中是否存在, 若不存在直接返回, 不推送WMS
+                var juArr = tool.judgmentFlag(context.recordID, newItemInfo);
+
+                log.audit('存在差异数组', juArr);
+
+                if (juArr.length > 0) {
+
+                    message.code = 3;
+                    message.data = juArr + ': Amazon Seller SKU 中找不到对应的映射关系';
+
+                    var id = record.submitFields({
+                        type: 'customrecord_dps_shipping_record',
+                        id: context.recordID,
+                        values: {
+                            custrecord_dps_shipping_rec_status: 8,
+                            custrecord_dps_shipping_rec_wms_info: '推送调拨单： ' + JSON.stringify(message.data)
+                        }
+                    });
+
+                    return message;
+                }
+
+
                 data['allocationDetailCreateRequestDtos'] = newItemInfo;
             } else {
                 data['allocationDetailCreateRequestDtos'] = item_info;
@@ -512,12 +546,17 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config'], function (search,
             // log.error('item_info', item_info);
             // data['allocationDetailCreateRequestDtos'] = newItemInfo;
 
+
+            // 1 调拨单 2 销售出库单 3 退货出库 4 采购入库 5 退件入库
+            tool.wmsInfo(tranOrder, data, 1, '创建调拨单');
             // 发送请求
             message = sendRequest(token, data);
         } else {
             message.code = 1;
             message.data = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
         }
+
+
         if (message.data.code == 0) {
             flag = 14;
         } else {

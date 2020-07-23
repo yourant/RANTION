@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-07-22 16:38:49
+ * @LastEditTime   : 2020-07-23 15:55:02
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -13,8 +13,8 @@
  *@NScriptType Restlet
  */
 define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logistics_cost_calculation',
-    'N/runtime'
-], function (search, record, log, runtime, task, costCal, runtime) {
+    'N/runtime', '../Helper/tool.li'
+], function (search, record, log, runtime, task, costCal, runtime, tool) {
 
     function _post(context) {
 
@@ -50,6 +50,9 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                 serverID, rec_country, zip, tLocation, city;
             var rid = searchTranRec(data[0].aono);
             if (rid) {
+
+                // tool.wmsRetInfo(rid, data, "调拨单-发运记录", "分箱回传");
+
                 search.create({
                     type: 'customrecord_dps_shipping_record',
                     filters: [{
@@ -86,9 +89,12 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                 });
                 log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + tLocation);
 
+                var cost = costCal.calculation(serverID, rec_country, zip, totalWeight, '', '', '', city, '', tLocation, '', '');
+
                 var objRecord = record.load({
                     type: 'customrecord_dps_shipping_record',
-                    id: rid
+                    id: rid,
+                    isDynamic: true
                 });
 
                 var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
@@ -108,49 +114,19 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                     return it;
                 }
 
+                var numLines = 0;
                 for (var i = 0, len = data.length; i < len; i++) {
-                    log.audit('存在明细: ' + i, detailModels);
+                    numLines = numLines + i;
+                    // log.audit('存在明细: ' + i, detailModels);
                     var temp = data[i];
                     totalWeight += temp.weight;
                     var detailModels = temp.detailModels;
                     aono = temp.aono;
 
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_box_length',
-                        line: i,
-                        value: temp.length
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ship_box_weight',
-                        line: i,
-                        value: temp.weight
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_big_box_width',
-                        line: i,
-                        value: temp.width
-                    });
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ful_rec_big_box_hight',
-                        line: i,
-                        value: temp.height
-                    });
-
-                    objRecord.setSublistValue({
-                        sublistId: sub_id,
-                        fieldId: 'custrecord_dps_ship_box_box_number',
-                        line: i,
-                        value: temp.boxNo
-                    });
-
                     // 若存在分箱明细
                     if (detailModels) {
 
-                        log.debug('detailModels.length', detailModels.length)
+                        // log.debug('detailModels.length', detailModels.length)
                         for (var j = 0, j_len = detailModels.length; j < j_len; j++) {
 
                             var a = i;
@@ -159,21 +135,61 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                                 a += numLines;
                             }
 
-                            objRecord.setSublistText({
+                            var lineNum = objRecord.selectNewLine({
+                                sublistId: sub_id
+                            });
+
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_box_length',
+                                // line: i,
+                                value: temp.length
+                            });
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_weight',
+                                // line: i,
+                                value: temp.weight
+                            });
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                                // line: i,
+                                value: temp.width
+                            });
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                                // line: i,
+                                value: temp.height
+                            });
+
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_box_number',
+                                // line: i,
+                                value: temp.boxNo
+                            });
+
+                            objRecord.setCurrentSublistText({
                                 sublistId: sub_id,
                                 fieldId: 'custrecord_dps_ship_box_item',
-                                line: i,
+                                // line: i,
                                 text: arrTemp.sku
                             });
-                            objRecord.setSublistValue({
+                            objRecord.setCurrentSublistValue({
                                 sublistId: sub_id,
                                 fieldId: 'custrecord_dps_ship_box_quantity',
-                                line: i,
+                                // line: i,
                                 value: arrTemp.qty
+                            });
+
+                            objRecord.commitLine({
+                                sublistId: sub_id
                             });
                         }
                     } else {
-                        log.audit('不存在明细')
+                        // log.audit('不存在明细')
                         var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
 
                         objRecord.setSublistValue({
@@ -209,6 +225,17 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                     }
                 }
 
+                var cost = 0;
+                try {
+                    cost = costCal.calculation(serverID, rec_country, zip, totalWeight, '', '', '', city, '', tLocation, '', '');
+                } catch (error) {
+                    log.audit('计算预估运费出错了', error);
+                }
+
+                objRecord.setValue({
+                    fieldId: 'custrecord_dps_shipping_rec_estimatedfre',
+                    value: cost
+                }); // 设置预估运费
                 objRecord.setValue({
                     fieldId: 'custrecord_dps_total_number',
                     value: data.length
@@ -220,15 +247,6 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                 retjson.data = null;
                 retjson.msg = 'success';
 
-                var cost = costCal.calculation(serverID, rec_country, zip, totalWeight, '', '', '', city, '', tLocation, '', '');
-                log.audit("cost", cost);
-                record.submitFields({
-                    type: 'customrecord_dps_shipping_record',
-                    id: rid,
-                    values: {
-                        'custrecord_dps_shipping_rec_estimatedfre': cost
-                    }
-                });
                 log.audit("执行总共使用量: " + scriptObj.getRemainingUsage());
             } else {
                 log.error('找不到对应的发运记录', "找不到对应的发运记录");

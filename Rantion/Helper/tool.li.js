@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-07-16 21:06:51
+ * @LastEditTime   : 2020-07-23 17:14:07
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -10,6 +10,146 @@
  */
 
 define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
+
+
+
+    /**
+     * 保存推送 WMS 的数据
+     * @param {Number} linkId 
+     * @param {Object} info 
+     * @param {String} recType 
+     */
+    function wmsInfo(linkId, info, recType, event) {
+
+        var recId;
+        search.create({
+            type: 'customrecord_dps_to_wms_data_info',
+            filters: [{
+                name: 'custrecord_dps_to_wms_rec_links',
+                operator: 'anyof',
+                values: linkId
+            }]
+        }).run().each(function (rec) {
+            recId = rec.id;
+        });
+
+        var wmsObj;
+        if (recId) {
+            wmsObj = record.load({
+                type: 'customrecord_dps_to_wms_data_info',
+                id: recId
+            });
+        } else {
+            wmsObj = record.create({
+                type: 'customrecord_dps_to_wms_data_info',
+            });
+        }
+
+        // var wmsObj = record.create({
+        //     type: 'customrecord_dps_to_wms_data_info',
+        // });
+
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_wms_info',
+            value: JSON.stringify(info)
+        });
+
+        // 1 调拨单 2 销售出库单 3 退货出库 4 采购入库 5 退件入库
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_wms_rec_type',
+            value: recType
+        }); // 单据类型
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_to_wms_datetime',
+            value: new Date().toISOString()
+        }); // 推送时间
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_to_wms_rec_links',
+            value: linkId
+        }); // 关联的单据
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_to_wms_event',
+            value: event
+        }); // 事件
+
+        var wmsObj_id = wmsObj.save();
+
+        log.debug('推送记录信息', wmsObj_id);
+
+        return wmsObj_id || false;
+
+    }
+
+
+    /**
+     * 保存推送 WMS 的数据
+     * @param {Number} linkId 
+     * @param {Object} info 
+     * @param {String} recType 
+     */
+    function wmsRetInfo(linkId, info, recType, event) {
+
+        /*
+        var recId;
+        search.create({
+            type: 'customrecord_dps_wms_ret_info',
+            filters: [{
+                name: 'custrecord_dps_wen_ret_links',
+                operator: 'is',
+                values: linkId
+            }]
+        }).run().each(function (rec) {
+            recId = rec.id;
+        });
+
+        var wmsObj;
+        if (recId) {
+            wmsObj = record.load({
+                type: 'customrecord_dps_wms_ret_info',
+                id: recId
+            });
+        } else {
+            wmsObj = record.create({
+                type: 'customrecord_dps_wms_ret_info',
+            });
+        }
+        */
+
+        var wmsObj = record.create({
+            type: 'customrecord_dps_wms_ret_info',
+        });
+
+        wmsObj.setValue({
+            fieldId: '	custrecord_dps_wms_ret_info',
+            value: JSON.stringify(info)
+        }); // WMS 回传的数据
+
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_wms_ret_rectype',
+            value: recType
+        }); // 单据类型
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_ret_info_date',
+            value: new Date().toISOString()
+        }); // 回传时间
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_wen_ret_links',
+            value: linkId
+        }); // 关联的单据
+        wmsObj.setValue({
+            fieldId: 'custrecord_dps_wms_ret_event',
+            value: event
+        }); // 事件
+
+        var wmsObj_id = wmsObj.save();
+
+        log.debug('回传数据记录ID', wmsObj_id);
+
+        return wmsObj_id || false;
+
+    }
+
+
 
     /**
      * 获取出入库货品信息
@@ -344,6 +484,75 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
 
 
+    /**
+     * 判断获取到的货品信息是否完全
+     * @param {Number} recId 
+     * @param {Array} judArr 
+     */
+    function judgmentFlag(recId, judArr) {
+
+        var limit = 3999,
+            fulArr = [];
+        search.create({
+            type: 'customrecord_dps_shipping_record',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: recId
+            }],
+            columns: [{
+                // 发运记录的货品
+                name: 'custrecord_dps_shipping_record_item',
+                join: 'custrecord_dps_shipping_record_parentrec'
+            }]
+        }).run().each(function (rec) {
+
+            var it = rec.getText({
+                name: 'custrecord_dps_shipping_record_item',
+                join: 'custrecord_dps_shipping_record_parentrec'
+            })
+            fulArr.push(it);
+
+            return --limit > 0;
+        });
+
+
+        var itemIdArr = [];
+        judArr.map(function (jud) {
+            var itemId = jud.sku;
+            itemIdArr.push(itemId);
+        });
+
+
+        var diffArr = diff(itemIdArr, fulArr);
+
+        return diffArr;
+    }
+
+
+
+    /**
+     * 获取两个数组的差异值
+     * @param {Array} arr1 数组1
+     * @param {Array} arr2 数组2
+     */
+    function diff(arr1, arr2) {
+        var newArr = [];
+        var arr3 = [];
+        for (var i = 0; i < arr1.length; i++) {
+            if (arr2.indexOf(arr1[i]) === -1)
+                arr3.push(arr1[i]);
+        }
+        var arr4 = [];
+        for (var j = 0; j < arr2.length; j++) {
+            if (arr1.indexOf(arr2[j]) === -1)
+                arr4.push(arr2[j]);
+        }
+        newArr = arr3.concat(arr4);
+        return newArr;
+    }
+
+
 
     return {
         SummaryBinBox: SummaryBinBox,
@@ -352,6 +561,9 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         judgmentBinBox: judgmentBinBox,
         getAllBinBox: getAllBinBox,
         searchTransactionItemInfo: searchTransactionItemInfo,
-        searchTransactionItemObj: searchTransactionItemObj
+        searchTransactionItemObj: searchTransactionItemObj,
+        wmsInfo: wmsInfo,
+        wmsRetInfo: wmsRetInfo,
+        judgmentFlag: judgmentFlag
     }
 });

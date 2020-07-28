@@ -19,7 +19,24 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 var ss = "success ," + " 耗时：" + (new Date().getTime() - startT)
                 return ss;
                 break;
-            case "pullorder":
+            case "pullorder_GetAcc":
+                var acc = context.acc;
+                var group = context.acc_group;
+                var last_updated_after = context.last_updated_after;
+                var last_updated_before = context.last_updated_before;
+                var startT = new Date().getTime();
+                //  core.amazon.getReportAccountList(group).map(function(account){
+                //     log.audit(account.id);
+                var ff =[];
+                   core.amazon.getAccountList(group).map(function(acc){
+                    ff.push(acc.id);
+                   });
+                //  })
+                log.debug("rs:",ff);
+            //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
+                return ff;
+                break;
+            case "pullorder_getOrders":
                 var acc = context.acc;
                 var group = context.acc_group;
                 var last_updated_after = context.last_updated_after;
@@ -29,7 +46,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 //     log.audit(account.id);
                  var ss = Orderpull(acc,last_updated_after,last_updated_before)
                 //  })
-               ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
+                ss += ",success ， 耗时：" + (new Date().getTime() - startT)
                 return ss;
                 break;
             default:
@@ -198,6 +215,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             };
         // =======================进cache==============end
        })
+       return acc;
     }
 
    //亚马逊拉单方法 ==========================================================
@@ -248,7 +266,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     return false;
                 });
 
-                // last_update_date = last_after;
+                last_update_date = last_after;
             } else {
                 log.debug("不是自定义时间")
                 search.create({
@@ -292,10 +310,10 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             log.debug("field_token", field_token)
 
             if (!last_update_date) 
-                last_update_date = "2020-05-30T00:00:00.000Z";
+                last_update_date = "2020-05-31T00:00:00.000Z";
             if (hid && nextToken) {
                 if (nextToken == '-1') {
-                    return 
+                    return ;
                     /** 寮?1?7鍚?鏂扮殑鍗曟嵁鑾峰弰1?7 */
                     log.debug("nextToken::::", nextToken + ",account: " + acc_id)
                     // return false;
@@ -345,25 +363,26 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 } else {
                     // var rtn = core1.listOrders(acc_id, moment(last_update_date).toISOString(), nextToken);
                     var rtn = core1.listOrders(acc_id, last_update_date, nextToken);
+                    if(rtn)
                     h.setValue({
                         // fieldId: 'custrecord_aio_importer_next_token',
                         fieldId: field_token,
                         value: rtn.token
                     });
-
-                    // 文本形式时间
-                    // h.setValue({
-                    //     fieldId: 'custrecord_dps_amazon_status_order_af',
-                    //     value: last_update_date
-                    // })
-                    // h.setValue({
-                    //     fieldId: 'custrecord_dps_amazon_status_order_bf',
-                    //     value: rtn.LastUpdatedBefore
-                    // })
-
+                    else
+                    h.setValue({
+                        // fieldId: 'custrecord_aio_importer_next_token',
+                        fieldId: field_token,
+                        value: "没有数据"
+                    });
                     hid = h.save();
-                    log.debug("456new Date()=====save()", hid)
-                    return rtn.orders;
+                    var rs;
+                    if(rtn)
+                    rs = rtn.orders;
+                    else
+                    rs = false;
+                    log.debug("new Date()=====save()", hid)
+                    return rs;
                 }
 
             } else {
@@ -392,6 +411,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                     fieldId: 'custrecord_dps_amazon_status_order_af',
                     value: last_update_date
                 })
+                if(rtn)
                 h.setValue({
                     fieldId: 'custrecord_dps_amazon_status_order_bf',
                     value: rtn.LastUpdatedBefore
@@ -415,15 +435,26 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 //     // value: new Date()
                 //     value: moment.utc(last_before).toDate()
                 // });
-
+                if(rtn)
                 h.setValue({
                     // fieldId: 'custrecord_aio_importer_next_token',
                     fieldId: field_token,
                     value: rtn.token
                 });
+                else
+                h.setValue({
+                    // fieldId: 'custrecord_aio_importer_next_token',
+                    fieldId: field_token,
+                    value: "没有数据"
+                });
                 hid = h.save();
+                var rs;
+                if(rtn)
+                rs = rtn.orders;
+                else
+                rs = false;
                 log.debug("new Date()=====save()", hid)
-                return rtn.orders;
+                return rs;
             }
         },
 

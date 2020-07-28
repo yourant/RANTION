@@ -59,6 +59,13 @@ function (search, apiUtil, record, Moment) {
                 var type = context.skuStorageDto.type;
                 var oldPositionCode_id = getPositionId(context.skuStorageDto.positionCode);
                 var newPosition_id = getPositionId(context.skuStorageDto.newPosition);
+                if (!newPosition_id) {
+                    var retjson = {
+                        code: 1,
+                        msg: '不存在' + context.skuStorageDto.newPosition + '库位信息，请在系统中维护后，再操作。'
+                    }
+                    return JSON.stringify(retjson);
+                }
                 var newBarcode_id;
                 if (context.skuStorageDto.newBarcode) {
                     var newBarcode_id = getPositionId(context.skuStorageDto.newBarcode);
@@ -158,8 +165,16 @@ function (search, apiUtil, record, Moment) {
                                 }
                             });
                         } else {
+                            var sku_id;
+                            search.create({
+                                type: 'item',
+                                filters: [ { name: 'name', operator: 'is', values: sku } ]
+                            }).run().each(function (rec) {
+                                sku_id = rec.id;
+                                return false;
+                            });
                             var detail_rec = record.create({ type: 'customrecord_inventory_detail', isDynamic: true });
-                            detail_rec.setValue({ fieldId: 'custrecord_id_sku', value: sku });
+                            detail_rec.setValue({ fieldId: 'custrecord_id_sku', value: sku_id });
                             detail_rec.setValue({ fieldId: 'custrecord_id_location', value: location });
                             detail_rec.setValue({ fieldId: 'custrecord_id_location_detail', value: newPosition_id });
                             detail_rec.setValue({ fieldId: 'custrecord_id_location_box', value: newBarcode_id });
@@ -181,6 +196,7 @@ function (search, apiUtil, record, Moment) {
                 code: 1,
                 msg: e.message
             }
+            log.debug('e', JSON.stringify(e));
             return JSON.stringify(retjson);
         }
     }

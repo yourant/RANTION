@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-07-23 15:55:02
+ * @LastEditTime   : 2020-07-24 17:33:34
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -89,7 +89,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                 });
                 log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + tLocation);
 
-                var cost = costCal.calculation(serverID, rec_country, zip, totalWeight, '', '', '', city, '', tLocation, '', '');
+                // var cost = costCal.calculation(serverID, rec_country, zip, totalWeight, '', '', '', city, '', tLocation, '', '');
 
                 var objRecord = record.load({
                     type: 'customrecord_dps_shipping_record',
@@ -103,8 +103,11 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                     sublistId: sub_id
                 });
 
+
+                var box_return_flag = objRecord.getValue('custrecord_dps_box_return_flag');
                 log.debug('发运记录装箱明细行数 status', numLines + '-' + status);
-                if (status != 14 && numLines > -1) {
+                if (box_return_flag && numLines > -1) {
+                    // if (status != 14 && numLines > -1) {
                     var it = {
                         code: 1,
                         data: null,
@@ -240,6 +243,11 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                     fieldId: 'custrecord_dps_total_number',
                     value: data.length
                 });
+
+                objRecord.setValue({
+                    fieldId: 'custrecord_dps_box_return_flag',
+                    value: true
+                }); // 用于标记是否已经回传了
                 var objRecord_id = objRecord.save();
                 log.audit('objRecord_id', objRecord_id);
 

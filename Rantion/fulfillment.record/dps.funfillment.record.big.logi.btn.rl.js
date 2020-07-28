@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-07-04 15:19:25
+ * @LastEditTime   : 2020-07-28 13:51:05
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
@@ -68,10 +68,12 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
             var to_id;
             search.create({
                 type: 'customrecord_dps_shipping_record',
-                filters: [
-                    { name: 'internalid', operator: 'is', values: rec_id }
-                ],
-                columns: [ 'custrecord_dps_shipping_rec_order_num' ]
+                filters: [{
+                    name: 'internalid',
+                    operator: 'is',
+                    values: rec_id
+                }],
+                columns: ['custrecord_dps_shipping_rec_order_num']
             }).run().each(function (rec) {
                 to_id = rec.getValue('custrecord_dps_shipping_rec_order_num');
                 return false;
@@ -82,7 +84,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     fromId: to_id,
                     toType: 'itemfulfillment'
                 });
-                objRecord.setValue({ fieldId: 'shipstatus', value: 'C' });
+                objRecord.setValue({
+                    fieldId: 'shipstatus',
+                    value: 'C'
+                });
                 var objRecord_id = objRecord.save();
                 if (objRecord_id) {
                     var itemReceipt = record.transform({
@@ -96,21 +101,33 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             type: 'customrecord_dps_shipping_record',
                             id: rec_id,
                             values: {
-                                custrecord_dps_shipping_rec_status: 6
+                                custrecord_dps_shipping_rec_status: 30
                             }
                         });
-                        result = { code: 200 }
+                        result = {
+                            code: 200
+                        }
                     } else {
-                        result = { code: 500 }
+                        result = {
+                            code: 500
+                        }
                     }
                 } else {
-                    result = { code: 500 }
+                    result = {
+                        code: 500
+                    }
                 }
             } else {
-                result = { code: 500 }
+                result = {
+                    code: 500
+                }
             }
         } catch (error) {
-            result = { code: 500 }
+
+            log.error('confirmOut  error', error);
+            result = {
+                code: 500
+            }
         }
         if (!result) result = {
             code: 500,
@@ -130,15 +147,18 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 type: 'customrecord_dps_shipping_record',
                 id: rec_id,
                 values: {
-                    custrecord_dps_shipping_rec_status: 12
+                    custrecord_dps_shipping_rec_status: 29
                 }
             });
             result = {
-                code: 200
+                code: 200,
+                msg: '已完成装箱, 等待发运'
             }
         } catch (error) {
+            log.error('finishPackage error', error);
             result = {
-                code: 500
+                code: 500,
+                msg: "出错了"
             }
         }
         if (!result) result = {

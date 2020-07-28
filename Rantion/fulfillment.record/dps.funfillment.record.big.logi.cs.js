@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-07-23 17:50:43
+ * @LastEditTime   : 2020-07-25 17:28:53
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -178,7 +178,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新WMS发运
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function WMSShipping(rec_id) {
 
@@ -234,7 +234,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
         }
         /**
          * 重新推送标签面单文件
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function LabelDocument(rec_id) {
 
@@ -288,8 +288,8 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
         }
 
         /**
-         * 
-         * @param {*} rec_id 
+         * 重新申请shipment
+         * @param {Number} rec_id 
          */
         function amazonShipment(rec_id) {
             console.log('获取shipment', rec_id);
@@ -343,7 +343,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新获取物流渠道
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function reacquireLogistics(rec_id) {
 
@@ -397,7 +397,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新获取物流跟踪号
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function getTrackingNumber(rec_id) {
 
@@ -451,7 +451,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新获取物流面单
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function getLabel(rec_id) {
 
@@ -504,7 +504,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 确认出库
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function confirmOut(rec_id) {
             var url1 = url.resolveScript({
@@ -559,7 +559,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 完成录入装箱信息
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function finishPackage(rec_id) {
             var url1 = url.resolveScript({
@@ -615,7 +615,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 生成报关资料
-         * @param {*} rec_id 
+         * @param {Number} rec_id 
          */
         function createInformation(rec_id) {
             console.log('生成报关资料', rec_id);
@@ -669,6 +669,10 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
         }
 
 
+        /**
+         * 获取装箱信息处理情况
+         * @param {Number} rec_id 
+         */
         function amazonFeedStatus(rec_id) {
 
             // alert('记录ID： ' + rec_id);
@@ -716,6 +720,10 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         }
 
+        /**
+         * 重新上传装箱信息
+         * @param {Number} rec_id 
+         */
         function amazonBoxInfo(rec_id) {
 
             // alert('记录ID： ' + rec_id);
@@ -753,6 +761,48 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         }
 
+
+        /**
+         * 重新上传装箱信息
+         * @param {Number} rec_id 
+         */
+        function toWMSReferenceId(rec_id) {
+
+            // alert('记录ID： ' + rec_id);
+
+            commonTool.startMask('正在上传 REFERENCE ID...');
+            var url1 = url.resolveScript({
+                scriptId: 'customscript_dps_funf_rec_big_shipment',
+                deploymentId: 'customdeploy_dps_funf_rec_big_shipment',
+                returnExternalUrl: false
+            });
+
+            https.post.promise({
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8',
+                    'Accept': 'application/json'
+                },
+                url: url1,
+                body: {
+                    action: "toWMSReferenceId",
+                    recordID: rec_id
+                }
+            }).then(function (response) {
+
+                var data = response.body;
+
+                commonTool.endMask();
+
+                dialog.alert({
+                    title: '上传 REFERENCE ID',
+                    message: data
+                }).then(function () {
+                    window.location.reload();
+                });
+            });
+
+        }
+
         return {
             pageInit: pageInit,
             saveRecord: saveRecord,
@@ -774,6 +824,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
             amazonFeedStatus: amazonFeedStatus,
             finishPackage: finishPackage,
             confirmOut: confirmOut,
-            amazonBoxInfo: amazonBoxInfo
+            amazonBoxInfo: amazonBoxInfo,
+            toWMSReferenceId: toWMSReferenceId
         }
     });

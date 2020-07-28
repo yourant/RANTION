@@ -48,19 +48,22 @@ define(['N/search', 'N/record'],
                     line: index,
                     value: rec.getValue("custrecord_product_category")
                 })
-              record.submitFields({
+              var id = rec.getSublistValue({
+                    sublistId: 'recmachcustrecord_sku_product_code',
+                    fieldId: 'id',
+                    line: index
+                })
+                if (id) {
+                    record.submitFields({
                         type: 'customrecord_product_sku',
-                        id: rec.getSublistValue({
-                            sublistId: 'recmachcustrecord_sku_product_code',
-                            fieldId: 'id',
-                            line: index
-                        }),
+                        id: id,
                         ignoreMandatoryFields: true,
                         values: {
                             custrecord_product_sku_department: rec.getValue("custrecord_product_department"),
                             custrecord_product_sku_category: rec.getValue("custrecord_product_category")
                         }
                     });
+                }
             }
         }
 

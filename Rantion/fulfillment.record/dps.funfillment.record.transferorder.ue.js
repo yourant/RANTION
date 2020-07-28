@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-23 17:21:14
+ * @LastEditTime   : 2020-07-28 11:41:19
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -225,6 +225,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status');
         var shipId = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
 
+
+        log.debug("判断是否存在 shipmentId", shipId)
         if (shipId) { // 若已经输入 shipmentID, 则直接推送 WMS装箱
             wms(af_rec);
 
@@ -680,31 +682,44 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             flagLocation = rec.getValue({
                 name: 'custrecord_dps_financia_warehous',
                 join: 'custrecord_dps_shipping_rec_location'
-            });
+            }); // 仓库的财务分仓
         });
 
+        log.audit('仓库类型 flagLocation', flagLocation);
         if (flagLocation == 3) { // 属于财务分仓属于 工厂仓
 
+            // 27	等待录入装箱信息
             log.debug('发出仓库属于工厂仓', "直接退出, 不推送WMS")
+
+            var id = record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: af_rec.id,
+                values: {
+                    custrecord_dps_shipping_rec_status: 27,
+                    custrecord_dps_shipping_rec_wms_info: '发出仓为工厂仓, 不推送WMS '
+                }
+            });
+
             return;
         }
 
         var rec_transport = af_rec.getValue('custrecord_dps_shipping_rec_transport');
         var shippingType;
-
+        // shippingType(integer): 运输方式：10 空运，20 海运，30 快船，40 铁路
+        // 1	空运   2	海运   3	铁路    4   快船
         if (rec_transport == 1) {
             shippingType = 10;
-        } else if (rec_transport == 3) {
+        } else if (rec_transport == 4) {
             shippingType = 30;
-        } else {
+        } else if (rec_transport == 2) {
             shippingType = 20;
+        } else if (rec_transport == 3) {
+            shippingType = 40
         }
 
 
         var message = {};
         // 获取token
-        // var token = getToken();
-
         var token = getToken();
         if (token) {
             var data = {};
@@ -783,20 +798,29 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     {
                         name: 'custrecord_dps_ship_remark'
                     }, // 备注
+                    "custrecord_dps_to_shipment_name", // shipment name
+                    "custrecord_dps_to_reference_id", // reference id
                 ]
             }).run().each(function (rec) {
 
                 ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
-
+                var shippingType;
+                // shippingType(integer): 运输方式：10 空运，20 海运，30 快船，40 铁路
+                // 1	空运   2	海运   3	铁路    4   快船
                 if (rec_transport == 1) {
                     shippingType = 10;
-                } else if (rec_transport == 3) {
+                } else if (rec_transport == 4) {
                     shippingType = 30;
-                } else {
+                } else if (rec_transport == 2) {
                     shippingType = 20;
+                } else if (rec_transport == 3) {
+                    shippingType = 40
                 }
 
+                data["referenceId"] = rec.getValue("custrecord_dps_to_reference_id");
+
+                data["shipmentName"] = rec.getValue("custrecord_dps_to_shipment_name"); // shipment
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue({
                     name: 'tranid',
@@ -993,11 +1017,46 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     //     name: 'taxamount',
                     //     join: 'custrecord_dps_trans_order_link'
                     // }
+
+                    {
+                        name: "custitem_dps_nature",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 材质  material
+                    {
+                        name: "custitem_dps_group",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 物流分组 logisticsGroup
+                    {
+                        name: "cost",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 采购成本  purchaseCost
+                    {
+                        name: "custitem_dps_skuenglish",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 英文标题/描述 englishTitle
                 ]
             }).run().each(function (rec) {
 
                 itemArr.push(rec.getValue('custrecord_dps_shipping_record_item'));
+
+                var purchaseCost = rec.getValue({
+                    name: "cost",
+                    join: "custrecord_dps_shipping_record_item"
+                });
                 var it = {
+                    englishTitle: rec.getValue({
+                        name: "custitem_dps_skuenglish",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
+                    purchaseCost: Number(purchaseCost),
+                    logisticsGroup: rec.getText({
+                        name: "custitem_dps_group",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
+                    material: rec.getText({
+                        name: "custitem_dps_nature",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
                     itemId: rec.getValue('custrecord_dps_shipping_record_item'),
                     purpose: rec.getValue({
                         name: 'custitem_dps_use',
@@ -1024,17 +1083,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     productImageUrl: rec.getValue({
                         name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
-                    }) ? rec.getValue({
-                        name: 'custitem_dps_picture',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }) : 'productImageUrl',
+                    }),
                     productTitle: rec.getValue({
                         name: 'custitem_dps_skuchiense',
                         join: 'custrecord_dps_shipping_record_item'
-                    }) ? rec.getValue({
-                        name: 'custitem_dps_skuchiense',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }) : productTitle,
+                    }),
                     productHeight: Number(rec.getValue({
                         name: 'custitem_dps_high',
                         join: 'custrecord_dps_shipping_record_item'
@@ -1138,6 +1191,14 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 }
 
 
+                var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link)
+
+                newItemInfo.map(function (newItem) {
+                    var itemId = newItem.itemId;
+                    newItem.pono = getPoObj[itemId]
+                });
+
+
                 data['allocationDetailCreateRequestDtos'] = newItemInfo;
             } else {
                 data['allocationDetailCreateRequestDtos'] = item_info;
@@ -1160,7 +1221,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             if (juArr.length > 0) {
 
                 message.code = 3;
-                message.data = juArr + ': Amazon Seller SKU 中找不到对应的映射关系';
+                message.data = juArr + ':  Amazon Seller SKU 中找不到对应的映射关系, 或者信息不全';
 
                 var id = record.submitFields({
                     type: 'customrecord_dps_shipping_record',
@@ -1174,8 +1235,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 return message;
             }
 
-            // 1 调拨单 2 销售出库单 3 退货出库 4 采购入库 5 退件入库
-            tool.wmsInfo(af_rec.id, data, 1, '创建调拨单');
+
+            try {
+
+                // 1 调拨单 2 销售出库单 3 退货出库 4 采购入库 5 退件入库
+                tool.wmsInfo(ful_to_link, data, 1, '创建调拨单');
+            } catch (error) {
+
+                log.audit('创建推送WMS数据记录出错', error);
+            }
             // 发送请求
             message = sendRequest(token, data);
         } else {
@@ -1284,6 +1352,25 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 fieldId: 'custrecord_dps_ship_remark',
                 value: rec.getValue('memo')
             });
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_to_reference_id',
+                value: rec.getValue('custbody_dps_to_reference_id')
+            }); // reference ID
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_to_shipment_name',
+                value: rec.getValue('custbody_dps_to_shipment_name')
+            }); // SHIPMENTNAME
+
+            // 1	空运   2	海运   3	铁路    4   快船
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_shipping_rec_transport',
+                value: rec.getValue('custbody_shipment_method')
+            }); // 运输方式
+
+            objRecord.setValue({
+                fieldId: 'custrecord_dps_ns_upload_packing_informa',
+                value: rec.getValue('custbody_dps_ns_upload_packing_informa')
+            }); // 设置 NS 是否上传装箱信息, 获取箱唛
 
             // 1 FBA调拨
             // 2 自营仓调拨
@@ -1631,6 +1718,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             // }
 
 
+            // 设置发运记录的货品行
             for (var i = 0; i < numLines; i++) {
                 var item_sku = rec.getSublistValue({
                     sublistId: 'item',

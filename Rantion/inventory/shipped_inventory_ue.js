@@ -16,26 +16,35 @@ define(['N/search', 'N/record'], function(search, record) {
         if (context.type == 'create' || context.type == 'delete') {
             var newRecord = context.newRecord;
             var lineNum = newRecord.getLineCount({ sublistId: 'item' });
+            var locations = {};
             for (var i = 0; i < lineNum; i++) {
                 var sku = newRecord.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
                 var quantiy = Number(newRecord.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i }));
-                var location = newRecord.getSublistValue({ sublistId: 'item', fieldId: 'location', line: i });
-                if (location) {
+                var location_id = newRecord.getSublistValue({ sublistId: 'item', fieldId: 'location', line: i });
+                if (location_id) {
+                    var location = locations[location_id];
                     var flad = true;
-                    search.create({
-                        type: 'location',
-                        filters: [
-                            { name: 'internalid', operator: 'is', values: location }
-                        ],
-                        columns: [ 'custrecord_wms_location_type', 'custrecord_dps_financia_warehous' ]
-                    }).run().each(function (rec) {
-                        var type = rec.getValue('custrecord_wms_location_type');
-                        var ware = rec.getValue('custrecord_dps_financia_warehous');
-                        if (type == 1 && ware == 2) {
-                            flad = false;
-                        }
-                        return false;
-                    });
+                    if (location) {
+                        flad = location.flad;
+                    } else {
+                        search.create({
+                            type: 'location',
+                            filters: [
+                                { name: 'internalid', operator: 'is', values: location_id }
+                            ],
+                            columns: [ 'custrecord_wms_location_type', 'custrecord_dps_financia_warehous' ]
+                        }).run().each(function (rec) {
+                            var type = rec.getValue('custrecord_wms_location_type');
+                            var ware = rec.getValue('custrecord_dps_financia_warehous');
+                            if (type == 1 && ware == 2) {
+                                flad = false;
+                            }
+                            return false;
+                        });
+                        var json = {};
+                        json.flad = flad;
+                        locations[location_id] = json;
+                    }
                     if (flad) {
                         break;
                     }
@@ -43,7 +52,7 @@ define(['N/search', 'N/record'], function(search, record) {
                     var location_box = newRecord.getSublistValue({ sublistId: 'item', fieldId: 'custcol_case_number', line: i });
                     var filters = [];
                     filters.push({ name: 'custrecord_id_sku', operator: 'is', values: sku });
-                    filters.push({ name: 'custrecord_id_location', operator: 'is', values: location });
+                    filters.push({ name: 'custrecord_id_location', operator: 'is', values: location_id });
                     var wmstype = 1;
                     if (location_box) {
                         filters.push({ name: 'custrecord_id_location_box', operator: 'is', values: location_box });
@@ -53,7 +62,7 @@ define(['N/search', 'N/record'], function(search, record) {
                         wmstype = 2;
                     }
                     filters.push({ name: 'custrecord_id_type', operator: 'is', values: wmstype });
-                    setQuantiy(filters, sku, quantiy, location, location_bin, location_box, wmstype, context.type);
+                    setQuantiy(filters, sku, quantiy, location_id, location_bin, location_box, wmstype, context.type);
                 }
             }
         }

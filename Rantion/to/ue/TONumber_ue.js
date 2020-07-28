@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-20 21:02:30
- * @LastEditTime   : 2020-07-21 14:05:29
+ * @LastEditTime   : 2020-07-27 19:23:42
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\to\ue\TONumber_ue.js
@@ -67,10 +67,12 @@ define(['N/search', 'N/record'], function (search, record) {
                     var a_num = Number(serial_number);
                     var str;
 
-                    if (a_num >= 10) {
+                    if (a_num >= 10 && a_num < 100) {
                         str = "00" + (a_num + 1);
-                    } else if (a_num >= 100) {
+                    } else if (a_num >= 100 && a_num < 1000) {
                         str = "0" + (a_num + 1);
+                    } else if (a_num >= 1000) {
+                        str = '' + a_num;
                     } else {
                         str = "000" + (a_num + 1);
                     }

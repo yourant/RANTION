@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-23 18:02:47
+ * @LastEditTime   : 2020-07-25 17:47:39
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -102,6 +102,8 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                         name: "tranid",
                         join: "custrecord_dps_shipping_rec_order_num"
                     }, // 调拨单号
+                    "custrecord_dps_to_shipment_name", // shipment name 
+                    "custrecord_dps_to_reference_id", // reference id
                 ]
             }).run().each(function (rec) {
 
@@ -110,15 +112,23 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                 ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
 
+                var shippingType;
+                // shippingType(integer): 运输方式：10 空运，20 海运，30 快船，40 铁路
+                // 1	空运   2	海运   3	铁路    4   快船
                 if (rec_transport == 1) {
                     shippingType = 10;
-                } else if (rec_transport == 3) {
+                } else if (rec_transport == 4) {
                     shippingType = 30;
-                } else {
+                } else if (rec_transport == 2) {
                     shippingType = 20;
+                } else if (rec_transport == 3) {
+                    shippingType = 40
                 }
 
                 data["remark"] = rec.getValue('custrecord_dps_ship_remark') ? rec.getValue('custrecord_dps_ship_remark') : ''; // 备注字段
+
+                data["referenceId"] = rec.getValue("custrecord_dps_to_reference_id");
+                data["shipmentName"] = rec.getValue("custrecord_dps_to_shipment_name"); // shipment name
 
                 data["shippingType"] = shippingType;
                 data["aono"] = rec.getValue({
@@ -335,6 +345,23 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                     //     name: 'taxamount',
                     //     join: 'custrecord_dps_trans_order_link'
                     // }
+
+                    {
+                        name: "custitem_dps_nature",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 材质  material
+                    {
+                        name: "custitem_dps_group",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 物流分组 logisticsGroup
+                    {
+                        name: "cost",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 采购成本  purchaseCost
+                    {
+                        name: "custitem_dps_skuenglish",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 英文标题/描述 englishTitle
                 ]
             }).run().each(function (rec) {
 
@@ -357,7 +384,24 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                 //   }
 
                 itemArr.push(rec.getValue('custrecord_dps_shipping_record_item'));
+                var purchaseCost = rec.getValue({
+                    name: "cost",
+                    join: "custrecord_dps_shipping_record_item"
+                });
                 var it = {
+                    englishTitle: rec.getValue({
+                        name: "custitem_dps_skuenglish",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
+                    purchaseCost: Number(purchaseCost),
+                    logisticsGroup: rec.getText({
+                        name: "custitem_dps_group",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
+                    material: rec.getText({
+                        name: "custitem_dps_nature",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
                     itemId: rec.getValue('custrecord_dps_shipping_record_item'),
                     purpose: rec.getValue({
                         name: 'custitem_dps_use',
@@ -532,6 +576,13 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                 }
 
 
+                var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link)
+
+                newItemInfo.map(function (newItem) {
+                    var itemId = newItem.itemId;
+                    newItem.pono = getPoObj[itemId]
+                });
+
                 data['allocationDetailCreateRequestDtos'] = newItemInfo;
             } else {
                 data['allocationDetailCreateRequestDtos'] = item_info;
@@ -547,8 +598,13 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
             // data['allocationDetailCreateRequestDtos'] = newItemInfo;
 
 
-            // 1 调拨单 2 销售出库单 3 退货出库 4 采购入库 5 退件入库
-            tool.wmsInfo(tranOrder, data, 1, '创建调拨单');
+            try {
+                // 1 调拨单 2 销售出库单 3 退货出库 4 采购入库 5 退件入库
+                tool.wmsInfo(tranferOrder, data, 1, '推送面单文件');
+
+            } catch (error) {
+                log.audit('创建推送WMS数据记录出错', error);
+            }
             // 发送请求
             message = sendRequest(token, data);
         } else {

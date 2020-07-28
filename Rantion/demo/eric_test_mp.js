@@ -8,169 +8,24 @@ define(['N/search', 'N/log', 'N/record', '../../douples_amazon/Helper/core.min.j
 
     function getInputData() {
 
-        core.amazon.getReportAccountList().map(function (account) {
-            log.debug("account:", account);
-        });
+        var skuId = [
+        ];
 
-
-        //盘盈1
-        var surplus = [];
-        //盘亏
-        var losses = [];
-
-        var updateList = [];
-        log.debug("updateList begin");
-        search.create({
-            type: 'customrecord_fba_update_inventory',
-            columns: [
-                'custrecord_fba_update_inventory_account',
-                'custrecord_salesorder_location',
-                'custrecord_fba_update_inventory_rid',
-                'custrecord_fba_update_status'
-            ],
-            filters: [{ name: 'custrecord_fba_update_status', operator: 'is', values: 2 }]
-        }).run().each(function (e) {
-            var result = JSON.parse(JSON.stringify(e));
-            log.debug("updateList begin", JSON.stringify(e));
-            var isC = false;
-            var custrecord_salesorder_location = result.values.custrecord_salesorder_location;
-            updateList.map(function (v) {
-                log.debug("updateList v", JSON.stringify(v));
-                if (v.salesorder_location == custrecord_salesorder_location) {
-                    isC = true;
-                }
-            });
-            if (!false) {
-                var item = {
-                    account: result.values.custrecord_fba_update_inventory_account,
-                    salesorder_location: result.values.custrecord_salesorder_location,
-                    rid: result.values.custrecord_fba_update_inventory_rid
-                }
-                updateList.push(item);
-            }
-        });
-
-        log.debug("updateList ", JSON.stringify(updateList));
-
-        updateList.map(function (update) {
-            var i = 1;
-            log.debug("updateList item ", update);
-            var nowPage = Number(0); // 查询页
-            var pageSize = Number(100); // 每页数量
-            log.debug('update.rid ', update.rid);
-            var inventoryitem = search.create({
-                type: 'customrecord_fba_myi_all_inventory_data',
-                columns: [
-                    'custrecord_fba_sku', 'custrecord_fba_afn_total_quantity', 'custrecord_fba_inventory_rid', 'custrecord_fba_account', 'custrecord_all_salesorder_location'
-                ],
-                filters: [
-                    { name: 'custrecord_fba_inventory_rid', operator: 'EQUALTO', values: Number(update.rid) },
-                    { name: 'custrecord_fba_account', operator: 'is', values: update.account },
-                    { name: 'custrecord_all_salesorder_location', operator: 'EQUALTO', values: Number(update.salesorder_location) }
-                ]
-            });
-            var pageData = inventoryitem.runPaged({
-                // pageSize: pageSize
-                pageSize: 10
-            });
-            var totalCount = pageData.count; // 总数
-            // var pageCount = pageData.pageRanges.length; // 页数
-            var pageCount = 1; // 页数
-            log.debug('totalCount', JSON.stringify(totalCount));
-            while (pageCount > 0) {
-                pageData.fetch({
-                    index: Number(nowPage++)
-                }).data.forEach(function (result) {
-                    var resultJSON = result.toJSON();
-                    log.debug("resultJSON.values.custrecord_fba_sku+type", resultJSON.values.custrecord_fba_sku + "-" + typeof (resultJSON.values.custrecord_fba_sku))
-                    // if (resultJSON.custrecord_fba_sku &&
-                    //     resultJSON.custrecord_fba_afn_total_quantity &&
-                    //     resultJSON.custrecord_fba_inventory_rid &&
-                    //     resultJSON.custrecord_fba_account &&
-                    //     resultJSON.custrecord_all_salesorder_location) {
-                    //获取映射关系sku customrecord_dps_amazon_seller_sku
-                    // log.debug('customrecord_dps_amazon_seller_sku', JSON.stringify(record.load({
-                    //     type: "customrecord_dps_amazon_seller_sku",
-                    //     id: ++i
-                    // })));
-                    search.create({
-                        type: 'customrecord_dps_amazon_seller_sku',
-                        columns: [
-                            'custrecord_dps_amazon_sku_number',
-                            'custrecord_dps_amazon_ns_sku'
-                        ]
-
-                        // name: "name",
-                        // join: 'custrecord_dps_amazon_sku_number',
-                        // operator: 'is',
-                        // values: sellersku
-                        , filters: [
-                            { name: 'name', join: 'custrecord_dps_amazon_sku_number', operator: 'is', values: resultJSON.values.custrecord_fba_sku }
-                            , { name: 'isinactive', join: 'custrecord_dps_amazon_ns_sku', operator: 'is', values: false }
-                        ]
-                    }).run().each(function (seller) {
-                        var sellerJSON = JSON.parse(JSON.stringify(seller));
-                        log.debug('sellerJSON', sellerJSON)
-                        var skuId = sellerJSON.values.custrecord_dps_amazon_ns_sku[0].value;
-                        var inventoryitem = record.load({
-                            type: "inventoryitem",
-                            id: skuId
-                        });
-                        var inventoryitemJSON = JSON.parse(JSON.stringify(inventoryitem));
-                        log.debug('inventoryitemJSON', inventoryitemJSON)
-
-                        var item_count = inventoryitem.getLineCount({ sublistId: 'locations' });
-                        for (var i = 0; i < item_count; i++) {
-                            var locationid = inventoryitem.getSublistValue({
-                                sublistId: 'locations',
-                                fieldId: 'locationid',
-                                line: i,
-                            });
-                            if (locationid == update.salesorder_location) {
-                                //库存对比
-                                var quantityavailable = inventoryitem.getSublistValue({
-                                    sublistId: 'locations',
-                                    fieldId: 'quantityavailable',
-                                    line: i,
-                                });
-                                var qty = resultJSON.values.custrecord_fba_afn_total_quantity;
-                                log.debug("库存对比 ", qty + "-" + quantityavailable)
-                                if (qty > quantityavailable) {
-                                    surplus.push({
-                                        item: skuId,
-                                        location: update.salesorder_location,
-                                        diffCount: qty - quantityavailable
-                                    });
-                                }
-                                if (qty < quantityavailable) {
-                                    losses.push({
-                                        item: skuId,
-                                        location: update.salesorder_location,
-                                        diffCount: qty - quantityavailable
-                                    });
-                                }
-                            }
-                        }
-                        return false;
-                    });
-                });
-                pageCount--;
-            }
-
-            log.debug('i', i);
-        });
-        log.debug('surplus', surplus);
-
-        // var firstCompany = getCompanyId("蓝深贸易有限公司")
-        // if (surplus.length > 0) {
-        //     var useType = stockUseType('盘盈入库')
-        //     saveInventoryAdjust(firstCompany, surplus, useType);
-        // }
-        log.debug('losses', losses);
-        // if (losses.length > 0) {
-        //     var useType = stockUseType('盘亏出库')
-        //     saveInventoryAdjust(firstCompany, losses, useType);
-        // }
+        for (var index = 0; index < skuId.length; index++) {
+            var id = skuId[index];
+            log.audit({
+                title: 'id1',
+                details: id
+            })
+             record.delete({
+                 type: 'customrecord_product_sku',
+                 id: id
+             });
+            log.audit({
+                title: 'id2',
+                details: id
+            })
+        }
         return;
     }
 

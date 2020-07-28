@@ -20,10 +20,10 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                 '&status=COMPLETED&result=agree&eventType=bpms_instance_change' +
                 '&beginCreateTime='
                 //+ beginDate.format("yyyy-MM-dd 00:00:00")
-                + beginDate.format("2020-07-02 00:00:00")
+                + beginDate.format("2020-07-09 00:00:00")
                 + '&endCreateTime='
                 //+ endDate.format("yyyy-MM-dd 23:59:59")
-                + endDate.format("2020-07-05 23:59:59")
+                + endDate.format("2020-07-13 23:59:59")
 				     //+ '&processInstanceId='
                 //+ 'baae7d21-e921-4515-8700-4260a226cea8'
           			;

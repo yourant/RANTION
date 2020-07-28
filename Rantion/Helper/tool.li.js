@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-07-23 17:14:07
+ * @LastEditTime   : 2020-07-24 14:33:01
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -10,6 +10,71 @@
  */
 
 define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
+
+
+
+    /**
+     * 搜索调拨单关联的采购订单
+     * @param {Array} itemArr 
+     * @param {Number} toId 
+     */
+    function searchToLinkPO(itemArr, toId) {
+
+        // log.error('itemArr', itemArr);
+        // log.error('toId', toId);
+        var limit = 3999;
+        var getInfo = [];
+        var getPO = {};
+        var poNo = '';
+        search.create({
+            type: "customrecord_transfer_order_details",
+            filters: [{
+                    join: "custrecord_transfer_code",
+                    name: "item",
+                    operator: "anyof",
+                    values: itemArr
+                },
+                {
+                    name: "custrecord_transfer_code",
+                    operator: "anyof",
+                    values: [toId]
+                }
+            ],
+            columns: [{
+                    name: "custrecord__realted_transfer_head",
+                    summary: "GROUP"
+                }, // 采购订单
+                {
+                    join: "CUSTRECORD_TRANSFER_CODE",
+                    name: "item",
+                    summary: "GROUP"
+                } // 货品
+            ]
+        }).run().each(function (rec) {
+            var item_code = rec.getValue({
+                join: "CUSTRECORD_TRANSFER_CODE",
+                name: "item",
+                summary: "GROUP"
+            });
+            var tra_hea = rec.getText({
+                name: "custrecord__realted_transfer_head",
+                summary: "GROUP"
+            });
+
+            // log.error('tra_hea', tra_hea);
+
+            var a = tra_hea.split(':');
+            var b = '';
+            if (a && a.length >= 2) {
+                b = a[1];
+            }
+            getPO[item_code] = b;
+            return --limit > 0;
+
+        });
+
+        return getPO;
+    }
 
 
 
@@ -564,6 +629,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         searchTransactionItemObj: searchTransactionItemObj,
         wmsInfo: wmsInfo,
         wmsRetInfo: wmsRetInfo,
-        judgmentFlag: judgmentFlag
+        judgmentFlag: judgmentFlag,
+        searchToLinkPO: searchToLinkPO
     }
 });

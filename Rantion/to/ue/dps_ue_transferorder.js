@@ -496,8 +496,12 @@ define(['N/search', 'N/record'], function (search, record) {
             }
         }
         for (var key in purchaseNeedSaveJson) {
-            var poRec = purchaseNeedSaveJson[key]
-            poRec.save()
+            var poRec = purchaseNeedSaveJson[key];
+            try {
+                poRec.save();
+            } catch (error) {
+                log.debug('transferoder_po', JSON.stringify(error)); 
+            }
         }
         //开始计算用掉了多少数量，然后再更新TO货品行数据
         refreshItemCount(itemJson, ToId)

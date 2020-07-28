@@ -521,7 +521,7 @@ var JetStarSmallDict = {
             weight: { key_ns: "custitem_dps_heavy2", help: "单个产品重量", require: false, getType: "value" },
             size: { key_ns: "", help: "尺寸，格式：10* 10 * 10", require: false, getType: "value" },
             photo_url: { key_ns: "custitem_dps_picture", help: "图片链接", require: false, getType: "value" },
-            hscode: { key_ns: "custitem_dps_customs_code", help: "海关编码", require: false, getType: "value" },//临时用
+            hscode: { key_ns: "custitem_dps_hscode1", help: "海关编码", require: false, getType: "value" },//临时用
             duty_rate: { key_ns: "", help: "", require: false, getType: "value" },
             photos: { key_ns: "", help: "", require: false, getType: "value" },
             is_battery: { key_ns: "", help: "产品是否带电，默认为 0。1 为是，0 为否", format: { "是": "1", "否": "0" }, defaultValue: '0', require: false, getType: "value" },
@@ -593,7 +593,7 @@ var JetStarBigDict = {
             weight: { key_ns: "custitem_dps_heavy2", help: "单个产品重量", require: false, getType: "value" },
             size: { key_ns: "", help: "尺寸，格式：10* 10 * 10", require: false, getType: "value" },
             photo_url: { key_ns: "custitem_dps_picture", help: "图片链接", require: false, getType: "value" },
-            hscode: { key_ns: "custitem_dps_customs_code", help: "海关编码", require: false, getType: "value" },//临时用
+            hscode: { key_ns: "custitem_dps_hscode1", help: "海关编码", require: false, getType: "value" },//临时用
             duty_rate: { key_ns: "", help: "", require: false, getType: "value" },
             photos: { key_ns: "", help: "", require: false, getType: "value" },
             is_battery: { key_ns: "", help: "产品是否带电，默认为 0。1 为是，0 为否", format: { "是": "1", "否": "0" }, defaultValue: '0', require: false, getType: "value" },

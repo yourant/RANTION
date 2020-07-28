@@ -13,8 +13,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         "运费折扣": "shipping_discount",
         "giftwrap": "gift_wrap_price",
     }
-      //订单类型
-      const ord_type = {
+    //订单类型
+    const ord_type = {
         "AFN":1,
         "MFN":2
     }
@@ -29,9 +29,19 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         "Unfulfillable":7,
     }
     function _get(context) {
+        log.debug("context:",context)
         var startT = new Date().getTime();
         switch (context.op) {
-            case "go": //转单
+            case "go_getAcc": //转单
+                var acc = context.acc;
+                var group = context.acc_group;
+                var ff =[];
+                core.amazon.getAccountList(group).map(function(acc){
+                    ff.push(acc.id);
+                });
+                log.debug("rs:",ff);
+                return ff;
+            case "go_getord": //转单
                 var acc = context.acc;
                 log.debug("go context:", context);
                 //var account = context.account;
@@ -1082,7 +1092,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         }
         log.debug("orders:" + orders.length)
         if (orders.length == 0)
-            return "order:" + orders.length
+            return "店铺 :"+acc+"order:" + orders.length
      try{
         orders.map(function (obj) {
                 log.audit('obj', obj)
@@ -1121,18 +1131,24 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 var order_type = (o.fulfillment_channel == 'MFN' ? i.salesorder_type : e.fbaorder_type) == '1' ? 'salesorder' : 'cashsale';
                 var order_form = o.fulfillment_channel == 'MFN' ? i.salesorder_form : e.fbaorder_form;
 
-                var order_location = o.fulfillment_channel == 'MFN' ? i.salesorder_location : e.fbaorder_location;
+                var order_location = o.fulfillment_channel == 'MFN' ? e.fbaorder_location : e.fbaorder_location;
+                // var order_location = o.fulfillment_channel == 'MFN' ? i.salesorder_location : e.fbaorder_location;
                 // var order_trandate = p.if_payment_as_tran_date ? moment.utc(o.purchase_date).toDate() : moment.utc(o.purchase_date).toDate();
 
                 var order_trandate = interfun.getFormatedDate("","",o.purchase_date).date;
                 var last_update_date =interfun.getFormatedDate("","",o.last_update_date,true).date;
-                if(last_update_date == "2") {
-                    if(r_id){
-                        var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
-                        log.debug("删除 del:"+del);
+                try{
+                    if(last_update_date == "2") {
+                        if(r_id){
+                            var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
+                            log.debug("删除 del:"+del);
+                        }
+                        return ;
                     }
-                    return ;
+                }catch(e){
+
                 }
+             
 
 
                 var error_message = [],
@@ -1452,10 +1468,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         ord.setValue({
                             fieldId: 'custbody_aio_s_order_type',
                             value: o.order_type
-                        });
-                        ord.setText({
-                            fieldId: 'trandate',
-                            text:  order_trandate
                         });
                         // set the fulfillment_channel
                         // ord.setValue({
@@ -1856,7 +1868,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 } catch (err) {
                     log.debug(externalid, externalid + " | \u7CFB\u7EDF\u7EA7\u522B\u9519\u8BEF\uFF0C\u8BA2\u5355\u63A8\u81F3MISSING ORDER! #" + mid + " order: " + JSON.stringify(o, null, 2));
                     log.error("error message:", amazon_account_id + "," + o.amazon_order_id + "," + itemAry + "System Error: " + err)
-                    var mid = mark_missing_order(externalid, amazon_account_id, o.amazon_order_id, itemAry + "System Error: " + err, interfun.getFormatedDate("", "", order_trandate).date);
+                    var mid = mark_missing_order(externalid, amazon_account_id, o.amazon_order_id, itemAry + "System Error: " + err, order_trandate);
 
                     err.push(err)
                     record.submitFields({

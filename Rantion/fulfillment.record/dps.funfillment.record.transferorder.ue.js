@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-28 11:41:19
+ * @LastEditTime   : 2020-07-28 17:35:21
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -1180,7 +1180,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     message.data = 'Amazon Seller SKU 中找不到对应的映射关系';
                     var id = record.submitFields({
                         type: 'customrecord_dps_shipping_record',
-                        id: context.recordID,
+                        id: af_rec.id,
                         values: {
                             custrecord_dps_shipping_rec_status: 8,
                             custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
@@ -1269,8 +1269,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         });
 
     }
-
-
 
 
     /**
@@ -1660,7 +1658,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 fieldId: 'custrecord_dps_shipping_r_channelservice',
                 value: rec.getValue('custbody_dps_transferor_channelservice')
             });
-
 
             var itemToArr = [],
                 ToLimit = 3999,

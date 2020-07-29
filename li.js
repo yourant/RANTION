@@ -2,13 +2,26 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-07-15 20:23:01
+ * @LastEditTime   : 2020-07-28 15:40:49
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
+{
+    "requestId": 12313,
+    "requestBody": {
+        "detailList": [{
+            "detailRecordList": [],
+            "planQty": 510,
+            "sku": "EC3002"
+        }],
+        "remark": "",
+        "sourceNo": "LN202007280001",
+        "sourceType": 10
+    }
+}
 
 
 {

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-28 15:01:38
+ * @LastEditTime   : 2020-07-28 17:49:53
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -269,6 +269,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                 var channel_dealer = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer');
                 var rec_shipmentsid = af_rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+                log.audit("是否存在 shipment Id", rec_shipmentsid)
                 if (rec_status == 5 && /* channel_dealer == 6 &&  */ rec_shipmentsid) { // 状态为 请输入 shipmentId , 渠道商为 龙舟, 并且 存在 shipmentId
 
                     orderToWMS(af_rec);
@@ -1546,17 +1547,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     productImageUrl: rec.getValue({
                         name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
-                    }) ? rec.getValue({
-                        name: 'custitem_dps_picture',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }) : 'productImageUrl',
+                    }),
                     productTitle: rec.getValue({
                         name: 'custitem_dps_skuchiense',
                         join: 'custrecord_dps_shipping_record_item'
-                    }) ? rec.getValue({
-                        name: 'custitem_dps_skuchiense',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }) : productTitle,
+                    }),
                     productHeight: Number(rec.getValue({
                         name: 'custitem_dps_high',
                         join: 'custrecord_dps_shipping_record_item'
@@ -1645,11 +1640,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                 if (newItemInfo && newItemInfo.length == 0) {
 
+                    log.audit('Amazon Seller SKU 中找不到对应的映射关系', "Amazon Seller SKU 中找不到对应的映射关系");
                     message.code = 3;
                     message.data = 'Amazon Seller SKU 中找不到对应的映射关系';
                     var id = record.submitFields({
                         type: 'customrecord_dps_shipping_record',
-                        id: context.recordID,
+                        id: af_rec.id,
                         values: {
                             custrecord_dps_shipping_rec_status: 8,
                             custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
@@ -1853,7 +1849,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 });
                 log.debug('response', JSON.stringify(response));
                 retdata = JSON.parse(response.body);
-
 
                 try {
                     // 1 调拨单 2 销售出库单 3 退货出库 4 采购入库 5 退件入库

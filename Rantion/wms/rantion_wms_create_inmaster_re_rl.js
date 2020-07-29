@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-20 20:52:26
+ * @LastEditTime   : 2020-07-28 15:35:44
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -1684,6 +1684,19 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                         toType: 'itemreceipt'
                     }); //转换为货品收据
 
+                    var numLines = irObj.getLineCount({
+                        sublistId: 'item'
+                    });
+
+                    for (var nu = 0; nu < numLines; nu++) {
+                        irObj.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'itemreceive',
+                            value: false,
+                            line: nu
+                        });
+                    }
+
 
                     var irObj_id;
                     for (var i = 0, iLen = de_ord.length; i < iLen; i++) {
@@ -1707,6 +1720,13 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                                 sublistId: 'item',
                                 fieldId: 'location',
                                 value: Loca,
+                                line: lineNumber
+                            });
+
+                            irObj.setSublistValue({
+                                sublistId: 'item',
+                                fieldId: 'itemreceive',
+                                value: true,
                                 line: lineNumber
                             });
 

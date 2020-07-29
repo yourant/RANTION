@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-25 17:47:39
+ * @LastEditTime   : 2020-07-28 17:40:20
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -428,17 +428,11 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                     productImageUrl: rec.getValue({
                         name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
-                    }) ? rec.getValue({
-                        name: 'custitem_dps_picture',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }) : 'productImageUrl',
+                    }),
                     productTitle: rec.getValue({
                         name: 'custitem_dps_skuchiense',
                         join: 'custrecord_dps_shipping_record_item'
-                    }) ? rec.getValue({
-                        name: 'custitem_dps_skuchiense',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }) : productTitle,
+                    }),
                     productHeight: Number(rec.getValue({
                         name: 'custitem_dps_high',
                         join: 'custrecord_dps_shipping_record_item'
@@ -561,7 +555,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                 if (juArr.length > 0) {
 
                     message.code = 3;
-                    message.data = juArr + ': Amazon Seller SKU 中找不到对应的映射关系';
+                    message.data = juArr + ':  Amazon Seller SKU 中找不到对应的映射关系, 或者信息不全';
 
                     var id = record.submitFields({
                         type: 'customrecord_dps_shipping_record',

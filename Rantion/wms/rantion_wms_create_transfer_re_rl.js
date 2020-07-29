@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-22 21:52:29
+ * @LastEditTime   : 2020-07-28 16:40:42
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -162,6 +162,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
 
                     if (containerNo) {
                         var cn_no = searchLoadingInformation(containerNo);
+                        log.debug('装柜记录内部ID', cn_no);
                         if (cn_no) { // 存在对应的装柜记录, 更新装柜记录
                             l_rec.setValue({
                                 fieldId: 'custrecord_dps_ship_rec_load_links',
@@ -169,6 +170,34 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
                             });
                             val.custrecord_dps_ship_rec_load_links = cn_no;
 
+                            var conVolume = 0;
+                            search.create({
+                                type: 'customrecord_dps_cabinet_record',
+                                filters: [{
+                                    name: 'internalid',
+                                    operator: 'anyof',
+                                    values: cn_no
+                                }],
+                                columns: [
+                                    "custrecord_dps_cabinet_rec_volume"
+                                ]
+                            }).run().each(function (rec) {
+                                conVolume += Number(rec.getValue('custrecord_dps_cabinet_rec_volume'));
+                            })
+
+                            var l_con_id = record.submitFields({ // 改用 这种方式报错, 之前使用 load-save 方式报错 (记录已经被更改)
+                                type: 'customrecord_dps_cabinet_record',
+                                id: cn_no,
+                                values: {
+                                    custrecord_dps_cabinet_rec_remai_volume: Number(conVolume) - Number(volume)
+                                },
+                                options: {
+                                    enableSourcing: false,
+                                    ignoreMandatoryFields: true
+                                }
+                            });
+
+                            /*
                             var l_con = record.load({
                                 type: 'customrecord_dps_cabinet_record',
                                 id: cn_no
@@ -179,6 +208,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
                                 value: Number(conVolume) - Number(volume)
                             });
                             var l_con_id = l_con.save();
+                            */
 
                             log.debug('更新装柜里成功', l_con_id);
                         }

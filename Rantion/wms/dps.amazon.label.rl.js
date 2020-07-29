@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-23 20:57:45
- * @LastEditTime   : 2020-07-24 15:58:11
+ * @LastEditTime   : 2020-07-28 19:34:03
  * @LastEditors    : Li
  * @Description    : WMS 触发获取装箱信息处理情况、WMS 触发重新上传装箱信息
  * @FilePath       : \Rantion\wms\dps.amazon.label.rl.js
@@ -19,9 +19,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     function _post(context) {
 
-        var userObj = runtime.getCurrentUser();
+        // var userObj = runtime.getCurrentUser();
 
-        log.audit('当前用户', userObj);
+        // log.audit('当前用户', userObj);
 
         log.debug('context', context);
         var aono = context.aono,

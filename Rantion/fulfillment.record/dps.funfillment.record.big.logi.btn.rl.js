@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-07-28 13:51:05
+ * @LastEditTime   : 2020-07-28 17:27:54
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
@@ -109,24 +109,28 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         }
                     } else {
                         result = {
-                            code: 500
+                            code: 500,
+                            msg: '收货失败了'
                         }
                     }
                 } else {
                     result = {
-                        code: 500
+                        code: 500,
+                        msg: '履行失败了'
                     }
                 }
             } else {
                 result = {
-                    code: 500
+                    code: 500,
+                    msg: '未知错误'
                 }
             }
         } catch (error) {
 
             log.error('confirmOut  error', error);
             result = {
-                code: 500
+                code: 500,
+                msg: error.message
             }
         }
         if (!result) result = {

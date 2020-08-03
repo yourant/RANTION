@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-02 14:45:45
+ * @LastEditTime   : 2020-08-03 11:27:38
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -21,9 +21,12 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
         try {
 
+            var userObj = runtime.getCurrentUser();
+
             var actionType = context.type;
             log.debug('actionType', actionType);
-            if (actionType == "edit") {
+            log.debug('runtime.executionContext', runtime.executionContext);
+            if (actionType == "edit" && userObj.role != 3 && runtime.executionContext == "USERINTERFACE") {
                 var aono, rec_status;
                 search.create({
                     type: context.newRecord.type,
@@ -172,7 +175,14 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
         try {
             var action = context.type;
-            if (action == "edit") {
+            // if (action == "edit") {
+
+            var userObj = runtime.getCurrentUser();
+
+            var actionType = context.type;
+            log.debug('actionType', actionType);
+            log.debug('runtime.executionContext', runtime.executionContext);
+            if (action == "edit" && userObj.role != 3 && runtime.executionContext == "USERINTERFACE") {
 
                 var updateField = {};
 
@@ -213,7 +223,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     aono = rec.getValue({
                         name: "tranid",
                         join: "custrecord_dps_shipping_rec_order_num"
-                    })
+                    });
                 })
                 updateField.transferlocation = tranLoca;
                 updateField.location = af_rec.getValue("custrecord_dps_shipping_rec_location");
@@ -460,6 +470,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
         var message = {};
 
         var item_info = [];
+        var ful_to_link;
 
         var fbaAccount;
 
@@ -482,6 +493,10 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 },
                 {
                     name: 'custrecord_dps_ship_record_tranor_type',
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                },
+                {
+                    name: "custrecord_dps_shipping_rec_order_num",
                     join: 'custrecord_dps_shipping_record_parentrec'
                 },
                 {
@@ -565,6 +580,11 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 }, // 店铺
             ]
         }).run().each(function (rec) {
+
+            ful_to_link = rec.getValue({
+                name: "custrecord_dps_shipping_rec_order_num",
+                join: 'custrecord_dps_shipping_record_parentrec'
+            })
 
             fbaAccount = rec.getValue({
                 name: 'custrecord_dps_shipping_rec_account',

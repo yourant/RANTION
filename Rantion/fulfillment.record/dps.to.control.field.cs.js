@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 11:07:52
- * @LastEditTime   : 2020-08-02 15:09:45
+ * @LastEditTime   : 2020-08-03 11:09:12
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.to.control.field.cs.js
@@ -14,8 +14,8 @@
  * @NModuleScope SameAccount
  */
 define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/dialog', 'N/url',
-    'N/https'
-], function (search, dialog, record, commonTool, dialog, url, https) {
+    'N/https', 'N/runtime'
+], function (search, dialog, record, commonTool, dialog, url, https, runtime) {
 
     var fieldMapping = { // 库存转移订单 与 发运记录的 字段对应关系
         "custrecord_dps_shipping_rec_location": "location", // 起始地点
@@ -82,46 +82,57 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
 
         if (mode == "edit") {
 
-            var custpage_abc_text = cur.getValue('custpage_abc_text');
-            if (custpage_abc_text) {
-                var url = window.location.href;
-                url = url.replace('&e=T', '');
 
-                var options = {
-                    title: '修改发运记录',
-                    message: '不允许修改发运记录',
-                };
+            var userObj = runtime.getCurrentUser();
 
-                var submitFieldsPromise = record.submitFields.promise({
-                    type: cur.type,
-                    id: cur.id,
-                    values: {
-                        custrecord_dps_update_ful_rec_info: '请联系仓库人员修改wms调拨单状态'
+            var name = userObj.name; // 当前用户
+
+            console.log('userObj id', userObj.id)
+
+            if (userObj.role != 3 && runtime.executionContext == "USERINTERFACE") {
+
+                var custpage_abc_text = cur.getValue('custpage_abc_text');
+                if (custpage_abc_text) {
+                    var url = window.location.href;
+                    url = url.replace('&e=T', '');
+
+                    var options = {
+                        title: '修改发运记录',
+                        message: '不允许修改发运记录',
+                    };
+
+                    var submitFieldsPromise = record.submitFields.promise({
+                        type: cur.type,
+                        id: cur.id,
+                        values: {
+                            custrecord_dps_update_ful_rec_info: '请联系仓库人员修改wms调拨单状态'
+                        }
+                    });
+
+                    function success(result) {
+                        window.location.replace(url)
                     }
-                });
 
-                function success(result) {
-                    window.location.replace(url)
+                    function failure(reason) {
+                        window.location.replace(url)
+                    }
+                    dialog.create(options).then(success).catch(failure);
                 }
 
-                function failure(reason) {
-                    window.location.replace(url)
+                var statusArr = [6, 7, 12, 13, 19, 20, 22, 23, 24, 25, 26, 28];
+
+                var rec_status = cur.getValue("custrecord_dps_shipping_rec_status");
+                if (statusArr.indexOf(rec_status) > -1) {
+                    var field_Arr = Object.keys(fieldMapping)
+                    field_Arr.map(function (field) {
+                        cur.getField({
+                            fieldId: field
+                        }).isDisabled = true;
+                    })
+
                 }
-                dialog.create(options).then(success).catch(failure);
             }
 
-            var statusArr = [6, 7, 12, 13, 19, 20, 22, 23, 24, 25, 26, 28];
-
-            var rec_status = cur.getValue("custrecord_dps_shipping_rec_status");
-            if (statusArr.indexOf(rec_status) > -1) {
-                var field_Arr = Object.keys(fieldMapping)
-                field_Arr.map(function (field) {
-                    cur.getField({
-                        fieldId: field
-                    }).isDisabled = true;
-                })
-
-            }
 
         }
     }

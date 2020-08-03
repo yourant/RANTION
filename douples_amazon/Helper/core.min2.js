@@ -735,7 +735,7 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                     },
                     /** * 其他信息 * @index 28 */
                     {
-                        name: 'custrecord_aio_dept'
+                        name: 'custrecord_division'
                     },
                     {
                         name: 'custrecord_aio_salesorder_payment_method'
@@ -3285,7 +3285,7 @@ define(["require", "exports", "N/email", "N/error", "N/https", "N/log", "N/file"
                                 });
                                 to.setValue({
                                     fieldId: 'department',
-                                    value: acc_1.getValue('custrecord_aio_dept')
+                                    value: acc_1.getValue('custrecord_division')
                                 });
                                 to.setValue({
                                     fieldId: 'firmed',

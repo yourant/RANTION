@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-28 19:42:02
- * @LastEditTime   : 2020-07-28 19:46:49
+ * @LastEditTime   : 2020-07-29 10:10:22
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.auto.update.number.map.js
@@ -29,6 +29,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 type: 'customrecord_dps_transferorder_tranid',
                 id: 1,
                 values: {
+                    name: 1,
                     custrecord_dps_to_serial_number: 1
                 }
             })

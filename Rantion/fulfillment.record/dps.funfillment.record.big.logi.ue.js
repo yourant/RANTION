@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-28 17:49:53
+ * @LastEditTime   : 2020-07-31 17:03:52
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -87,7 +87,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             //         functionName: "reacquireLogistics(" + bf_cur.id + ")"
             //     });
             // }
-            if (type == 'view' && (bigRec_status == 11 || bigRec_status == 9) && !rec_shipmentsid) { // 不存在shipmentId
+            if (type == 'view' && (bigRec_status == 11 || bigRec_status == 9)) { // 不存在shipmentId
+                // if (type == 'view' && (bigRec_status == 11 || bigRec_status == 9) && !rec_shipmentsid) { // 不存在shipmentId
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '重新获取Shipment',

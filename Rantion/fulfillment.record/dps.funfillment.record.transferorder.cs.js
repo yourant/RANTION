@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-03 20:27:19
- * @LastEditTime   : 2020-07-11 15:55:10
+ * @LastEditTime   : 2020-07-30 14:08:09
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.cs.js
@@ -18,8 +18,23 @@ define(['N/url', 'N/log', 'N/https', 'N/ui/dialog', 'N/record', 'N/search',
 ], function (url, log, https, dialog, record, search, commonTool) {
 
 
+    /**
+     * Function to be executed after page is initialized.
+     *
+     * @param {Object} scriptContext
+     * @param {Record} scriptContext.currentRecord - Current form record
+     * @param {string} scriptContext.mode - The mode in which the record is being accessed (create, copy, or edit)
+     *
+     * @since 2015.2
+     */
     function pageInit(scriptContext) {
 
+        console.log('pageInit', "pageInit");
+        var cur = scriptContext.currentRecord;
+        var objField = cur.getField({
+            fieldId: 'custbody_dps_transferor_type'
+        });
+        objField.isDisabled = true;
     }
 
 
@@ -183,67 +198,36 @@ define(['N/url', 'N/log', 'N/https', 'N/ui/dialog', 'N/record', 'N/search',
 
         commonTool.startMask('生成发运记录中,请耐心等待');
 
-        record.submitFields({
-            type: "transferorder",
-            id: recId,
-            values: {
-                memo: ""
-            }
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_funfi_record_tran_rl',
+            deploymentId: 'customdeploy_dps_funfi_record_tran_rl',
+            returnExternalUrl: false
         });
 
-        var fulRecId;
-        var erro_info;
-        search.create({
-            type: 'transferorder',
-            filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: recId
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: true
-                }
-            ],
-            columns: [
-                "custbody_dps_fu_rec_link",
-                "custbody_dps_to_create_fulrec_info"
-            ]
-        }).run().each(function (rec) {
-            erro_info  = rec.getValue("custbody_dps_to_create_fulrec_info");
-            fulRecId = rec.getValue("custbody_dps_fu_rec_link");
+        https.post.promise({
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8',
+                'Accept': 'application/json'
+            },
+            url: url1,
+            body: {
+                action: "createFulRecord",
+                recordID: recId
+            }
+        }).then(function (response) {
+
+            var data = response.body;
+
+            commonTool.endMask();
+
+            dialog.alert({
+                title: '生成发运记录',
+                message: data
+            }).then(function () {
+                window.location.reload();
+            });
         });
-        commonTool.endMask();
-        if (fulRecId) {
-            dialog.alert({
-                title: '创建发运记录成功',
-                message: '创建发运记录成功'
-            }).then(success).catch(failure);
 
-            function success(result) {
-                window.location.reload(true);
-            }
-
-            function failure(reason) {
-                console.log('Failure: ' + reason)
-            }
-        } else {
-            dialog.alert({
-                title: '创建发运记录失败',
-                message: '创建发运记录失败:'+erro_info
-            }).then(success).catch(failure);
-
-            function success(result) {
-                window.location.reload(true);
-            }
-
-            function failure(reason) {
-                console.log('Failure: ' + reason)
-            }
-        }
-
-        console.log('创建', recId);
 
     }
 

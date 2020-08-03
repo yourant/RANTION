@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 15:09:31
- * @LastEditTime   : 2020-06-23 15:47:24
+ * @LastEditTime   : 2020-07-29 17:52:47
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\vendor_price_ue1.js
@@ -35,12 +35,14 @@ define(['../Helper/Moment.min', 'N/search', 'N/format', 'N/record', 'N/runtime',
             // log.error('新的记录', JSON.stringify(newRecord));
             var checkStatus = newRecord.getValue('custrecord_vmph_check_status');
             var creator = newRecord.getValue('custrecord_vendor_price_creator');
+            /*  HACK 审批状态状态 不使用
             if (checkStatus == 6 || checkStatus == 2) { // 已通过 / 审批中  不能编辑
                 redirect.toRecord({
                     type: context.newRecord.type,
                     id: context.newRecord.id,
                 });
             }
+            */
             if (checkStatus == 1 && userName != creator) { // 待提交审批  且 当前用户不等于创建人，则不能编辑
                 redirect.toRecord({
                     type: context.newRecord.type,

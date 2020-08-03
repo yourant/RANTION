@@ -19,6 +19,26 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 var ss = "success ," + " 耗时：" + (new Date().getTime() - startT)
                 return ss;
                 break;
+            case "setsetllementAcc_GetAcc":
+                var acc = context.acc;
+                var group = context.acc_group;
+                //  core.amazon.getReportAccountList(group).map(function(account){
+                //     log.audit(account.id);
+                var ff =getReportAcc(group);
+                log.debug("rs:",ff);
+            //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
+                return ff;
+                break;
+            case "setsetllementAcc_Deal":
+                var acc = context.acc;
+                var setRec_id = context.setRec_id;
+                //  core.amazon.getReportAccountList(group).map(function(account){
+                //     log.audit(account.id);
+                var ff =setReportAcc(setRec_id);
+                log.debug("rs:",ff);
+            //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
+                return ff;
+                break;
             case "pullorder_GetAcc":
                 var acc = context.acc;
                 var group = context.acc_group;
@@ -70,7 +90,72 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
     }
 
 
-  
+    function getReportAcc(group_req){
+       var acc_arrys = [],orders;
+       core.amazon.getReportAccountList(group_req).map(function(ds){
+        acc_arrys.push(ds.id)
+       });
+       var fils =[],limit =2;
+       fils = [
+         ["custrecord_settlement_acc", "anyof", "@NONE@"],
+         "and",
+         ["custrecord_aio_account_2", "anyof", acc_arrys],
+         "and",
+         [
+             ["custrecord_settlement_acc","anyof", "@NONE@"],
+             "and",
+             ["custrecord_is_manual","is","F"]
+         ]
+       ]
+       search.create({
+        type: "customrecord_aio_amazon_settlement",
+        filters: fils,
+      }).run().each(function (e) {
+        orders.push(e.id);
+        return --limit > 0
+      })
+      orders.map(function(dfs){
+          var setlle = record.load({type:"customrecord_aio_amazon_settlement",id:dfs});
+          var markt = setlle.getValue("custrecord_aio_sett_marketplace_name");
+          var report_acc = setlle.getValue("custrecord_aio_account_2");
+          if(!markt){
+              var settlement_id =  setlle.getValue("custrecord_aio_sett_id");
+              search.create({
+                  type:"customrecord_aio_amazon_settlement",
+                  filters:[
+                      {name:"custrecord_aio_sett_id",operator:'is',values:settlement_id}
+                  ],columns:[
+                      {name:"custrecord_aio_sett_marketplace_name"}
+                  ]
+              }).run().each(function(e){
+                markt = e.getValue("custrecord_aio_sett_marketplace_name");
+              })
+          }
+          if(JSON.stringify(markt).indexOf("Amazon.")==-1){
+            var settlement_id =  setlle.getValue("custrecord_aio_sett_id");
+            search.create({
+                type:"customrecord_aio_amazon_settlement",
+                filters:[
+                    {name:"custrecord_aio_sett_id",operator:'is',values:settlement_id}
+                ],columns:[
+                    {name:"custrecord_aio_sett_marketplace_name"}
+                ]
+            }).run().each(function(e){
+              markt = e.getValue("custrecord_aio_sett_marketplace_name");
+            })
+          }
+          var account = interfun.GetstoreInEU(report_acc, markt, "acc_text").acc;
+          log.debug("account,真实店铺",account);
+
+      })
+       return orders;
+    }
+   
+ 
+
+
+
+
 
 
     function Orderpull(acc,last_updated_after,last_updated_before) {
@@ -85,7 +170,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
         log.debug("order:", order);
         // ====================进cache==============
         try {
-            var r,r_id;
+            var r,r_id,ck = true;
             search.create({
                 type: 'customrecord_aio_order_import_cache',
                 filters: [{
@@ -98,8 +183,11 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                         operator: search.Operator.IS,
                         values: order.amazon_order_id
                     }
-                ]
+                ],columns:["custrecord_aio_cache_status"]
             }).run().each(function (rec) {
+                if(rec.getValue("custrecord_aio_cache_status") !="Pending"){
+                    ck =  false;
+                }
                 r = record.load({
                     type: 'customrecord_aio_order_import_cache',
                     id: rec.id
@@ -107,20 +195,15 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 r_id = rec.id;
                 return false;
             });
+            if(!ck) return;
             if (!r) {
                 r = record.create({
                     type: 'customrecord_aio_order_import_cache',isDynamic:true
                 });
             }
             var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date;
-            var last_update_date =interfun.getFormatedDate("","",order.last_update_date,true).date;
-            if(last_update_date == "2") {
-                if(r_id){
-                    var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
-                    log.debug("删除 del:"+del);
-                }
-                return ;
-            }
+            var last_update_date =interfun.getFormatedDate("","",order.last_update_date).date;
+         
             r.setValue({
                 fieldId: 'custrecord_aio_cache_acc_id',
                 value: order.AccID
@@ -161,7 +244,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
             r.setValue({fieldId:"custrecord_shipment_date_cache",value:order.latest_ship_date});
             r.setValue({fieldId:"custrecord_purchase_date_1",value:order.purchase_date});
             r.setValue({fieldId:"custrecord_last_update_date",value:order.last_update_date});
-            r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.last_update_date).date});
+            r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.latest_ship_date).date});
             r.setValue({fieldId:"custrecord_seller_order_id_1",value:order.seller_order_id });
             r.setValue({fieldId:"custrecord_dps_cache_shipped_byamazont_f",value:order.shipped_byamazont_fm});
             // rec.selectNewLine({sublistId:"recmachcustrecord_aitem_rel_cahce"})

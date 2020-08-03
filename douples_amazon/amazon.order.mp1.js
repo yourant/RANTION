@@ -58,6 +58,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             log.error('getinput error 出错了', e);
         }
         log.audit("orders 总数：", orders.length);
+        return "1"
         return orders;
     }
 
@@ -95,8 +96,8 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     type: 'customrecord_aio_order_import_cache'
                 });
             }
-            var order_trandate = interfun.getFormatedDate("","",order.purchase_date,true).date;
-            var last_update_date =interfun.getFormatedDate("","",order.last_update_date,true).date;
+            var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date;
+            var last_update_date =interfun.getFormatedDate("","",order.last_update_date,"",true).date;
             if(last_update_date == "2") {
                 if(r_id){
                     var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
@@ -147,7 +148,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             r.setValue({fieldId:"custrecord_shipment_date_cache",value:order.latest_ship_date});
             r.setValue({fieldId:"custrecord_purchase_date_1",value:order.purchase_date});
             r.setValue({fieldId:"custrecord_last_update_date",value:order.last_update_date});
-            r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.last_update_date).date});
+            r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.latest_ship_date).date});
             r.setValue({fieldId:"custrecord_seller_order_id_1",value:order.seller_order_id  });
             r.setValue({fieldId:"custrecord_dps_cache_shipped_byamazont_f",value:order.shipped_byamazont_fm});
             var ss = r.save();

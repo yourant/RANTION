@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-28 17:35:21
+ * @LastEditTime   : 2020-07-30 19:41:57
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -159,6 +159,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         })
                         // var flag = judgmentItemInventory(af_rec.type, af_rec.id);
                         var flag = qtyBackOrdered(af_rec.id); // 判断是否存在延交订单
+                        var getArr = arrBackOrder(af_rec.id); // 判断是否存在延交订单
+
+                        // var flag = false;
+                        // if (getArr && getArr.length == 0) {
+                        //     flag = true;
+                        // }
                         if (flag) { // 不存在延交订单, 允许创建发运记录
                             // 创建大货发运记录
                             var rec_id = createFulRecord(af_rec, ck);
@@ -191,12 +197,16 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 });
                             }
                         } else {
+                            var str = "库存不足,无法创建发运记录, 货品：" + getArr;
+                            if (str.length > 300) {
+                                str = str.substr(0, 280);
+                            }
                             record.submitFields({
                                 type: af_rec.type,
                                 id: af_rec.id,
                                 values: {
                                     // 'custbody_dps_fu_rec_link': rec_id,
-                                    custbody_dps_to_create_fulrec_info: "库存不足,无法创建发运记录"
+                                    custbody_dps_to_create_fulrec_info: str
                                 }
                             });
                         }
@@ -1149,7 +1159,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             log.debug('item_info', item_info);
             var newItemInfo = [];
 
+
+            log.debug('推送 WMS tranType', tranType);
             if (tranType == 1) {
+
                 var new_limit = 3999;
                 var fls_skus = [];
                 search.create({
@@ -1218,7 +1231,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
             log.audit('存在差异数组', juArr);
 
-            if (juArr.length > 0) {
+            if (juArr.length > 0 && tranType == 1) {
 
                 message.code = 3;
                 message.data = juArr + ':  Amazon Seller SKU 中找不到对应的映射关系, 或者信息不全';
@@ -1468,7 +1481,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     })
 
                     log.audit("serverID rec_country city location", serverID + '-' + rec_country + '-' + city + '-' + location);
-                    cost = costCal.calculation(serverID, rec_country, zip, allWeight, '', '', '', city, '', location, '', '');
+                    try {
+                        cost = costCal.calculation(serverID, rec_country, zip, allWeight, '', '', '', city, '', location, '', '');
+                        log.debug('开始计算预估运费', cost)
+                    } catch (error) {
+                        log.audit('计算预估运费出错了', error);
+                    }
                     log.audit("cost", cost);
                     objRecord.setValue({
                         fieldId: 'custrecord_dps_shipping_rec_estimatedfre',
@@ -1921,6 +1939,57 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         }
 
         return flag;
+    }
+
+    /**
+     * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 false; 否则返回 true;
+     * @param {Number} toId 
+     * @returns {Array} 
+     */
+    function arrBackOrder(toId) {
+        var backOrder = 0;
+        var bacOrdArr = [];
+
+        var toObj = record.load({
+            type: 'transferorder',
+            id: toId
+        });
+        var numLines = toObj.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            var backQty = toObj.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantitybackordered',
+                line: i
+            });
+            if (backQty != 0) {
+                var it = {
+                    itemName: toObj.getSublistText({
+                        sublistId: 'item',
+                        fieldId: 'item',
+                        line: i
+                    }),
+                    qty: backQty
+                }
+                bacOrdArr.push(toObj.getSublistText({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    line: i
+                }));
+            }
+            backOrder += Number(backQty);
+        }
+        log.debug('backOrder', backOrder);
+
+        if (backOrder != 0) {
+            flag = false;
+        }
+        log.audit('bacOrdArr length： ' + bacOrdArr.length, bacOrdArr);
+
+        return bacOrdArr;
     }
 
 

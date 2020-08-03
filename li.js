@@ -2,12 +2,130 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 20:40:05
- * @LastEditTime   : 2020-07-28 15:40:49
+ * @LastEditTime   : 2020-07-31 10:21:14
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
+
+
+{
+    "requestId": '1232131',
+    "requestBody": {
+        "detailList": [{
+                "detailRecordList": [{
+                    "barcode": "101001",
+                    "positionCode": "HD1A01",
+                    "shelvesQty": 10,
+                    "sku": "101001",
+                    "type": 2
+                }],
+                "planQty": 10,
+                "receivedQty": 10,
+                "shelvesQty": 10,
+                "sku": "101001",
+                "unqualifiedQty": 0
+            },
+            {
+                "detailRecordList": [{
+                    "barcode": "101030",
+                    "positionCode": "HD1A01",
+                    "shelvesQty": 10,
+                    "sku": "101030",
+                    "type": 2
+                }],
+                "planQty": 10,
+                "receivedQty": 10,
+                "shelvesQty": 10,
+                "sku": "101030",
+                "unqualifiedQty": 0
+            }
+        ],
+        "remark": "",
+        "sourceNo": "LN202007310001",
+        "sourceType": 10
+    }
+}
+
+
+var fieldMapping = { // 库存转移订单 与 发运记录的 字段对应关系
+    custrecord_dps_shipping_rec_location: location, // 起始地点
+    custrecord_dps_ship_remark: custrecord_dps_ship_remark, // 备注
+    custrecord_dps_to_reference_id: custbody_dps_to_reference_id, // reference id
+    custrecord_dps_to_shipment_name: custbody_dps_to_shipment_name, // shipment name
+    custrecord_dps_shipping_rec_transport: custbody_shipment_method, // 运输方式
+    custrecord_dps_ns_upload_packing_informa: custbody_dps_ns_upload_packing_informa, // 设置 NS 是否上传装箱信息, 获取箱唛
+    custrecord_dps_ship_record_tranor_type: custbody_dps_transferor_type, // 调拨单类型
+    custrecord_dps_shipping_rec_shipmentsid: custbody_shipment_id, // shipmentId
+    custrecord_dps_shipping_rec_destinationf: custbody_dps_ama_location_centerid, // 设置仓库中心编码
+    custrecord_dps_shipping_rec_department: department, // 部门
+    custrecord_dps_shipping_rec_transa_subje: subsidiary, //子公司
+    custrecord_dps_shipping_rec_to_location: custbody_dps_start_location, // 起始仓库
+    custrecord_dps_shipping_rec_create_date: trandate, // 日期
+    custrecord_dps_shipping_rec_account: custbody_order_locaiton, // 店铺
+    custrecord_dps_shipping_r_channel_dealer: custbody_dps_transferor_channel_dealer, // 渠道商
+    custrecord_dps_shipping_r_channelservice: custbody_dps_transferor_channelservice, // 渠道服务
+}
+
+
+// 设置发运记录的货品行
+for (var i = 0; i < numLines; i++) {
+    var item_sku = rec.getSublistValue({
+        sublistId: 'item',
+        fieldId: 'custcol_dps_trans_order_item_sku',
+        line: i
+    });
+    var item = rec.getSublistValue({
+        sublistId: 'item',
+        fieldId: 'item',
+        line: i
+    });
+    //2020/7/18  lc
+    var msku = rec.getSublistValue({
+        sublistId: 'item',
+        fieldId: 'custcol_aio_amazon_msku',
+        line: i
+    });
+    if (!msku && ck) {
+        //需要选择MSKU ，在生成发运记录
+        return "error: 货品缺少MSKU";
+    }
+    objRecord.setSublistValue({
+        sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+        fieldId: 'custrecord_dps_ship_record_sku_item', //seller sku msku
+        line: i,
+        value: msku
+    });
+    objRecord.setSublistValue({
+        sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+        fieldId: 'custrecord_dps_shipping_record_item',
+        line: i,
+        value: item
+    });
+    objRecord.setSublistValue({
+        sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+        fieldId: 'custrecord_dps_ship_record_item_location',
+        line: i,
+        value: rec.getValue('transferlocation')
+    });
+    objRecord.setSublistValue({
+        sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+        fieldId: 'custrecord_dps_ship_rec_item_account',
+        line: i,
+        value: rec.getValue('custbody_order_locaiton')
+    });
+    objRecord.setSublistValue({
+        sublistId: 'recmachcustrecord_dps_shipping_record_parentrec',
+        fieldId: 'custrecord_dps_ship_record_item_quantity',
+        line: i,
+        value: rec.getSublistValue({
+            sublistId: 'item',
+            fieldId: 'quantity',
+            line: i
+        })
+    });
+}
 
 {
     "requestId": 12313,

@@ -120,8 +120,8 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
         var curency_txt = obj.curency_txt;
         var amount = obj.amount.replace(/-/,'').replace(/,/,'.');
         var quantity = 1;
-        var endDate = interfun.getFormatedDate("", "", endDate_txt)
-         if (!endDate) { //posted date为2月份之前的不处理
+        var endDate = interfun.getFormatedDate("", "", endDate_txt,"",true);
+         if (endDate.date == "2") { //posted date为2月份之前的不处理
            log.debug("posted date为2月份之前的不处理:", endDate)
            record.submitFields({
              type: "customrecord_aio_amazon_settlement",

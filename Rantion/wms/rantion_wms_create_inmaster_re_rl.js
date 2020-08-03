@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-28 15:35:44
+ * @LastEditTime   : 2020-07-31 10:00:52
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -1938,6 +1938,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             return --cLimit > 0;
         })
 
+        log.audit('采购订单的货品', fItemArr);
+
         var irArr = [];
         var getABox = tool.getAllBinBox(itemList);
         log.debug('库位 箱号 ', getABox);
@@ -1963,6 +1965,19 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 fromId: po_id,
                 toType: 'itemreceipt'
             }); //转换为货品收据
+
+            var numLines = irObj.getLineCount({
+                sublistId: 'item'
+            });
+
+            for (var nu = 0; nu < numLines; nu++) { // 先全部设置不收货
+                irObj.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'itemreceive',
+                    value: false,
+                    line: nu
+                });
+            }
 
             for (var i = 0, iLen = BoxObjKey.length; i < iLen; i++) { // 每个箱号履行
 
@@ -2024,13 +2039,13 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                                 value: true,
                                 line: lineNumber
                             }); // 设置为收货
-                        } else {
-                            irObj.setSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'itemreceive',
-                                value: false,
-                                line: lineNumber
-                            }); // 设置为不收货
+                            // } else {
+                            //     irObj.setSublistValue({
+                            //         sublistId: 'item',
+                            //         fieldId: 'itemreceive',
+                            //         value: false,
+                            //         line: lineNumber
+                            //     }); // 设置为不收货
                         }
                     }
                 }
@@ -2049,6 +2064,19 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 fromId: po_id,
                 toType: 'itemreceipt'
             }); //转换为货品收据
+
+            var numLines = irObj.getLineCount({
+                sublistId: 'item'
+            });
+
+            for (var nu = 0; nu < numLines; nu++) { // 先全部设置不收货
+                irObj.setSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'itemreceive',
+                    value: false,
+                    line: nu
+                });
+            }
 
             for (var i = 0, iLen = BinObjKey.length; i < iLen; i++) { // 每个库位履行
 
@@ -2106,13 +2134,13 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                                     value: true,
                                     line: lineNumber
                                 }); // 设置为收货
-                            } else {
-                                irObj.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'itemreceive',
-                                    value: false,
-                                    line: lineNumber
-                                }); // 设置为不收货
+                                // } else {
+                                //     irObj.setSublistValue({
+                                //         sublistId: 'item',
+                                //         fieldId: 'itemreceive',
+                                //         value: false,
+                                //         line: lineNumber
+                                //     }); // 设置为不收货
                             }
                         }
                     }

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-07-20 15:20:20
+ * @LastEditTime   : 2020-07-31 17:06:11
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -763,13 +763,14 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
 
             transfer_head.push(rec.id);
 
-            log.debug('transfer_head', transfer_head);
+
 
             flag = true;
             return --limit1 > 0;
 
         });
 
+        log.debug('transfer_head  length', transfer_head.length);
         if (transfer_head.length > 0) {
             search.create({
                 type: 'purchaseorder',

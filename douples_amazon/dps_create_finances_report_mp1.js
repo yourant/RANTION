@@ -176,9 +176,9 @@ define(["N/format", "require", "exports", "N/log", "N/record", "N/search", "./He
               fieldId: 'custrecord_quantityshipped',
               value: items[i].quantity_shipped
             })
-            var pos = interfun.getFormatedDate("","",postdate).date
+            var pos = interfun.getFormatedDate("","",postdate,"").date
             if(pos == "2"){
-              return  false
+              return  false;
             }
             ship_rec.setText({
               fieldId: 'custrecord_posteddate',

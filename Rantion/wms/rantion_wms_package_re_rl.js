@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-07-24 17:33:34
+ * @LastEditTime   : 2020-07-31 16:01:37
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -95,7 +95,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                     type: 'customrecord_dps_shipping_record',
                     id: rid,
                     isDynamic: true
-                });
+                }); // 先静态加载
 
                 var sub_id = 'recmachcustrecord_dps_ship_box_fa_record_link';
                 var status = objRecord.getValue("custrecord_dps_shipping_rec_status");
@@ -116,6 +116,21 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                     log.debug('单据状态不是 已推送WMS, 直接返回', new Date().toISOString());
                     return it;
                 }
+
+                log.debug('装箱信息的原有行数', numLines);
+                if (numLines > -1) { // 若存在对应的装箱信息数量, 先删除对应的数据
+                    for (var i = numLines - 1; i > -1; i--) {
+
+                        log.audit('尝试移除当前行', i);
+                        objRecord.removeLine({
+                            sublistId: sub_id,
+                            line: i,
+                            ignoreRecalc: true
+                        });
+                        log.audit('已经移除当前行', i);
+                    }
+                }
+
 
                 var numLines = 0;
                 for (var i = 0, len = data.length; i < len; i++) {
@@ -269,6 +284,8 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
             retjson.msg = 'error';
         }
 
+
+        log.debug('retjson', retjson);
         log.audit("处理时间, End", new Date().toISOString());
         var a_end_time = new Date().getTime();
 

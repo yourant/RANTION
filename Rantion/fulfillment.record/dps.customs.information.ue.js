@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 13:58:40
- * @LastEditTime   : 2020-07-20 14:28:52
+ * @LastEditTime   : 2020-07-31 17:00:55
  * @LastEditors    : Li
  * @Description    : 应用于大货发运记录, WMS 发运产生 报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.ue.js
@@ -55,6 +55,7 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
                             name: 'legalname',
                             join: 'custrecord_dps_shipping_rec_transa_subje'
                         }, // 交易主体 法定名称
+
                     ]
                 }).run().each(function (rec) {
                     legalname = rec.getValue({
@@ -93,6 +94,8 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
 
                     var a = Math.floor(Math.random() * Math.floor(6));
                     gross_margin = Number((0.3 + (a / 100)).toFixed(2));
+
+                    log.audit('order_num', order_num);
 
                     var info = informationValue.searchPOItem(order_num);
                     log.debug('info', info);
@@ -165,15 +168,21 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
             }
 
         } catch (error) {
+
             log.error('生成报关资料,出错了', error);
-            record.submitFields({
-                type: 'customrecord_dps_shipping_record',
-                id: recordId,
-                values: {
-                    // custrecord_dps_shipping_rec_information: informaId,
-                    custrecord_dps_customs_information: JSON.stringify(error)
-                }
-            });
+
+            try {
+                record.submitFields({
+                    type: 'customrecord_dps_shipping_record',
+                    id: context.newRecord.id,
+                    values: {
+                        // custrecord_dps_shipping_rec_information: informaId,
+                        custrecord_dps_customs_information: JSON.stringify(error)
+                    }
+                });
+            } catch (error) {
+                log.error('报错保存数据出错了', error);
+            }
         }
 
     }

@@ -42,8 +42,8 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             //   { name: 'internalidnumber', operator: 'greaterthanorequalto', values:12000 },
             //   { name: 'internalidnumber', operator: 'lessthanorequalto', values:15999 },
             //   { name: 'internalidnumber', operator: 'equalto', values:12535 },
-              { name: 'custrecord_aio_b2c_return_aio_account', operator: 'anyof', values: "1" },
-              { name: 'custrecord_aio_b2c_return_return_date', operator: 'onorafter', values: "1/5/2020" },
+            //   { name: 'custrecord_aio_b2c_return_aio_account', operator: 'anyof', values: "1" },
+              { name: 'custrecord_aio_b2c_return_return_date', operator: 'onorafter', values: "1/6/2020" },
               { name: 'custrecord_aio_b2c_return_authorization', operator: 'is', values: "F" },
               { name: 'custrecord_aio_b2c_return_aio_account', operator: 'noneof', values: "@NONE@" },
             //   { name: 'custrecord_aio_b2c_return_order_id', operator: 'is', values: "402-1770403-8701963" }
@@ -105,7 +105,17 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                   var  acc_search=interfun.getSearchAccount(obj.seller_id)
                     //ȥ�أ�����Ƿ�����ͬ���˻���,����״̬
                   var skuid = interfun.getskuId(re_sku,p_store)
-                  return_date = interfun.getFormatedDate("", "", return_date_txt).date
+                  return_date = interfun.getFormatedDate("", "", return_date_txt,"",true).date
+                  if(return_date == '2'){
+                    record.submitFields({
+                        type:"customrecord_aio_amazon_customer_return",
+                        id:rtn_id,
+                        values: {
+                            custrecord_aio_b2c_return_authorization: "时间"
+                        }
+                    })
+                    return ;
+                  }
                     var res =DeduplicationRa(rtn_id)
                     log.debug("skuid:"+skuid,res)
                     if(!res){
@@ -383,27 +393,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
 
     };
  
-    /**
-     * ����ʱ���ַ�������ʽ��ʱ��Ϊ����ʱ��ʱ��
-     * @param {*} str 
-     */
-    function getFormatedDate(str) {
-        var strs = str.substring(0,10)
-        var ins = strs.split(".")[0].length
-        var s_d 
-        if(ins<4){
-            s_d = strs.split(".")[2]+"/"+strs.split(".")[1]+"/"+strs.split(".")[0]+" "+str.substring(11,19)
-        }
-        else{
-            s_d =str.substring(0,19)
-        }
-        s_d = format.format({
-            value: moment.utc(s_d).toDate(),
-            type: format.Type.DATE,
-            timezone: format.Timezone.AMERICA_LOS_ANGELES  //ͳһתΪ����ʱ��
-          });
-        return s_d
-      }
+  
 
     /**
         * makeresovle missingorder

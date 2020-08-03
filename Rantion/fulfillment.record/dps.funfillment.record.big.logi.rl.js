@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-25 17:29:52
+ * @LastEditTime   : 2020-07-30 16:21:41
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -902,7 +902,6 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
         if (action == "toWMSReferenceId") {
 
-
             var data = {};
             var token = getToken();
 
@@ -1078,6 +1077,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var total_number = af_rec.getValue('custrecord_dps_total_number');
             log.debug('total_number', total_number);
 
+            var channel_dealer = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer'); // 渠道商
             var getRe;
             // if (rec_shipmentsid) {
             try {
@@ -1091,6 +1091,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 var add;
                 if (channel_dealer == 6) {
                     try {
+                        log.audit('开始解析 PDF', channel_dealer);
                         add = getShipAddByContent({
                             "base64": getRe
                         });
@@ -1113,6 +1114,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 var recValue = {};
                 recValue.custrecord_dps_shipping_rec_status = 17;
                 recValue.custrecord_dps_shipment_label_file = fileObj_id;
+
+
+                log.audit('add', add);
                 if (add && add.length > 0) {
                     recValue.custrecord_dps_recpir_flag = add ? add : '';
                     var addLen = add.length;
@@ -1330,7 +1334,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             headers: headerInfo,
             body: JSON.stringify(data)
         });
-        log.debug('response', JSON.stringify(response));
+        log.debug('getShipAddByContent response', JSON.stringify(response));
         retdata = JSON.parse(response.body);
 
         if (retdata.code == 0) {

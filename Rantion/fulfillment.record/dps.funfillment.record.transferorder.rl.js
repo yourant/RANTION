@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-03 20:27:59
- * @LastEditTime   : 2020-06-04 13:40:13
+ * @LastEditTime   : 2020-07-29 17:41:16
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.rl.js
@@ -34,18 +34,16 @@ define(['../../douples_amazon/Helper/core.min', 'N/record', 'N/search', 'N/log']
                 case "fulfillment":
                     reJson.msg = fulfillment(context.recordID);
                     break;
+                case "createFulRecord":
+                    reJson.msg = createFulRecord(context.recordID);
+                    break;
                 default:
 
             }
         } catch (error) {
             log.error('error', error);
-            reJson.msg = 'error: ' + JSON.stringify(error);
+            reJson.msg = 'error: ' + JSON.stringify(error.message);
         }
-
-
-
-
-
 
         return reJson || false;
 
@@ -59,6 +57,38 @@ define(['../../douples_amazon/Helper/core.min', 'N/record', 'N/search', 'N/log']
 
     }
 
+
+    function createFulRecord(recId) {
+
+        var str = '';
+        var toRec = record.load({
+            type: 'transferorder',
+            id: recId
+        });
+
+        var toRec_id = toRec.save();
+
+        if (toRec_id) {
+            search.create({
+                type: 'transferorder',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recId
+                }],
+                columns: [
+                    "custbody_dps_to_create_fulrec_info"
+                ]
+            }).run().each(function (rec) {
+                str = rec.getValue('custbody_dps_to_create_fulrec_info');
+            })
+        } else {
+            str = "请稍后重试"
+        }
+
+        return str;
+
+    }
 
 
     function getPalletLabels(id) {

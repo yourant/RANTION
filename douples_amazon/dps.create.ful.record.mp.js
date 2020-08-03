@@ -1218,6 +1218,7 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
         // 计算预估运费
         var resultJSON = costCal.calculationByRule(searchRe, order.country, order.zip, order.weight, order.long, order.wide, order.high);
 
+        log.debug('cost', JSON.stringify(resultJSON));
         var resultObj = JSON.parse(resultJSON);
         var ful = record.load({
             type: 'customrecord_dps_shipping_small_record',

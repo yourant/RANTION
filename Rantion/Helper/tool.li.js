@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-07-24 14:33:01
+ * @LastEditTime   : 2020-07-31 10:53:20
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -305,6 +305,9 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
             var sunBinArr = [];
             var bin_temp = BinArr[i_bin];
             log.audit('bin_temp', bin_temp);
+            if (BinObj[bin_temp.positionCode]) {
+                sunBinArr = BinObj[bin_temp.positionCode]
+            }
             sunBinArr.push(bin_temp);
             for (var j_bin = i_bin + 1; j_bin < binLen; j_bin++) {
                 var j_bin_temp = BinArr[j_bin];
@@ -322,6 +325,9 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         for (var i_box = 0, boxLen = BoxArr.length; i_box < boxLen; i_box++) {
             var box_temp = BoxArr[i_box];
             var sunBoxArr = [];
+            if (BoxObj[box_temp.barcode]) {
+                sunBinArr = BoxObj[bin_temp.positionCode]
+            }
             sunBoxArr.push(box_temp);
             for (var j_box = i_box + 1; j_box < binLen; j_box++) {
                 var j_box_temp = BoxArr[j_box];
@@ -333,8 +339,8 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         }
 
         var itemObj = {
-            BoxObj: BoxObj,
-            BinObj: BinObj
+            "BoxObj": BoxObj,
+            "BinObj": BinObj
         }
         // log.debug('SummaryBinBox itemObj', itemObj)
         return itemObj || false;
@@ -589,7 +595,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         });
 
 
-        var diffArr = diff(itemIdArr, fulArr);
+        var diffArr = checkDifferentArr(itemIdArr, fulArr);
 
         return diffArr;
     }
@@ -601,7 +607,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
      * @param {Array} arr1 数组1
      * @param {Array} arr2 数组2
      */
-    function diff(arr1, arr2) {
+    function checkDifferentArr(arr1, arr2) {
         var newArr = [];
         var arr3 = [];
         for (var i = 0; i < arr1.length; i++) {
@@ -630,6 +636,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         wmsInfo: wmsInfo,
         wmsRetInfo: wmsRetInfo,
         judgmentFlag: judgmentFlag,
-        searchToLinkPO: searchToLinkPO
+        searchToLinkPO: searchToLinkPO,
+        checkDifferentArr: checkDifferentArr
     }
 });

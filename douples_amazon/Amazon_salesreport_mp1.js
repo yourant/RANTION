@@ -252,7 +252,8 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                     // 设置请求报告的结束时间
                     h.setValue({
                         fieldId: 'custrecord_dps_amazon_finaces_end_date',
-                        value: moment.utc().subtract(1, 'days').endOf('day').toISOString()
+                        value:"2020-07-01T00:00:00.000Z"
+                        // value: moment.utc().subtract(1, 'days').endOf('day').toISOString()
                     });
 
                     var ssr = h.save()
@@ -397,7 +398,7 @@ define(["require", "exports", "./Helper/core.min", "N/log", "N/record", "N/searc
                     type: 'customrecord_amazon_finances_cahce'
                 })
 
-            var pos =  interfun.getFormatedDate("","",l.posted_date,true).date
+            var pos =  interfun.getFormatedDate("","",l.posted_date,"",true).date
             if(pos=="2") return ;
             ship_rec.setText({
                 fieldId: 'custrecord_amazon_finances_postedafter',

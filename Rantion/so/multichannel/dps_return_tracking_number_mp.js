@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-10 14:49:27
+ * @LastEditTime   : 2020-07-29 14:42:21
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\multichannel\dps_return_tracking_number_mp.js
@@ -48,6 +48,11 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                         name: 'custbody_dps_create_mcf_order',
                         operator: 'is',
                         values: true
+                    },
+                    {
+                        name: 'custbody_dps_amazon_mcf_tracking_no',
+                        operator: 'is',
+                        values: false
                     }
 
                 ],
@@ -97,6 +102,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
         log.debug('GetFulfillmentOrder begein', SellerFulfillmentOrderId);
         var param = {};
         var result = {};
+        var parVal = {};
         param['SellerFulfillmentOrderId'] = SellerFulfillmentOrderId;
         var auth = core1.getAuthByAccountId(acc_id);
         if (auth) {
@@ -130,9 +136,64 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                     xpath: '//FulfillmentShipmentStatus'
                 });
 
+                var packageNo = xml.XPath.select({
+                    node: res,
+                    xpath: '//PackageNumber'
+                }); // 获取包裹号
+
+                var EstArrivalDateTime = xml.XPath.select({
+                    node: res,
+                    xpath: '//EstimatedArrivalDateTime'
+                }); // 预计到货时间 
+                var FulfillmentOrderStatus = xml.XPath.select({
+                    node: res,
+                    xpath: '//FulfillmentOrderStatus'
+                }); // 履行订单的状态
+                var ShippingDateTime = xml.XPath.select({
+                    node: res,
+                    xpath: '//ShippingDateTime'
+                }); // 订单发货时间
+
+
+                switch (result.FulfillmentOrderStatus) {
+                    case 'RECEIVED':
+                        break;
+                    case 'INVALID':
+                        parVal.custbody_dps_amazon_mcf_tracking_no = true;
+                        break;
+                    case 'PLANNING':
+                        break;
+                    case 'PROCESSING':
+
+                        // 预计到达时间
+                        if (EstimatedArrivalDateTime.length > 0) {
+                            delivery_order.setValue({
+                                fieldId: 'custrecord_wms_deliveryorders_new',
+                                value: EstimatedArrivalDateTime[0].textContent
+                            });
+                        }
+                        break;
+                    case 'CANCELLED':
+                        parVal.custbody_dps_amazon_mcf_tracking_no = true;
+                        break;
+                    case 'COMPLETE':
+                        parVal.custbody_dps_amazon_mcf_tracking_no = true;
+                        break;
+                    case 'COMPLETE_PARTIALLED':
+                        parVal.custbody_dps_amazon_mcf_tracking_no = true;
+                        break;
+                    case 'UNFULFILLABLE':
+                        parVal.custbody_dps_amazon_mcf_tracking_no = true;
+                        break;
+                    default:
+                }
+
 
                 log.debug('mcfTrackNum', mcfTrackNum);
                 log.debug('shipstatus', shipstatus);
+                log.debug('packageNo', packageNo);
+                log.debug('EstArrivalDateTime', EstArrivalDateTime);
+                log.debug('FulfillmentOrderStatus', FulfillmentOrderStatus);
 
                 // 1 PENDING
                 // 2 SHIPPED
@@ -148,38 +209,139 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                 if (shipstatus && shipstatus.length > 0) {
                     if (shipstatus[0].textContent == "PENDING") {
                         sta = 1;
-                    }
-                    if (shipstatus[0].textContent == "SHIPPED") {
+                    } else if (shipstatus[0].textContent == "SHIPPED") {
                         sta = 2;
-                    }
-                    if (shipstatus[0].textContent == "CANCELLED_BY_FULFILLER") {
+                    } else if (shipstatus[0].textContent == "CANCELLED_BY_FULFILLER") {
                         sta = 3;
-                    }
-                    if (shipstatus[0].textContent == "CANCELLED_BY_SELLER") {
+                    } else if (shipstatus[0].textContent == "CANCELLED_BY_SELLER") {
                         sta = 4;
                     }
+                    parVal.custbody_dps_mcf_order_status = sta;
                 }
 
                 var traNo;
                 if (mcfTrackNum && mcfTrackNum.length > 0) {
 
-                    traNo = mcfTrackNum[0].textContent
+                    traNo = mcfTrackNum[0].textContent;
+                    parVal.custbody_dps_waybill_no = traNo;
                 }
 
+                if (packageNo && packageNo.length > 0) {
+                    parVal.custbody_dps_mcf_packagenumber = packageNo[0].textContent;
+                }
+                if (ShippingDateTime && ShippingDateTime.length > 0) {
+                    parVal.custbody_dps_mcf_shippingdatetime = ShippingDateTime[0].textContent;
+                }
+
+                var getInfo = []
+                if (shipstatus && packageNo) {
+
+                    var ship_len = shipstatus.length;
+                    for (var i = 0; i < ship_lenl; i++) {
+
+                    }
+
+                }
+                var getPackDetails;
+                if (shipstatus[0].textContent == "SHIPPED" && packageNo[0].textContent) {
+                    getPackDetails = GetPackageTrackingDetails(acc_id, packageNo[0].textContent, FulfillmentOrderStatus, shipstatus[0].textContent);
+                    if (getPackDetails.CarrierCode) {
+                        parVal.custbody_dps_mcf_carrier_code = getPackDetails.CarrierCode;
+                    }
+                }
 
                 if (sta) {
                     record.submitFields({
                         type: 'salesorder',
                         id: delivery_order_id,
-                        values: {
-                            'custbody_dps_waybill_no': traNo ? traNo : "",
-                            custbody_dps_mcf_order_status: sta
-                        }
+                        values: parVal
                     });
                 }
             }
         }
         log.debug('MCF result', result);
+        return result;
+    }
+
+    function GetPackageTrackingDetails(acc_id, PackageNumber, FulfillmentOrderStatus, FulfillmentShipmentStatus) {
+
+        log.debug('GetPackageTrackingDetails begein', PackageNumber + '----' + FulfillmentOrderStatus + '----' + FulfillmentShipmentStatus);
+        var param = {};
+        var result = {};
+        if (PackageNumber == 0) {
+            result.code = 'error';
+            result.message = '获取的无效包裹号为0;FulfillmentShipmentStatus状态为' + FulfillmentShipmentStatus + '----------FulfillmentOrderStatus状态为：' + FulfillmentOrderStatus;
+            result.fulfillment_order_status = FulfillmentOrderStatus;
+            result.fulfillment_shipment_status = FulfillmentShipmentStatus;
+        } else {
+            param['PackageNumber'] = PackageNumber;
+            log.debug("param", param);
+            var auth = core1.getAuthByAccountId(acc_id);
+            if (auth) {
+
+                var response = core1.mwsRequestMaker(auth, 'GetPackageTrackingDetails', '2010-10-01', param, '/FulfillmentOutboundShipment/2010-10-01/');
+
+                var res = xml.Parser.fromString({
+                    text: response.replace('xmlns', 'aaa')
+                });
+                log.debug('xml res', res);
+
+                if (response.indexOf('</ErrorResponse>') != -1) {
+                    var code_ = xml.XPath.select({
+                        node: res,
+                        xpath: '//Code'
+                    });
+                    result.code = code_[0].textContent;
+                    var message_ = xml.XPath.select({
+                        node: res,
+                        xpath: '//Message'
+                    });
+                    result.message = message_[0].textContent;
+                    result.SellerFulfillmentOrderId = param.SellerFulfillmentOrderId;
+
+                    log.debug('if result GetPackageTrackingDetails err', result);
+                } else {
+                    // 当前状态
+                    var CurrentStatus = xml.XPath.select({
+                        node: res,
+                        xpath: '//CurrentStatus'
+                    });
+                    // 发货日期
+                    var ShipDate = xml.XPath.select({
+                        node: res,
+                        xpath: '//ShipDate'
+                    });
+
+                    // 追踪号码
+                    var TrackingNumber = xml.XPath.select({
+                        node: res,
+                        xpath: '//TrackingNumber'
+                    });
+
+                    // 获取 PackageNumber
+                    var PackageNumber = xml.XPath.select({
+                        node: res,
+                        xpath: '//PackageNumber'
+                    });
+
+                    // 获取 CarrierCode
+                    var CarrierCode = xml.XPath.select({
+                        node: res,
+                        xpath: '//CarrierCode'
+                    });
+
+                    result = {
+                        CurrentStatus: CurrentStatus,
+                        ShipDate: ShipDate,
+                        TrackingNumber: TrackingNumber,
+                        PackageNumber: PackageNumber,
+                        CarrierCode: CarrierCode
+                    }
+
+                }
+            }
+        }
+
         return result;
     }
 

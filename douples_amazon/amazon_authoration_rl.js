@@ -9,6 +9,61 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
     function _get(context) {
         log.debug("pullorder context:", context)
         switch (context.op) {
+            case "inv_sellersku":
+                var limit = context.limit;
+                var startT = new Date().getTime();
+                var ls =[];
+                search.create({
+                  type:"customrecord2015",
+                  filters:[
+                    {name:"custrecord23222",operator:"isempty"}
+                  ],columns:["custrecord_fapaid"]
+                }).run().each(function(ds){
+                  ls.push({inv_id:ds.getValue("custrecord_fapaid"),rec_id:ds.id})
+                  return --limit>0;
+                })
+               
+                ls.map(function(obj){
+                  try{
+                 var inv =record.load({type:"invoice",id:obj.inv_id })
+                 var len  = inv.getLineCount({sublistId:"item"})
+                 var oid = inv.getValue("otherrefnum")
+                 var acc = inv.getValue("custbody_order_locaiton"),objItem;
+                 search.create({
+                   type:"customrecord_aio_order_import_cache",
+                   filters:[
+                     { name: 'custrecord_aio_cache_acc_id', operator: search.Operator.ANYOF,values:acc},
+                     { name: 'custrecord_aio_cache_order_id',operator: 'is',values: oid}
+                   ],columns:["custrecord_amazonorder_iteminfo"]
+                 }).run().each(function(ds){
+                   objItem = JSON.parse(ds.getValue("custrecord_amazonorder_iteminfo")) 
+                 })
+                 var seller ={};
+               
+                 objItem.map(function(line){
+                   var skuid = interfun.getskuId(line.seller_sku.trim(), acc,oid);
+                    seller[skuid] = line.seller_sku.trim()
+                 })
+                 for(var i=0;i<len;i++){
+                     var itemid = inv.getSublistValue({sublistId:"item",fieldId:"item",line:i});
+                     inv.setSublistValue({sublistId:'item',fieldId:"custcol_aio_amazon_msku",value:seller[itemid],line:i})
+                 }
+                 var ss = inv.save();
+                 log.debug("发票保存成功"+ ss,seller);
+                 record.submitFields({
+                    type: "customrecord2015",
+                    id: obj.rec_id,
+                    values: {
+                        custrecord23222: "T"
+                    }
+                  })
+               }catch(e){
+                 log.error("error:",e)
+             }
+               })
+                var ss = "success ," + " 耗时：" + (new Date().getTime() - startT)
+                return ss;
+                break;
             case "go":
                 var acc = context.acc;
                 var startT = new Date().getTime();
@@ -18,26 +73,6 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 })
                 var ss = "success ," + " 耗时：" + (new Date().getTime() - startT)
                 return ss;
-                break;
-            case "setsetllementAcc_GetAcc":
-                var acc = context.acc;
-                var group = context.acc_group;
-                //  core.amazon.getReportAccountList(group).map(function(account){
-                //     log.audit(account.id);
-                var ff =getReportAcc(group);
-                log.debug("rs:",ff);
-            //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
-                return ff;
-                break;
-            case "setsetllementAcc_Deal":
-                var acc = context.acc;
-                var setRec_id = context.setRec_id;
-                //  core.amazon.getReportAccountList(group).map(function(account){
-                //     log.audit(account.id);
-                var ff =setReportAcc(setRec_id);
-                log.debug("rs:",ff);
-            //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
-                return ff;
                 break;
             case "pullorder_GetAcc":
                 var acc = context.acc;
@@ -65,6 +100,138 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 //  core.amazon.getReportAccountList(group).map(function(account){
                 //     log.audit(account.id);
                  var ss = Orderpull(acc,last_updated_after,last_updated_before)
+                //  })
+                ss += ",success ， 耗时：" + (new Date().getTime() - startT)
+                return ss;
+                break;
+            case "Get_shipReport":
+                var acc = context.acc;
+                var group = context.acc_group;
+                var last_updated_after = context.last_updated_after;
+                var last_updated_before = context.last_updated_before;
+                var startT = new Date().getTime();
+                //  core.amazon.getReportAccountList(group).map(function(account){
+                //     log.audit(account.id);
+                var limit = 4000, orders = [];
+                var full_bj = "找不到订单";
+                var fils = [];
+                fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: "is", values: full_bj }));
+                if(acc == 78){
+                    acc= 78;
+                    fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.uk" }));
+                }else if(acc == 79){
+                    acc= 78;
+                    fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.de" }));
+                }else if(acc == 80){
+                    acc= 78;
+                    fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.fr" }));
+                }else if(acc == 81){
+                    acc= 78;
+                    fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.it" }));
+                }else if(acc == 82){
+                    acc= 78;
+                    fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.es" }));
+                }else if(acc == 164){
+                    acc = 164;
+                    fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.us" })); 
+                }else if(acc == 165){
+                    acc = 164;
+                    fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.ca" })); 
+                }
+                fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc }))
+                log.debug("filters", JSON.stringify(fils));
+
+                search.create({
+                  type: 'customrecord_amazon_sales_report',
+                  filters: fils,
+                  columns: [
+                    { name: 'custrecord_quantity_shipped' },
+                    { name: 'custrecord_shipment_date' },
+                    { name: 'custrecord_sku' },
+                    { name: 'custrecord_shipment_account' },
+                    { name: 'custrecord_aio_seller_id',join:"custrecord_shipment_account" },
+                    { name: 'custrecord_aio_fbaorder_location',join:"custrecord_shipment_account" },
+                    { name: 'custrecord_amazon_order_id' },
+                    { name: 'custrecord_merchant_order_id' },
+                    { name: 'custrecord_sales_channel' },
+                    { name: 'custrecord_shipment_date_text' },
+                  ]
+                }).run().each(function (e) {
+                  orders.push({
+                    "reporid": e.id,
+                    "report_acc": e.getValue("custrecord_shipment_account"),
+                    "report_acc_txt": e.getText("custrecord_shipment_account"),
+                    "order_id": e.getValue("custrecord_amazon_order_id"),
+                    "merchant_order_id": e.getValue("custrecord_merchant_order_id"),
+                    "ship_sku": e.getValue("custrecord_sku"),
+                    "ship_qty": e.getValue("custrecord_quantity_shipped"),
+                    "seller_id": e.getValue(e.columns[4]),
+                    "loca": e.getValue(e.columns[5]),
+                    "shipDate_txt": e.getValue("custrecord_shipment_date_text"),
+                    "market": e.getValue("custrecord_sales_channel")
+                  });
+                  return --limit > 0;
+                })
+       
+                return orders;
+                break;
+            case "fulfill_in_ns":
+                var acc = context.acc;
+                var group = context.acc_group;
+                var last_updated_after = context.last_updated_after;
+                var last_updated_before = context.last_updated_before;
+                var startT = new Date().getTime();
+                //  core.amazon.getReportAccountList(group).map(function(account){
+                //     log.audit(account.id);
+                var limit = 4000, orders = []
+                var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_if_account' });
+                var orderid = runtime.getCurrentScript().getParameter({ name: 'custscript_amazon_orderid' });
+                var group_req = runtime.getCurrentScript().getParameter({ name: 'custscript_fulfill_accgroup' });
+                var full_bj = "找不到订单";
+                var fils = [];
+                fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: "is", values: full_bj }));
+                if(acc == 78)
+                fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.de" }));
+                if(acc == 164 )
+                fils.push(search.createFilter({ name: 'custrecord_sales_channel', operator: "is", values: "Amazon.com" }));
+                var acc_arrys = [];
+               
+                log.debug("店铺分组：",acc_arrys);
+                acc ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc })) : "";
+                orderid ? fils.push(search.createFilter({ name: 'custrecord_amazon_order_id', operator: search.Operator.IS, values: orderid })) : "";
+                log.debug("filters", JSON.stringify(fils));
+                search.create({
+                  type: 'customrecord_amazon_sales_report',
+                  filters: fils,
+                  columns: [
+                    { name: 'custrecord_quantity_shipped' },
+                    { name: 'custrecord_shipment_date' },
+                    { name: 'custrecord_sku' },
+                    { name: 'custrecord_shipment_account' },
+                    { name: 'custrecord_aio_seller_id',join:"custrecord_shipment_account" },
+                    { name: 'custrecord_aio_fbaorder_location',join:"custrecord_shipment_account" },
+                    { name: 'custrecord_amazon_order_id' },
+                    { name: 'custrecord_merchant_order_id' },
+                    { name: 'custrecord_sales_channel' },
+                    { name: 'custrecord_shipment_date_text' },
+                  ]
+                }).run().each(function (e) {
+                  orders.push({
+                    "reporid": e.id,
+                    "report_acc": e.getValue("custrecord_shipment_account"),
+                    "report_acc_txt": e.getText("custrecord_shipment_account"),
+                    "order_id": e.getValue("custrecord_amazon_order_id"),
+                    "merchant_order_id": e.getValue("custrecord_merchant_order_id"),
+                    "ship_sku": e.getValue("custrecord_sku"),
+                    "ship_qty": e.getValue("custrecord_quantity_shipped"),
+                    "seller_id": e.getValue(e.columns[4]),
+                    "loca": e.getValue(e.columns[5]),
+                    "shipDate_txt": e.getValue("custrecord_shipment_date_text"),
+                    "market": e.getValue("custrecord_sales_channel")
+                  });
+                  return --limit > 0;
+                })
+                 var ss = fullfillment(so_id, shipDate, ship_sku, ship_qty, repid,obj.loca)
                 //  })
                 ss += ",success ， 耗时：" + (new Date().getTime() - startT)
                 return ss;
@@ -1350,7 +1517,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/Moment.min", "N/
                 { name: 'custrecord_aio_if_including_fees' },
                 { name: 'custrecord_aio_if_payment_as_tran_date' },
                 /** * 其他信息 * @index 28 */
-                { name: 'custrecord_aio_dept' },
+                { name: 'custrecord_division' },
                 { name: 'custrecord_aio_salesorder_payment_method' },
                 { name: 'custrecord_aio_discount_item' },
                 { name: 'custrecord_aio_tax_item' },

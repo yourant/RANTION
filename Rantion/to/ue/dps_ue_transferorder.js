@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType UserEventScript
  */
-define(['N/search', 'N/record'], function (search, record) {
+define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
     function beforeLoad(context) {
 
@@ -37,296 +37,133 @@ define(['N/search', 'N/record'], function (search, record) {
      * @param {} context 
      */
     function afterSubmit(context) {
-        var newRec = context.newRecord;
-        var type = context.type;
-        if (type == "create") {
-            var subsidiary = newRec.getValue('subsidiary')
-            var line = newRec.getLineCount({
-                sublistId: 'item'
-            })
-            var itemArray = new Array()
-            var itemJson = {}
-            for (var i = 0; i < line; i++) {
-                var item = newRec.getSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'item',
-                    line: i
+
+        try {
+
+            var newRec = context.newRecord;
+            var type = context.type;
+            if (type == "create") {
+                var subsidiary = newRec.getValue('subsidiary')
+                var line = newRec.getLineCount({
+                    sublistId: 'item'
                 })
-                var quantity = newRec.getSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'quantity',
-                    line: i
-                })
-                var exist = false
-                for (var j = 0; j < itemArray.length; j++) {
-                    if (itemArray[j] == item) {
-                        exist = true;
-                        break;
-                    }
-                }
-                if (!exist) {
-                    itemArray.push(item)
-                }
-                if (itemJson[item]) {
-                    quantity += itemJson[item]
-                }
-                itemJson[item] = quantity
-            }
-            if (itemArray.length > 0) {
-                //拿出符合条件的所有采购单的行明细，然后再一一拿出来再做占用处理
-                var purcharseInfo = {}
-                log.audit('subsidiary', subsidiary);
-                log.audit('itemArray', itemArray);
-                search.create({
-                    type: 'purchaseorder',
-                    filters: [{
-                        name: "mainline",
-                        operator: "is",
-                        values: ["F"]
-                    },
-                    {
-                        name: "taxline",
-                        operator: "is",
-                        values: ["F"]
-                    },
-                    {
-                        name: "item",
-                        operator: "noneof",
-                        values: ["@NONE@"]
-                    },
-                    {
-                        name: "type",
-                        operator: "anyof",
-                        values: ["PurchOrd"]
-                    },
-                    {
-                        name: "custbody_dps_type",
-                        operator: "anyof",
-                        values: ["2"]
-                    },
-                    {
-                        name: "subsidiary",
-                        operator: "is",
-                        values: [subsidiary]
-                    },
-                    {
-                        name: "item",
-                        operator: "anyof",
-                        values: itemArray
-                    }
-                    ],
-                    columns: [{
-                        name: "datecreated",
-                        label: "日期",
-                        type: "date",
-                        sort: "ASC"
-                    }, //0
-                    {
-                        name: "subsidiary",
-                        label: "子公司",
-                        type: "select"
-                    }, //1
-                    {
-                        name: "custbody_dps_type",
-                        label: "采购订单类型",
-                        type: "select"
-                    }, //2
-                    {
-                        name: "line",
-                        label: "行Id",
-                        type: "integer"
-                    }, //3
-                    {
-                        name: "item",
-                        label: "货品名称",
-                        type: "select"
-                    }, //4
-                    {
-                        name: "quantity",
-                        label: "采购数量",
-                        type: "float"
-                    }, //5
-                    {
-                        name: "custcoltransferable_quantity",
-                        label: "可调拨数量",
-                        type: "float"
-                    }, //6
-                    {
-                        name: "custcol_transferred_quantity",
-                        label: "已调拨数量",
-                        type: "float"
-                    }, //7
-                    {
-                        name: "custcol_realted_transfer_detail",
-                        label: "关联调拨单号",
-                        type: "select"
-                    } //8
-                    ]
-                }).run().each(function (rec) {
-                    var value = {
-                        item: rec.getValue(rec.columns[4]),
-                        quantity: rec.getValue(rec.columns[5]),
-                        needCount: rec.getValue(rec.columns[6]),
-                        alreadyCount: rec.getValue(rec.columns[7]),
-                        line: rec.getValue(rec.columns[3]),
-                        link: rec.getValue(rec.columns[8])
-                    }
-                    if (purcharseInfo[rec.id]) {
-                        purcharseInfo[rec.id].push(value)
-                    } else {
-                        purcharseInfo[rec.id] = [value]
-                    }
-                    return true;
-                });
-                log.audit('purcharseInfo', purcharseInfo);
-                linkToData2PurchaseOrder(purcharseInfo, itemJson, newRec.id)
-            }
-        }
-        if (type == "edit") {
-            var status;
-            search.create({
-                type: 'transferorder',
-                filters: [{
-                    name: "mainline",
-                    operator: "is",
-                    values: ["T"]
-                },
-                {
-                    name: "internalId",
-                    operator: "is",
-                    values: newRec.id
-                },
-                ],
-                columns: [{
-                    name: "statusref"
-                },]
-            }).run().each(function (rec) {
-                status = rec.getValue(rec.columns[0]);
-                return false;
-            });
-            log.audit('status', status);
-            //关闭订单的时候 需要将之前占用的数据取消掉
-            if (status && status == "closed") {
-                var detailArray = new Array()
-                var detailJson = {}
-                search.create({
-                    type: "customrecord_transfer_order_details",
-                    filters: [{
-                        name: 'custrecord_transfer_code',
-                        operator: 'is',
-                        values: newRec.id
-                    },],
-                    columns: [{
-                        "name": "custrecord_transfer_quantity",
-                        "label": "调拨数量",
-                        "type": "float"
-                    },
-                    {
-                        "name": "internalid",
-                        "join": "CUSTRECORD__REALTED_TRANSFER_HEAD",
-                        "label": "内部标识",
-                        "type": "select"
-                    },
-                    {
-                        "name": "custrecord_transfer_code",
-                        "label": "转移单号",
-                        "type": "select"
-                    }
-                    ]
-                }).run().each(function (rec) {
-                    detailArray.push(rec.getValue(rec.columns[1]))
-                    if (!detailJson[rec.getValue(rec.columns[1])]) {
-                        detailJson[rec.getValue(rec.columns[1])] = new Array()
-                    }
-                    detailJson[rec.getValue(rec.columns[1])].push({
-                        count: rec.getValue(rec.columns[0]),
-                        id: rec.id
+                var itemArray = new Array()
+                var itemJson = {}
+                for (var i = 0; i < line; i++) {
+                    var item = newRec.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'item',
+                        line: i
                     })
-                    return true;
-                });
-                if (detailArray.length > 0) {
+                    var quantity = newRec.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'quantity',
+                        line: i
+                    })
+                    var exist = false
+                    for (var j = 0; j < itemArray.length; j++) {
+                        if (itemArray[j] == item) {
+                            exist = true;
+                            break;
+                        }
+                    }
+                    if (!exist) {
+                        itemArray.push(item)
+                    }
+                    if (itemJson[item]) {
+                        quantity += itemJson[item]
+                    }
+                    itemJson[item] = quantity
+                }
+                if (itemArray.length > 0) {
                     //拿出符合条件的所有采购单的行明细，然后再一一拿出来再做占用处理
                     var purcharseInfo = {}
-                    log.audit('detailJson', detailJson);
+                    log.audit('subsidiary', subsidiary);
+                    log.audit('itemArray', itemArray);
                     search.create({
                         type: 'purchaseorder',
                         filters: [{
-                            name: "mainline",
-                            operator: "is",
-                            values: ["F"]
-                        },
-                        {
-                            name: "taxline",
-                            operator: "is",
-                            values: ["F"]
-                        },
-                        {
-                            name: "custcol_realted_transfer_detail",
-                            operator: "anyof",
-                            values: detailArray
-                        },
-                        {
-                            name: "item",
-                            operator: "noneof",
-                            values: ["@NONE@"]
-                        },
-                        {
-                            name: "type",
-                            operator: "anyof",
-                            values: ["PurchOrd"]
-                        },
-                        {
-                            name: "custbody_dps_type",
-                            operator: "anyof",
-                            values: ["2"]
-                        },
+                                name: "mainline",
+                                operator: "is",
+                                values: ["F"]
+                            },
+                            {
+                                name: "taxline",
+                                operator: "is",
+                                values: ["F"]
+                            },
+                            {
+                                name: "item",
+                                operator: "noneof",
+                                values: ["@NONE@"]
+                            },
+                            {
+                                name: "type",
+                                operator: "anyof",
+                                values: ["PurchOrd"]
+                            },
+                            {
+                                name: "custbody_dps_type",
+                                operator: "anyof",
+                                values: ["2"]
+                            },
+                            {
+                                name: "subsidiary",
+                                operator: "is",
+                                values: [subsidiary]
+                            },
+                            {
+                                name: "item",
+                                operator: "anyof",
+                                values: itemArray
+                            }
                         ],
                         columns: [{
-                            name: "datecreated",
-                            label: "日期",
-                            type: "date",
-                            sort: "DESC"
-                        }, //0
-                        {
-                            name: "subsidiary",
-                            label: "子公司",
-                            type: "select"
-                        }, //1
-                        {
-                            name: "custbody_dps_type",
-                            label: "采购订单类型",
-                            type: "select"
-                        }, //2
-                        {
-                            name: "line",
-                            label: "行Id",
-                            type: "integer"
-                        }, //3
-                        {
-                            name: "item",
-                            label: "货品名称",
-                            type: "select"
-                        }, //4
-                        {
-                            name: "quantity",
-                            label: "采购数量",
-                            type: "float"
-                        }, //5
-                        {
-                            name: "custcoltransferable_quantity",
-                            label: "可调拨数量",
-                            type: "float"
-                        }, //6
-                        {
-                            name: "custcol_transferred_quantity",
-                            label: "已调拨数量",
-                            type: "float"
-                        }, //7
-                        {
-                            name: "custcol_realted_transfer_detail",
-                            label: "关联调拨单号",
-                            type: "select"
-                        } //8
+                                name: "datecreated",
+                                label: "日期",
+                                type: "date",
+                                sort: "ASC"
+                            }, //0
+                            {
+                                name: "subsidiary",
+                                label: "子公司",
+                                type: "select"
+                            }, //1
+                            {
+                                name: "custbody_dps_type",
+                                label: "采购订单类型",
+                                type: "select"
+                            }, //2
+                            {
+                                name: "line",
+                                label: "行Id",
+                                type: "integer"
+                            }, //3
+                            {
+                                name: "item",
+                                label: "货品名称",
+                                type: "select"
+                            }, //4
+                            {
+                                name: "quantity",
+                                label: "采购数量",
+                                type: "float"
+                            }, //5
+                            {
+                                name: "custcoltransferable_quantity",
+                                label: "可调拨数量",
+                                type: "float"
+                            }, //6
+                            {
+                                name: "custcol_transferred_quantity",
+                                label: "已调拨数量",
+                                type: "float"
+                            }, //7
+                            {
+                                name: "custcol_realted_transfer_detail",
+                                label: "关联调拨单号",
+                                type: "select"
+                            } //8
                         ]
                     }).run().each(function (rec) {
                         var value = {
@@ -345,108 +182,277 @@ define(['N/search', 'N/record'], function (search, record) {
                         return true;
                     });
                     log.audit('purcharseInfo', purcharseInfo);
-                    cancelLink2PurchaseOrder(purcharseInfo, detailJson)
+                    linkToData2PurchaseOrder(purcharseInfo, itemJson, newRec.id)
                 }
             }
-        }
-        var custbody_dps_fu_rec_link = newRec.getValue('custbody_dps_fu_rec_link');
-        log.audit('custbody_dps_fu_rec_link', custbody_dps_fu_rec_link)
-        if (custbody_dps_fu_rec_link != null && custbody_dps_fu_rec_link) {
-            var custrecord_dps_declare_currency_dh;
-            var custrecord_dps_declared_value_dh = 0;;
-            search.create({
-                type: 'customrecord_transfer_order_details',
-                filters: [{
-                    name: 'custrecord_transfer_code',
-                    operator: 'anyof',
-                    values: newRec.id
-                }],
-                columns: [{
-                    name: 'custrecord__realted_transfer_head'
-                },
-                {
-                    name: 'custrecord_transfer_quantity'
-                }
-                ]
-            }).run().each(function (rec1) {
-                var custrecord__realted_transfer_head = rec1.getValue('custrecord__realted_transfer_head');
-                var custrecord_transfer_quantity = rec1.getValue('custrecord_transfer_quantity');
-                log.debug('custrecord__realted_transfer_head', custrecord__realted_transfer_head);
-                log.debug('custrecord_transfer_quantity', custrecord_transfer_quantity);
-
+            if (type == "edit") {
+                var status;
                 search.create({
-                    type: 'purchaseorder',
+                    type: 'transferorder',
                     filters: [{
-                        name: "mainline",
-                        operator: "is",
-                        values: ["F"]
-                    },
-                    {
-                        name: "taxline",
-                        operator: "is",
-                        values: ["F"]
-                    },
-                    {
-                        name: "item",
-                        operator: "noneof",
-                        values: ["@NONE@"]
-                    },
-                    {
-                        name: "type",
-                        operator: "anyof",
-                        values: ["PurchOrd"]
-                    },
-                    {
-                        name: "custbody_dps_type",
-                        operator: "anyof",
-                        values: ["2"]
-                    },
-                    // { name: "subsidiary", operator: "is", values: [subsidiary] },
-                    // { name: "item", operator: "anyof", values: itemArray },
-                    {
-                        name: 'custcol_realted_transfer_detail',
-                        operator: "anyof",
-                        values: custrecord__realted_transfer_head
-                    }
+                            name: "mainline",
+                            operator: "is",
+                            values: ["T"]
+                        },
+                        {
+                            name: "internalId",
+                            operator: "is",
+                            values: newRec.id
+                        },
                     ],
                     columns: [{
-                        name: "quantity",
-                        label: "采购数量",
-                        type: "float"
-                    },
-                    {
-                        name: "custcol_realted_transfer_detail",
-                        label: "关联调拨单号",
-                        type: "select"
-                    },
-                    {
-                        name: "rate"
-                    },
-                    {
-                        name: 'currency'
+                        name: "statusref"
+                    }, ]
+                }).run().each(function (rec) {
+                    status = rec.getValue(rec.columns[0]);
+                    return false;
+                });
+                log.audit('status', status);
+                //关闭订单的时候 需要将之前占用的数据取消掉
+                if (status && status == "closed") {
+                    var detailArray = new Array()
+                    var detailJson = {}
+                    search.create({
+                        type: "customrecord_transfer_order_details",
+                        filters: [{
+                            name: 'custrecord_transfer_code',
+                            operator: 'is',
+                            values: newRec.id
+                        }, ],
+                        columns: [{
+                                "name": "custrecord_transfer_quantity",
+                                "label": "调拨数量",
+                                "type": "float"
+                            },
+                            {
+                                "name": "internalid",
+                                "join": "CUSTRECORD__REALTED_TRANSFER_HEAD",
+                                "label": "内部标识",
+                                "type": "select"
+                            },
+                            {
+                                "name": "custrecord_transfer_code",
+                                "label": "转移单号",
+                                "type": "select"
+                            }
+                        ]
+                    }).run().each(function (rec) {
+                        detailArray.push(rec.getValue(rec.columns[1]))
+                        if (!detailJson[rec.getValue(rec.columns[1])]) {
+                            detailJson[rec.getValue(rec.columns[1])] = new Array()
+                        }
+                        detailJson[rec.getValue(rec.columns[1])].push({
+                            count: rec.getValue(rec.columns[0]),
+                            id: rec.id
+                        })
+                        return true;
+                    });
+                    if (detailArray.length > 0) {
+                        //拿出符合条件的所有采购单的行明细，然后再一一拿出来再做占用处理
+                        var purcharseInfo = {}
+                        log.audit('detailJson', detailJson);
+                        search.create({
+                            type: 'purchaseorder',
+                            filters: [{
+                                    name: "mainline",
+                                    operator: "is",
+                                    values: ["F"]
+                                },
+                                {
+                                    name: "taxline",
+                                    operator: "is",
+                                    values: ["F"]
+                                },
+                                {
+                                    name: "custcol_realted_transfer_detail",
+                                    operator: "anyof",
+                                    values: detailArray
+                                },
+                                {
+                                    name: "item",
+                                    operator: "noneof",
+                                    values: ["@NONE@"]
+                                },
+                                {
+                                    name: "type",
+                                    operator: "anyof",
+                                    values: ["PurchOrd"]
+                                },
+                                {
+                                    name: "custbody_dps_type",
+                                    operator: "anyof",
+                                    values: ["2"]
+                                },
+                            ],
+                            columns: [{
+                                    name: "datecreated",
+                                    label: "日期",
+                                    type: "date",
+                                    sort: "DESC"
+                                }, //0
+                                {
+                                    name: "subsidiary",
+                                    label: "子公司",
+                                    type: "select"
+                                }, //1
+                                {
+                                    name: "custbody_dps_type",
+                                    label: "采购订单类型",
+                                    type: "select"
+                                }, //2
+                                {
+                                    name: "line",
+                                    label: "行Id",
+                                    type: "integer"
+                                }, //3
+                                {
+                                    name: "item",
+                                    label: "货品名称",
+                                    type: "select"
+                                }, //4
+                                {
+                                    name: "quantity",
+                                    label: "采购数量",
+                                    type: "float"
+                                }, //5
+                                {
+                                    name: "custcoltransferable_quantity",
+                                    label: "可调拨数量",
+                                    type: "float"
+                                }, //6
+                                {
+                                    name: "custcol_transferred_quantity",
+                                    label: "已调拨数量",
+                                    type: "float"
+                                }, //7
+                                {
+                                    name: "custcol_realted_transfer_detail",
+                                    label: "关联调拨单号",
+                                    type: "select"
+                                } //8
+                            ]
+                        }).run().each(function (rec) {
+                            var value = {
+                                item: rec.getValue(rec.columns[4]),
+                                quantity: rec.getValue(rec.columns[5]),
+                                needCount: rec.getValue(rec.columns[6]),
+                                alreadyCount: rec.getValue(rec.columns[7]),
+                                line: rec.getValue(rec.columns[3]),
+                                link: rec.getValue(rec.columns[8])
+                            }
+                            if (purcharseInfo[rec.id]) {
+                                purcharseInfo[rec.id].push(value)
+                            } else {
+                                purcharseInfo[rec.id] = [value]
+                            }
+                            return true;
+                        });
+                        log.audit('purcharseInfo', purcharseInfo);
+                        cancelLink2PurchaseOrder(purcharseInfo, detailJson)
                     }
+                }
+            }
+            var custbody_dps_fu_rec_link = newRec.getValue('custbody_dps_fu_rec_link');
+            log.audit('custbody_dps_fu_rec_link', custbody_dps_fu_rec_link)
+            if (custbody_dps_fu_rec_link != null && custbody_dps_fu_rec_link) {
+                var custrecord_dps_declare_currency_dh;
+                var custrecord_dps_declared_value_dh = 0;;
+                search.create({
+                    type: 'customrecord_transfer_order_details',
+                    filters: [{
+                        name: 'custrecord_transfer_code',
+                        operator: 'anyof',
+                        values: newRec.id
+                    }],
+                    columns: [{
+                            name: 'custrecord__realted_transfer_head'
+                        },
+                        {
+                            name: 'custrecord_transfer_quantity'
+                        }
                     ]
-                }).run().each(function (result) {
-                    log.debug("testest1 ", JSON.stringify(result));
-                    custrecord_dps_declare_currency_dh = result.getValue('currency');
-                    var value = {
-                        quantity: result.getValue('quantity'),
-                        link: result.getValue('custcol_realted_transfer_detail')
-                    }
-                    custrecord_dps_declared_value_dh = custrecord_dps_declared_value_dh + result.getValue('rate') * custrecord_transfer_quantity;
-                    log.debug("testest ", JSON.stringify(value));
+                }).run().each(function (rec1) {
+                    var custrecord__realted_transfer_head = rec1.getValue('custrecord__realted_transfer_head');
+                    var custrecord_transfer_quantity = rec1.getValue('custrecord_transfer_quantity');
+                    log.debug('custrecord__realted_transfer_head', custrecord__realted_transfer_head);
+                    log.debug('custrecord_transfer_quantity', custrecord_transfer_quantity);
+
+                    search.create({
+                        type: 'purchaseorder',
+                        filters: [{
+                                name: "mainline",
+                                operator: "is",
+                                values: ["F"]
+                            },
+                            {
+                                name: "taxline",
+                                operator: "is",
+                                values: ["F"]
+                            },
+                            {
+                                name: "item",
+                                operator: "noneof",
+                                values: ["@NONE@"]
+                            },
+                            {
+                                name: "type",
+                                operator: "anyof",
+                                values: ["PurchOrd"]
+                            },
+                            {
+                                name: "custbody_dps_type",
+                                operator: "anyof",
+                                values: ["2"]
+                            },
+                            // { name: "subsidiary", operator: "is", values: [subsidiary] },
+                            // { name: "item", operator: "anyof", values: itemArray },
+                            {
+                                name: 'custcol_realted_transfer_detail',
+                                operator: "anyof",
+                                values: custrecord__realted_transfer_head
+                            }
+                        ],
+                        columns: [{
+                                name: "quantity",
+                                label: "采购数量",
+                                type: "float"
+                            },
+                            {
+                                name: "custcol_realted_transfer_detail",
+                                label: "关联调拨单号",
+                                type: "select"
+                            },
+                            {
+                                name: "rate"
+                            },
+                            {
+                                name: 'currency'
+                            }
+                        ]
+                    }).run().each(function (result) {
+                        log.debug("testest1 ", JSON.stringify(result));
+                        custrecord_dps_declare_currency_dh = result.getValue('currency');
+                        var value = {
+                            quantity: result.getValue('quantity'),
+                            link: result.getValue('custcol_realted_transfer_detail')
+                        }
+                        custrecord_dps_declared_value_dh = custrecord_dps_declared_value_dh + result.getValue('rate') * custrecord_transfer_quantity;
+                        log.debug("testest ", JSON.stringify(value));
+                        return true;
+                    });
                     return true;
                 });
-                return true;
-            });
-            record.submitFields({
-                type: 'customrecord_dps_shipping_record',
-                id: custbody_dps_fu_rec_link,
-                values: {
-                    custrecord_dps_declared_value_dh: custrecord_dps_declared_value_dh,
-                    custrecord_dps_declare_currency_dh: custrecord_dps_declare_currency_dh
-                }
-            });
+                record.submitFields({
+                    type: 'customrecord_dps_shipping_record',
+                    id: custbody_dps_fu_rec_link,
+                    values: {
+                        custrecord_dps_declared_value_dh: custrecord_dps_declared_value_dh,
+                        custrecord_dps_declare_currency_dh: custrecord_dps_declare_currency_dh
+                    }
+                });
+            }
+        } catch (error) {
+            log.error('保存库存转移订单出错了', error);
         }
     }
 
@@ -500,7 +506,7 @@ define(['N/search', 'N/record'], function (search, record) {
             try {
                 poRec.save();
             } catch (error) {
-                log.debug('transferoder_po', JSON.stringify(error)); 
+                log.debug('transferoder_po', JSON.stringify(error));
             }
         }
         //开始计算用掉了多少数量，然后再更新TO货品行数据
@@ -739,7 +745,7 @@ define(['N/search', 'N/record'], function (search, record) {
                     join: 'custrecord__realted_transfer_head',
                     operator: 'is',
                     values: linkId
-                },],
+                }, ],
                 columns: []
             }).run().each(function (rec) {
                 momentCount += 1

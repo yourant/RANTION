@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-11 19:35:28
+ * @LastEditTime   : 2020-08-03 20:27:23
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -139,7 +139,7 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
             var bf_rec = context.newRecord;
             var type = context.type;
             try {
-                if (type == 'create' && bf_rec.type == 'purchaseorder') {
+                if (type == 'create' && bf_rec.type == 'purchaseorder') { // 采购订单 创建
                     var len = bf_rec.getLineCount({
                         sublistId: 'item'
                     });
@@ -182,7 +182,41 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                     }
                 }
 
-                if (bf_rec.type == 'customrecord_dps_delivery_order' && type != 'delete') {
+
+                var userId = runtime.getCurrentUser();
+                if (bf_rec.type == 'customrecord_dps_delivery_order' && context.type == 'create' /* && userId.id == 911  */ ) { // 交货单 创建, 移除不需要的货品行
+                    // custrecord_dps_delivery_order_check
+
+                    var numLines = bf_rec.getLineCount({
+                        sublistId: 'recmachcustrecord_dps_delivery_order_id'
+                    });
+
+                    for (var i = numLines - 1; i > -1; i--) {
+
+                        var check = bf_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_dps_delivery_order_check',
+                            line: i
+                        });
+                        var item_sku = bf_rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                            fieldId: 'custrecord_item_sku',
+                            line: i
+                        });
+
+                        log.debug('交货单行: ' + i + " : " + item_sku, check);
+                        if (!check) {
+                            bf_rec.removeLine({
+                                sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                line: i,
+                                ignoreRecalc: true
+                            });
+                        }
+
+                    }
+                }
+
+                if (bf_rec.type == 'customrecord_dps_delivery_order' && type != 'delete') { // 交货单
                     var len = bf_rec.getLineCount({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id'
                     });
@@ -213,9 +247,8 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                             });
                         }
                     }
-
-
                 }
+
                 if (bf_rec.type == 'customrecord_dps_delivery_order' && context.type == 'delete') {
                     log.debug('开始反写数据, 删除记录', 'Starts');
                     var load_rec = record.load({
@@ -412,8 +445,11 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                                 flag = true;
                             }
                         }
+
+                        log.debug('供应商确认', flag)
                         if (flag) {
-                            l_po.save();
+                            var l_po_id = l_po.save();
+                            log.debug('供应商确认', l_po_id)
 
                             record.submitFields({
                                 type: 'customrecord_dps_delivery_order',
@@ -488,8 +524,10 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                                 flag = true;
                             }
                         }
+                        log.debug('交货单回传', flag);
                         if (flag) {
-                            l_po.save();
+                            var l_po_id = l_po.save();
+                            log.debug('交货单回传', l_po_id)
                             record.submitFields({
                                 type: 'customrecord_dps_delivery_order',
                                 id: newRecord.id,

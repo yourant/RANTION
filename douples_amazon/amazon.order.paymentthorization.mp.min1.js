@@ -12,23 +12,34 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
  function (interfun,runtime,format,moment,require, exports, core, log, search, record,xml,fiedls) {
     //结算报告退款 欧洲可以根据 marcktplace Name区分国家
     function getInputData() {
-        var payments = [],limit_payments = 1000;
+        var payments = [],limit_payments = 1;
         var sT = new Date().getTime();
         try{
+            var acc = runtime.getCurrentScript().getParameter({
+                name: 'custscript_refund_acc'
+              });
+             var group = runtime.getCurrentScript().getParameter({
+                name: 'custscript_refund_accgroup'
+              });
+              var fils = [
+                { name: 'custrecord_aio_sett_tran_type', operator: 'is', values: "Refund" },
+                { name: "custrecord_settlement_enddate", operator: 'onorafter', values: "2020-6-1" }, //end date从2月份开始
+                { name: 'custrecord_aio_sett_amount_type', operator: 'is', values: ["ItemPrice"] },
+                { name: 'custrecord_aio_sett_amount_desc', operator: 'is', values: ["Principal"] },
+                { name: 'custrecord_aio_sett_credit_memo', operator: 'isnot', values: "T" },
+                { name: 'custrecord_february_undeal', operator: 'isnot', values: "F" },
+              ]
+              if(acc){
+                fils.push({ name: 'custrecord_settlement_acc', operator: 'anyof', values: acc })  
+              }
+              if(group){
+                fils.push({ name: 'custrecord_aio_getorder_group',join:"custrecord_settlement_acc", operator: 'anyof', values: group })   
+              }
             search.create({
                 type: 'customrecord_aio_amazon_settlement',
-                filters: [
-                    { name: 'custrecord_aio_sett_tran_type', operator: 'is', values: "Refund" },
-                    { name: "custrecord_settlement_enddate", operator: 'onorafter', values: "1/5/2020" }, //end date从2月份开始
-                    { name: 'custrecord_aio_sett_amount_type', operator: 'is', values: ["ItemPrice"] },
-                    { name: 'custrecord_aio_sett_amount_desc', operator: 'is', values: ["Principal"] },
-                    { name: 'custrecord_aio_origin_account', join:'custrecord_aio_sett_report_id', operator: 'anyof', values: ["1"] },
-                    { name: 'custrecord_aio_sett_order_id', operator: 'is', values: "111-3588300-7630636" },
-                    { name: 'custrecord_aio_sett_credit_memo', operator: 'isnot', values: "T" },
-                    { name: 'custrecord_february_undeal', operator: 'isnot', values: "F" },
-                ],
+                filters:fils ,
                 columns: [
-                    { name: 'custrecord_aio_origin_account', join:'custrecord_aio_sett_report_id'},
+                    { name: 'custrecord_settlement_acc'},
                     { name: 'custrecord_aio_sett_amount_desc' },
                     { name: 'custrecord_aio_sett_amount_type' },
                     { name: 'custrecord_aio_sett_merchant_order_id' },
@@ -43,7 +54,8 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     { name: 'custrecord_aio_sett_credit_memo' },
                     { name: 'custrecord_aio_sett_adjust_item_id' },
                     { name: 'custrecord_aio_sett_currency' },
-                    { name: 'internalid', sort: search.Sort.DESC },
+                    // { name: 'internalid', sort: search.Sort.DESC },
+                    { name: 'custrecord_division',join:"custrecord_settlement_acc"},
                 ]
             }).run().each(function(rec){
                 // if(rec.getValue("custrecord_aio_sett_amount_type") =="ItemPrice" && rec.getValue("custrecord_aio_sett_amount_desc") =="Principal")
@@ -60,6 +72,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     deposit_date: rec.getValue('custrecord_aio_sett_deposit_date'),
                     endDate: rec.getValue('custrecord_aio_sett_end_date'),
                     postDate: rec.getValue('custrecord_aio_sett_posted_date_time'),
+                    dept: rec.getValue(rec.columns[15]),
                     curency_txt: rec.getValue('custrecord_aio_sett_currency')
                 });
                 return --limit_payments>0 
@@ -101,12 +114,9 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
         log.debug('objs',JSON.stringify(objs));
      try {
         objs.map(function(obj){
-            // acc = obj.acc
-            // acc_text = obj.acc_text
+            acc = obj.acc
+            acc_text = obj.acc_text
             // var rs_id =obj.rs_id 
-             accounts =interfun.GetstoreInEU(obj.acc,obj.marketplace_name,obj.acc_text) ;
-             acc = accounts.acc
-             acc_text =accounts.acc_text 
             // acc = 27
             // acc_text ="Levoit JP"
         var settlerecord_id = obj.recid;
@@ -118,6 +128,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
         var endDate_txt = obj.endDate
         var deposit_date = obj.deposit_date;
         var curency_txt = obj.curency_txt;
+        var dept = obj.dept;
         var amount = obj.amount.replace(/-/,'').replace(/,/,'.');
         var quantity = 1;
         var endDate = interfun.getFormatedDate("", "", endDate_txt,"",true);
@@ -167,7 +178,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                   currency = e.id
                 })
                  //如果没有对应的退货授权就create ，然后生成贷项通知单
-                 createAuthorationFromPayment(settlerecord_id,acc,sku,endDate,merchant_order_id,quantity,amount,acc_text,merchant_adjustment_itemid,currency,skuid)
+                 createAuthorationFromPayment(settlerecord_id,acc,sku,endDate,merchant_order_id,quantity,amount,acc_text,merchant_adjustment_itemid,currency,skuid,dept)
             }else if(status =="pendingReceipt" ||status =="pendingApproval"){
                 if(status =="pendingApproval")
                 record.submitFields({
@@ -359,8 +370,6 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 { name: 'custrecord_aio_seller_id', operator: 'isnotempty' },
                 /*{ name: 'custrecord_aio_mws_auth_token', operator: 'isnotempty' },*/
                 { name: 'custrecord_aio_dev_account', operator: 'noneof', values: '@NONE@' },
-                { name: 'isinactive', operator: 'is', values: true },
-             
             ], 
             columns: [
                 /** * 名称 * @index 0 */
@@ -397,7 +406,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 { name: 'custrecord_aio_if_including_fees' },
                 { name: 'custrecord_aio_if_payment_as_tran_date' },
                 /** * 其他信息 * @index 28 */
-                { name: 'custrecord_aio_dept' },
+                { name: 'custrecord_division' },
                 { name: 'custrecord_aio_salesorder_payment_method' },
                 { name: 'custrecord_aio_discount_item' },
                 { name: 'custrecord_aio_tax_item' },
@@ -503,7 +512,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
      * @param {*} deposit_date 
      * @param {*} merchant_adjustment_itemid 
      */
-    function createAuthorationFromPayment(settlerecord_id,acc,sku,endDate,merchant_order_id,quantity,amount,acc_text,merchant_adjustment_itemid,currency,skuid){
+    function createAuthorationFromPayment(settlerecord_id,acc,sku,endDate,merchant_order_id,quantity,amount,acc_text,merchant_adjustment_itemid,currency,skuid,dept){
         var account = getAcc(acc);
         log.debug('account',account)
         var loc,cid,rt_tax, R_memo,
@@ -538,6 +547,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
         rt.setValue({fieldId:'location',value:loc});
         rt.setValue({fieldId:'currency',value:currency});
         rt.setValue({fieldId:'otherrefnum',value:merchant_order_id});
+        rt.setValue({fieldId:'department',value:dept});
         rt.setText({fieldId:'trandate',text: endDate.date});
         rt.setValue({fieldId:'custbody_order_locaiton',value:acc});    
         rt.setValue({fieldId:'custbody_aio_account',value:acc});
@@ -547,6 +557,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
         rt.selectNewLine({sublistId: 'item' });
         rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'item', value: skuid});
         rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'location', value: loc});
+        rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'custcol_aio_amazon_msku', value: sku});
         rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'quantity', value: quantity});
         rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'rate', value: amount / quantity });
         rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'amount', value: amount });

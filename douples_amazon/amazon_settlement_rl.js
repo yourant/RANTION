@@ -7,10 +7,10 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 ], function (format, runtime, core, moment, log, search, record, loactionPre, interfun, fiedls, xml) {
   function _get (context) {
     log.debug('pullorder context:', context)
+    var startT = new Date().getTime()
     switch (context.op) {
       case 'go':
         var acc = context.acc
-        var startT = new Date().getTime()
         var invs = getInputData(acc)
         invs.map(function (lo) {
           PaymentAuthrationmap(lo)
@@ -21,11 +21,10 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
       case 'setsetllementAcc_Deal': // 处理店铺信息
         var acc = context.acc
         var group = context.acc_group
-        var startT = new Date().getTime()
         //  core.amazon.getReportAccountList(group).map(function(account){
         //     log.audit(account.id)
-        DealSettlment(group)
-        var  ff = ff+ ", 耗时：" + (new Date().getTime() - startT);
+        DealSettlment(acc)
+        var  ff = acc+ ", 耗时：" + (new Date().getTime() - startT);
         log.debug('rs:', ff+ ", 耗时：" + (new Date().getTime() - startT))
         //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
         return ff
@@ -34,7 +33,6 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         var group = context.acc_group
         var last_updated_after = context.last_updated_after
         var last_updated_before = context.last_updated_before
-        var startT = new Date().getTime()
         //  core.amazon.getReportAccountList(group).map(function(account){
         //     log.audit(account.id)
         var ff = []
@@ -46,18 +44,75 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
         return ff
         break
-      case 'pullorder_getOrders':
-        var acc = context.acc
-        var group = context.acc_group
-        var last_updated_after = context.last_updated_after
-        var last_updated_before = context.last_updated_before
-        var startT = new Date().getTime()
-        //  core.amazon.getReportAccountList(group).map(function(account){
-        //     log.audit(account.id)
-        var ss = Orderpull(acc, last_updated_after, last_updated_before)
-        //  })
-        ss += ',success ， 耗时：' + (new Date().getTime() - startT)
-        return ss
+      case 'dept_getdata':
+        var acc = context.acc,ord=[];
+        var limit = 4000;
+         search.create({
+           type:"itemfulfillment",
+           filters:[
+             {name:"taxline",operator:"is",values:false},
+             {name:"mainline",operator:"is",values:false},
+             {name:"custcol_aio_amazon_msku",operator:"isempty"},
+             {name:"custbody_aio_is_aio_order",operator:"is",values:true},
+             {name:"account",operator:"anyof",values:["214"]},
+             {name:"custbody_aio_account",operator:"anyof",values:["78","79","80","81","82","519","164","165"]}
+           ]
+         }).run().each(function(e){
+              ord.push(e.id);
+              return --limit>0;
+         })
+        return ord;
+        break
+      case 'dept_dealord':
+        var oid = context.oid,ord=[];
+        var rs,acc,objItem,dept;
+        try{
+          var inv = record.load({type:context.type,id:oid});
+          var len  = inv.getLineCount({sublistId:"item"});
+          var orderid;
+          search.create({
+            type:"salesorder",
+            filters:[
+              {name:"internalidnumber",operator:"equalto",values:inv.getValue("createdfrom")}
+            ],columns:["otherrefnum"]
+          }).run().each(function(e){
+            orderid = e.getValue("otherrefnum");
+          })
+          acc = inv.getValue("custbody_aio_account")
+          search.create({
+            type:"customrecord_aio_order_import_cache",
+            filters:[
+              { name: 'custrecord_aio_cache_acc_id', operator: search.Operator.ANYOF,values:acc},
+              { name: 'custrecord_aio_cache_order_id',operator: 'is',values: orderid}
+            ],columns:[{name:"custrecord_amazonorder_iteminfo"} , { name:"custrecord_division",join:"custrecord_aio_cache_acc_id"}]
+          }).run().each(function(ds){
+            objItem = JSON.parse(ds.getValue("custrecord_amazonorder_iteminfo")) 
+            dept = ds.getValue(ds.columns[1])
+          })
+          try{
+            inv.setValue({fieldId:"department",value:dept});
+          }catch(e){
+             
+          }
+      
+          var seller ={};
+          objItem.map(function(line){
+            var skuid = interfun.getskuId(line.seller_sku.trim(), acc,orderid);
+             seller[skuid] = line.seller_sku.trim()
+          })
+          for(var i=0;i<len;i++){
+              var itemid = inv.getSublistValue({sublistId:"item",fieldId:"item",line:i});
+              inv.setSublistValue({sublistId:'item',fieldId:"department",value:dept,line:i});
+              inv.setSublistValue({sublistId:'item',fieldId:"custcol_aio_amazon_msku",value:seller[itemid],line:i});
+          }
+          rs = inv.save({ ignoreMandatoryFields: true});
+          log.audit("发票保存成功",ss);
+        }catch(e){
+          log.error("出错拉",e)
+          rs =e.message;
+       }
+       rs = ' 耗时：' + (new Date().getTime() - startT)+",acc:"+acc+" ，oid:"+oid+" ， "+rs;
+        return rs
         break
       default:
         return context.op
@@ -75,10 +130,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
   }
 
   function DealSettlment (group_req) {
-    var acc_arrys = [],orders = []
-    core.amazon.getReportAccountList(group_req).map(function (ds) {
-      acc_arrys.push(ds.id)
-    })
+    var acc_arrys = [group_req],orders = [];
+    // var acc_arrys = [],orders = []
+    // core.amazon.getReportAccountList(group_req).map(function (ds) {
+    //   acc_arrys.push(ds.id)
+    // })
     var fils = [],limit = 20;
     log.debug("DealSettlment acc_arrys",acc_arrys)
     fils = [

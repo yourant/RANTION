@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-22 23:57:07
- * @LastEditTime   : 2020-07-23 01:59:10
+ * @LastEditTime   : 2020-08-03 20:09:09
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.full.to.rl.js
@@ -14,12 +14,88 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/search', 'N/log', 'N/format'], function (record, search, log, format) {
-
+define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https'], function (record, search, log, format, https) {
 
     function _post(context) {
 
 
+
+    }
+
+
+
+
+    function ToWMS(context) {
+        var limit = 3999,
+            itemArr = [],
+            date = {};
+
+
+        data["boxNum"] = 1; // 箱数
+        data["estimateTime"] = new Date().toISOString(); // 预计到货时间
+        data["inspectionType"] = 10; // 质检类型
+        data["sourceNo"] = toNO; // 来源单号
+        data["sourceType"] = 30; // 来源类型
+        data["taxFlag"] = 0; // 是否含税
+        data["tradeCompanyCode"] = 0; // 交易主体编号
+        data["tradeCompanyName"] = 0; // 交易主体名称
+        data["warehouseCode"] = "US_MX"; // 仓库编号
+        data["warehouseName"] = "美西仓"; // 仓库名称
+
+
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                value: context
+            }],
+            columns: [
+
+            ]
+        }).run().each(function (rec) {
+
+            var it = {
+                boxInfo: {
+                    msg: 123
+                },
+                boxNum: 1,
+                inspectionType: 30,
+                planQty: ,
+                productCode: ,
+                productImageUrl: ,
+
+            };
+
+
+            itemArr.push();
+            return --limit > 0;
+        })
+
+        data["skuList"] = "美西仓"; // 入库明细
+
+    }
+
+
+    function getToken() {
+        var token;
+        search.create({
+            type: 'customrecord_wms_token',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1
+            }],
+            columns: ['custrecord_wtr_token']
+        }).run().each(function (result) {
+            token = result.getValue('custrecord_wtr_token');
+        });
+        return token;
+    }
+
+
+
+    function recTO() {
         var ord = [];
         var limit = 2;
 
@@ -161,10 +237,7 @@ define(['N/record', 'N/search', 'N/log', 'N/format'], function (record, search, 
         }
 
         return c
-
-
     }
-
     return {
 
         post: _post,

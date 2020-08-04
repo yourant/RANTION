@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-02 15:05:52
+ * @LastEditTime   : 2020-08-03 14:01:19
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
@@ -25,6 +25,28 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
         var token = getToken();
         if (token) {
+
+
+            var aono;
+            search.create({
+                type: "customrecord_dps_shipping_record",
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recId
+                }],
+                columns: [{
+                        name: "tranid",
+                        join: "custrecord_dps_shipping_rec_order_num"
+                    }, // 调拨单
+                ]
+            }).run().each(function (rec) {
+                aono = rec.getValue({
+                    name: "tranid",
+                    join: "custrecord_dps_shipping_rec_order_num"
+                })
+            })
+
             log.debug('授权秘钥存在', '授权秘钥存在');
             var headerObj = {
                 'Content-Type': 'application/json',
@@ -47,26 +69,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                     log.audit('WMS 调拨单状态', status)
                     if (status == 10) { // 允许修改
 
-                        var aono;
-                        search.create({
-                            type: "customrecord_dps_shipping_record",
-                            filters: [{
-                                name: 'internalid',
-                                operator: 'anyof',
-                                values: recId
-                            }],
-                            columns: [{
-                                    name: "tranid",
-                                    join: "custrecord_dps_shipping_rec_order_num"
-                                }, // 调拨单
-                            ]
-                        }).run().each(function (rec) {
-                            aono = rec.getValue({
-                                name: "tranid",
-                                join: "custrecord_dps_shipping_rec_order_num"
-                            })
-                        })
-
+                        log.audit('调拨单', aono);
                         var userObj = runtime.getCurrentUser();
 
                         var name = userObj.name; // 当前用户
@@ -160,6 +163,9 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
         var fbaAccount;
 
+        log.debug('updateToWMS aono', aono)
+
+        var ful_to_link;
         data["aono"] = aono;
         data["updateBy"] = updateName;
         search.create({
@@ -172,6 +178,10 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             columns: [{
                     join: 'custrecord_dps_shipping_record_item',
                     name: 'custitem_dps_msku'
+                },
+                {
+                    name: "custrecord_dps_shipping_rec_order_num",
+                    join: 'custrecord_dps_shipping_record_parentrec'
                 },
                 {
                     name: 'custrecord_dps_f_b_purpose',
@@ -263,6 +273,10 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             ]
         }).run().each(function (rec) {
 
+            ful_to_link = rec.getValue({
+                name: "custrecord_dps_shipping_rec_order_num",
+                join: 'custrecord_dps_shipping_record_parentrec'
+            });
             fbaAccount = rec.getValue({
                 name: 'custrecord_dps_shipping_rec_account',
                 join: 'custrecord_dps_shipping_record_parentrec'

@@ -34,6 +34,32 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
     log.debug('context:', context)
     var startT = new Date().getTime()
     switch (context.op) {
+      case 'so_Deal': // 转单
+        var acc = context.acc
+        var group = context.acc_group
+        var so_ids=[],limt=40;
+        //[78,79,80,81,82,164,165]
+        search.create({
+          type:"salesorder",
+          filters:[
+            {name:"mainline",operator:'is',values:true},
+            {name:"department",operator:'anyof',values:"@NONE@"},
+            {name:"custbody_order_locaiton",operator:'anyof',values:[acc]},
+          ],columns:[{name:"custrecord_division",join:"custbody_order_locaiton"}]
+        }).run().each(function(e){
+          so_ids.push({so_id:e.id,dept:e.getValue(e.columns[0])});
+          return --limt>0;
+        })
+        so_ids.map(function(dsa){
+          record.submitFields({
+            type: 'salesorder',
+            id: dsa.so_id,
+            values: {
+              department: dsa.dept
+            }
+          })
+        })
+        return  "耗时： "+(new Date().getTime() - startT)+JSON.stringify(so_ids) 
       case 'go_getAcc': // 转单
         var acc = context.acc
         var group = context.acc_group
@@ -88,6 +114,27 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
   function _delete (context) {
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   function FinMap (acc, type_fin) {
     var fid, h, PostedAfter, PostedBefore, PBefore, PEndDate, end_dateTime
@@ -1100,7 +1147,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         log.error('version ' + version, 'country: ' + country)
 
         var customer = obj.customer
-        var line_items = obj.iteminfo
+        var line_items = false
 
         try {
           if (line_items) {
@@ -2769,19 +2816,19 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
             ord.setCurrentSublistValue({
               sublistId: 'item',
               fieldId: 'rate',
-              value: itemprice / line.qty
+              value: (itemprice / line.qty).toFixed(2)
             })
 
             ord.setCurrentSublistValue({
               sublistId: 'item',
               fieldId: 'amount',
-              value: itemprice
+              value: itemprice.toFixed(2)
             })
             log.debug('17line.item_price', line.item_price)
             ord.setCurrentSublistValue({
               sublistId: 'item',
               fieldId: 'custcol_aio_origianl_amount',
-              value: itemprice
+              value: itemprice.toFixed(2)
             })
             log.audit('tax_item_amount::', line.item_tax + ',' + line.shipping_tax)
             /** 设置订单含税 */

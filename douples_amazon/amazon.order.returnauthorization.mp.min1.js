@@ -31,23 +31,36 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
  function (interfun,runtime,format,moment,require, exports, core, log, search, record,fiedls) {
     Object.defineProperty(exports, "__esModule", { value: true });
   
-    
+    const fba_return_location = 2502;
     exports.getInputData = function () {
         var returns = [], payments = [], limit = 100, limit_payments = 0;
         var count = 0;
         var idCount = 0;
+        
+        var acc = runtime.getCurrentScript().getParameter({
+            name: 'custscript_return_acc'
+          });
+        var group = runtime.getCurrentScript().getParameter({
+            name: 'custscript_return_accgroup'
+          });
+          var fils = [
+            { name: 'custrecord_aio_b2c_return_return_date', operator: 'onorafter', values: "2020-6-1" },
+            { name: 'custrecord_aio_b2c_return_authorization', operator: 'is', values: "F" },
+            { name: 'custrecord_aio_b2c_return_aio_account', operator: 'noneof', values: "@NONE@" },
+          ]
+          if(acc){
+            fils.push({ name: 'custrecord_aio_b2c_return_aio_account', operator: 'anyof', values: acc })  
+          }
+          if(group){
+            fils.push({ name: 'custrecord_aio_getorder_group',join:"custrecord_aio_b2c_return_aio_account", operator: 'anyof', values: group })   
+          }
+          if(group){
+            fils.push({ name: 'custrecord_aio_b2c_return_order_id', operator: 'is', values: group })   
+          }
         search.create({
             type: 'customrecord_aio_amazon_customer_return',
-            filters: [
-            //   { name: 'internalidnumber', operator: 'greaterthanorequalto', values:12000 },
-            //   { name: 'internalidnumber', operator: 'lessthanorequalto', values:15999 },
-            //   { name: 'internalidnumber', operator: 'equalto', values:12535 },
-            //   { name: 'custrecord_aio_b2c_return_aio_account', operator: 'anyof', values: "1" },
-              { name: 'custrecord_aio_b2c_return_return_date', operator: 'onorafter', values: "1/6/2020" },
-              { name: 'custrecord_aio_b2c_return_authorization', operator: 'is', values: "F" },
-              { name: 'custrecord_aio_b2c_return_aio_account', operator: 'noneof', values: "@NONE@" },
+            filters: fils,
             //   { name: 'custrecord_aio_b2c_return_order_id', operator: 'is', values: "402-1770403-8701963" }
-            ],
             columns: [
             	// { name: 'custrecord_aio_b2c_return_order_id',sort:"DESC" },
             	{ name: 'custrecord_aio_b2c_return_aio_account' },  
@@ -60,6 +73,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 { name: 'custrecord_aio_b2c_return_order_id' },
                 { name: 'internalid' },
                 { name: "custrecord_aio_seller_id",join:'custrecord_aio_b2c_return_aio_account' },
+                { name: "custrecord_division",join:'custrecord_aio_b2c_return_aio_account' },
                 { name: "custrecord_aio_b2c_return_detailed_disp" },
             ]
         }).run().each(function (rec) {
@@ -73,6 +87,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 creturn_lcn: rec.getValue('custrecord_aio_b2c_return_lcn'),
                 return_date: rec.getValue('custrecord_amazon_returndate_text'),
                 seller_id: rec.getValue(rec.columns[9]),
+                dept: rec.getValue(rec.columns[10]),
                 detial_desc: rec.getValue("custrecord_aio_b2c_return_detailed_disp")  //�������ֶ��ж��Ƿ����
             });
             return --limit;
@@ -95,12 +110,13 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                 re_qty = obj.creturn_qty,
                 re_lcn = obj.creturn_lcn,
                 detial_desc = obj.detial_desc,
+                dept = obj.dept,
                 return_date_txt=obj.return_date;
                 log.debug("rtn_id:",rtn_id)
                 log.debug("�����ţ�"+oid)
                 var transactionType = "returns",err=[]
                 var return_author
-                var location,  fba_location ,fba_return_location,fulfill_id ;
+                var location,  fba_location ,fulfill_id ;
                 try{
                   var  acc_search=interfun.getSearchAccount(obj.seller_id)
                     //ȥ�أ�����Ƿ�����ͬ���˻���,����״̬
@@ -111,7 +127,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                         type:"customrecord_aio_amazon_customer_return",
                         id:rtn_id,
                         values: {
-                            custrecord_aio_b2c_return_authorization: "时间"
+                            custrecord_aio_b2c_return_authorization: "6月之前"
                         }
                     })
                     return ;
@@ -147,9 +163,10 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                               ["item","anyof",skuid],"and",
                               ["createdfrom","anyof",so_id]
                             ],
-                            columns:["serialnumbers"]
+                            // columns:["serialnumbers"]
                         }).run().each(function(e){
-                            fulfill_id = e.getValue(e.columns[0])
+                            fulfill_id = e.id
+                            // fulfill_id = e.getValue(e.columns[0])
                         })
                         if(fulfill_id){
                             log.debug("�ҵ���Ӧ�����۶���"+so_id,"ordstatus: "+ordstatus)
@@ -175,7 +192,6 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                                 filters:fils,
                                 columns:["custrecord_aio_fba_return_loaction","custrecord_aio_fbaorder_location"]
                             }).run().each(function(e){
-                                fba_return_location = 3043  //FBA����Ʒ��
                                 fba_location = e.getValue(e.columns[1])
                             })
 
@@ -237,15 +253,15 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                             })   
                              return_author = r.save();
                             log.debug("�˻��������ɹ�",return_author)
-                        }else{
-                          //�Ҳ������۶����� create 
-                          log.debug("�Ҳ������۶��� �ķ��� "+oid)
-                         var cre_rs = createAuthoration(rtn_id,re_lcn,p_store,skuid,return_date,return_date_txt,oid,re_qty,status)
+                        }else if(!so_id){
+                         var cre_rs = createAuthoration(rtn_id,re_lcn,p_store,skuid,return_date,return_date_txt,oid,re_qty,status,dept,re_sku)
                          return_author = cre_rs.Art_id
                          fba_location = cre_rs.fba_location
                         if(!return_author)
                             return;
                         }
+                        if(!return_author)
+                        return;
                         //�����ɹ�֮����ջ�Ʒ��Ȼ��close
                             var return_receipt = record.transform({
                                 fromType: record.Type.RETURN_AUTHORIZATION,
@@ -534,11 +550,10 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
          * @param {*} order_id 
          * @param {*} retqty 
          */
-        function createAuthoration(rtn_id,re_lcn,retacc,skuid,retdate,retdate_txt,order_id,retqty,status){
+        function createAuthoration(rtn_id,re_lcn,retacc,skuid,retdate,retdate_txt,order_id,retqty,status,dept,re_sku){
             var account =  getAcc(retacc),loc,cid,
             tax_item  = account.info.tax_item,
             fba_location  = account.extra_info.fbaorder_location,
-            fba_return_location  = account.fba_return_loaction,
             salesorder_if_taxed = account.preference.salesorder_if_taxed,
             country = account.country;
             log.debug("tax_item:"+tax_item,"country:"+country)
@@ -553,12 +568,13 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             if(status == "Repackaged Successfully")    
             loc = fba_location
             else 
-            loc = 3043
+            loc = fba_return_location
 
             rt.setValue({fieldId:'location',value:loc})//\u6279\u51c6
             rt.setValue({fieldId:'otherrefnum',value:order_id})
             rt.setText({fieldId:"trandate",text:retdate})
             rt.setValue({fieldId:'orderstatus',value:'B'})//��׼
+            rt.setValue({fieldId:'department',value:dept})//��׼
             rt.setValue({fieldId:'custbody_aio_account',value:retacc})
             rt.setValue({fieldId:'custbody_order_locaiton',value:retacc})
             rt.setValue({fieldId:'custbody_aio_is_aio_order',value:true})
@@ -572,6 +588,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'location', value: loc});
             rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'quantity', value: retqty});
             rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'rate', value: rt_amount});
+            rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'custcol_aio_amazon_msku', value: re_sku});
             rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'amount', value: rt_amount * retqty});
            
             /** ���ö�����˰ */
@@ -581,13 +598,6 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     fieldId: 'taxcode',
                     value: tax_item
                 });
-                // if (country !="US"&& country !="CA") {
-                //     rt.setCurrentSublistValue({
-                //         sublistId: 'item',
-                //         fieldId: 'tax1amt',
-                //         value: rt_tax ? rt_tax : 0
-                //     });
-                // }
             } else {
                 rt.setCurrentSublistValue({
                     sublistId: 'item',
@@ -600,11 +610,10 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
             }catch (err) { 
                 log.error("commitLine error",err)
             }
-           log.debug("���ӻ�Ʒ�ɹ�")
         var Art_id = rt.save({
             ignoreMandatoryFields: true
         });
-        log.debug('���ɳɹ�', Art_id);
+        log.debug('return successful', Art_id);
         return {
             Art_id:Art_id,
             fba_location:fba_location
@@ -660,7 +669,7 @@ define(["./Helper/interfunction.min","N/runtime","N/format","./Helper/Moment.min
                     { name: 'custrecord_aio_if_including_fees' },
                     { name: 'custrecord_aio_if_payment_as_tran_date' },
                     /** * ������Ϣ * @index 28 */
-                    { name: 'custrecord_aio_dept' },
+                    { name: 'custrecord_division' },
                     { name: 'custrecord_aio_salesorder_payment_method' },
                     { name: 'custrecord_aio_discount_item' },
                     { name: 'custrecord_aio_tax_item' },

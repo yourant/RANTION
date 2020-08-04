@@ -63,7 +63,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
     core.amazon.getAccountList(group).map(function (account) {
       if (account.id != acc && acc) return
       // if(account.id !=79 && account.id !=164 ) return
-      var limit = 100 // 999 //350
+      var limit = 4000 // 999 //350
       var filters = [{
         name: 'custrecord_aio_cache_resolved',
         operator: search.Operator.IS,
@@ -193,7 +193,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
     log.error('version ' + version, 'country: ' + country)
 
     var customer = obj.customer
-    var line_items = obj.iteminfo
+    var line_items = false
 
     try {
       if (line_items) {
@@ -254,7 +254,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
       if(so_i.so_id) 
       ord = record.load({
         type: order_type,
-        id: rec.id,
+        id: so_i.so_id,
         isDynamic: true
       })
       if (ord && o.order_status == 'Pending') {
@@ -672,19 +672,19 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         ord.setCurrentSublistValue({
           sublistId: 'item',
           fieldId: 'rate',
-          value: itemprice / line.qty
+          value: (itemprice / line.qty).toFixed(2)
         })
 
         ord.setCurrentSublistValue({
           sublistId: 'item',
           fieldId: 'amount',
-          value: itemprice
+          value:  itemprice.toFixed(2)
         })
         log.debug('17line.item_price', line.item_price)
         ord.setCurrentSublistValue({
           sublistId: 'item',
           fieldId: 'custcol_aio_origianl_amount',
-          value: itemprice
+          value:  itemprice.toFixed(2)
         })
         log.audit('tax_item_amount::', line.item_tax + ',' + line.shipping_tax)
         /** 设置订单含税 */
@@ -1284,7 +1284,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
   }
 
   var mark_resolved = function (amazon_account_id, amazon_order_id) {
-    log.debug('mark_resolved', 'mark_resolved')
+  
     search.create({
       type: 'customrecord_aio_order_import_cache',
       filters: [{
@@ -1300,6 +1300,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
       ],
       columns: ['custrecord_aio_cache_version']
     }).run().each(function (r) {
+      log.debug('mark_resolved;dianpu: '+amazon_account_id, 'amazon_order_id:'+amazon_order_id)
       var ver = r.getValue('custrecord_aio_cache_version')
       record.submitFields({
         type: 'customrecord_aio_order_import_cache',

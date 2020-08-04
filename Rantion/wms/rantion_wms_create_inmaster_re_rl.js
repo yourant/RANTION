@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-31 10:00:52
+ * @LastEditTime   : 2020-08-03 17:21:29
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -1745,14 +1745,45 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
                     var irObj_id = irObj.save();
 
-                    // 更改发运记录状态
-                    record.submitFields({
+
+                    var dec_objRecord = record.load({
                         type: 'customrecord_dps_delivery_order',
-                        id: ret_id,
-                        values: {
-                            custrecord_delivery_order_status: 4
-                        }
+                        id: ret_id
                     });
+                    dec_objRecord.setValue({
+                        fieldId: 'custrecord_delivery_order_status',
+                        value: 4
+                    });
+
+                    var count = dec_objRecord.getLineCount({
+                        sublistId: 'recmachcustrecord_dps_delivery_order_id'
+                    });
+
+
+                    if (context.detailList.length > 0) {
+                        context.detailList.map(function (line) {
+                            for (var i = 0; i < count; i++) {
+                                var item_sku = dec_objRecord.getSublistText({
+                                    sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                    fieldId: 'custrecord_item_sku',
+                                    line: i
+                                });
+                                if (line.sku == item_sku) {
+                                    dec_objRecord.setSublistValue({
+                                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                                        fieldId: 'custrecord_stock_quantity',
+                                        value: line.planQty,
+                                        line: i
+                                    })
+                                }
+                            }
+                        });
+                    }
+
+
+                    var dec_objRecord_id = dec_objRecord.save();
+                    log.audit('dec_objRecord_id', dec_objRecord_id);
+
                     log.debug('工厂直发生成货品收据', irObj_id);
 
                     ret.code = 0;
@@ -1802,14 +1833,15 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     value: 4
                 });
 
-                objRecord.setValue({
-                    fieldId: 'custrecord_dps_warehousing_end',
-                    value: true
-                });
+                // objRecord.setValue({
+                //     fieldId: 'custrecord_dps_warehousing_end',
+                //     value: true
+                // });
 
                 var count = objRecord.getLineCount({
                     sublistId: 'recmachcustrecord_dps_delivery_order_id'
                 });
+
                 log.debug('开始修改交货单', '货品行上的值');
                 if (context.detailList.length > 0) {
                     context.detailList.map(function (line) {
@@ -1825,7 +1857,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                                     fieldId: 'custrecord_stock_quantity',
                                     value: line.shelvesQty,
                                     line: i
-                                })
+                                });
                             }
                         }
                     });
@@ -1902,11 +1934,12 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
      */
     function createItemReceipt(po_id, itemList, location) {
 
-        log.debug('交货单地点', location);
+        log.audit('交货单地点', location);
         log.debug('开始生成货品收据: ' + po_id, JSON.stringify(itemList));
 
         var cLimit = 3999,
             fItemArr = [];
+        var fiObj = {};
         search.create({
             type: 'purchaseorder',
             filters: [{
@@ -1934,6 +1967,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 itemId: rec.getValue('item'),
                 itemName: rec.getText('item')
             }
+            fiObj[rec.getText('item')] = rec.getValue('item')
             fItemArr.push(it)
             return --cLimit > 0;
         })
@@ -1963,7 +1997,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             var irObj = record.transform({
                 fromType: 'purchaseorder',
                 fromId: po_id,
-                toType: 'itemreceipt'
+                toType: 'itemreceipt',
             }); //转换为货品收据
 
             var numLines = irObj.getLineCount({
@@ -1987,16 +2021,12 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
                     var dl_sku = temp_obj[i];
 
-                    for (var i_t = 0, i_t_len = fItemArr.length; i_t < i_t_len; i_t++) {
-                        var fi_temp = fItemArr[i_t];
-                        log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                    if (fiObj[dl_sku.sku]) {
                         var lineNumber = irObj.findSublistLineWithValue({
                             sublistId: 'item',
                             fieldId: 'item',
-                            value: fi_temp.itemId
+                            value: fiObj[dl_sku.sku]
                         });
-
-                        log.debug('货品行号', lineNumber);
 
                         irObj.setSublistValue({
                             sublistId: 'item',
@@ -2005,48 +2035,34 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                             line: lineNumber
                         }); // 设置地点
 
-                        if (dl_sku.sku == fi_temp.itemName) {
-                            var getLoca = irObj.getSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'location',
-                                line: lineNumber
-                            })
-                            log.debug('地点 getLoca', getLoca);
-                            irObj.setSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'quantity',
-                                value: dl_sku.shelvesQty,
-                                line: lineNumber
-                            }); // 设置数量
+                        irObj.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'quantity',
+                            value: dl_sku.shelvesQty,
+                            line: lineNumber
+                        }); // 设置数量
 
-                            irObj.setSublistText({
-                                sublistId: 'item',
-                                fieldId: 'custcol_location_bin',
-                                text: dl_sku.positionCode,
-                                line: lineNumber
-                            }); // 仓库编号
+                        irObj.setSublistText({
+                            sublistId: 'item',
+                            fieldId: 'custcol_location_bin',
+                            text: dl_sku.positionCode,
+                            line: lineNumber
+                        }); // 仓库编号
 
-                            irObj.setSublistText({
-                                sublistId: 'item',
-                                fieldId: 'custcol_case_number',
-                                text: boxKey,
-                                line: lineNumber
-                            }); // 箱号
+                        irObj.setSublistText({
+                            sublistId: 'item',
+                            fieldId: 'custcol_case_number',
+                            text: boxKey,
+                            line: lineNumber
+                        }); // 箱号
 
-                            irObj.setSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'itemreceive',
-                                value: true,
-                                line: lineNumber
-                            }); // 设置为收货
-                            // } else {
-                            //     irObj.setSublistValue({
-                            //         sublistId: 'item',
-                            //         fieldId: 'itemreceive',
-                            //         value: false,
-                            //         line: lineNumber
-                            //     }); // 设置为不收货
-                        }
+                        irObj.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'itemreceive',
+                            value: true,
+                            line: lineNumber
+                        }); // 设置为收货
+                        // }
                     }
                 }
 
@@ -2062,7 +2078,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             var irObj = record.transform({
                 fromType: 'purchaseorder',
                 fromId: po_id,
-                toType: 'itemreceipt'
+                toType: 'itemreceipt',
             }); //转换为货品收据
 
             var numLines = irObj.getLineCount({
@@ -2083,66 +2099,47 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 var binKey = BinObjKey[i];
                 var temp_obj = binObj[binKey];
 
-                log.debug('temp_obj', temp_obj);
+                // log.debug('temp_obj', temp_obj);
+
                 for (var j = 0, jLen = temp_obj.length; j < jLen; j++) {
 
                     var dl_sku = temp_obj[j];
 
-                    log.debug('dl_sku: ' + j, dl_sku)
-                    for (var i_t = 0, i_t_len = fItemArr.length; i_t < i_t_len; i_t++) {
-                        var fi_temp = fItemArr[i_t];
-                        log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                    if (fiObj[dl_sku.sku]) {
                         var lineNumber = irObj.findSublistLineWithValue({
                             sublistId: 'item',
                             fieldId: 'item',
-                            value: fi_temp.itemId
+                            value: fiObj[dl_sku.sku]
                         });
 
-                        log.debug('货品行号', lineNumber);
-                        if (lineNumber > -1) {
-                            irObj.setSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'location',
-                                value: location,
-                                line: lineNumber
-                            }); // 设置地点
+                        irObj.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'location',
+                            value: location,
+                            line: lineNumber
+                        }); // 设置地点
 
-                            if (dl_sku.sku == fi_temp.itemName) {
-                                var getLoca = irObj.getSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'location',
-                                    line: lineNumber
-                                })
-                                log.debug('地点 getLoca', getLoca);
-                                irObj.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'quantity',
-                                    value: dl_sku.shelvesQty,
-                                    line: lineNumber
-                                }); // 设置数量
+                        irObj.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'quantity',
+                            value: dl_sku.shelvesQty,
+                            line: lineNumber
+                        }); // 设置数量
 
-                                irObj.setSublistText({
-                                    sublistId: 'item',
-                                    fieldId: 'custcol_location_bin',
-                                    text: binKey,
-                                    line: lineNumber
-                                }); // 仓库编号
+                        irObj.setSublistText({
+                            sublistId: 'item',
+                            fieldId: 'custcol_location_bin',
+                            text: dl_sku.positionCode,
+                            line: lineNumber
+                        }); // 仓库编号
 
-                                irObj.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'itemreceive',
-                                    value: true,
-                                    line: lineNumber
-                                }); // 设置为收货
-                                // } else {
-                                //     irObj.setSublistValue({
-                                //         sublistId: 'item',
-                                //         fieldId: 'itemreceive',
-                                //         value: false,
-                                //         line: lineNumber
-                                //     }); // 设置为不收货
-                            }
-                        }
+                        irObj.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'itemreceive',
+                            value: true,
+                            line: lineNumber
+                        }); // 设置为收货
+
                     }
                 }
             }
@@ -2153,6 +2150,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
         return irArr || false;
     }
+
 
 
     /**

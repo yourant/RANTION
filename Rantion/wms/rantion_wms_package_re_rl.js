@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-07-31 16:01:37
+ * @LastEditTime   : 2020-08-03 14:55:14
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -109,11 +109,11 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                 if (box_return_flag && numLines > -1) {
                     // if (status != 14 && numLines > -1) {
                     var it = {
-                        code: 1,
+                        code: 0,
                         data: null,
-                        msg: '非法操作'
+                        msg: 'NS 处理成功'
                     }
-                    log.debug('单据状态不是 已推送WMS, 直接返回', new Date().toISOString());
+                    log.debug('已经存在装箱信息, 直接返回', new Date().toISOString());
                     return it;
                 }
 

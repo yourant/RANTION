@@ -102,7 +102,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
       acc_arrys.map(function (account) {
         if (account.id != stroe && stroe) return
         var marketplace = account.marketplace
-        if (check_if_handle(account.extra_info, report_type)) {
+        // if (check_if_handle(account.extra_info, report_type)) {
           log.audit('account:' + account.id, marketplace)
           if (is_request) {
             /** Settlement Report 结算报告 Request */
@@ -203,9 +203,9 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
               }
             })
           }
-        } else {
-          log.audit('check_if_handle', 'check_if_handle false')
-        }
+        // } else {
+        //   log.audit('check_if_handle', 'check_if_handle false')
+        // }
       })
 
       log.audit('000input', {
@@ -266,7 +266,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
           }
 
           var mapping = core.consts.fieldsMapping[core.enums.report_type[type]]
-
+          var sjAcc;
           var check_rec_id, rec
           if (mapping.record_type_id == 'customrecord_amazon_sales_report') {
             // Amazon 发货报告    customrecord_amazon_sales_report        _GET_AMAZON_FULFILLED_SHIPMENTS_DATA_
@@ -331,8 +331,8 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
             }).run().each(function (e) {
               check_rec_id = e.id
             })
-          }
-          else if (mapping.record_type_id == 'customrecord_aio_amazon_customer_return') {
+          }else if (mapping.record_type_id == 'customrecord_aio_amazon_customer_return') {
+            line ["sjAcc"] = interfun.GetstoreofCurrency(line["currency"], acc_id);
             search.create({
               type: 'customrecord_aio_amazon_customer_return',
               filters: [{
@@ -399,7 +399,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
             }).run().each(function (e) {
               check_rec_id = e.id
             })
-          } else if (mapping.record_type_id == 'customrecord_dps_fba_received_inventory') {
+          }else if (mapping.record_type_id == 'customrecord_dps_fba_received_inventory') {
             // 报告为 Amazon Received 报告,增加去重机制
             search.create({
               type: mapping.record_type_id,
@@ -443,7 +443,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
             }).run().each(function (e) {
               check_rec_id = e.id
             })
-          } else if (mapping.record_type_id == 'customrecord_aio_amazon_mfn_listing') {
+          }else if (mapping.record_type_id == 'customrecord_aio_amazon_mfn_listing') {
             // 报告为 Amazon Listing 报告 , 增加去重机制
             search.create({
               type: mapping.record_type_id,
@@ -473,6 +473,40 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
               check_rec_id = e.id
             })
             log.audit('check_rec_id', check_rec_id)
+          }else if(mapping.record_type_id == 'customrecord_aio_amazon_removal_order'){
+            line ["sjAcc"] = GetstoreofCurrency(line["currency"], acc_id);
+            search.create({
+              type: mapping.record_type_id,
+              filters: [{
+                name: 'custrecord_aio_removal_account',
+                operator: 'is',
+                values: line['account']
+              },
+                {
+                  name: 'custrecord_aio_removal_order_id',
+                  operator: 'is',
+                  values: line['order-id']
+                },
+                {
+                  name: 'custrecord_aio_removal_sku',
+                  operator: 'is',
+                  values: line['sku']
+                },
+                {
+                  name: 'custrecord_aio_removal_disposition',
+                  operator: 'is',
+                  values: line['disposition']
+                },
+                {
+                  name: 'custrecord_aio_removal_order_type',
+                  operator: 'is',
+                  values: line['order-type']
+                }
+              ]
+            }).run().each(function (e) {
+              check_rec_id = e.id
+            })
+            log.audit('check_rec_id', check_rec_id)
           }
           if (check_rec_id) {
             log.audit('0load ' + line['amazon-order-id'] ? line['amazon-order-id'] : line['order-id'], '1 load: ' + mapping.record_type_id)
@@ -488,7 +522,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
               isDynamic: true
             })
           }
-
+          
           var date_key = mapping.date_key
           // log.debug('line[date_key:',line[date_key])
           line[date_key + '-txt'] = line[date_key]

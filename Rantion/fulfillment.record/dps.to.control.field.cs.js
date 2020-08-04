@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 11:07:52
- * @LastEditTime   : 2020-08-03 11:09:12
+ * @LastEditTime   : 2020-08-03 15:00:04
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.to.control.field.cs.js
@@ -71,17 +71,14 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
     function pageInit(scriptContext) {
 
 
-
         // 6 WMS已发运        7 WMS已部分发运         12 WMS已装箱
         // 13 WMS已部分装箱        19 已推送 标签文件         23 渠道退件已入库
         // 24 已上传装箱信息         25 上传装箱信息成功         26 Amazon 处理装箱信息中         28 上传装箱信息错误
-
 
         var cur = scriptContext.currentRecord;
         var mode = scriptContext.mode;
 
         if (mode == "edit") {
-
 
             var userObj = runtime.getCurrentUser();
 
@@ -98,7 +95,7 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
 
                     var options = {
                         title: '修改发运记录',
-                        message: '不允许修改发运记录',
+                        message: '请联系仓库人员修改wms调拨单状态, 再进行修改发运记录',
                     };
 
                     var submitFieldsPromise = record.submitFields.promise({
@@ -110,11 +107,11 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
                     });
 
                     function success(result) {
-                        window.location.replace(url)
+                        window.location.replace(url);
                     }
 
                     function failure(reason) {
-                        window.location.replace(url)
+                        window.location.replace(url);
                     }
                     dialog.create(options).then(success).catch(failure);
                 }
@@ -267,12 +264,22 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
      */
     function saveRecord(scriptContext) {
 
+        /*
         var cur = scriptContext.currentRecord;
         var status = cur.getValue('custpage_abc_text');
-        if (status == undefined || status == null) {
+        console.log("status", status);
+
+        if (status) {
             alert('不允许修改发运记录');
             return false
         }
+        if (status == undefined || status == null || status == '') {
+            return true;
+        } else {
+            alert('不允许修改发运记录');
+            return false
+        }
+        */
         return true;
     }
 
@@ -323,7 +330,7 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
             }).then(function () {
                 window.location.reload();
             });
-        })
+        });
 
     }
 

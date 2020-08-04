@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-07-31 10:53:20
+ * @LastEditTime   : 2020-08-04 10:20:34
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -11,8 +11,6 @@
 
 define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
 
-
-
     /**
      * 搜索调拨单关联的采购订单
      * @param {Array} itemArr 
@@ -20,8 +18,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
      */
     function searchToLinkPO(itemArr, toId) {
 
-        // log.error('itemArr', itemArr);
-        // log.error('toId', toId);
         var limit = 3999;
         var getInfo = [];
         var getPO = {};
@@ -60,8 +56,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 name: "custrecord__realted_transfer_head",
                 summary: "GROUP"
             });
-
-            // log.error('tra_hea', tra_hea);
 
             var a = tra_hea.split(':');
             var b = '';
@@ -109,10 +103,6 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 type: 'customrecord_dps_to_wms_data_info',
             });
         }
-
-        // var wmsObj = record.create({
-        //     type: 'customrecord_dps_to_wms_data_info',
-        // });
 
         wmsObj.setValue({
             fieldId: 'custrecord_dps_wms_info',
@@ -224,12 +214,17 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
     function getAllBinBox(detailList) {
         // add 获取所有库位和箱号
         var allArr = [];
+
         for (var i_d = 0, i_dLen = detailList.length; i_d < i_dLen; i_d++) {
             var it = detailList[i_d].detailRecordList;
             for (var j_d = 0, j_dLen = it.length; j_d < j_dLen; j_d++) {
                 allArr.push(it[j_d]);
             }
+
         }
+        it.mpa(function (i_d) {
+            allArr.push(it[i_d]);
+        });
         log.debug('allArr', allArr);
         return allArr || false;
     }
@@ -246,9 +241,9 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
             binObj = itemObj.BinObj;
         log.debug('itemObj', itemObj);
         var BoxObjKey = Object.keys(boxObj);
-        // log.debug('judgmentBinBox 箱号的值', BoxObjKey);
+
         var BinObjKey = Object.keys(binObj);
-        // log.debug('judgmentBinBox 库位的值', BinObjKey);
+
         var binType = "customlist_location_bin",
             boxType = "customlist_case_number",
             a_arr = [];
@@ -258,7 +253,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 if (!s_a) {
                     if (action == "create") {
                         var boxId = createLocationBin(boxType, BoxObjKey[i]);
-                        log.debug('judgmentBinBox 创建箱号 boxId', boxId);
+
                     } else {
                         a_arr.push("箱号" + BoxObjKey[i]);
                     }
@@ -304,7 +299,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         for (var i_bin = 0, binLen = BinArr.length; i_bin < binLen; i_bin++) {
             var sunBinArr = [];
             var bin_temp = BinArr[i_bin];
-            log.audit('bin_temp', bin_temp);
+
             if (BinObj[bin_temp.positionCode]) {
                 sunBinArr = BinObj[bin_temp.positionCode]
             }
@@ -313,12 +308,12 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
                 var j_bin_temp = BinArr[j_bin];
                 if (bin_temp.positionCode == j_bin_temp.positionCode) {
                     sunBinArr.push(j_bin_temp);
-                    log.audit('sunBinArr', sunBinArr);
+
                 }
             }
             BinObj[bin_temp.positionCode] = sunBinArr;
         }
-        // log.audit('sunBinArr', sunBinArr)
+
         var BoxObj = {},
             sunBoxArr1 = [];
         // 同箱号合并
@@ -342,7 +337,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
             "BoxObj": BoxObj,
             "BinObj": BinObj
         }
-        // log.debug('SummaryBinBox itemObj', itemObj)
+
         return itemObj || false;
 
     }
@@ -616,13 +611,33 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         }
         var arr4 = [];
         for (var j = 0; j < arr2.length; j++) {
-            if (arr1.indexOf(arr2[j]) === -1)
+            if (arr1.indexOf(arr2[j]) === -1) {
                 arr4.push(arr2[j]);
+            }
         }
         newArr = arr3.concat(arr4);
         return newArr;
     }
 
+
+    /**
+     * 获取token
+     */
+    function getToken() {
+        var token;
+        search.create({
+            type: 'customrecord_wms_token',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1
+            }],
+            columns: ['custrecord_wtr_token']
+        }).run().each(function (result) {
+            token = result.getValue('custrecord_wtr_token');
+        });
+        return token;
+    }
 
 
     return {
@@ -637,6 +652,7 @@ define(['N/search', 'N/record', 'N/log'], function (search, record, log) {
         wmsRetInfo: wmsRetInfo,
         judgmentFlag: judgmentFlag,
         searchToLinkPO: searchToLinkPO,
-        checkDifferentArr: checkDifferentArr
+        checkDifferentArr: checkDifferentArr,
+        getToken: getToken
     }
 });

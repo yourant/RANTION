@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-03 11:27:38
+ * @LastEditTime   : 2020-08-03 19:22:28
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -179,10 +179,11 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
             var userObj = runtime.getCurrentUser();
 
-            var actionType = context.type;
-            log.debug('actionType', actionType);
-            log.debug('runtime.executionContext', runtime.executionContext);
-            if (action == "edit" && userObj.role != 3 && runtime.executionContext == "USERINTERFACE") {
+            log.debug('afterSubmit action', action);
+            log.debug('afterSubmit runtime.executionContext', runtime.executionContext);
+            if (action == "edit" && runtime.executionContext == "USERINTERFACE") {
+
+                log.audit('符合条件, 更改调拨单', "符合条件, 更改调拨单");
 
                 var updateField = {};
 
@@ -234,12 +235,13 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
                 var statusArr = [1, 2, 3, 4, 5, 9, 10, 11, 15, 16, 17, 18]
 
+                log.audit('发运记录状态', af_rec_status);
                 if (af_rec_status == 14) {
                     fieldKey.map(function (field, key) {
                         var fieldValue = af_rec.getValue(field);
                         updateField[fieldMapping[field]] = fieldValue;
                     });
-                } else if (statusArr.indexOf(rec_status) > -1) {
+                } else if (statusArr.indexOf(af_rec_status) > -1) {
                     fieldKey.map(function (field, key) {
                         if (field == "custrecord_dps_to_reference_id") {
                             var fieldValue = af_rec.getValue(field);
@@ -453,6 +455,8 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 });
                 // custrecord_dps_shipping_record_item
 
+            } else {
+                log.audit('不更新', '调拨单')
             }
 
         } catch (error) {

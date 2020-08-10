@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 11:07:52
- * @LastEditTime   : 2020-08-03 15:00:04
+ * @LastEditTime   : 2020-08-09 20:52:44
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.to.control.field.cs.js
@@ -14,8 +14,8 @@
  * @NModuleScope SameAccount
  */
 define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/dialog', 'N/url',
-    'N/https', 'N/runtime'
-], function (search, dialog, record, commonTool, dialog, url, https, runtime) {
+    'N/https', 'N/runtime', '../Helper/config', '../Helper/tool.li', 'N/http'
+], function (search, dialog, record, commonTool, dialog, url, https, runtime, config, tool, http) {
 
     var fieldMapping = { // 库存转移订单 与 发运记录的 字段对应关系
         "custrecord_dps_shipping_rec_location": "location", // 起始地点
@@ -285,12 +285,6 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
 
     function updateWMS(rec_id) {
 
-        // alert('别点了, 不执行任何操作');
-
-        // console.log('updateWMS', rec_id);
-
-        // return 1;
-
 
         commonTool.startMask('重新推送WMS更新中,请耐心等待...');
 
@@ -334,6 +328,70 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
 
     }
 
+    function inputPackingInfo(rec_id) {
+
+
+        commonTool.startMask('正在录入装箱信息,请耐心等待...');
+
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_ful_update_field_rl',
+            deploymentId: 'customdeploy_dps_ful_update_field_rl',
+            returnExternalUrl: false
+        });
+
+        https.post.promise({
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8',
+                'Accept': 'application/json'
+            },
+            url: url1,
+            body: {
+                action: "inputPackingInfo",
+                recordID: rec_id
+            }
+        }).then(function (response) {
+
+            var data = response.body;
+
+            commonTool.endMask();
+
+            dialog.alert({
+                title: '录入装箱信息',
+                message: JSON.parse(data).msg
+            }).then(function () {
+                window.location.reload();
+            });
+        }).catch(function onRejected(reason) {
+            dialog.alert({
+                title: '录入装箱信息',
+                message: reason
+            }).then(function () {
+                window.location.reload();
+            });
+        });
+
+    }
+
+    function printBoxInfo(rec_id) {
+
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_box_info_print_sl',
+            deploymentId: 'customdeploy_dps_box_info_print_sl',
+            returnExternalUrl: false,
+            params: {
+                custpage_print: rec_id
+            }
+        });
+
+        var tempwindow = window.open('', '打印装箱信息', 'height=10%,width=10&,top=50%,left=50%,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no');
+        tempwindow.location = url1;
+
+        setTimeout(function () {
+            tempwindow.close();
+        }, 5000);
+
+    }
+
 
     return {
         pageInit: pageInit,
@@ -346,7 +404,9 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
         validateInsert: validateInsert,
         validateDelete: validateDelete,
         saveRecord: saveRecord,
-        updateWMS: updateWMS
+        updateWMS: updateWMS,
+        inputPackingInfo: inputPackingInfo,
+        printBoxInfo: printBoxInfo
     };
 
 });

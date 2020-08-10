@@ -275,10 +275,100 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                 // retjson.msg = '操作成功';
                 requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "outMaster");
             }
+          
+          if (sourceType == 40) {
+                //创建库存调整
+                var subsidiary_type, account_type, location_use, bill_id;
+                search.create({
+                    type: 'customrecord_sample_use_return',
+                    filters: [
+                        { name: 'name', operator: 'is', values: j_context.sourceNo }
+                    ],
+                    columns: [
+                        'custrecord_subsidiary_type_1',
+                        'custrecord_account_type1',
+                        'custrecord_location_use_back'
+                    ]
+                }).run().each(function (rec) {
+                    bill_id = rec.id;
+                    subsidiary_type = rec.getValue('custrecord_subsidiary_type_1');
+                    account_type = rec.getValue('custrecord_account_type1');
+                    location_use = rec.getValue('custrecord_location_use_back');
+                });
+                var Inventory_adjustment = createInventoryadjustment(subsidiary_type, account_type, location_use, j_context.storageList);
+                if (Inventory_adjustment) {
+                    retjson.code = 0;
+                    retjson.data = null;
+                    retjson.msg = "NS 处理成功";
+
+                    record.submitFields({
+                        type: 'customrecord_sample_use_return',
+                        id: bill_id,
+                        values: {
+                            custrecord_stauts_wms: 3,
+                            custrecord_related_adjust_inventory: Inventory_adjustment
+                        }
+                    });
+                } else {
+                    retjson.code = 5;
+                    retjson.data = null;
+                    retjson.msg = "NS 处理异常";
+
+                    record.submitFields({
+                        type: 'customrecord_sample_use_return',
+                        id: bill_id,
+                        values: {
+                            custrecord_stauts_wms: 4
+                        }
+                    });
+                }
+                requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "outMaster");
+            }
         }
         return JSON.stringify(retjson);
     }
 
+  
+  /**
+    * 创建库存调整
+    * 
+    */
+    function createInventoryadjustment(subsidiary_type, account_type, location_use, item_list) {
+        var inventory_ord = record.create({ type: 'inventoryadjustment', isDynamic: true });
+        inventory_ord.setValue({ fieldId: 'subsidiary', value: subsidiary_type });
+        inventory_ord.setValue({ fieldId: 'account', value: account_type });
+        inventory_ord.setValue({ fieldId: 'custbody_stock_use_type', value: 36 });
+
+        item_list.map(function (lia) {
+            inventory_ord.selectNewLine({ sublistId: 'inventory' });
+            var item_id;
+            search.create({
+                type: 'item',
+                filters: [
+                    { name: 'itemid', operator: 'is', values: lia.sku }
+                ]
+            }).run().each(function (rec) {
+                item_id = rec.id;
+            });
+            inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'item', value: item_id });
+            inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'location', value: location_use });
+            inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'adjustqtyby', value: lia.qty });
+
+            inventory_ord.setCurrentSublistText({ sublistId: 'inventory', fieldId: 'custcol_location_bin', text: lia.positionCode });
+            // 其他字段
+            try {
+                inventory_ord.commitLine({ sublistId: 'inventory' })
+            } catch (err) {
+                throw (
+                    'Error inserting item line: ' +
+                    lia.sku +
+                    ', abort operation!' +
+                    err
+                );
+            }
+        });
+        return inventory_ord.save();
+    }
 
 
     /**

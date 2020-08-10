@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 13:58:40
- * @LastEditTime   : 2020-07-31 17:00:55
+ * @LastEditTime   : 2020-08-06 13:59:51
  * @LastEditors    : Li
  * @Description    : 应用于大货发运记录, WMS 发运产生 报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.customs.information.ue.js
@@ -92,9 +92,9 @@ define(['./dps.information.values', 'N/record', 'N/search', 'N/log'], function (
                     //         statusId == 8 || statusText == "WMS发运失败") &&
                     //     !information) { // 状态为 WMS已发运 并且 关联的报关资料
 
-                    var a = Math.floor(Math.random() * Math.floor(6));
-                    gross_margin = Number((0.3 + (a / 100)).toFixed(2));
-
+                    // var a = Math.floor(Math.random() * Math.floor(6));
+                    // gross_margin = Number((0.3 + (a / 100)).toFixed(2));
+                    log.audit('毛利率', gross_margin);
                     log.audit('order_num', order_num);
 
                     var info = informationValue.searchPOItem(order_num);

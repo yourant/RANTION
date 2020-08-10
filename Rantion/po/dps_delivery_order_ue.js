@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-03 20:27:23
+ * @LastEditTime   : 2020-08-04 14:54:08
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -131,6 +131,24 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                     id: 'custpage_push_to_wms',
                     label: '推送WMS',
                     functionName: 'pushToWms'
+                });
+            }
+
+            if (context.type == 'create' && newRecord.type == 'customrecord_dps_delivery_order') {
+
+
+                var form = context.form;
+
+                form.clientScriptModulePath = './dps_purchase_order_cs.js';
+                form.addButton({
+                    id: 'custpage_addmarkallbuttons',
+                    label: '标记所有货品',
+                    functionName: 'addMarkAllButtons()'
+                });
+                form.addButton({
+                    id: 'custpage_addrefreshbutton',
+                    label: '取消所有标记',
+                    functionName: 'addRefreshButton()'
                 });
             }
         }

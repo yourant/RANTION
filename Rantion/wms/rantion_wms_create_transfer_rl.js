@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-07-30 17:43:58
+ * @LastEditTime   : 2020-08-07 16:50:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -421,12 +421,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                             join: 'custrecord_dps_shipping_record_item',
                             name: 'custitem_dps_fnsku'
                         }),
-
                         msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
-                        englishTitle: rec.getValue({
-                            name: 'custitem_dps_declaration_us',
-                            join: 'custrecord_dps_shipping_record_item'
-                        }),
                         productImageUrl: rec.getValue({
                             name: 'custitem_dps_picture',
                             join: 'custrecord_dps_shipping_record_item'
@@ -506,6 +501,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                 var newItemInfo = [];
 
                 if (tranType == 1) {
+                    var fls_skus = [];
                     var new_limit = 3999;
                     log.debug("fils:::::", fils)
                     search.create({
@@ -515,17 +511,17 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                             "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                         ]
                     }).run().each(function (rec) {
-                        // log.debug("rec.id ::::::: ", rec.id)
+                        // log.debug("rec.id ::::::: ", rec.id
+
+                        var temp_name = rec.getValue('name');
                         var it = rec.getValue('custrecord_ass_sku');
                         item_info.forEach(function (item, key) {
-
-                            // log.debug('item.itemId: ' + item.itemId, "it: " + it);
-
-                            if (item.itemId == it) {
+                            if (item.itemId == it && item.msku == temp_name && fls_skus.indexOf(temp_name) == -1) {
                                 item.asin = rec.getValue("custrecord_ass_asin");
-                                item.fnsku = rec.getValue("custrecord_ass_fnsku")
+                                item.fnsku = rec.getValue("custrecord_ass_fnsku");
                                 item.msku = rec.getValue('name');
                                 newItemInfo.push(item);
+                                fls_skus.push(temp_name);
                             }
                         });
                         return --new_limit > 0;
@@ -681,6 +677,9 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
         } else {
             code = 1;
             // 调用失败
+            retdata = {
+                code: 1
+            }
         }
         message.code = code;
         message.data = retdata;

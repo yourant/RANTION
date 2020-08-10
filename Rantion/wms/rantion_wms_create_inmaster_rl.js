@@ -673,14 +673,109 @@ define(['../Helper/config.js', 'N/search', 'N/http', 'N/record', './../Helper/Mo
                 }
                 // 样品归还
                 else if (sourceType == 40) {
-                    data['sourceType'] = 40;
-                    log.debug('inventoryadjust_id', context.inventoryadjust_id);
+                    search.create({
+                        type: 'customrecord_sample_use_return',
+                        filters: [
+                            { name: 'internalid', operator: 'anyof', values: context.id }
+                        ],
+                        columns: [
+                            'custrecord_related_arrival_date',
+                            'custrecord_owner_1',
+                            'name',
+                            'custrecord_if_contain_tax',
+                            'custrecord_subsidiary_type_1',
+                            { name: 'custrecord_dps_wms_location', join: 'custrecord_location_use_back' },
+                            { name: 'custrecord_dps_wms_location_name', join: 'custrecord_location_use_back' }
+                        ]
+                    }).run().each(function (rec) {
+                        var estimateTime;
+                        if(rec.getValue('custrecord_related_arrival_date')){
+                            estimateTime = format.parse({
+                                value: rec.getValue('custrecord_related_arrival_date'),
+                                type: format.Type.DATE
+                            });
+                        }
+                        data["estimateTime"] = estimateTime ? (new Date(estimateTime)).getTime() : '';//预计到货时间
+                        data["inspectionType"] = 10; //质检类型 10: 全检 20: 抽检
+                        data["purchaser"] = rec.getText('custrecord_owner_1');//采购员
+                        data["sourceNo"] = rec.getValue('name'); //'来源单号';
+                        data["sourceType"] = sourceType; //'来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整';
+                        data["taxFlag"] = rec.getValue('custrecord_if_contain_tax');//是否含税 0: 否1: 是
+                        data["tradeCompanyCode"] = rec.getValue('custrecord_subsidiary_type_1');//交易主体编号
+                        data["tradeCompanyName"] = rec.getText('custrecord_subsidiary_type_1').substr(rec.getText('custrecord_subsidiary_type_1').lastIndexOf(' ') + 1);//交易主体名称
+                        data["warehouseCode"] = rec.getValue({
+                            name: 'custrecord_dps_wms_location',
+                            join: 'custrecord_location_use_back'
+                        }); //'仓库编号';
+                        data["warehouseName"] = rec.getValue({
+                            name: 'custrecord_dps_wms_location_name',
+                            join: 'custrecord_location_use_back'
+                        }); //'仓库名称';
+                    });
+
+                    //货品行
+                    var box_num = 0, total_quantity = 0;
+                    var item_info = [];
+                    search.create({
+                        type: 'customrecord_sample_useret_transfer_item',
+                        filters: [
+                            { name: 'custrecord_suti_link', operator: 'anyof', values: context.id }
+                        ],
+                        columns: [
+                            'custrecord_item_box_quantity',
+                            'custrecord_suti_quantiy',
+                            'custrecord_suti_item',
+                            { name: 'custitem_dps_picture', join: 'custrecord_suti_item' },
+                            { name: 'custitem_dps_skuchiense', join: 'custrecord_suti_item' }
+                        ]
+                    }).run().each(function (rec) {
+                        box_num += Number(rec.getValue('custrecord_item_box_quantity'));
+                        total_quantity += Number(rec.getValue('custrecord_suti_quantiy'));
+                        item_info.push({
+                            boxNum: rec.getValue('custrecord_item_box_quantity'),
+                            inspectionType: 10,
+                            planQty: rec.getValue('custrecord_suti_quantiy'),
+                            productCode: rec.getValue('custrecord_suti_item'),
+                            productImageUrl: rec.getValue({ name: 'custitem_dps_picture', join: 'custrecord_suti_item' }),
+                            productTitle: rec.getValue({ name: 'custitem_dps_skuchiense', join: 'custrecord_suti_item' }),
+                            remainderQty: 0,
+                            sku: rec.getText('custrecord_suti_item')
+                        });
+                        return true;
+                    });
+                    data['skuList'] = item_info;
+                    data["boxNum"] = box_num;//箱数
+                    data["planQty"] = total_quantity; //计划入库数量
+                    log.debug('data', data);
                 }
                 message = sendRequest(token, data);
                 var flag = false;
                 if (message.data.code == 0) {
                     log.error('response code', message.data);
                     flag = true;
+                }
+              
+              if(sourceType == 40){
+                    log.debug('message', message);
+                    if(message.data.code != 0){
+                        record.submitFields({
+                            type: 'customrecord_sample_use_return',
+                            id: context.id,
+                            values: {
+                                custrecord_stauts_wms: 5,
+                                custrecord_wms_info_t: message.data.msg
+                            }
+                        });
+                    }else{
+                        record.submitFields({
+                            type: 'customrecord_sample_use_return',
+                            id: context.id,
+                            values: {
+                                custrecord_stauts_wms: 2,
+                                custrecord_wms_info_t: message.data.msg
+                            }
+                        });
+                    }
                 }
 
                 var sta;

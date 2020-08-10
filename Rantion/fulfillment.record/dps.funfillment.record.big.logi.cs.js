@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-07-30 15:01:37
+ * @LastEditTime   : 2020-07-25 17:28:53
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -218,7 +218,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
                         headers: header
                     });
                     if (response.body == false) {
-                        alert('重新WMS发运失败')
+                        alert('重新WMS发运')
                     } else {
                         alert('重新WMS发运: ' + response.body);
                         window.location.reload(true);

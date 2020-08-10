@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-31 17:03:52
+ * @LastEditTime   : 2020-08-07 19:59:43
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -406,7 +406,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                             var str = '';
 
-                            if (!shipping_rec_shipmentsid) {
+                            var channel_dealer = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer')
+                            if (!shipping_rec_shipmentsid && channel_dealer == 1) { // shipmentId 不存在, 并且渠道服务为捷仕, 才申请 shipmentId
                                 try {
                                     log.debug('申请shipmentID', '申请shipmentID');
                                     // 创建入库计划, 获取 shipment
@@ -1624,15 +1625,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
                 }).run().each(function (rec) {
-
+                    var temp_name = rec.getValue('name');
                     var it = rec.getValue('custrecord_ass_sku');
                     item_info.forEach(function (item, key) {
-                        if (item.itemId == it && fls_skus.indexOf(it) == -1) {
+                        if (item.itemId == it && item.msku == temp_name && fls_skus.indexOf(temp_name) == -1) {
                             item.asin = rec.getValue("custrecord_ass_asin");
-                            item.fnsku = rec.getValue("custrecord_ass_fnsku")
+                            item.fnsku = rec.getValue("custrecord_ass_fnsku");
                             item.msku = rec.getValue('name');
                             newItemInfo.push(item);
-                            fls_skus.push(it);
+                            fls_skus.push(temp_name);
                         }
                     });
                     return --new_limit > 0;
@@ -2156,7 +2157,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         } else {
             code = 1;
             // 调用失败
-            retdata = "请求失败"
+            // retdata = "请求失败"
+            retdata = {
+                code: 1,
+                msg: "请求失败"
+            }
         }
         message.code = code;
         message.data = retdata;

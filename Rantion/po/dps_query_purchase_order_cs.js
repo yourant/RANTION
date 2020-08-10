@@ -46,6 +46,49 @@ define(['../Helper/config.js', 'N/ui/dialog', 'N/runtime', 'N/record'],
                     return false;
                 }
             }
+
+            var curRec = context.currentRecord;
+            var numLines = curRec.getLineCount({
+                sublistId: 'recmachcustrecord_dps_delivery_order_id'
+            });
+
+            // console.log('numLines', numLines);
+
+            if (numLines < 1) {
+                dialog.alert({
+                    title: '提示',
+                    message: '请选择一个货品行'
+                });
+                return false;
+            } else {
+
+                // console.log('存在货品行', numLines);
+                var checkArr = [];
+                for (var i = 0; i < numLines; i++) {
+                    var check = curRec.getSublistValue({
+                        sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                        fieldId: 'custrecord_dps_delivery_order_check',
+                        line: i
+                    });
+
+                    if (check) {
+                        checkArr.push(check);
+                    }
+                }
+
+                if (checkArr.length > 0) {
+                    // console.log('选择了对应的货品')
+                    return true;
+                } else {
+                    // console.log('未选择有货品')
+                    dialog.alert({
+                        title: '提示',
+                        message: '请选择一个货品行'
+                    });
+                    return false;
+                }
+            }
+
             return true;
         }
 

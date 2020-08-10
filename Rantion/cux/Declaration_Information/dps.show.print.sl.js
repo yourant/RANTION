@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-25 22:21:51
- * @LastEditTime   : 2020-07-03 11:53:04
+ * @LastEditTime   : 2020-08-06 16:21:21
  * @LastEditors    : Li
  * @Description    : 搜索报关相关记录, 打印
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.show.print.sl.js
@@ -161,18 +161,19 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
             label: '相关记录'
         });
 
-        sublist.addMarkAllButtons();
-        sublist.addRefreshButton();
+        // HACK 
+        // sublist.addMarkAllButtons();
+        // sublist.addRefreshButton();
 
 
-        var su_box = sublist.addField({
-            id: 'custpage_checkbox',
-            type: serverWidget.FieldType.CHECKBOX,
-            label: '勾选框'
-        });
-        su_box.updateLayoutType({
-            layoutType: serverWidget.FieldLayoutType.NORMAL
-        });
+        // var su_box = sublist.addField({
+        //     id: 'custpage_checkbox',
+        //     type: serverWidget.FieldType.CHECKBOX,
+        //     label: '勾选框'
+        // });   // HACK
+        // su_box.updateLayoutType({
+        //     layoutType: serverWidget.FieldLayoutType.NORMAL
+        // });
         var da = sublist.addField({
             id: 'custpage_transferorder',
             type: serverWidget.FieldType.SELECT,
@@ -246,11 +247,13 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
                     id: 'sublistid'
                 });
                 for (var i = 0; i < 1; i++) {
-                    line.setSublistValue({
-                        id: 'custpage_transferorder',
-                        value: tran_order,
-                        line: i
-                    });
+                    if (tran_order) {
+                        line.setSublistValue({
+                            id: 'custpage_transferorder',
+                            value: tran_order,
+                            line: i
+                        });
+                    }
                     line.setSublistValue({
                         id: 'custpage_customs_information',
                         value: dec_info,
@@ -300,11 +303,13 @@ define(['N/search', 'N/log', 'N/ui/serverWidget', 'N/format', './dps.li.tool.set
                     join: "custrecord_fulfillment_record"
                 });
                 if (rec.id == infoId) {
-                    line.setSublistValue({
-                        id: 'custpage_transferorder',
-                        value: rec.getValue('custrecord_transfer_order'),
-                        line: i
-                    });
+                    if (rec.getValue('custrecord_transfer_order')) {
+                        line.setSublistValue({
+                            id: 'custpage_transferorder',
+                            value: rec.getValue('custrecord_transfer_order'),
+                            line: i
+                        });
+                    }
 
                     line.setSublistValue({
                         id: 'custpage_customs_information',

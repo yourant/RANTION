@@ -12,8 +12,8 @@ define(['N/search', 'N/record'],
         type: 'journalentry',
         filters: [
           ['memomain', 'contains', '结算'],
-        //   'and',
-        //   ['custbody_coll_s', 'noneof', '@NONE@'],
+          //   'and',
+          //   ['custbody_coll_s', 'noneof', '@NONE@'],
           'and',
           ['mainline', 'is', true],
           'and',
@@ -35,21 +35,22 @@ define(['N/search', 'N/record'],
         jo2_id.map(function (jo2) {
           log.debug('冲销日记账', jo2)
           jo2_rec = record.load({ type: 'journalentry', id: jo2 })
-          jo3 = jo2_rec.getValue('custbody_coll_s')
+          // jo3 = jo2_rec.getValue('custbody_coll_s')
           jo1_arrys = jo2_rec.getValue('custbody_estimate_s')
           inv_objs = JSON.parse(jo2_rec.getValue('custbody_settlement_inv_ids'))
-          log.debug("inv_objs",inv_objs);
+          log.debug('inv_objs', inv_objs)
           for (var key in inv_objs) {
             inv_objs[key].map(function (inv_ojbs) {
               record.submitFields({
                 type: 'invoice',
                 id: inv_ojbs.inv_id,
                 values: {
-                  memo: key,
+                  custbody_amazon_settlement_memo: key,
                   custbody_dp_expected_due_date: inv_ojbs.end_date,
-                  custbody_setllement_depositamount: inv_ojbs.depAmaount,
+                  custbody_setllement_depositamount: inv_ojbs.depAmaount
                 }
               })
+              log.debug('设置发票成功', inv_ojbs)
             })
           }
           settlmenid_arrys = jo2_rec.getValue('custbody_set_payment_report_recids')
@@ -104,7 +105,7 @@ define(['N/search', 'N/record'],
                 values: {
                   custbody_estimate_s: jo1_id,
                   custbody_blot_s: jo2,
-                  custbody_coll_s: jo3
+                // custbody_coll_s: jo3
                 }
               })
             })

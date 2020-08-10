@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-07-31 17:06:11
+ * @LastEditTime   : 2020-08-07 16:36:08
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -486,12 +486,14 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             //     // date: new Date('7/28/2015')
             // });
 
+            var num = 1;
             log.debug('cur_rate', cur_rate);
-            if (!gross_margin) {
-                gross_margin = 0.3;
+            if (gross_margin) {
+                // gross_margin = 0.3;
+                num = 1 + Number(gross_margin);
             }
 
-            var num = 1 + Number(gross_margin);
+            // var num = 1 + Number(gross_margin);
 
             log.debug('num', num);
 

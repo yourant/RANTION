@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-08-03 19:12:49
+ * @LastEditTime   : 2020-08-09 20:15:24
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -13,9 +13,10 @@
  *@NScriptType Suitelet
  */
 define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/file',
-    'N/xml', './Rantion/Helper/tool.li', 'N/runtime', 'N/file', "N/ui/serverWidget"
-], function (search, record, log, core, file, xml, tool, runtime, file, serverWidget) {
-
+    'N/xml', './Rantion/Helper/tool.li', 'N/runtime', 'N/file', "N/ui/serverWidget",
+    './douples_amazon/Helper/Moment.min', 'N/format', './douples_amazon/Helper/fields.min',
+    "./Rantion/Helper/config", 'N/http', 'N/encode', 'N/redirect'
+], function (search, record, log, core, file, xml, tool, runtime, file, serverWidget, moment, format, fields, config, http, encode, redirect) {
 
     function onRequest(context) {
         try {
@@ -249,7 +250,286 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
             } else if (userObj.id == 911 /* || userObj.id == 13440 */ ) {
 
+                var getArr = tool.getBoxInfo(70);
 
+                context.response.writeLine("\n\n\n getArr: " + JSON.stringify(getArr))
+
+
+                var obj = tool.groupBoxInfo(getArr);
+
+                context.response.writeLine("\n\n\n obj: " + JSON.stringify(obj))
+
+                log.debug('sendRequest data', obj);
+
+                var redisId = Date.parse(new Date());
+
+                log.audit('redisId', redisId)
+
+                var token = getToken();
+                var message = {};
+                var code = 0;
+                var retdata;
+                var headerInfo = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'access_token': token
+                };
+                var response = http.post({
+                    url: config.WMS_Debugging_URL + "/common/setBoxingReportBodyByRedis/" + redisId,
+                    headers: headerInfo,
+                    body: JSON.stringify(obj)
+                });
+
+                log.audit('config.WMS_Debugging_URL + "/common/setBoxingReportBodyByRedis/" + redisId', config.WMS_Debugging_URL + "/common/setBoxingReportBodyByRedis/" + redisId)
+                // /common/setBoxingReportBodyByRedis/{redisId}
+                log.debug('response', JSON.stringify(response));
+
+                context.response.writeLine('\n\n\n response \n\n' + JSON.stringify(response))
+                if (response.code == 200) {
+                    retdata = JSON.parse(response.body);
+                    // 调用成功
+                    code = retdata.code;
+                } else {
+                    code = 1;
+                    // 调用失败
+                    retdata = {
+                        code: 1
+                    }
+                }
+
+                if (code == 0) {
+
+                    redirect.redirect({
+                        url: config.WMS_Debugging_URL + "/common/export/getBoxingReportExcel/" + redisId,
+                        parameters: {
+                            'custparam_test': 'helloWorld'
+                        }
+                    });
+
+                    return 1;
+                    var headerInfo = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'access_token': token
+                    };
+                    var response = http.get({
+                        url: config.WMS_Debugging_URL + "/common/export/getBoxingReportExcel/" + redisId,
+                        headers: headerInfo,
+                        // body: JSON.stringify(obj)
+                    });
+                    log.debug('response', JSON.stringify(response));
+
+                    context.response.writeLine('\n\n\n response \n\n' + JSON.stringify(response))
+                    // /common/export/getBoxingReportExcel/{redisId}
+
+                    var fileObj = file.create({
+                        name: "装箱信息" + redisId + ".xls",
+                        fileType: file.Type.EXCEL,
+                        contents: encode.convert({
+                            string: response.body,
+                            inputEncoding: encode.Encoding.UTF_8,
+                            outputEncoding: encode.Encoding.BASE_64
+                        }),
+                        folder: -15,
+                        encoding: file.Encoding.UTF8,
+                        isOnline: true
+                    });
+
+                    var fileObj_id = fileObj.save();
+
+                    log.error('文件Id', fileObj_id);
+
+                    // context.response.writeFile({
+                    //     file: fileObj,
+                    //     isInline: true
+                    // });
+                }
+
+                return 1;
+                var boxNo = 1;
+                var newBoxArr = [];
+
+                for (var i = 0, i_len = getArr.length; i < i_len; i++) {
+                    var temp = getArr[i];
+
+                    var it = JSON.stringify(temp);
+
+                    var qty = temp.qty;
+                    var mpq = temp.mpq;
+                    var a = parseInt(qty / mpq);
+                    for (var j = 0; j < a; j++) {
+                        var get = JSON.parse(it);
+                        get.boxqty = mpq;
+                        get.boxNo = boxNo;
+                        boxNo++;
+                        newBoxArr.push(get)
+                    }
+                    var c = qty % mpq;
+                    if (c > 0) {
+                        var get = JSON.parse(it);
+                        get.boxqty = c;
+                        get.boxNo = boxNo;
+                        boxNo++;
+                        newBoxArr.push(get)
+                    }
+                }
+
+
+                var it = [];
+                getArr.forEach(function (get) {
+                    var qty = get.qty;
+                    var mpq = get.mpq;
+                    var a = parseInt(qty / mpq);
+                    var bo = [];
+                    for (var i = 0; i < a; i++) {
+                        bo.push(mpq);
+                        get.boxqty = c;
+                        get.boxNo = boxNo;
+                        boxNo++;
+                        it.push(get)
+                    }
+                    var c = qty % mpq;
+                    if (c > 0) {
+                        bo.push(c);
+                        boxNo++;
+                    }
+                    get.boxArr = bo
+                });
+
+                context.response.writeLine('\n\n\n newBoxArr : \n' + JSON.stringify(newBoxArr))
+                context.response.writeLine('\n\n\n getArr : \n' + JSON.stringify(getArr))
+
+
+
+                return;
+                var loadRec = record.load({
+                    type: 'customrecord_dps_shipping_record',
+                    id: 70,
+                    isDynamic: true
+                });
+
+                var sublistId = "recmachcustrecord_dps_ship_box_fa_record_link"
+
+                var box_no = 1;
+                getArr.map(function (arr) {
+                    var boxArr = arr.boxArr;
+                    boxArr.map(function (b) {
+
+                        loadRec.selectNewLine({
+                            sublistId: sublistId
+                        });
+
+                        var j = "000" + box_no;
+
+                        var l = j.substring(j.length - 4);
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_box_number',
+                            value: l
+                        }); // 箱号
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_item',
+                            value: arr.itemId
+                        }); // 货品
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_sku',
+                            value: arr.sellersku
+                        }); // seller
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_quantity',
+                            value: b
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_weight',
+                            value: arr.packing_weight / 1000
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ful_rec_box_length',
+                            value: arr.box_long
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                            value: arr.box_wide
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                            value: arr.box_high
+                        });
+
+                        loadRec.commitLine({
+                            sublistId: sublistId
+                        });
+
+                        box_no++;
+                    })
+                })
+
+                // var loadRec_id = loadRec.save();
+
+
+                log.audit('保存记录 loadRec_id', loadRec_id);
+
+
+
+
+
+
+                return;
+                var o;
+                search.create({
+                    type: 'salesorder',
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: 3305042
+                    }],
+                    columns: [
+                        "custbody_aio_api_content"
+                    ]
+                }).run().each(function (r) {
+                    o = r.getValue("custbody_aio_api_content");
+                });
+                o = JSON.parse(o);
+
+                log.audit('o.purchase_date', o.purchase_date);
+
+                var acc_local_time = format.format({
+                    value: moment.utc(o.purchase_date).toDate(),
+                    type: format.Type.DATETIMETZ,
+                    timezone: fields.timezone[37] // depositDate
+                }); // 状态店铺时间
+
+
+
+                context.response.writeLine('状态店铺时间: ' + acc_local_time);
+                var ord = record.load({
+                    type: 'salesorder',
+                    id: 3305042
+                });
+                ord.setText({
+                    fieldId: 'custbody_dps_acc_local_time',
+                    text: acc_local_time
+                });
+
+                var ord_id = ord.save();
+
+                context.response.writeLine("内部id： " + ord_id);
+
+
+                return;
+                var vemPre = record.load({
+                    type: 'customrecord_dps_shipping_record',
+                    id: 1248
+                });
+
+                wms(vemPre);
 
                 return;
                 var retObj = {
@@ -1146,13 +1426,13 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 var a = new Date();
 
 
-                log.error("开始时间：", a)
+                log.error("开始时间：", a);
                 context.response.writeLine("开始时间： " + a.toISOString());
 
                 returnDelivery(retObj);
 
                 var b = new Date();
-                log.error("开始时间：", b)
+                log.error("开始时间：", b);
                 context.response.writeLine("结束时间 " + b.toISOString());
 
 
@@ -1190,11 +1470,188 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
             var b = new Date();
             log.error("开始时间：", b)
-            context.response.writeLine("结束时间 " + b.toISOString());
+            context.response.writeLine("\n\n\n 结束时间     " + b.toISOString());
 
 
             log.error('函数执行出错了', error);
         }
+    }
+
+
+
+
+    function inventoryAdjustment(recId) {
+
+        var info = {};
+        var limit = 3999;
+
+        var TRANSACTION_TYPE = ["VendorReturns"];
+        var DISPOSITION = ["CUSTOMER_DAMAGED", "DEFECTIVE", "DISTRIBUTOR_DAMAGED", "CARRIER_DAMAGED"];
+        search.create({
+            type: "customrecord_amazon_fulfill_invtory_rep",
+            filters: [{
+                    isnot: false,
+                    isor: false,
+                    name: "custrecord_invful_transation_type",
+                    operator: "startswith",
+                    values: ["VendorReturns"]
+                },
+                {
+                    isnot: false,
+                    isor: true,
+                    name: "custrecord_invful_disposition",
+                    operator: "is",
+                    values: ["CARRIER_DAMAGED"]
+                },
+                {
+                    isnot: false,
+                    isor: true,
+                    name: "custrecord_invful_disposition",
+                    operator: "is",
+                    values: ["DISTRIBUTOR_DAMAGED"]
+                },
+                {
+                    isnot: false,
+                    isor: true,
+                    name: "custrecord_invful_disposition",
+                    operator: "is",
+                    values: ["DEFECTIVE"]
+                },
+                {
+                    isnot: false,
+                    isor: false,
+                    name: "custrecord_invful_disposition",
+                    operator: "is",
+                    values: ["CUSTOMER_DAMAGED"]
+                },
+                {
+                    name: 'custrecord_dps_invful_processed',
+                    operator: 'is',
+                    values: false
+                }
+            ],
+            columns: [{
+                    name: "custrecord_division",
+                    join: 'custrecord_invful_account'
+                }, // 部门
+                {
+                    name: 'custrecord_aio_subsidiary',
+                    join: 'custrecord_invful_account'
+                }, // 子公司
+                {
+                    name: 'custrecord_aio_fbaorder_location',
+                    join: 'custrecord_invful_account'
+                }, // 地点
+                {
+                    name: 'custrecord_aio_seller_id',
+                    join: 'custrecord_invful_account'
+                }, // sellerId
+                "custrecord_invful_quantity", // 数量
+                "custrecord_invful_transation_type", // TRANSACTION-TYPE
+                "custrecord_invful_fnsku", // fnsku
+                "custrecord_invful_sku", // SKU
+                "custrecord_invful_snapshot_date", // SNAPSHOT-DATE
+            ]
+        }).run().each(function (r) {
+            info = {
+                snapshot_date: r.getValue('custrecord_invful_snapshot_date'),
+                sellerId: r.getValue({
+                    name: 'custrecord_aio_seller_id',
+                    join: 'custrecord_invful_account'
+                }),
+                subsidiary: r.getValue({
+                    name: 'custrecord_aio_subsidiary',
+                    join: 'custrecord_invful_account'
+                }),
+                department: r.getValue({
+                    name: "custrecord_division",
+                    join: 'custrecord_invful_account'
+                }),
+                location: r.getValue({
+                    name: 'custrecord_aio_fbaorder_location',
+                    join: 'custrecord_invful_account'
+                }),
+                qty: r.getValue('custrecord_invful_quantity'),
+                transation_type: r.getValue('custrecord_invful_transation_type'),
+                fnsku: r.getValue('custrecord_invful_fnsku'),
+                sku: r.getValue('custrecord_invful_sku')
+            }
+
+            return --limit > 0;
+        });
+
+        search.create({
+            type: 'customrecord_aio_amazon_seller_sku',
+            filters: [{
+                    name: 'custrecord_aio_seller_id',
+                    join: 'custrecord_ass_account',
+                    operator: 'is',
+                    values: info.sellerId
+                },
+                {
+                    name: 'name',
+                    operator: 'is',
+                    values: info.sku
+                }
+            ],
+            columns: [
+                "custrecord_ass_sku", // NS 货品
+            ]
+        }).run().each(function (rec) {
+            info.itemId = rec.getValue('custrecord_ass_sku')
+        });
+
+        var invAdj = record.create({
+            type: 'inventoryadjustment',
+
+        });
+        invAdj.setValue({
+            fieldId: 'subsidiary',
+            value: info.subsidiary
+        });
+        invAdj.setValue({
+            fieldId: 'memo',
+            value: "FBA仓报损"
+        });
+        invAdj.setValue({
+            fieldId: 'account',
+            value: 538
+        });
+        invAdj.setValue({
+            fieldId: 'custbody_stock_use_type',
+            value: 40
+        });
+        invAdj.setText({
+            fieldId: 'trandate',
+            text: info.snapshot_date
+        });
+        invAdj.setValue({
+            fieldId: 'department',
+            value: info.department
+        });
+
+        invAdj.setSublistValue({
+            sublistId: 'inventory',
+            fieldId: 'item',
+            value: info.itemid,
+            line: 0
+        });
+        invAdj.setSublistValue({
+            sublistId: 'inventory',
+            fieldId: 'location',
+            value: info.itemid,
+            line: 0
+        });
+        invAdj.setSublistValue({
+            sublistId: 'inventory',
+            fieldId: 'adjustqtyby',
+            value: info.qty,
+            line: 0
+        });
+
+        var invAdj_id = invAdj.save();
+        log.debug('库存调整单', invAdj_id);
+
     }
 
 
@@ -2252,6 +2709,615 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
     }
 
 
+    function wms(af_rec) {
+        // 推送 WMS, 获取装箱信息
+
+        var flagLocation;
+
+        //     1 FBA仓   2 自营仓   3 工厂仓   4 虚拟仓    5 虚拟在途仓
+        // 先判断起始仓库是否为工厂仓
+        search.create({
+            type: af_rec.type,
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: af_rec.id
+            }],
+            columns: [{
+                    name: 'custrecord_dps_financia_warehous',
+                    join: 'custrecord_dps_shipping_rec_location'
+                }, // 财务分仓 类型
+            ]
+        }).run().each(function (rec) {
+            flagLocation = rec.getValue({
+                name: 'custrecord_dps_financia_warehous',
+                join: 'custrecord_dps_shipping_rec_location'
+            }); // 仓库的财务分仓
+        });
+
+        log.audit('仓库类型 flagLocation', flagLocation);
+        if (flagLocation == 3) { // 属于财务分仓属于 工厂仓
+
+            // 27	等待录入装箱信息
+            log.debug('发出仓库属于工厂仓', "直接退出, 不推送WMS")
+
+            var id = record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: af_rec.id,
+                values: {
+                    custrecord_dps_shipping_rec_status: 27,
+                    custrecord_dps_shipping_rec_wms_info: '发出仓为工厂仓, 不推送WMS '
+                }
+            });
+
+            return;
+        }
+
+        var rec_transport = af_rec.getValue('custrecord_dps_shipping_rec_transport');
+        var shippingType;
+        // shippingType(integer): 运输方式：10 空运，20 海运，30 快船，40 铁路
+        // 1	空运   2	海运   3	铁路    4   快船
+        if (rec_transport == 1) {
+            shippingType = 10;
+        } else if (rec_transport == 4) {
+            shippingType = 30;
+        } else if (rec_transport == 2) {
+            shippingType = 20;
+        } else if (rec_transport == 3) {
+            shippingType = 40
+        }
+
+
+        var message = {};
+        // 获取token
+        // var token = getToken();
+        var token = 1;
+        if (token) {
+            var data = {};
+            var tranType, fbaAccount, logisticsFlag = 0;
+
+            var ful_to_link;
+            search.create({
+                type: 'customrecord_dps_shipping_record',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: af_rec.id
+                }],
+                columns: [
+                    'custrecord_dps_ship_record_tranor_type', // 调拨单类型
+                    'custrecord_dps_shipping_rec_transport',
+                    'custrecord_dps_shipping_rec_order_num', // 调拨单号
+                    {
+                        name: 'tranid',
+                        join: 'custrecord_dps_shipping_rec_order_num'
+                    },
+                    // 'owner',
+                    'custrecord_dps_shipping_rec_currency',
+                    'custrecord_dps_declared_value_dh',
+                    'custrecord_dps_shipping_rec_account',
+                    'custrecord_dps_shipping_r_channelservice',
+                    'custrecord_dps_shipping_r_channel_dealer',
+                    'custrecord_dps_shipping_rec_shipments',
+                    'custrecord_dps_shipping_rec_location',
+                    'custrecord_dps_shipping_rec_to_location',
+                    'custrecord_dps_shipping_rec_transa_subje',
+                    'custrecord_dps_shipping_rec_logistics_no',
+                    'custrecord_dps_f_b_purpose', // 用途
+                    'custrecord_dps_declare_currency_dh', // 申报币种
+                    'custrecord_dps_shipping_rec_shipmentsid', // shipmentId
+                    "custrecord_dps_shipping_rec_destinationf", // 仓库中心编号
+
+                    {
+                        name: 'custrecord_dps_wms_location',
+                        join: 'custrecord_dps_shipping_rec_location'
+                    }, // 仓库编号
+                    {
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'custrecord_dps_shipping_rec_location'
+                    }, // 仓库名称
+                    {
+                        name: 'custrecord_dps_wms_location',
+                        join: 'custrecord_dps_shipping_rec_to_location'
+                    }, // 目标仓库编号
+                    {
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'custrecord_dps_shipping_rec_to_location'
+                    }, // 目标仓库名称
+                    {
+                        name: 'custrecord_ls_service_code',
+                        join: 'custrecord_dps_shipping_r_channelservice'
+                    }, // 渠道服务代码
+                    {
+                        name: 'custrecord_ls_is_face',
+                        join: 'custrecord_dps_shipping_r_channelservice'
+                    }, // 渠道服务存在面单文件
+
+                    {
+                        name: 'custrecord_ls_bubble_count',
+                        join: 'custrecord_dps_shipping_r_channelservice'
+                    }, // 计泡基数
+                    {
+                        name: "entityid",
+                        join: "owner"
+                    }, // 拥有者
+
+                    {
+                        name: 'custrecord_aio_marketplace',
+                        join: 'custrecord_dps_shipping_rec_account'
+                    }, // 站点 / 市场
+                    {
+                        name: 'custrecord_dps_ship_remark'
+                    }, // 备注
+                    "custrecord_dps_to_shipment_name", // shipment name
+                    "custrecord_dps_to_reference_id", // reference id
+                ]
+            }).run().each(function (rec) {
+
+                ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
+                var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
+                var shippingType;
+                // shippingType(integer): 运输方式：10 空运，20 海运，30 快船，40 铁路
+                // 1	空运   2	海运   3	铁路    4   快船
+                if (rec_transport == 1) {
+                    shippingType = 10;
+                } else if (rec_transport == 4) {
+                    shippingType = 30;
+                } else if (rec_transport == 2) {
+                    shippingType = 20;
+                } else if (rec_transport == 3) {
+                    shippingType = 40
+                }
+
+                data["referenceId"] = rec.getValue("custrecord_dps_to_reference_id");
+
+                data["shipmentName"] = rec.getValue("custrecord_dps_to_shipment_name"); // shipment
+                data["shippingType"] = shippingType;
+                data["aono"] = rec.getValue({
+                    name: 'tranid',
+                    join: 'custrecord_dps_shipping_rec_order_num'
+                });
+                data["createBy"] = rec.getValue({
+                    name: "entityid",
+                    join: "owner"
+                });
+
+                data["marketplaces"] = rec.getText({
+                    name: 'custrecord_aio_marketplace',
+                    join: 'custrecord_dps_shipping_rec_account'
+                });
+                data["declareCurrency"] = rec.getText('custrecord_dps_declare_currency_dh');
+
+                data["declarePrice"] = Number(rec.getValue('custrecord_dps_declared_value_dh'));
+                fbaAccount = rec.getValue('custrecord_dps_shipping_rec_account');
+                data["fbaAccount"] = rec.getText('custrecord_dps_shipping_rec_account');
+
+                data["countBubbleBase"] = Number(rec.getValue({
+                    name: 'custrecord_ls_bubble_count',
+                    join: 'custrecord_dps_shipping_r_channelservice'
+                }));
+                data["logisticsChannelCode"] = rec.getValue('custrecord_dps_shipping_r_channelservice');
+                data["logisticsChannelName"] = rec.getText('custrecord_dps_shipping_r_channelservice');
+                data["logisticsLabelPath"] = 'logisticsLabelPath';
+
+                data["logisticsProviderCode"] = rec.getValue('custrecord_dps_shipping_r_channel_dealer'); // 渠道商
+
+                logisticsFlag = rec.getValue({
+                    name: 'custrecord_ls_is_face',
+                    join: 'custrecord_dps_shipping_r_channelservice'
+                })
+
+                if (logisticsFlag) {
+                    data["logisticsFlag"] = 1;
+                } else {
+                    data["logisticsFlag"] = 0;
+                }
+                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
+
+                data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer'); // 渠道商名称
+
+                data["sourceWarehouseCode"] = rec.getValue({
+                    name: 'custrecord_dps_wms_location',
+                    join: 'custrecord_dps_shipping_rec_location'
+                });
+                data["sourceWarehouseName"] = rec.getValue({
+                    name: 'custrecord_dps_wms_location_name',
+                    join: 'custrecord_dps_shipping_rec_location'
+                });
+
+                data["targetWarehouseCode"] = rec.getValue({
+                    name: 'custrecord_dps_wms_location',
+                    join: 'custrecord_dps_shipping_rec_to_location'
+                });
+                data["targetWarehouseName"] = rec.getValue({
+                    name: 'custrecord_dps_wms_location_name',
+                    join: 'custrecord_dps_shipping_rec_to_location'
+                });
+                data["taxFlag"] = 1;
+                data["tradeCompanyCode"] = rec.getValue('custrecord_dps_shipping_rec_transa_subje');
+
+                var a = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+                var b = a.split(':');
+                data["tradeCompanyName"] = b[b.length - 1];
+                // data["tradeCompanyName"] = rec.getText('custrecord_dps_shipping_rec_transa_subje');
+
+                var type1 = rec.getValue('custrecord_dps_ship_record_tranor_type');
+
+                tranType = rec.getValue('custrecord_dps_ship_record_tranor_type');
+
+                var type = 10;
+                // 1 FBA调拨         2 自营仓调拨             3 跨仓调拨            4 移库
+
+                var waybillNo;
+
+                if (type1 == 1) {
+                    type = 20;
+                    data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+                    waybillNo = rec.getValue('custrecord_dps_shipping_rec_shipmentsid');
+                } else {
+                    data["shipment"] = rec.getValue('custrecord_dps_shipping_rec_shipments');
+                    waybillNo = rec.getValue('custrecord_dps_shipping_rec_shipments');
+                }
+                data["centerId"] = rec.getValue('custrecord_dps_shipping_rec_destinationf') ? rec.getValue('custrecord_dps_shipping_rec_destinationf') : ''; // 仓库中心
+                data["type"] = type;
+                data["remark"] = rec.getValue('custrecord_dps_ship_remark'); // 备注字段
+                data["waybillNo"] = waybillNo; // 运单号
+            });
+
+            var createdBy;
+            search.create({
+                type: 'transferorder',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: ful_to_link
+                }],
+                columns: [
+                    "createdby"
+                ]
+            }).run().each(function (rec) {
+                createdBy = rec.getText('createdby');
+            });
+
+            data["createBy"] = createdBy; // 设置调拨单创建者
+
+            var taxamount;
+            var item_info = [];
+            var subli_id = 'recmachcustrecord_dps_shipping_record_parentrec';
+            // var numLines = af_rec.getLineCount({
+            //     sublistId: subli_id
+            // });
+
+
+            var itemArr = [];
+            var ful_limit = 3999;
+            search.create({
+                type: 'customrecord_dps_shipping_record_item',
+                filters: [{
+                    name: 'custrecord_dps_shipping_record_parentrec',
+                    operator: 'anyof',
+                    values: af_rec.id
+                }],
+                columns: [{
+                        join: 'custrecord_dps_shipping_record_item',
+                        name: 'custitem_dps_msku'
+                    },
+                    {
+                        name: 'custrecord_dps_f_b_purpose',
+                        join: 'custrecord_dps_shipping_record_parentrec'
+                    },
+                    {
+                        join: 'custrecord_dps_shipping_record_item',
+                        name: 'custitem_dps_fnsku'
+                    },
+                    {
+                        name: 'custitem_aio_asin',
+                        join: 'custrecord_dps_shipping_record_item'
+                    },
+                    {
+                        name: 'custitem_dps_skuchiense',
+                        join: 'custrecord_dps_shipping_record_item'
+                    },
+                    {
+                        name: 'custitem_dps_picture',
+                        join: 'custrecord_dps_shipping_record_item'
+                    },
+                    {
+                        name: 'itemid',
+                        join: 'custrecord_dps_shipping_record_item'
+                    },
+                    {
+                        name: 'custrecord_dps_ship_record_sku_item'
+                    },
+                    {
+                        name: 'custrecord_dps_ship_record_item_quantity'
+                    },
+
+                    {
+                        name: 'custitem_dps_heavy2',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品重量(cm),
+                    {
+                        name: 'custitem_dps_high',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品高(cm),
+                    {
+                        name: 'custitem_dps_long',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品长(cm),
+                    {
+                        name: 'custitem_dps_wide',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品宽(cm),
+                    {
+                        name: 'custitem_dps_brand',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 品牌名称,
+                    {
+                        name: 'custitem_dps_declaration_us',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }, // 产品英文标题,
+
+                    {
+                        name: 'custitem_dps_use',
+                        join: 'custrecord_dps_shipping_record_item'
+                    },
+                    'custrecord_dps_shipping_record_item', // 货品
+                    'custrecord_dps_ship_record_sku_item', //seller sku
+                    // {
+                    //     name: 'taxamount',
+                    //     join: 'custrecord_dps_trans_order_link'
+                    // }
+
+                    {
+                        name: "custitem_dps_nature",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 材质  material
+                    {
+                        name: "custitem_dps_group",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 物流分组 logisticsGroup
+                    {
+                        name: "cost",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 采购成本  purchaseCost
+                    {
+                        name: "custitem_dps_skuenglish",
+                        join: "custrecord_dps_shipping_record_item"
+                    }, // 英文标题/描述 englishTitle
+                ]
+            }).run().each(function (rec) {
+
+                itemArr.push(rec.getValue('custrecord_dps_shipping_record_item'));
+
+                var purchaseCost = rec.getValue({
+                    name: "cost",
+                    join: "custrecord_dps_shipping_record_item"
+                });
+                var it = {
+                    englishTitle: rec.getValue({
+                        name: "custitem_dps_skuenglish",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
+                    purchaseCost: Number(purchaseCost),
+                    logisticsGroup: rec.getText({
+                        name: "custitem_dps_group",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
+                    material: rec.getText({
+                        name: "custitem_dps_nature",
+                        join: "custrecord_dps_shipping_record_item"
+                    }),
+                    itemId: rec.getValue('custrecord_dps_shipping_record_item'),
+                    purpose: rec.getValue({
+                        name: 'custitem_dps_use',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    brandName: rec.getText({
+                        name: 'custitem_dps_brand',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    asin: rec.getValue({
+                        name: 'custitem_aio_asin',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    fnsku: rec.getValue({
+                        join: 'custrecord_dps_shipping_record_item',
+                        name: 'custitem_dps_fnsku'
+                    }),
+
+                    msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
+                    englishTitle: rec.getValue({
+                        name: 'custitem_dps_declaration_us',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    productImageUrl: rec.getValue({
+                        name: 'custitem_dps_picture',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    productTitle: rec.getValue({
+                        name: 'custitem_dps_skuchiense',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    productHeight: Number(rec.getValue({
+                        name: 'custitem_dps_high',
+                        join: 'custrecord_dps_shipping_record_item'
+                    })),
+
+                    productLength: Number(rec.getValue({
+                        name: 'custitem_dps_long',
+                        join: 'custrecord_dps_shipping_record_item'
+                    })),
+
+                    productWeight: Number(rec.getValue({
+                        name: 'custitem_dps_heavy2',
+                        join: 'custrecord_dps_shipping_record_item'
+                    })),
+                    productWidth: Number(rec.getValue({
+                        name: 'custitem_dps_wide',
+                        join: 'custrecord_dps_shipping_record_item'
+                    })),
+
+                    sku: rec.getValue({
+                        name: 'itemid',
+                        join: 'custrecord_dps_shipping_record_item'
+                    }),
+                    qty: Number(rec.getValue('custrecord_dps_ship_record_item_quantity'))
+                };
+                taxamount = rec.getValue({
+                    name: 'taxamount',
+                    join: 'custrecord_dps_trans_order_link'
+                });
+                item_info.push(it);
+
+                return --ful_limit > 0;
+            });
+
+
+            log.audit('发运记录 原货品数据 item_info', item_info);
+            log.debug('发运记录货品数据itemArr', itemArr);
+            // 2020/7/18 13：44 改动 
+            var fils = [],
+                add_fils = []; //过滤
+            var len = item_info.length,
+                num = 0;
+            item_info.map(function (ld) {
+                num++;
+                add_fils.push([
+                    ["name", "is", ld.msku],
+                    "and",
+                    ["custrecord_ass_sku", "anyof", ld.itemId]
+                ]);
+                if (num < len)
+                    add_fils.push("or");
+            });
+            fils.push(add_fils);
+            fils.push("and",
+                ["custrecord_ass_account", "anyof", fbaAccount]
+            );
+            fils.push("and",
+                ["isinactive", "is", false]
+            );
+            log.debug('fils', fils);
+            log.debug('item_info', item_info);
+            var newItemInfo = [];
+
+
+            log.debug('推送 WMS tranType', tranType);
+            if (tranType == 1) {
+
+                var new_limit = 3999;
+                var fls_skus = [];
+
+                var fls_obj = {};
+                search.create({
+                    type: 'customrecord_aio_amazon_seller_sku',
+                    filters: fils,
+                    columns: [
+                        "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
+                    ]
+                }).run().each(function (rec) {
+
+                    var temp_name = rec.getValue('name');
+
+                    var it = rec.getValue('custrecord_ass_sku');
+                    fls_obj[temp_name] = it;
+                    item_info.map(function (item, key) {
+
+                        if (item.itemId == it && item.msku == temp_name && fls_skus.indexOf(temp_name) == -1) {
+                            item.asin = rec.getValue("custrecord_ass_asin");
+                            item.fnsku = rec.getValue("custrecord_ass_fnsku");
+                            item.msku = rec.getValue('name');
+                            newItemInfo.push(item);
+                            fls_skus.push(temp_name);
+                        }
+                    });
+                    return --new_limit > 0;
+                });
+
+                log.audit('fls_skus', fls_skus);
+                log.debug('搜索映射关系表 newItemInfo', newItemInfo);
+                log.debug('搜索映射关系表 item_info', item_info);
+
+                if (newItemInfo && newItemInfo.length == 0) {
+
+                    message.code = 3;
+                    message.data = 'Amazon Seller SKU 中找不到对应的映射关系';
+                    var id = record.submitFields({
+                        type: 'customrecord_dps_shipping_record',
+                        id: af_rec.id,
+                        values: {
+                            custrecord_dps_shipping_rec_status: 8,
+                            custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
+                        }
+                    });
+
+                    return message;
+                }
+
+
+                var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link)
+
+                newItemInfo.map(function (newItem) {
+                    var itemId = newItem.itemId;
+                    newItem.pono = getPoObj[itemId]
+                });
+
+
+                data['allocationDetailCreateRequestDtos'] = newItemInfo;
+            } else {
+                data['allocationDetailCreateRequestDtos'] = item_info;
+            }
+
+            log.audit('推送 WMS 货品数据 newItemInfo', newItemInfo);
+
+            if (Number(taxamount) > 0) {
+                data["taxFlag"] = 1;
+            } else {
+                data["taxFlag"] = 0;
+            }
+
+
+            // 判断一下, 对应的货品在映射关系中是否存在, 若不存在直接返回, 不推送WMS
+            var juArr = tool.judgmentFlag(af_rec.id, newItemInfo);
+
+            log.audit('存在差异数组', juArr);
+
+            if (juArr.length > 0 && tranType == 1) {
+
+                message.code = 3;
+                message.data = juArr + ':  Amazon Seller SKU 中找不到对应的映射关系, 或者信息不全';
+
+                log.audit('message', message)
+
+                return message;
+            }
+
+        } else {
+            message.code = 1;
+            message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
+        }
+
+        log.debug('message', message);
+
+    }
+
+
+    function getToken() {
+        var token;
+        search.create({
+            type: 'customrecord_wms_token',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1
+            }],
+            columns: ['custrecord_wtr_token']
+        }).run().each(function (result) {
+            token = result.getValue('custrecord_wtr_token');
+        });
+        return token;
+    }
 
     return {
         onRequest: onRequest

@@ -131,6 +131,7 @@ define(['N/search', 'N/record', 'N/log', 'N/ui/serverWidget'], function (search,
                 vendor_prepayment.setValue({ fieldId: 'payment', value: newRecord.getValue('custrecord_dps_collection_amount') });
                 vendor_prepayment.setValue({ fieldId: 'purchaseorder', value: newRecord.getValue('custrecord_dps_purchase_order') });
                 vendor_prepayment.setValue({ fieldId: 'department', value: newRecord.getValue('custrecord_department') });
+                vendor_prepayment.setValue({ fieldId: 'trandate', value: newRecord.getValue('custrecord_dps_advance_charge_time') });
                 vendor_prepayment_Id = vendor_prepayment.save();
                 if (vendor_prepayment_Id) {
                     var subId = record.submitFields({

@@ -27,7 +27,9 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                 // 'custitem_dps_division', 不明原因被删除
                 'vendorname', 'custitem_dps_skuenglish', 'custitem_dps_skureferred',
                 'custitem_dps_high', 'custitem_dps_long',
-                'custitem_dps_wide', 'custitem_dps_weight', 'custitem_dps_picture',
+                'custitem_dps_wide', 
+                // 'custitem_dps_weight', 
+                'custitem_dps_picture',
                 'custitem_dps_factory_inspe', 'custitem_dps_warehouse_check',
                 'custitem_dps_group', 'stockunit'
             ]
@@ -54,7 +56,7 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                     'long': result.getValue('custitem_dps_long'),
                     'wide': result.getValue('custitem_dps_wide'),
                     'high': result.getValue('custitem_dps_high'),
-                    'weight': result.getValue('custitem_dps_weight'),
+                    // 'weight': result.getValue('custitem_dps_weight'),
                     // 'baseunit': result.getText('baseunit'),
                     'productImageUrl': result.getValue('custitem_dps_picture'),
                     'factoryInspe': result.getText('custitem_dps_factory_inspe'),

@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-07-28 17:27:54
+ * @LastEditTime   : 2020-08-08 10:09:42
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
@@ -151,7 +151,8 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 type: 'customrecord_dps_shipping_record',
                 id: rec_id,
                 values: {
-                    custrecord_dps_shipping_rec_status: 29
+                    custrecord_dps_shipping_rec_status: 29,
+                    custrecord_dps_box_return_flag: true
                 }
             });
             result = {

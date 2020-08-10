@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-20 21:10:09
+ * @LastEditTime   : 2020-08-07 15:22:25
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_create_delivery_order_ue.js
@@ -62,7 +62,7 @@ define(['./../Helper/core.min', 'N/runtime', 'N/search', 'N/record', 'N/format',
                         fieldId: 'custrecord_delivery_schedule_num',
                         value: existPoNumber
                     });
-                    //extRecord.save();
+                    extRecord.save();
                     poNumber = poNumber + '000' + existPoNumber;
                 } else {
                     extRecord = record.load({
@@ -83,7 +83,7 @@ define(['./../Helper/core.min', 'N/runtime', 'N/search', 'N/record', 'N/format',
                         fieldId: 'custrecord_delivery_schedule_num',
                         value: existPoNumber
                     });
-                    //extRecord.save(); 
+                    extRecord.save();
                 };
                 newRecord.setValue({
                     fieldId: 'custrecord_supplier',
@@ -346,61 +346,92 @@ define(['./../Helper/core.min', 'N/runtime', 'N/search', 'N/record', 'N/format',
 
     function beforeSubmit(context) {
 
+        try {
+            var total_price = 0;
+            var bf_rec = context.newRecord;
+            var sub = "recmachcustrecord_dps_delivery_order_id";
+            var numLines = bf_rec.getLineCount({
+                sublistId: sub
+            });
+
+            for (var i = 0; i < numLines; i++) {
+
+                var qty = bf_rec.getSublistValue({
+                    sublistId: sub,
+                    fieldId: 'custrecord_item_quantity',
+                    line: i
+                }); // 交货数量
+                var pri = bf_rec.getSublistValue({
+                    sublistId: sub,
+                    fieldId: 'custrecord_unit_price',
+                    line: i
+                }); // 单价
+                total_price += Number(qty * pri);
+            }
+            log.audit("交货单价格", total_price);
+            bf_rec.setValue({
+                fieldId: 'custrecord_delivery_amount',
+                value: total_price
+            });
+        } catch (error) {
+
+            log.error('设置交货单总价出错了', error);
+        }
     }
 
     function afterSubmit(context) {
-        if (context.type == 'create') {
-            //生成交货单号编号(流水号)
-            var need_date = aio.Moment.utc(new Date()).format('YYYYMMDD');
-            var recid, existPoNumber, extRecord;
-            var poNumber = 'LN' + need_date;
-            search.create({
-                type: 'customrecord_dps_delivery_schedule',
-                filters: [{
-                    name: 'custrecord_delivery_schedule_date',
-                    operator: 'is',
-                    values: need_date
-                }]
-            }).run().each(function (result) {
-                recid = result.id;
-            });
-            if (!recid) {
-                existPoNumber = 1;
-                extRecord = record.create({
-                    type: 'customrecord_dps_delivery_schedule'
-                });
-                extRecord.setValue({
-                    fieldId: 'custrecord_delivery_schedule_date',
-                    value: need_date
-                });
-                extRecord.setValue({
-                    fieldId: 'custrecord_delivery_schedule_num',
-                    value: existPoNumber
-                });
-                extRecord.save();
-                poNumber = poNumber + '000' + existPoNumber;
-            } else {
-                extRecord = record.load({
-                    type: 'customrecord_dps_delivery_schedule',
-                    id: recid
-                });
-                existPoNumber = Number(extRecord.getValue('custrecord_delivery_schedule_num')) + 1;
-                if (existPoNumber < 10) {
-                    poNumber = poNumber + '000' + existPoNumber;
-                } else if (existPoNumber >= 10 && existPoNumber < 100) {
-                    poNumber = poNumber + '00' + existPoNumber;
-                } else if (existPoNumber >= 100 && existPoNumber < 1000) {
-                    poNumber = poNumber + '0' + existPoNumber;
-                } else {
-                    poNumber = poNumber + existPoNumber;
-                }
-                extRecord.setValue({
-                    fieldId: 'custrecord_delivery_schedule_num',
-                    value: existPoNumber
-                });
-                extRecord.save();
-            };
-        }
+        // if (context.type == 'create') {
+        //     //生成交货单号编号(流水号)
+        //     var need_date = aio.Moment.utc(new Date()).format('YYYYMMDD');
+        //     var recid, existPoNumber, extRecord;
+        //     var poNumber = 'LN' + need_date;
+        //     search.create({
+        //         type: 'customrecord_dps_delivery_schedule',
+        //         filters: [{
+        //             name: 'custrecord_delivery_schedule_date',
+        //             operator: 'is',
+        //             values: need_date
+        //         }]
+        //     }).run().each(function (result) {
+        //         recid = result.id;
+        //     });
+        //     if (!recid) {
+        //         existPoNumber = 1;
+        //         extRecord = record.create({
+        //             type: 'customrecord_dps_delivery_schedule'
+        //         });
+        //         extRecord.setValue({
+        //             fieldId: 'custrecord_delivery_schedule_date',
+        //             value: need_date
+        //         });
+        //         extRecord.setValue({
+        //             fieldId: 'custrecord_delivery_schedule_num',
+        //             value: existPoNumber
+        //         });
+        //         extRecord.save();
+        //         poNumber = poNumber + '000' + existPoNumber;
+        //     } else {
+        //         extRecord = record.load({
+        //             type: 'customrecord_dps_delivery_schedule',
+        //             id: recid
+        //         });
+        //         existPoNumber = Number(extRecord.getValue('custrecord_delivery_schedule_num')) + 1;
+        //         if (existPoNumber < 10) {
+        //             poNumber = poNumber + '000' + existPoNumber;
+        //         } else if (existPoNumber >= 10 && existPoNumber < 100) {
+        //             poNumber = poNumber + '00' + existPoNumber;
+        //         } else if (existPoNumber >= 100 && existPoNumber < 1000) {
+        //             poNumber = poNumber + '0' + existPoNumber;
+        //         } else {
+        //             poNumber = poNumber + existPoNumber;
+        //         }
+        //         extRecord.setValue({
+        //             fieldId: 'custrecord_delivery_schedule_num',
+        //             value: existPoNumber
+        //         });
+        //         extRecord.save();
+        //     };
+        // }
 
         if (context.type != 'create' && context.type != 'delete' && context.type != 'copy') {
             var newRecord = context.newRecord;

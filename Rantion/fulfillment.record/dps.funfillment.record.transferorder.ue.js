@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-07-30 19:41:57
+ * @LastEditTime   : 2020-08-07 20:02:32
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -182,6 +182,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     type: 'customrecord_dps_shipping_record',
                                     id: rec_id
                                 });
+
                                 sub(con);
 
                                 log.debug('context.type', context.type);
@@ -384,8 +385,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         upresp;
 
                     var str = '';
-
-                    if (!shipping_rec_shipmentsid) {
+                    var channel_dealer = af_rec.getValue('custrecord_dps_shipping_r_channel_dealer')
+                    if (!shipping_rec_shipmentsid && channel_dealer == 1) { // shipmentId 不存在, 并且渠道服务为捷仕, 才申请 shipmentId
                         try {
                             log.debug('申请shipmentID', '申请shipmentID');
                             // 创建入库计划, 获取 shipment
@@ -579,6 +580,16 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         } catch (error) {
                             log.error('推送 WMS 失败', error);
                         }
+                    } else {
+                        var id = record.submitFields({
+                            type: 'customrecord_dps_shipping_record',
+                            id: af_rec.id,
+                            values: {
+                                custrecord_dps_shipping_rec_status: 5,
+                                // custrecord_dps_shipment_info: "找不到对应关系,请检查对应关系"
+                            }
+                        });
+
                     }
 
                 } else {
@@ -657,7 +668,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
         } else {
             code = 1;
             // 调用失败
-            retdata = "请求失败";
+            // retdata = "请求失败";
+            retdata = {
+                code: 1,
+                msg: "请求失败"
+            }
         }
         message.code = code;
         message.data = retdata;
@@ -1086,10 +1101,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     }),
 
                     msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
-                    englishTitle: rec.getValue({
-                        name: 'custitem_dps_declaration_us',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }),
+                    // englishTitle: rec.getValue({
+                    //     name: 'custitem_dps_declaration_us',
+                    //     join: 'custrecord_dps_shipping_record_item'
+                    // }),
                     productImageUrl: rec.getValue({
                         name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
@@ -1172,15 +1187,16 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
                 }).run().each(function (rec) {
-
+                    var temp_name = rec.getValue('name');
                     var it = rec.getValue('custrecord_ass_sku');
+
                     item_info.forEach(function (item, key) {
-                        if (item.itemId == it && fls_skus.indexOf(it) == -1) {
+                        if (item.itemId == it && item.msku == temp_name && fls_skus.indexOf(temp_name) == -1) {
                             item.asin = rec.getValue("custrecord_ass_asin");
-                            item.fnsku = rec.getValue("custrecord_ass_fnsku")
+                            item.fnsku = rec.getValue("custrecord_ass_fnsku");
                             item.msku = rec.getValue('name');
                             newItemInfo.push(item);
-                            fls_skus.push(it);
+                            fls_skus.push(temp_name);
                         }
                     });
                     return --new_limit > 0;

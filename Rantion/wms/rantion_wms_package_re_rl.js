@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-22 17:01:38
- * @LastEditTime   : 2020-08-03 14:55:14
+ * @LastEditTime   : 2020-08-08 10:04:27
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_package_re_rl.js
@@ -163,6 +163,7 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                                 // line: i,
                                 value: temp.length
                             });
+
                             objRecord.setCurrentSublistValue({
                                 sublistId: sub_id,
                                 fieldId: 'custrecord_dps_ship_box_weight',
@@ -200,6 +201,25 @@ define(['N/search', 'N/record', 'N/log', 'N/runtime', 'N/task', '../Helper/logis
                                 fieldId: 'custrecord_dps_ship_box_quantity',
                                 // line: i,
                                 value: arrTemp.qty
+                            });
+
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_sku',
+                                // line: i,
+                                value: arrTemp.msku
+                            });
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_asin',
+                                // line: i,
+                                value: arrTemp.asin
+                            });
+                            objRecord.setCurrentSublistValue({
+                                sublistId: sub_id,
+                                fieldId: 'custrecord_dps_ship_box_fnsku',
+                                // line: i,
+                                value: arrTemp.fnsku
                             });
 
                             objRecord.commitLine({

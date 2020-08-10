@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-22 23:57:07
- * @LastEditTime   : 2020-08-03 20:09:09
+ * @LastEditTime   : 2020-08-10 11:10:09
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.full.to.rl.js
@@ -19,9 +19,214 @@ define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https'], function (recor
     function _post(context) {
 
 
+        var action = context.action;
+
+        if (action == "search") {
+
+        }
+
+        if (action == "update") {
+            try {
+                // VendorPrepayment(context.recId);
+
+                var get_data = tranferOrderToWMS();
+
+                var token = getToken();
+                if (token){
+                    
+                }
+
+            } catch (error) {
+                log.error('更改字段出错了', error);
+            }
+        }
+
 
     }
 
+
+
+    function tranferOrderToWMS(recIds) {
+
+        // InMasterCreateRequestDto {
+        //     boxNum(integer): 箱数,       1
+        //     estimateTime(string): 预计到货时间,          1
+        //     inspectionType(integer): 质检类型 10: 全检 20: 抽检,             1
+        //     planQty(integer): 计划入库数量,
+        //     pono(string, optional): 采购单号,
+        //     purchaser(string): 采购员,
+        //     remark(string, optional): 备注,                1
+        //     skuList(Array[InDetailCreateRequestDto]): 入库SKU明细,
+        //     sourceNo(string): 来源单号,                  1
+        //     sourceType(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 借调入库,             1
+        //     supplierCode(string, optional): 供应商编号,
+        //     supplierName(string, optional): 供应商名称,
+        //     taxFlag(integer): 是否含税 0: 否1: 是,               1
+        //     tradeCompanyCode(string): 交易主体编号,              1
+        //     tradeCompanyName(string): 交易主体名称,              1
+        //     warehouseCode(string): 仓库编号,                 1
+        //     warehouseName(string): 仓库名称,                 1
+        //     waybillNo(string, optional): 运单号
+        // }
+        // InDetailCreateRequestDto {
+        //     boxInfo(InDetailBoxInfoCreateRequestDto): 箱子信息,
+        //     boxNum(integer): 箱数,
+        //     inspectionType(integer): 质检类型 10: 全检 20: 抽检 30: 免检,
+        //     planQty(integer): 计划入库数,
+        //     productCode(string): 产品编号,
+        //     productImageUrl(string): 图片路径,
+        //     productTitle(string): 产品标题,
+        //     remainderQty(integer): 余数,
+        //     sku(string): sku,
+        //     supplierVariant(string, optional): 供应商变体规格 json,
+        //     variant(string, optional): 变体规格 json
+        // }
+        // InDetailBoxInfoCreateRequestDto {
+        //     height(number): 高,
+        //     length(number): 长,
+        //     width(number): 宽
+        // }
+
+
+        var limit = 3999;
+
+        var data = {};
+        var itemInfo = [];
+        data.sourceType = 30;
+        data.estimateTime = new Date().toISOString();
+        data.inspectionType = 10;
+        data.boxNum = 10;
+        data.taxFlag = 0;
+
+        search.create({
+            type: 'transferorder',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: recIds
+            }],
+            columns: [
+                "subsidiary", // 子公司
+                "transferlocation", // 入库地点
+                "memo", // 备注
+                "custbodyexpected_arrival_time", // 预计到货时间
+                "tranid", // 订单号
+                {
+                    name: 'custrecord_dps_wms_location',
+                    join: 'transferlocation'
+                }, // 仓库编号
+                {
+                    name: 'custrecord_dps_wms_location_name',
+                    join: 'transferlocation'
+                }, // 仓库名称
+
+                "item", "quantity",
+                {
+                    name: 'custitem_dps_picture',
+                    join: 'item'
+                }, // 产品图片
+                {
+                    name: 'custitem_dps_skuchiense',
+                    join: 'item'
+                }, // 中文标题
+                {
+                    name: 'custitem_dps_mpq',
+                    join: 'item'
+                }, // 每箱数量
+            ]
+        }).run().each(function (rec) {
+
+            data.tradeCompanyCode = rec.getValue('subsidiary');
+            data.tradeCompanyName = rec.getText('subsidiary').split(":").slice(-1)[0].trim();
+            data.remark = rec.getValue('memo');
+
+            data.sourceNo = rec.getValue('tranid');
+            data.warehouseCode = rec.getValue({
+                name: 'custrecord_dps_wms_location',
+                join: 'transferlocation'
+            });
+            data.warehouseName = rec.getValue({
+                name: 'custrecord_dps_wms_location_name',
+                join: 'transferlocation'
+            });
+
+            var it = {
+                boxInfo: [],
+                boxNum: 1,
+                inspectionType: 30,
+                planQty: rec.getValue('quantity'),
+                productCode: rec.getValue('item'),
+                productImageUrl: rec.getValue({
+                    name: 'custitem_dps_picture',
+                    join: 'item'
+                }),
+                productTitle: rec.getValue({
+                    name: 'custitem_dps_skuchiense',
+                    join: 'item'
+                }),
+                remainderQty: rec.getValue('quantity') / rec.getValue({
+                    name: 'custitem_dps_mpq',
+                    join: 'item'
+                }),
+                sku: rec.getText('item'),
+            }
+
+            itemInfo.push(it);
+
+            return --limit > 0;
+        });
+        data.skuList = itemInfo; //   货品数量
+
+    }
+
+    /**
+     * 获取
+     */
+    function searchPreDate() {
+
+        var idArr = [];
+        var mySearch = search.load({
+            id: 'customsearch_dps_li_vendorprepayment'
+        });
+
+        mySearch.run().each(function (rec) {
+            idArr.push(rec.id);
+
+            return true;
+        });
+
+        return idArr;
+    }
+
+
+    /**
+     * 更改供应商预付款单的日期
+     * @param {Number} recId 
+     */
+    function VendorPrepayment(recId) {
+
+        search.create({
+            type: 'customrecord_supplier_advance_charge',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: recId
+            }],
+            columns: [
+                "custrecord_dps_advance_charge_time", // 日期
+                "custrecord_related_prepayment", // 关联预付款单
+            ]
+        }).run().each(function (rec) {
+            record.submitFields({
+                type: 'vendorprepayment',
+                id: rec.getValue('custrecord_related_prepayment'),
+                values: {
+                    trandate: rec.getValue("custrecord_dps_advance_charge_time")
+                }
+            })
+        });
+
+    }
 
 
 
@@ -61,9 +266,9 @@ define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https'], function (recor
                 },
                 boxNum: 1,
                 inspectionType: 30,
-                planQty: ,
-                productCode: ,
-                productImageUrl: ,
+                planQty: 1,
+                productCode: 1,
+                productImageUrl: 1,
 
             };
 

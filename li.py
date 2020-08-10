@@ -2,10 +2,10 @@
 @Author         : Li
 @Version        : 1.0
 @Date           : 2020-07-08 20:39:43
-@LastEditTime   : 2020-07-10 11:51:11
-@LastEditors    : Li
+LastEditTime   : 2020-08-06 22:07:41
+LastEditors    : Li
 @Description    :
-@FilePath       : \li.py
+FilePath       : \li.py
 @可以输入预定的版权声明、个性签名、空行等
 '''
 '''
@@ -56,5 +56,6 @@ def func():
 a = 3
 b = 2
 c = [1, 3, 5, 6, 7, 8, 9]
-for i in c:
-    print(i, i**i)
+d = [{"a": 1, "b": 2, "c": 3}, {"a": 2, "b": 1, "c": 3}, {"a": 3, "b": 2, "c": 1}]
+for i in d:
+    print(i)

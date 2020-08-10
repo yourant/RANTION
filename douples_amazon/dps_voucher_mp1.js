@@ -155,8 +155,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
       })
       var obj = JSON.parse(context.value)
       var fin_id = obj.rec_id, enabled_sites = obj.enabled_sites.split(' ')[1]
-      var order_id,postdate,entity,so_id,subsidiary,pr_store,currency,orderitemid,dept;
-      var ship_recid,ship_obj, fee_line,fil_channel,merchant_order_id;
+      var order_id,postdate,entity,so_id,subsidiary,pr_store,currency,orderitemid,dept
+      var ship_recid,ship_obj, fee_line,fil_channel,merchant_order_id
       try {
         var rec_finance = record.load({type: 'customrecord_amazon_listfinancialevents',id: fin_id})
         order_id = rec_finance.getValue('custrecord_l_amazon_order_id')
@@ -171,16 +171,15 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           rec_finance.save({ignoreMandatoryFields: true})
           return
         }
-        var fils = [],sku = rec_finance.getValue('custrecord_sellersku'),qty = rec_finance.getValue('custrecord_quantityshipped');
+        var fils = [],sku = rec_finance.getValue('custrecord_sellersku'),qty = rec_finance.getValue('custrecord_quantityshipped')
         if (order_id.charAt(0) == 'S') {
           fils.push({ name: 'custrecord_merchant_order_id', operator: 'is', values: rec_finance.getValue('custrecord_seller_order_id') })
         }else if (order_id) {
           fils.push({ name: 'custrecord_amazon_order_id', operator: 'is', values: order_id })
-       
         }else {
           rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '没有订单号'})
           rec_finance.save({ignoreMandatoryFields: true})
-          return;
+          return
         }
         fils.push({ name: 'custrecord_is_check_invoucher', operator: 'is', values: false })
         sku ? fils.push({ name: 'custrecord_sku', operator: 'is', values: sku}) : ''
@@ -200,14 +199,13 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           log.debug('postdate：' + postdate, ',shipment_date:' + ship_obj.date)
         })
 
-   
-        var posum = pos_obj.Year + pos_obj.Month + ''
-        var shipsum = ship_obj.Year + ship_obj.Month + ''
         if (!ship_recid) {
           rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '找不到发货报告'})
           rec_finance.save({ignoreMandatoryFields: true})
           return
         }
+        var posum = pos_obj.Year + pos_obj.Month + ''
+        var shipsum = ship_obj.Year + ship_obj.Month + ''
         if (shipsum != posum) {
           rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '与发货跨月'})
           rec_finance.save({ignoreMandatoryFields: true})
@@ -218,7 +216,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         // 搜索销售订单获取客户
 
         var so_obj = interfun.SearchSO(order_id, merchant_order_id, acc_search)
-        log.audit("查看拿到的SO",so_obj)
+        log.audit('查看拿到的SO', so_obj)
         so_id = so_obj.so_id
         pr_store = so_obj.acc
         acc_text = so_obj.acc_text
@@ -252,22 +250,22 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             return true
           })
           // 开始生成日记账凭证
-          var inv_id;
+          var inv_id
           search.create({
             type: 'invoice',
             filters: [
-              { name: 'custbody_shipment_report_rel', operator: 'anyof', values: ship_recid},
+              { name: 'custbody_shipment_report_rel', operator: 'anyof', values: ship_recid}
             ]
           }).run().each(function (rec) {
             inv_id = rec.id
-          });
-          if(!inv_id){
+          })
+          if (!inv_id) {
             rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '待发货'}) // 不处理,没有对应的销售订单就不生产预估
             rec_finance.save({ignoreMandatoryFields: true})
-            return;
+            return
           }
-        
-          var fv = [];
+
+          var fv = []
           var jour = record.create({type: 'journalentry',isDynamic: true})
           jour.setText({fieldId: 'trandate', text: postdate})
           jour.setValue({fieldId: 'memo',value: '预估'})
@@ -322,18 +320,19 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           fv.push(fin_id)
           jour.setValue({fieldId: 'custbody_relative_finanace_report',value: fv})
           jour.setValue({fieldId: 'custbody_aio_marketplaceid',value: 1})
-          log.debug("看卡拿到的行",jour.getLineCount({sublistId:"line"}))
+          jour.setValue({fieldId: 'custbody_relative_inoice',value: inv_id})
+          log.debug('看卡拿到的行', jour.getLineCount({sublistId: 'line'}))
           var jo = jour.save({ignoreMandatoryFields: true})
           log.debug('success', jo)
-          rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: 'T'}) 
-          rec_finance.setValue({fieldId: 'custrecord_fin_rel_demit',value:jo}) 
-          rec_finance.setValue({fieldId: 'custbody_relative_inoice',value:inv_id}) 
+          rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: 'T'})
+          rec_finance.setValue({fieldId: 'custrecord_fin_rel_demit',value: jo})
           rec_finance.save({ignoreMandatoryFields: true})
           record.submitFields({
             type: 'customrecord_amazon_sales_report',
             id: ship_recid,
             values: {
-              custrecord_is_check_invoucher: true
+              custrecord_is_check_invoucher: true,
+              custrecord_fin_rel: jo
             }
           })
         }else {

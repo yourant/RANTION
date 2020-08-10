@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 20:32:05
- * @LastEditTime   : 2020-07-08 11:47:19
+ * @LastEditTime   : 2020-08-07 11:47:30
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.cs.js
@@ -51,7 +51,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             fieldId: 'quantity'
         });
 
-        if (context.fieldId == 'matchbilltoreceipt' || context.fieldId == 'quantity'|| context.fieldId == 'item') {
+        if (context.fieldId == 'matchbilltoreceipt' || context.fieldId == 'quantity' || context.fieldId == 'item') {
             var supplier = rec.getValue('entity');
             // console.log('supplier', supplier);
             var subs = rec.getValue('subsidiary');
@@ -65,18 +65,15 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             if (!supplier || !partNo || !currency) {
                 return true;
             }
-            // var quantity = rec.getCurrentSublistValue({
-            //     sublistId: 'item',
-            //     fieldId: 'quantity'
-            // });
+
             if (!quantity) {
                 quantity = 1;
             }
-            console.log('quantity', quantity);
+            // console.log('quantity', quantity);
             var resultArr;
             var sum;
 
-            console.log('price_type', price_type);
+            // console.log('price_type', price_type);
 
             if (price_type == 1) {
                 console.log('price_type 1', price_type);
@@ -85,7 +82,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
 
                 var get_arr = getEffectiveDateByItem(supplier, currency, partNo, today);
                 if (get_arr && get_arr.length > 0) {
-                    console.log('get_arr', get_arr);
+                    // console.log('get_arr', get_arr);
                     var effectiveDate;
                     effectiveDate = get_arr[0].getValue('custrecord_dps_vmph_cumulative_time');
 
@@ -93,9 +90,129 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                         var effectiveDate = get_arr[0].getValue('custrecord_vmpd_effective_date');
                     }
 
-                    console.log('effectiveDate', effectiveDate);
-                    console.log("get_arr", get_arr);
+                    // console.log('effectiveDate', effectiveDate);
+                    // console.log("get_arr", get_arr);
                     // effectiveDate = moment(effectiveDate).format(dateFormat);
+                    sum = getPriceByTotal(supplier, subs, currency, partNo, effectiveDate);
+                }
+
+                if (!sum) {
+                    sum = 0;
+                }
+                // console.log('sum', sum);
+                if (sum >= 0) {
+                    sum = Number(sum);
+
+                    // console.log('Number(sum)', Number(sum));
+                    // 采购过相同的货品
+                    resultArr = getVpmd(supplier, currency, partNo, today, price_type, sum);
+                }
+
+            }
+            // console.log('resultArr', resultArr);
+            if (resultArr && resultArr.length > 0) {
+                if (price_type == 1) {
+                    for (j = 0; j < resultArr.length; j++) {
+                        var curquantity = resultArr[j].getValue('custrecord_vmpd_quantity');
+                        // console.log('curquantity', curquantity);
+                        if (quantity >= curquantity) {
+                            if ((j + 1) == resultArr.length) {
+                                curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
+                                curTaxCode = resultArr[j].getValue('custrecord_vmpd_tax_code');
+                                // console.log('(j + 1) == resultArr.length curUnitPrice', curUnitPrice);
+                                break;
+                            } else {
+                                if (quantity < resultArr[j + 1].getValue('custrecord_vmpd_quantity')) {
+                                    curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
+                                    curTaxCode = resultArr[j].getValue('custrecord_vmpd_tax_code');
+                                    console.log('ELSE curUnitPrice', curUnitPrice);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else if (price_type == 2) {
+                    var len = resultArr.length;
+                    curUnitPrice = resultArr[len - 1].getValue('custrecord_vmpd_unit_price');
+                    curTaxCode = resultArr[len - 1].getValue('custrecord_vmpd_tax_code');
+                }
+
+
+                console.log('curUnitPrice', curUnitPrice);
+                rec.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'rate',
+                    value: curUnitPrice
+                });
+
+
+                rec.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'taxcode',
+                    value: curTaxCode
+                });
+
+            }
+        }
+
+        return true;
+    }
+
+    function validateLine(context) {
+
+
+        /*
+        var rec = context.currentRecord;
+
+        var price_type = rec.getValue('custbody_vendor_price_type');
+
+        var curUnitPrice = 0;
+        var curTaxCode = 0;
+        var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
+        var today = moment(new Date().getTime()).format(dateFormat);
+
+        var quantity = rec.getCurrentSublistValue({
+            sublistId: 'item',
+            fieldId: 'quantity'
+        });
+
+        if (quantity == 1) {
+            var supplier = rec.getValue('entity');
+
+            var subs = rec.getValue('subsidiary');
+            var currency = rec.getValue('currency');
+
+            var partNo = rec.getCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'item'
+            });
+
+            if (!supplier || !partNo || !currency) {
+                return true;
+            }
+
+            var resultArr;
+            var sum;
+
+            // console.log('price_type', price_type);
+
+            if (price_type == 1) {
+                // console.log('price_type 1', price_type);
+                resultArr = getVpmd(supplier, currency, partNo, today, price_type, quantity);
+            } else if (price_type == 2) {
+
+                var get_arr = getEffectiveDateByItem(supplier, currency, partNo, today);
+                if (get_arr && get_arr.length > 0) {
+                    // console.log('get_arr', get_arr);
+                    var effectiveDate;
+                    effectiveDate = get_arr[0].getValue('custrecord_dps_vmph_cumulative_time');
+
+                    if (!effectiveDate) {
+                        var effectiveDate = get_arr[0].getValue('custrecord_vmpd_effective_date');
+                    }
+
+                    // console.log('effectiveDate', effectiveDate);
+                    // console.log("get_arr", get_arr);
                     sum = getPriceByTotal(supplier, subs, currency, partNo, effectiveDate);
                 }
 
@@ -105,19 +222,17 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                 console.log('sum', sum);
                 if (sum >= 0) {
                     sum = Number(sum);
-
-                    console.log('Number(sum)', Number(sum));
                     // 采购过相同的货品
                     resultArr = getVpmd(supplier, currency, partNo, today, price_type, sum);
                 }
 
             }
-            console.log('resultArr', resultArr);
+
             if (resultArr && resultArr.length > 0) {
                 if (price_type == 1) {
                     for (j = 0; j < resultArr.length; j++) {
                         var curquantity = resultArr[j].getValue('custrecord_vmpd_quantity');
-                        console.log('curquantity', curquantity);
+
                         if (quantity >= curquantity) {
                             if ((j + 1) == resultArr.length) {
                                 curUnitPrice = resultArr[j].getValue('custrecord_vmpd_unit_price');
@@ -140,27 +255,16 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                     curTaxCode = resultArr[len - 1].getValue('custrecord_vmpd_tax_code');
                 }
 
+                console.log('curUnitPrice', curUnitPrice);
                 rec.setCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'rate',
                     value: curUnitPrice
                 });
-
-
-                rec.setCurrentSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'taxcode',
-                    value: curTaxCode
-                });
-
             }
         }
 
-        return true;
-    }
-
-    function validateLine(context) {
-
+        */
         return true;
     }
 
@@ -223,6 +327,10 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             join: 'custrecord_vpmd_link',
             operator: 'anyof',
             values: sta
+        }, {
+            name: 'isinactive',
+            operator: 'is',
+            values: false
         });
         var columns = [];
         columns.push({

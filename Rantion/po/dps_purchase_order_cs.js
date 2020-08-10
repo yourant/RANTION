@@ -2,8 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType ClientScript
  */
-define(['N/currentRecord', 'N/https', 'N/ui/dialog', 'N/record', 'N/search', 'N/url'],
-function (currentRecord, https, dialog, record, search, url) {
+define(['N/currentRecord', 'N/https', 'N/ui/dialog', 'N/record', 'N/search', 'N/url'], function (currentRecord, https, dialog, record, search, url) {
 
     function pageInit(context) {
 
@@ -50,16 +49,28 @@ function (currentRecord, https, dialog, record, search, url) {
         var sublistId = 'custpage_line';
         var curr = currentRecord.get();
         var no_list = [];
-        for (var i = 0; i < curr.getLineCount({ sublistId: sublistId }); i++) {
-            var checked = curr.getSublistValue({ sublistId: sublistId, fieldId: 'store_line_checkbox', line: i });
-            var id = curr.getSublistValue({ sublistId: sublistId, fieldId: 'store_line_orderid', line: i });
+        for (var i = 0; i < curr.getLineCount({
+                sublistId: sublistId
+            }); i++) {
+            var checked = curr.getSublistValue({
+                sublistId: sublistId,
+                fieldId: 'store_line_checkbox',
+                line: i
+            });
+            var id = curr.getSublistValue({
+                sublistId: sublistId,
+                fieldId: 'store_line_orderid',
+                line: i
+            });
             if (checked) {
                 no_list.push(id);
             }
         }
+
         function success(result) {
             console.log('Success with value ' + result);
         }
+
         function success1(result) {
             if (result == true) {
                 var link = url.resolveScript({
@@ -85,9 +96,11 @@ function (currentRecord, https, dialog, record, search, url) {
                 }).then(success2).catch(failure);
             }
         }
+
         function success2(reason) {
             window.location.reload(true);
         }
+
         function failure(reason) {
             console.log('Failure: ' + reason);
         }
@@ -109,7 +122,10 @@ function (currentRecord, https, dialog, record, search, url) {
     //采购订单生成交货单
     function createDeliveryBills(url, bill_id, approve_status) {
         if (approve_status != '8') {
-            dialog.alert({ title: '提示', message: '供应商未确认采购单，无法生成交货单' });
+            dialog.alert({
+                title: '提示',
+                message: '供应商未确认采购单，无法生成交货单'
+            });
             return;
         }
         window.open(url + '&bill_id=' + bill_id);
@@ -118,6 +134,7 @@ function (currentRecord, https, dialog, record, search, url) {
     //交货单推送WMS
     function pushToWms() {
         var curr = currentRecord.get();
+
         function success(result) {
             if (result == true) {
                 var link = url.resolveScript({
@@ -143,9 +160,11 @@ function (currentRecord, https, dialog, record, search, url) {
                 }).then(success1).catch(failure);
             }
         }
+
         function success1(reason) {
             window.location.reload(true);
         }
+
         function failure(reason) {
             console.log('Failure: ' + reason);
         }
@@ -155,6 +174,54 @@ function (currentRecord, https, dialog, record, search, url) {
         };
         dialog.confirm(options).then(success).catch(failure);
     }
+
+
+    function addMarkAllButtons() {
+        var curRec = currentRecord.get();
+        var numLines = curRec.getLineCount({
+            sublistId: 'recmachcustrecord_dps_delivery_order_id'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+            curRec.selectLine({
+                sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                line: i
+            });
+            curRec.setCurrentSublistValue({
+                sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                fieldId: 'custrecord_dps_delivery_order_check',
+                value: true,
+                ignoreFieldChange: true
+            });
+            curRec.commitLine({
+                sublistId: 'recmachcustrecord_dps_delivery_order_id'
+            });
+        }
+    }
+
+    function addRefreshButton() {
+        var curRec = currentRecord.get();
+        var numLines = curRec.getLineCount({
+            sublistId: 'recmachcustrecord_dps_delivery_order_id'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+            curRec.selectLine({
+                sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                line: i
+            });
+            curRec.setCurrentSublistValue({
+                sublistId: 'recmachcustrecord_dps_delivery_order_id',
+                fieldId: 'custrecord_dps_delivery_order_check',
+                value: false,
+                ignoreFieldChange: true
+            });
+            curRec.commitLine({
+                sublistId: 'recmachcustrecord_dps_delivery_order_id'
+            });
+        }
+    }
+
 
     return {
         pageInit: pageInit,
@@ -169,6 +236,8 @@ function (currentRecord, https, dialog, record, search, url) {
         sublistChanged: sublistChanged,
         createDeliveryOrders: createDeliveryOrders,
         createDeliveryBills: createDeliveryBills,
-        pushToWms: pushToWms
+        pushToWms: pushToWms,
+        addMarkAllButtons: addMarkAllButtons,
+        addRefreshButton: addRefreshButton
     }
 });

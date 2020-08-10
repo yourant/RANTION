@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-30 16:21:41
+ * @LastEditTime   : 2020-08-07 20:03:48
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
@@ -46,6 +46,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         label_prep_preference = "SELLER_LABEL",
                         items = [],
                         shipping_rec_location,
+                        channel_dealer,
                         lim = 3999,
                         lim2 = 3999,
                         sub_id = 'recmachcustrecord_dps_shipping_record_parentrec';
@@ -75,9 +76,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             {
                                 name: "custrecord_dps_ship_record_sku_item",
                                 join: "custrecord_dps_shipping_record_parentrec"
-                            } // sleller sku
+                            }, // sleller sku
+                            "custrecord_dps_shipping_r_channel_dealer", // 渠道商
                         ]
                     }).run().each(function (rec) {
+                        channel_dealer = rec.getValue("custrecord_dps_shipping_r_channel_dealer");
                         shipping_rec_location = rec.getValue('custrecord_dps_shipping_rec_location');
                         rec_account = rec.getValue('custrecord_dps_shipping_rec_account');
 
@@ -166,7 +169,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     var reItem = [],
                         upresp;
 
-                    if (skuFlag) {
+                    if (skuFlag && channel_dealer == 1) { // shipmentId 不存在, 并且渠道服务为捷仕, 才申请 shipmentId
                         try {
 
                             log.debug('申请shipmentID', '申请shipmentID');
@@ -469,9 +472,14 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     //         statusId == 8 || statusText == 'WMS发运失败') &&
                     //     !information) { // 状态为 WMS已发运 并且 关联的报关资料
 
-                    var a = Math.floor(Math.random() * Math.floor(6));
-                    gross_margin = Number((0.3 + (a / 100)).toFixed(2));
+                    // var a = Math.floor(Math.random() * Math.floor(6));
+                    // gross_margin = Number((0.3 + (a / 100)).toFixed(2));
+                    log.audit('毛利率', gross_margin);
 
+                    gross_margin = gross_margin.toString();
+                    gross_margin = gross_margin.replace('%', "");
+                    gross_margin = gross_margin / 100;
+                    log.audit('毛利率  已处理', gross_margin);
                     var info = informationValue.searchPOItem(order_num);
                     if (info && info.length > 0) {
                         log.debug('存在对应的货品', info.length);

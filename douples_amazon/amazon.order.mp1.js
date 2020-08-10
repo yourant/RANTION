@@ -6,9 +6,10 @@
  *@description 亚马逊抓单脚本/使用MP直接抓单
  */
 define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
-    "./Helper/Moment.min", "N/log", "N/search", "N/record",  "N/encode", "N/https", "N/xml","./Helper/interfunction.min"
-], function (format, runtime, core, cryptoJS, moment, log, search, record, encode, https, xml,interfun) {
+    "./Helper/Moment.min", "N/log", "N/search", "N/record", "N/encode", "N/https", "N/xml", "./Helper/interfunction.min"
+], function (format, runtime, core, cryptoJS, moment, log, search, record, encode, https, xml, interfun) {
     var tz = new Date().getTimezoneOffset();
+
     function getInputData() {
         var orders = []
         try {
@@ -18,7 +19,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             var request_acc = runtime.getCurrentScript().getParameter({
                 name: 'custscript_amazon_ord_store'
             });
-            var request_start= runtime.getCurrentScript().getParameter({
+            var request_start = runtime.getCurrentScript().getParameter({
                 name: 'custscript_start_date'
             });
             var request_end = runtime.getCurrentScript().getParameter({
@@ -27,27 +28,29 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             var dps_pull_order = runtime.getCurrentScript().getParameter({
                 name: 'custscript_dps_pull_order'
             });
-            if(request_start)
-            request_start = new Date(request_start.getTime() - tz*60*1000).toISOString();
-            if(request_end)
-            request_end = new Date(request_end.getTime() - tz*60*1000).toISOString();
-            log.debug("店铺L:"+request_acc+",分组："+dps_pull_order,"date end:"+request_end+",date request_start:"+request_start );
-            var ff =   core.amazon.getAccountList(dps_pull_order);
-            log.debug("ff:"+ff.length);
+            if (request_start)
+                request_start = new Date(request_start.getTime() - tz * 60 * 1000).toISOString();
+            if (request_end)
+                request_end = new Date(request_end.getTime() - tz * 60 * 1000).toISOString();
+            log.debug("店铺L:" + request_acc + ",分组：" + dps_pull_order, "date end:" + request_end + ",date request_start:" + request_start);
+            var ff = core.amazon.getAccountList(dps_pull_order);
+            log.debug("ff:" + ff.length);
             ff.map(function (account) {
-                log.debug("0000000000000000000000000000getAccountList.id: "+account.id,dps_pull_order);
-                if(account.id != request_acc && request_acc ) return ;
+                log.debug("0000000000000000000000000000getAccountList.id: " + account.id, dps_pull_order);
+                if (account.id != request_acc && request_acc) return;
                 last_updated_after = "2020-05-31T00:00:00.000Z";
                 if (req) {
                     // // 设置统一时间
                     var ssd = core1.handleit(account.id, request_start, request_end);
                     if (ssd)
                         ssd.map(function (order) {
+                            order.timezone = account.timezone;
                             orders.push(order);
                         })
                 } else {
                     log.audit(' !request', account.id);
                     core1.handleit(account.id).map(function (order) {
+                        order.timezone = account.timezone;
                         orders.push(order);
                     });
                 }
@@ -66,13 +69,12 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
         var order = JSON.parse(context.value);
         log.debug("order:", context.value);
         // ====================进cache==============
-       
+
         try {
-            var r,r_id;
+            var r, r_id;
             search.create({
                 type: 'customrecord_aio_order_import_cache',
-                filters: [
-                    {
+                filters: [{
                         name: 'custrecord_aio_cache_acc_id',
                         operator: search.Operator.ANYOF,
                         values: order.AccID
@@ -96,14 +98,17 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     type: 'customrecord_aio_order_import_cache'
                 });
             }
-            var order_trandate = interfun.getFormatedDate("","",order.purchase_date).date;
-            var last_update_date =interfun.getFormatedDate("","",order.last_update_date,"",true).date;
-            if(last_update_date == "2") {
-                if(r_id){
-                    var del = record.delete({type:"customrecord_aio_order_import_cache",id:r_id});
-                    log.debug("删除 del:"+del);
+            var order_trandate = interfun.getFormatedDate("", "", order.purchase_date).date;
+            var last_update_date = interfun.getFormatedDate("", "", order.last_update_date, "", true).date;
+            if (last_update_date == "2") {
+                if (r_id) {
+                    var del = record.delete({
+                        type: "customrecord_aio_order_import_cache",
+                        id: r_id
+                    });
+                    log.debug("删除 del:" + del);
                 }
-                return ;
+                return;
             }
             r.setValue({
                 fieldId: 'custrecord_aio_cache_acc_id',
@@ -143,20 +148,50 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
             });
             r.setValue({
                 fieldId: 'custrecord_dps_cache_fulfillment_channel',
-                value:  order.fulfillment_channel
+                value: order.fulfillment_channel
             });
-            r.setValue({fieldId:"custrecord_shipment_date_cache",value:order.latest_ship_date});
-            r.setValue({fieldId:"custrecord_purchase_date_1",value:order.purchase_date});
-            r.setValue({fieldId:"custrecord_last_update_date",value:order.last_update_date});
-            r.setText({fieldId:"custrecordlatest_ship_date",text:interfun.getFormatedDate("","",order.latest_ship_date).date});
-            r.setValue({fieldId:"custrecord_seller_order_id_1",value:order.seller_order_id  });
-            r.setValue({fieldId:"custrecord_dps_cache_shipped_byamazont_f",value:order.shipped_byamazont_fm});
+            r.setValue({
+                fieldId: "custrecord_shipment_date_cache",
+                value: order.latest_ship_date
+            });
+            r.setValue({
+                fieldId: "custrecord_purchase_date_1",
+                value: order.purchase_date
+            });
+            r.setValue({
+                fieldId: "custrecord_last_update_date",
+                value: order.last_update_date
+            });
+            r.setText({
+                fieldId: "custrecordlatest_ship_date",
+                text: interfun.getFormatedDate("", "", order.latest_ship_date).date
+            });
+            r.setValue({
+                fieldId: "custrecord_seller_order_id_1",
+                value: order.seller_order_id
+            });
+            r.setValue({
+                fieldId: "custrecord_dps_cache_shipped_byamazont_f",
+                value: order.shipped_byamazont_fm
+            });
+
+            var acc_local_time = format.format({
+                value: moment.utc(order.purchase_date).toDate(),
+                type: format.Type.DATETIMETZ,
+                timezone: fields.timezone[order.timezone] // depositDate
+            }); // 状态店铺时间
+
+            r.setText({
+                fieldId: "custrecord_dps_acc_local_time",
+                text: acc_local_time
+            });
+
             var ss = r.save();
             log.debug("11cache save success：", ss);
         } catch (e) {
             log.error("import cache error", e);
             log.error("import cache error", e);
-           var  externalid = order.AccID+"."+order.amazon_order_id
+            var externalid = order.AccID + "." + order.amazon_order_id
             var mo;
             search.create({
                 type: 'customrecord_dps_transform_mo',
@@ -178,23 +213,23 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     isDynamic: true,
                 });
                 mo.setValue({
-                    fieldId:"externalid",
-                    value: order.AccID+"."+order.amazon_order_id
+                    fieldId: "externalid",
+                    value: order.AccID + "." + order.amazon_order_id
                 });
                 mo.setValue({
-                    fieldId:"custrecord_tr_missing_order_type",
+                    fieldId: "custrecord_tr_missing_order_type",
                     value: "拉单报错"
                 });
                 mo.setValue({
-                    fieldId:"custrecord_missing_orderid_txt",
+                    fieldId: "custrecord_missing_orderid_txt",
                     value: order.amazon_order_id
                 });
                 mo.setValue({
-                    fieldId:"custrecord_tracking_missing_acoount",
+                    fieldId: "custrecord_tracking_missing_acoount",
                     value: acc
                 });
                 mo.setValue({
-                    fieldId:"custrecord_tr_missing_order_reason",
+                    fieldId: "custrecord_tr_missing_order_reason",
                     value: JSON.stringify(e)
                 });
                 mo.save();
@@ -209,7 +244,7 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
     }
 
     function summarize(summary) {
-             log.debug('处理完成',summary)
+        log.debug('处理完成', summary)
     }
 
     var core1 = {
@@ -323,28 +358,28 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
                     //     value: last_update_date
                     // });
                     log.debug("1111111")
-                    if(last_after)
-                    h.setText({
-                        fieldId: 'custrecord_aio_importer_last_updated_af',
-                        text: moment(last_after).toDate()
-                    });
-                    if(last_before)
-                    h.setText({
-                        fieldId: 'custrecord_aio_importer_last_updated_bf',
-                        text: moment(last_before).toDate()
-                    });
+                    if (last_after)
+                        h.setText({
+                            fieldId: 'custrecord_aio_importer_last_updated_af',
+                            text: moment(last_after).toDate()
+                        });
+                    if (last_before)
+                        h.setText({
+                            fieldId: 'custrecord_aio_importer_last_updated_bf',
+                            text: moment(last_before).toDate()
+                        });
 
-                    if(last_after)
-                    // 文本形式时间
-                    h.setValue({
-                        fieldId: 'custrecord_dps_amazon_status_order_af',
-                        value: last_after
-                    })
+                    if (last_after)
+                        // 文本形式时间
+                        h.setValue({
+                            fieldId: 'custrecord_dps_amazon_status_order_af',
+                            value: last_after
+                        })
                     else
-                    h.setValue({
-                        fieldId: 'custrecord_dps_amazon_status_order_af',
-                        value: last_update_date
-                    })
+                        h.setValue({
+                            fieldId: 'custrecord_dps_amazon_status_order_af',
+                            value: last_update_date
+                        })
                     h.setValue({
                         fieldId: 'custrecord_dps_amazon_status_order_bf',
                         value: rtn_1.LastUpdatedBefore
@@ -402,28 +437,28 @@ define(["N/format", "N/runtime", "./Helper/core.min", "./Helper/CryptoJS.min",
 
                 log.audit('last_update_date2', last_update_date);
 
-               if(last_after)
-                // 文本形式时间
-                h.setValue({
-                    fieldId: 'custrecord_dps_amazon_status_order_af',
-                    value: last_after
-                })
+                if (last_after)
+                    // 文本形式时间
+                    h.setValue({
+                        fieldId: 'custrecord_dps_amazon_status_order_af',
+                        value: last_after
+                    })
                 else
-                h.setValue({
-                    fieldId: 'custrecord_dps_amazon_status_order_af',
-                    value: last_update_date
-                })
+                    h.setValue({
+                        fieldId: 'custrecord_dps_amazon_status_order_af',
+                        value: last_update_date
+                    })
                 h.setValue({
                     fieldId: 'custrecord_dps_amazon_status_order_bf',
                     value: rtn.LastUpdatedBefore
                 })
 
-                if(last_update_date)
-                h.setText({
-                    fieldId: 'custrecord_aio_importer_last_updated_af',
-                    // text: last_update_date
-                    text: moment(last_update_date).toDate()
-                });
+                if (last_update_date)
+                    h.setText({
+                        fieldId: 'custrecord_aio_importer_last_updated_af',
+                        // text: last_update_date
+                        text: moment(last_update_date).toDate()
+                    });
 
 
                 h.setValue({

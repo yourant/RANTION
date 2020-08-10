@@ -2,12 +2,13 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-03 19:22:28
+ * @LastEditTime   : 2020-08-09 20:55:39
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
+
 
 /**
  *@NApiVersion 2.x
@@ -124,7 +125,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
             } else if (actionType == "view") {
 
-                var aono, rec_status;
+                var aono, rec_status, box_flag;
                 search.create({
                     type: context.newRecord.type,
                     filters: [{
@@ -138,7 +139,8 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                         }, // 调拨单号
                         {
                             name: 'custrecord_dps_shipping_rec_status', // 状态
-                        }
+                        },
+                        "custrecord_dps_box_return_flag", // 已装箱
                     ]
                 }).run().each(function (r) {
                     aono = r.getValue({
@@ -148,8 +150,10 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     rec_status = r.getValue({
                         name: 'custrecord_dps_shipping_rec_status'
                     });
+                    box_flag = r.getValue('custrecord_dps_box_return_flag');
                 });
 
+                log.debug("查看状态下", rec_status)
                 if (rec_status == 14) {
                     context.form.addButton({
                         id: 'custpage_dps_li_update_info',
@@ -159,6 +163,27 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }
+                log.audit('box_flag', box_flag);
+                if (rec_status == 27 && !box_flag) {
+                    context.form.addButton({
+                        id: 'custpage_dps_li_input_box_info',
+                        label: '输入装箱信息',
+                        functionName: "inputPackingInfo(" + context.newRecord.id + ")"
+                    });
+
+                    context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
+                }
+                if (rec_status == 29 || rec_status == 30) {
+                    // if (1) {
+                    context.form.addButton({
+                        id: 'custpage_dps_li_print_box_info',
+                        label: '装箱信息导出',
+                        functionName: "printBoxInfo(" + context.newRecord.id + ")"
+                    });
+
+                    context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
+                }
+
             }
         } catch (error) {
             log.error('获取状态出错', error);
@@ -336,6 +361,36 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 var diffArr = tool.checkDifferentArr(to_itemIdArr, fu_itemIdArr)
 
                 log.audit('差异货品', diffArr);
+
+                var itemInfoObj = {};
+                var lim = 3999;
+                if (diffArr.length > 0) {
+                    search.create({
+                        type: 'item',
+                        filters: [{
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: diffArr
+                        }],
+                        columns: [
+                            "averagecost", // 平均成本
+                            "cost", // 采购价格
+                        ]
+                    }).run().each(function (rec) {
+
+                        var it = {
+                            averagecost: rec.getValue("averagecost"),
+                            cost: rec.getValue('cost')
+                        }
+                        itemInfoObj[rec.id] = it;
+
+                        return --lim > 0;
+                    })
+
+                }
+
+
+                log.audit('itemInfoObj', itemInfoObj);
                 diffArr.map(function (dif) {
                     if (to_itemIdArr.indexOf(dif) > -1) {
                         log.debug('需要删除货品', dif);
@@ -379,15 +434,15 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                                 toRec.setCurrentSublistValue({
                                     sublistId: 'item',
                                     fieldId: 'rate',
-                                    value: 0,
+                                    value: itemInfoObj[dif].averagecost ? itemInfoObj[dif].averagecost : (itemInfoObj[dif].cost ? itemInfoObj[dif].cost : 1),
                                     ignoreFieldChange: true
                                 });
-                                toRec.setCurrentSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'amount',
-                                    value: 0,
-                                    ignoreFieldChange: true
-                                });
+                                // toRec.setCurrentSublistValue({
+                                //     sublistId: 'item',
+                                //     fieldId: 'amount',
+                                //     value: 0,
+                                //     ignoreFieldChange: true
+                                // });
 
                                 toRec.commitLine({
                                     sublistId: 'item'
@@ -397,6 +452,24 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
                         log.debug('需要新增货品', dif);
                     }
+                });
+
+                var amount = 0;
+                var num = toRec.getLineCount({
+                    sublistId: 'item'
+                });
+                for (var i = 0; i < num; i++) {
+
+                    amount += toRec.getSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'amount',
+                        line: i
+                    })
+                }
+
+                toRec.setValue({
+                    fieldId: 'total',
+                    value: amount
                 });
 
                 var toRec_id = toRec.save();

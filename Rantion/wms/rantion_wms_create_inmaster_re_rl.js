@@ -66,9 +66,56 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
                     return re_id;
                 } else if (sourceType == 40) {
-                    re_id = returnSubsidiaryTransfer(context.requestBody);
-                    requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
-                    return re_id;
+                    // re_id = returnSubsidiaryTransfer(context.requestBody);
+                    // requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "putOn");
+                    // return re_id;
+                    var subsidiary_type, account_type, location_use, bill_id;
+                    search.create({
+                        type: 'customrecord_sample_use_return',
+                        filters: [
+                            { name: 'name', operator: 'is', values: context.requestBody.sourceNo }
+                        ],
+                        columns: [
+                            'custrecord_subsidiary_type_1',
+                            'custrecord_account_type1',
+                            'custrecord_location_use_back'
+                        ]
+                    }).run().each(function (rec) {
+                        bill_id = rec.id;
+                        subsidiary_type = rec.getValue('custrecord_subsidiary_type_1');
+                        account_type = rec.getValue('custrecord_account_type1');
+                        location_use = rec.getValue('custrecord_location_use_back');
+                    });
+
+                    re_id = createInventoryadjustment(subsidiary_type, account_type, location_use, context.requestBody);
+                    requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(re_id), 1, "putOn");
+                    if (re_id) {
+                        retjson.code = 0;
+                        retjson.data = null;
+                        retjson.msg = "NS 处理成功";
+
+                        record.submitFields({
+                            type: 'customrecord_sample_use_return',
+                            id: bill_id,
+                            values: {
+                                custrecord_stauts_wms: 3,
+                                custrecord_related_adjust_inventory: re_id
+                            }
+                        });
+                    } else {
+                        retjson.code = 5;
+                        retjson.data = null;
+                        retjson.msg = "NS 处理异常";
+
+                        record.submitFields({
+                            type: 'customrecord_sample_use_return',
+                            id: bill_id,
+                            values: {
+                                custrecord_stauts_wms: 4
+                            }
+                        });
+                    }
+                    return JSON.stringify(retjson);
                 } else if (sourceType == 50) { // 渠道退件 小包
                     //小包
                     re_id = logisticsReturnItemReceipt(context.requestBody);
@@ -92,6 +139,45 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             }
         }
         return JSON.stringify(retjson);
+    }
+  
+  //库存归还
+    function createInventoryadjustment(subsidiary_type, account_type, location_use, data) {
+        var inventory_ord = record.create({ type: 'inventoryadjustment', isDynamic: true });
+        inventory_ord.setValue({ fieldId: 'subsidiary', value: subsidiary_type });
+        inventory_ord.setValue({ fieldId: 'account', value: account_type });
+        inventory_ord.setValue({ fieldId: 'custbody_stock_use_type', value: 37 });
+
+        data.detailList.map(function (lia) {
+            lia.detailRecordList.map(function (line) {
+                inventory_ord.selectNewLine({ sublistId: 'inventory' });
+                var item_id;
+                search.create({
+                    type: 'item',
+                    filters: [
+                        { name: 'itemid', operator: 'is', values: line.sku }
+                    ]
+                }).run().each(function (rec) {
+                    item_id = rec.id;
+                });
+                inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'item', value: item_id });
+                inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'location', value: location_use });
+                inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'adjustqtyby', value: line.shelvesQty });
+                inventory_ord.setCurrentSublistText({ sublistId: 'inventory', fieldId: 'custcol_location_bin', text: line.positionCode });
+                // 其他字段
+                try {
+                    inventory_ord.commitLine({ sublistId: 'inventory' })
+                } catch (err) {
+                    throw (
+                        'Error inserting item line: ' +
+                        lia.sku +
+                        ', abort operation!' +
+                        err
+                    );
+                }
+            })
+        });
+        return inventory_ord.save();
     }
 
     // 单主体调拨 —— 

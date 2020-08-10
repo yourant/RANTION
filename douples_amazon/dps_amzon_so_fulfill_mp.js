@@ -39,7 +39,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       var group_req = runtime.getCurrentScript().getParameter({ name: 'custscript_fulfill_accgroup' })
       var full_bj = runtime.getCurrentScript().getParameter({ name: 'custscript_full_bj' }) ? runtime.getCurrentScript().getParameter({ name: 'custscript_full_bj' }) : 'F'; // 搜索对应的标记
       var fils = []
-      fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: 'isnot', values: "T" }))
+      fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: 'isnot', values: 'T' }))
       var acc_arrys = []
       if (group_req) { // 根据拉单分组去履行
         core.amazon.getReportAccountList(group_req).map(function (acount) {
@@ -61,6 +61,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
           { name: 'custrecord_shipment_account' },
           { name: 'custrecord_aio_seller_id',join: 'custrecord_shipment_account' },
           { name: 'custrecord_aio_fbaorder_location',join: 'custrecord_shipment_account' },
+          { name: 'custrecord_division',join: 'custrecord_shipment_account' },
           { name: 'custrecord_amazon_order_id' },
           { name: 'custrecord_merchant_order_id' },
           { name: 'custrecord_sales_channel' },
@@ -77,6 +78,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
           'ship_qty': e.getValue('custrecord_quantity_shipped'),
           'seller_id': e.getValue(e.columns[4]),
           'loca': e.getValue(e.columns[5]),
+          'dept': e.getValue(e.columns[6]),
           'shipDate_txt': e.getValue('custrecord_shipment_date_text'),
           'market': e.getValue('custrecord_sales_channel')
         })
@@ -106,6 +108,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
         ship_sku = obj.ship_sku,
         order_id = obj.order_id,
         ship_qty = obj.ship_qty,
+        dept = obj.dept,
         merchant_order_id = obj.merchant_order_id,
         market = obj.market, // marketplaceName
         repid = obj.reporid
@@ -131,7 +134,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
 
         log.debug('ord_status: ' + ord_status, 'so_obj: ' + JSON.stringify(so_obj))
         if (so_id) {
-         
           if (ord_status == 'pendingApproval') { // 待批准
             record.submitFields({
               type: record.Type.SALES_ORDER,
@@ -205,7 +207,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
             })
             return
           }
-          var ful_rs = fullfillment(so_id, shipDate, ship_sku, ship_qty, repid, obj.loca); // 发货
+          var ful_rs = fullfillment(so_id, shipDate, ship_sku, ship_qty, repid, obj.loca, dept); // 发货
           if (ful_rs.indexOf('不足') > -1) {
             err.push(ful_rs)
             record.submitFields({
@@ -279,11 +281,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       try {
         core.amazon.getAccountList().map(function (account) {
           if (account.id == acc) {
-            var filters = [{
-              name: 'custrecord_aio_cache_resolved',
-              operator: search.Operator.IS,
-              values: false
-            },
+            var filters = [
               {
                 name: 'custrecord_aio_cache_status',
                 operator: 'isnot',
@@ -346,6 +344,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                 auth: account.auth_meta,
                 info: account.info,
                 extra: account.extra_info,
+                timezone: account.timezone,
                 pref: account.preference,
                 country: account.country,
                 customer: account.customer,
@@ -372,6 +371,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
           var a = obj.auth
           var i = obj.info
           var e = obj.extra
+          var timezone = obj.timezone
           var p = obj.pref
           var cy = obj.currency
           var country = obj.country
@@ -383,16 +383,8 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
           log.error('version ' + version, 'country: ' + country)
 
           var customer = obj.customer
-          var line_items = obj.iteminfo
+          var line_items
 
-          try {
-            if (line_items) {
-              line_items ? line_items = JSON.parse(line_items) : ''
-            }
-          } catch (error) {
-            line_items = ''
-            log.error('error', error)
-          }
           var externalid = 'aio' + amazon_account_id + '.' + o.amazon_order_id
 
           var fulfillment_channel = o.fulfillment_channel
@@ -401,10 +393,11 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
           var order_form = o.fulfillment_channel == 'MFN' ? i.salesorder_form : e.fbaorder_form
 
           var order_location = o.fulfillment_channel == 'MFN' ? i.salesorder_location : e.fbaorder_location
-          var order_trandate = o.purchase_date
-
-
-
+          var order_trandate = format.format({
+            value: moment.utc(o.purchase_date).toDate(),
+            type: format.Type.DATETIMETZ,
+            timezone: fields.timezone[timezone] // depositDate
+          }).split(' ')[0]
 
           var error_message = [],
             currency_id
@@ -471,7 +464,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               // 4 已完成
               // 5 已取消
 
-
               var pay_ord
               if (o.order_status == 'Shipped') {
                 pay_ord = 3
@@ -490,7 +482,16 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                   value: pay_ord
                 })
               }
-
+              var acc_local_time = format.format({
+                value: moment.utc(o.purchase_date).toDate(),
+                type: format.Type.DATETIMETZ,
+                timezone: fields.timezone[timezone]
+              }); // 当地店铺时间
+      
+              ord.setText({
+                fieldId: 'custbody_dps_acc_local_time',
+                text: acc_local_time
+              })
               log.debug(externalid, externalid + ' | \u7ED9\u8BA2\u5355\u8BBE\u7F6Eentity ID: ' + cid)
               ord.setValue({
                 fieldId: 'entity',
@@ -507,94 +508,10 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               }
               log.debug('4trandate', order_trandate)
 
-
-              // 转换成店铺当地时区
-              if (enabled_sites == 'Amazon US') {
-                // 美国站点
-                log.audit('amazon_account_id ' + amazon_account_id, '美国站点')
-
-                dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
-                var timeOne = moment(timeOffset(order_trandate, 0)).format(dateFormat)
-
-                var endDate = format.format({
-                  value: timeOne,
-                  type: format.Type.DATE
-                })
-                log.debug('endDate123', endDate)
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: timeOffset(order_lastupdate, 0),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.EUROPE_LONDON
-                  })
-                })
-                log.debug('endDate456', timeOffset(order_lastupdate, 0))
-              } else if (enabled_sites == 'Amazon UK') {
-                // 英国站点
-                log.audit('amazon_account_id ' + amazon_account_id, '英国站点')
-
-                dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
-                var timeOne = moment(timeOffset(order_trandate, -9)).format(dateFormat)
-
-                var endDate = format.format({
-                  value: timeOne,
-                  type: format.Type.DATE
-                })
-                log.debug('endDate', endDate)
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: timeOffset(order_lastupdate, -9),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.EUROPE_LONDON
-                  })
-                })
-              } else if (enabled_sites == 'Amazon DE' || enabled_sites == 'Amazon ES' || enabled_sites == 'Amazon FR' || enabled_sites == 'Amazon IT') {
-                // 欧洲站点
-                log.audit('amazon_account_id ' + amazon_account_id, '欧洲站点')
-
-                log.debug('endDate777', endDate)
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: moment.utc(order_lastupdate).toDate(),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.AMERICA_LOS_ANGELES
-                  })
-                })
-              } else {
-                // 其他站点
-                log.audit('amazon_account_id ' + amazon_account_id, '其他站点')
-
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: timeOffset(order_lastupdate, 0),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.EUROPE_LONDON
-                  })
-                })
-              }
+              ord.setText({
+                fieldId: 'trandate',
+                text: order_trandate
+              })
 
               ord.setValue({
                 fieldId: 'custbody_amazon_purchase_date',
@@ -633,94 +550,21 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                 })
               }
             } else {
-              // 转换成店铺当地时区
-              if (enabled_sites == 'Amazon US') {
-                // 美国站点
-                log.audit('amazon_account_id ' + amazon_account_id, '美国站点')
+              var acc_local_time = format.format({
+                value: moment.utc(o.purchase_date).toDate(),
+                type: format.Type.DATETIMETZ,
+                timezone: fields.timezone[timezone]
+              }); // 当地店铺时间
 
-                dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
-                var timeOne = moment(timeOffset(order_trandate, 0)).format(dateFormat)
+              ord.setText({
+                fieldId: 'custbody_dps_acc_local_time',
+                text: acc_local_time
+              })
+              ord.setText({
+                fieldId: 'trandate',
+                text: order_trandate
+              })
 
-                var endDate = format.format({
-                  value: timeOne,
-                  type: format.Type.DATE
-                })
-                log.debug('endDate123', endDate)
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: timeOffset(order_lastupdate, 0),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.EUROPE_LONDON
-                  })
-                })
-                log.debug('endDate456', timeOffset(order_lastupdate, 0))
-              } else if (enabled_sites == 'Amazon UK') {
-                // 英国站点
-                log.audit('amazon_account_id ' + amazon_account_id, '英国站点')
-
-                dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
-                var timeOne = moment(timeOffset(order_trandate, -9)).format(dateFormat)
-
-                var endDate = format.format({
-                  value: timeOne,
-                  type: format.Type.DATE
-                })
-                log.debug('endDate', endDate)
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: timeOffset(order_lastupdate, -9),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.EUROPE_LONDON
-                  })
-                })
-              } else if (enabled_sites == 'Amazon DE' || enabled_sites == 'Amazon ES' || enabled_sites == 'Amazon FR' || enabled_sites == 'Amazon IT') {
-                // 欧洲站点
-                log.audit('amazon_account_id ' + amazon_account_id, '欧洲站点')
-
-                log.debug('endDate777', endDate)
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: moment.utc(order_lastupdate).toDate(),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.AMERICA_LOS_ANGELES
-                  })
-                })
-              } else {
-                // 其他站点
-                log.audit('amazon_account_id ' + amazon_account_id, '其他站点')
-
-                ord.setText({
-                  fieldId: 'trandate',
-                  text: interfun.getFormatedDate('', '', order_trandate).date
-                })
-
-                ord.setText({
-                  fieldId: 'custbody_dps_local_dt',
-                  text: format.format({
-                    value: timeOffset(order_lastupdate, 0),
-                    type: format.Type.DATETIME,
-                    timezone: format.Timezone.EUROPE_LONDON
-                  })
-                })
-              }
               log.debug('o.order_lastupdate11', order_lastupdate)
               if (ord.getValue('orderstatus') == 'A' && ['Pending', 'Canceled', 'Unfulfillable'].indexOf(o.order_status) > -1) {
                 /** 如果有地址，替换掉原来的临时地址 */
@@ -846,7 +690,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                 value: o.last_update_date
               })
 
-
               // set purchase date
               ord.setValue({
                 fieldId: 'custbody_aio_s_p_date',
@@ -876,11 +719,16 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                 value: o.order_type
               })
 
-
               var soId = ord.save({
                 ignoreMandatoryFields: true
               })
               return mark_resolved(amazon_account_id, o.amazon_order_id)
+            }
+            try {
+              line_items = JSON.parse(line_items)
+            } catch (error) {
+              line_items = ''
+              log.error('error', error)
             }
             if (!line_items || line_items.length == 0) {
               line_items = core.amazon.getOrderItems(a, o.amazon_order_id)
@@ -893,6 +741,42 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                   'custrecord_amazonorder_iteminfo': JSON.stringify(line_items)
                 }
               })
+              var fs = []
+              search.create({
+                type: 'customrecord_amazon_item_lines',
+                filters: [
+                  {name: 'custrecord_aitem_rel_cahce',operator: 'anyof',values: obj.rec_id }
+                ]
+              }).run().each(function (e) {
+                fs.push(e.id)
+                return true
+              })
+
+              if (line_items.length < 1 || !line_items) {
+                log.debug('item_obj为空,退出', line_items)
+                return
+              }
+
+              for (var i = 0;i < line_items.length;i++) {
+                var ss = record.create({type: 'customrecord_amazon_item_lines'})
+                ss.setValue({fieldId: 'custrecord_aitem_title',value: line_items[i].title})
+                ss.setValue({fieldId: 'custrecord_aitem_seller_sku',value: line_items[i].seller_sku})
+                ss.setValue({fieldId: 'custrecord_aitem_qty',value: line_items[i].qty})
+                ss.setValue({fieldId: 'custrecord_aitem_shipping_discount',value: line_items[i].shipping_discount})
+                ss.setValue({fieldId: 'custrecord_aitem_item_price',value: line_items[i].item_price})
+                ss.setValue({fieldId: 'custrecord_aitem_promotion_discount',value: line_items[i].promotion_discount})
+                ss.setValue({fieldId: 'custrecord_aitem_gift_wrap_price',value: line_items[i].gift_wrap_price})
+                ss.setValue({fieldId: 'custrecord_aitem_shipping_price',value: line_items[i].shipping_price})
+                ss.setValue({fieldId: 'custrecord_ord_itemtax',value: line_items[i].item_tax})
+                log.debug('设置sippingTax', line_items[i].shipping_tax)
+                ss.setValue({fieldId: 'custrecord_ord_shippingtax',value: line_items[i].shipping_tax})
+                ss.setValue({fieldId: 'custrecord_aitem_rel_cahce',value: obj.rec_id})
+                ss.save()
+              }
+              fs.map(function (ds) {
+                record.delete({type: 'customrecord_amazon_item_lines',id: ds})
+                log.debug('先删除')
+              })
             }
 
             log.debug('OKokokok:' + obj.rec_id, line_items)
@@ -901,7 +785,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               num = 0
 
             var amazon_sku
-
 
             // 计算公式
             log.debug('计算公式:', ord_formula)
@@ -929,11 +812,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               log.debug('line', line)
               log.debug('amazon_account_id', amazon_account_id)
               itemAry.push(line.seller_sku)
-              if (line.qty == 0 && o.order_status == 'Canceled') {
-                line.qty = 1
-              }else if (line.qty == 0) {
-                return
-              }
               var skuid
 
               try {
@@ -945,9 +823,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                 sublistId: 'item'
               })
               log.debug('12set skuid', 'skuid:' + skuid + ', cid:' + cid)
-
-
-
 
               ord.setCurrentSublistValue({
                 sublistId: 'item',
@@ -1023,7 +898,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               ord.setCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'custcol_aio_origianl_amount',
-                value:  itemprice.toFixed(2)
+                value: itemprice.toFixed(2)
               })
               log.audit('tax_item_amount::', line.item_tax + ',' + line.shipping_tax)
               /** 设置订单含税 */
@@ -1122,7 +997,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               value: JSON.stringify(o)
             })
 
-
             log.debug('31-1order_location', order_location)
             if (o.fulfillment_channel == 'MFN') {
               // 仓库优选
@@ -1183,7 +1057,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                   value: o.last_update_date
                 })
 
-
                 // set payment status
                 if (pay_ord) {
                   ord.setValue({
@@ -1191,7 +1064,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                     value: pay_ord
                   })
                 }
-
 
                 // set PLATFORM ORDER STATUS
                 ord.setValue({
@@ -1279,7 +1151,6 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
             log.debug(externalid, externalid + ' | \u7CFB\u7EDF\u7EA7\u522B\u9519\u8BEF\uFF0C\u8BA2\u5355\u63A8\u81F3MISSING ORDER! #' + mid + ' order: ' + JSON.stringify(o, null, 2))
             log.error('error message:', amazon_account_id + ',' + o.amazon_order_id + ',' + itemAry + 'System Error: ' + err)
             var mid = mark_missing_order(externalid, amazon_account_id, o.amazon_order_id, itemAry + 'System Error: ' + err, order_trandate)
-
 
             record.submitFields({
               type: 'customrecord_aio_order_import_cache',
@@ -1659,7 +1530,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       })
     }
 
-    function fullfillment (so_id, shipdate, ship_sku, qty, rei, loca) {
+    function fullfillment (so_id, shipdate, ship_sku, qty, rei, loca, dept) {
       var so = record.load({ type: 'salesorder', id: so_id })
       var location = so.getValue('location'), skuid,fulfill_items = []
       if (!location)
@@ -1674,6 +1545,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       // f.setValue({ fieldId: 'trandate', value:so.getValue('trandate')})
       f.setText({ fieldId: 'trandate', text: shipdate })
       f.setValue({ fieldId: 'shipstatus', value: 'C' })
+      f.setValue({ fieldId: 'department', value: dept })
       f.setValue({ fieldId: 'custbody_aio_account', value: acc })
       f.setValue({ fieldId: 'custbody_shipment_report_rel', value: rei }); // 关联发货报告
 
@@ -1720,6 +1592,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
 
           f.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: fulfill_qty, line: ln })
           f.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location, line: ln })
+          f.setSublistValue({ sublistId: 'item', fieldId: 'department', value: dept, line: ln })
           f.setSublistValue({ sublistId: 'item', fieldId: 'custcol_aio_amazon_msku', value: ship_sku, line: ln })
           fulfill_items.push({
             skuid: skuid,
@@ -1746,11 +1619,11 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
 
         // 自动开票
         if (ss)
-          createInvioce(so_id, shipdate, so.getValue('custbody_aio_account'), rei, fulfill_items,ship_sku)
+          createInvioce(so_id, shipdate, so.getValue('custbody_aio_account'), rei, fulfill_items, ship_sku, dept)
       }else {
         log.debug('不满足发货条件 qty:' + qty, '发货报告ID:' + rei)
       }
-      return 'OK';
+      return 'OK'
     }
 
     /**
@@ -1771,8 +1644,8 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       return itemN
     }
 
-    function createInvioce (soid, shipdate, acc, rei, fulfill_items,ship_sku) {
-      log.audit('fulfill_items:', fulfill_items)
+    function createInvioce (soid, shipdate, acc, rei, fulfill_items, ship_sku, dept) {
+      log.audit('fulfill_items:', fulfill_items) // 本次发货的货品和数量 [ { qty: , }]
       var remocl = []
       try {
         var inv = record.transform({
@@ -1783,19 +1656,22 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
         })
         inv.setValue({ fieldId: 'custbody_aio_account', value: acc })
         inv.setValue({ fieldId: 'approvalstatus', value: 2 })
+        inv.setValue({ fieldId: 'department', value: dept })
         inv.setText({ fieldId: 'trandate', text: shipdate })
         inv.setValue({ fieldId: 'custbody_shipment_report_rel', value: rei })
         var len = inv.getLineCount({ sublistId: 'item'}),ck = true,seted = 0
         fulfill_items.map(function (fs) {
           ck = true
+
           for (var i = seted;i < len;i++) {
+            //
             inv.selectLine({sublistId: 'item',line: i})
             var itds = inv.getCurrentSublistValue({sublistId: 'item',fieldId: 'item'})
             var qty = inv.getCurrentSublistValue({sublistId: 'item',fieldId: 'quantity'})
             if (fs.skuid == itds && fs.qty <= qty && ck) {
               seted = i + 1
               ck = false
-              inv.setCurrentSublistValue({sublistId: 'item',fieldId: 'quantity',value: fulfill_items[0].qty})
+              inv.setCurrentSublistValue({sublistId: 'item',fieldId: 'quantity',value: fs.qty})
               inv.setCurrentSublistValue({ sublistId: 'item', fieldId: 'custcol_aio_amazon_msku', value: ship_sku })
               var index = remocl.indexOf(i)
               log.debug('要删除的index: ' + index, i)
@@ -2276,19 +2152,16 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               type: 'customrecord_aio_order_import_cache'
             })
           }
-          var order_trandate = interfun.getFormatedDate(
-            '',
-            '',
-            order.purchase_date
-          ).date
-          var last_update_date = interfun.getFormatedDate(
-            '',
-            '',
-            order.last_update_date
-          ).date
-          if (last_update_date == '2') {
-            return
-          }
+          var order_trandate = format.format({
+            value: moment.utc(order.purchase_date).toDate(),
+            type: format.Type.DATETIMETZ,
+            timezone: fields.timezone[timezone] // depositDate
+          }).split(' ')[0]
+          var last_update_date = format.format({
+            value: moment.utc(order.last_update_date).toDate(),
+            type: format.Type.DATETIMETZ,
+            timezone: fields.timezone[timezone] // depositDate
+          }).split(' ')[0]
           r.setValue({
             fieldId: 'custrecord_aio_cache_acc_id',
             value: order.AccID

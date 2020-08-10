@@ -9,13 +9,50 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
     log.debug('pullorder context:', context)
     var startT = new Date().getTime()
     switch (context.op) {
-      case 'go':
+      case "inv_getData":
+        var limit = 4000,rs=[];
         var acc = context.acc
-        var invs = getInputData(acc)
-        invs.map(function (lo) {
-          PaymentAuthrationmap(lo)
+        search.create({
+          type:"invoice",
+          filters:[
+            {name:"department" ,operator:"anyof",values:"@NONE@"},
+            {name:"custbody_aio_is_aio_order" ,operator:"is",values:true},
+            {name:"custbody_aio_account",operator:"anyof",values:["78","79","80","81","82","519","164","165"]}
+        ]
+        }).run().each(function(e){
+          rs.push(e.id);
         })
-        var ss = 'success ,' + ' 耗时：' + (new Date().getTime() - startT)
+        return rs;
+      case 'inv_dept':
+        var inv_id = context.inv_id
+        // var invs = getInputData(acc)
+        var inv = record.load({type:"invoice",id:inv_id});
+        var len  = inv.getLineCount({sublistId:"item"})
+        var oid = inv.getValue("otherrefnum")
+        var acc = inv.getValue("custbody_order_locaiton"),objItem,dept;
+        search.create({
+          type:"customrecord_aio_order_import_cache",
+          filters:[
+            { name: 'custrecord_aio_cache_acc_id', operator: search.Operator.ANYOF,values:acc},
+            { name: 'custrecord_aio_cache_order_id',operator: 'is',values: oid}
+          ],columns:[{name:"custrecord_amazonorder_iteminfo"} , { name:"custrecord_division",join:"custrecord_aio_cache_acc_id"}]
+        }).run().each(function(ds){
+          objItem = JSON.parse(ds.getValue("custrecord_amazonorder_iteminfo")) 
+          dept = ds.getValue(ds.columns[1])
+        })
+        inv.setValue({fieldId:"department",value:dept});
+        var seller ={};
+        objItem.map(function(line){
+          var skuid = interfun.getskuId(line.seller_sku.trim(), acc,oid);
+          seller[skuid] = line.seller_sku.trim()
+        })
+        for(var i=0;i<len;i++){
+            var itemid = inv.getSublistValue({sublistId:"item",fieldId:"item",line:i});
+            inv.setSublistValue({sublistId:'item',fieldId:"custcol_aio_amazon_msku",value:seller[itemid],line:i});
+        }
+        var ss = inv.save({ ignoreMandatoryFields: true});
+        log.audit("发票保存成功",ss);
+         ss = 'success :'+ss + ', 耗时：' + (new Date().getTime() - startT)
         return ss
         break
       case 'setsetllementAcc_Deal': // 处理店铺信息
@@ -23,8 +60,8 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         var group = context.acc_group
         //  core.amazon.getReportAccountList(group).map(function(account){
         //     log.audit(account.id)
-        DealSettlment(acc)
-        var  ff = acc+ ", 耗时：" + (new Date().getTime() - startT);
+        var ff = DealSettlment(acc)
+          ff =ff+","+ acc+ ", 耗时：" + (new Date().getTime() - startT);
         log.debug('rs:', ff+ ", 耗时：" + (new Date().getTime() - startT))
         //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
         return ff
@@ -106,7 +143,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
               inv.setSublistValue({sublistId:'item',fieldId:"custcol_aio_amazon_msku",value:seller[itemid],line:i});
           }
           rs = inv.save({ ignoreMandatoryFields: true});
-          log.audit("发票保存成功",ss);
+          log.audit("发票保存成功",rs);
         }catch(e){
           log.error("出错拉",e)
           rs =e.message;
@@ -155,6 +192,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
       orders.push(e.id)
       return --limit > 0
     })
+    if(orders.length ==0) return "处理完成";
     orders.map(function (dfs) {
       var setlle = record.load({type: 'customrecord_aio_amazon_settlement',id: dfs})
       var markt = setlle.getValue('custrecord_aio_sett_marketplace_name')

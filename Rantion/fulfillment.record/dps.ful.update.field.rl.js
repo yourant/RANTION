@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-03 14:01:19
+ * @LastEditTime   : 2020-08-08 15:44:13
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
@@ -22,113 +22,243 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
         var retObj = {};
         var recId = context.recordID;
+        var action = context.action;
 
-        var token = getToken();
-        if (token) {
+        try {
 
+            if (action == "updateWMS") {
 
-            var aono;
-            search.create({
-                type: "customrecord_dps_shipping_record",
-                filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: recId
-                }],
-                columns: [{
-                        name: "tranid",
-                        join: "custrecord_dps_shipping_rec_order_num"
-                    }, // 调拨单
-                ]
-            }).run().each(function (rec) {
-                aono = rec.getValue({
-                    name: "tranid",
-                    join: "custrecord_dps_shipping_rec_order_num"
-                })
-            })
+                var token = getToken();
+                if (token) {
 
-            log.debug('授权秘钥存在', '授权秘钥存在');
-            var headerObj = {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'access_token': token,
-            };
+                    var aono;
+                    search.create({
+                        type: "customrecord_dps_shipping_record",
+                        filters: [{
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: recId
+                        }],
+                        columns: [{
+                                name: "tranid",
+                                join: "custrecord_dps_shipping_rec_order_num"
+                            }, // 调拨单
+                        ]
+                    }).run().each(function (rec) {
+                        aono = rec.getValue({
+                            name: "tranid",
+                            join: "custrecord_dps_shipping_rec_order_num"
+                        })
+                    })
 
-            var response = http.get({
-                url: config.WMS_Debugging_URL + "/allocationMaster/getAllocationMaster" + "?aono=" + aono,
-                headers: headerObj
-            });
+                    log.debug('授权秘钥存在', '授权秘钥存在');
+                    var headerObj = {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'access_token': token,
+                    };
 
-            log.debug('获取调拨单状态', response);
-            if (response.code == 200) {
-                var body = JSON.parse(response.body);
-                log.debug('请求 WMS, 返回的参数' + typeof (body), body);
-                if (body.code == 0) { // 
+                    var response = http.get({
+                        url: config.WMS_Debugging_URL + "/allocationMaster/getAllocationMaster" + "?aono=" + aono,
+                        headers: headerObj
+                    });
 
-                    var status = body.data.status;
-                    log.audit('WMS 调拨单状态', status)
-                    if (status == 10) { // 允许修改
+                    log.debug('获取调拨单状态', response);
+                    if (response.code == 200) {
+                        var body = JSON.parse(response.body);
+                        log.debug('请求 WMS, 返回的参数' + typeof (body), body);
+                        if (body.code == 0) { // 
 
-                        log.audit('调拨单', aono);
-                        var userObj = runtime.getCurrentUser();
+                            var status = body.data.status;
+                            log.audit('WMS 调拨单状态', status)
+                            if (status == 10) { // 允许修改
 
-                        var name = userObj.name; // 当前用户
+                                log.audit('调拨单', aono);
+                                var userObj = runtime.getCurrentUser();
 
-                        var retObj = updateToWMS(recId, name, aono);
+                                var name = userObj.name; // 当前用户
 
-                        record.submitFields({
-                            type: "customrecord_dps_shipping_record",
-                            id: recId,
-                            values: {
-                                custrecord_dps_update_ful_rec_info: JSON.stringify(retObj.msg)
+                                var retObj = updateToWMS(recId, name, aono);
+
+                                record.submitFields({
+                                    type: "customrecord_dps_shipping_record",
+                                    id: recId,
+                                    values: {
+                                        custrecord_dps_update_ful_rec_info: JSON.stringify(retObj.msg)
+                                    }
+                                });
+                                log.audit('调拨单允许修改, 返回参数', retObj)
+                                return retObj;
+                            } else { // 不允许修改
+                                retObj.code = 2;
+                                retObj.data = null;
+                                retObj.msg = "请联系仓库人员修改wms调拨单状态";
+
+                                record.submitFields({
+                                    type: "customrecord_dps_shipping_record",
+                                    id: recId,
+                                    values: {
+                                        custrecord_dps_update_ful_rec_info: JSON.stringify(retObj.msg)
+                                    }
+                                });
+                                log.audit('调拨单不允许修改, 返回参数 retObj', retObj);
+
+                                return retObj;
                             }
-                        });
-                        log.audit('调拨单允许修改, 返回参数', retObj)
-                        return retObj;
-                    } else { // 不允许修改
-                        retObj.code = 2;
+                        } else {
+                            retObj.code = 2;
+                            retObj.data = null;
+                            retObj.msg = body.msg;
+
+                            record.submitFields({
+                                type: "customrecord_dps_shipping_record",
+                                id: recId,
+                                values: {
+                                    custrecord_dps_update_ful_rec_info: JSON.stringify(retObj.msg)
+                                }
+                            });
+                            log.audit('code 不为 0, 返回参数 retObj', retObj);
+
+                            return retObj;
+                        }
+                    } else {
+                        retObj.code = 3;
                         retObj.data = null;
-                        retObj.msg = "请联系仓库人员修改wms调拨单状态";
-
-                        record.submitFields({
-                            type: "customrecord_dps_shipping_record",
-                            id: recId,
-                            values: {
-                                custrecord_dps_update_ful_rec_info: JSON.stringify(retObj.msg)
-                            }
-                        });
-                        log.audit('调拨单不允许修改, 返回参数 retObj', retObj);
+                        retObj.msg = "访问失败";
+                        log.audit('请求不成功, 返回参数 retObj', retObj);
 
                         return retObj;
                     }
                 } else {
-                    retObj.code = 2;
+                    retObj.code = 5;
                     retObj.data = null;
-                    retObj.msg = body.msg;
-
-                    record.submitFields({
-                        type: "customrecord_dps_shipping_record",
-                        id: recId,
-                        values: {
-                            custrecord_dps_update_ful_rec_info: JSON.stringify(retObj.msg)
-                        }
-                    });
-                    log.audit('code 不为 0, 返回参数 retObj', retObj);
-
+                    retObj.msg = "访问秘钥不存在";
+                    log.audit('不存在 token, 返回参数 retObj', retObj);
                     return retObj;
                 }
-            } else {
-                retObj.code = 3;
-                retObj.data = null;
-                retObj.msg = "访问失败";
-                log.audit('请求不成功, 返回参数 retObj', retObj);
+            }
+            if (action == "inputPackingInfo") {
+                var getArr = tool.getInfo(recId);
+                var boxNo = 0;
+                getArr.map(function (get) {
 
+                    var qty = get.qty;
+                    var mpq = get.mpq;
+                    var a = parseInt(qty / mpq);
+                    var bo = [];
+                    for (var i = 0; i < a; i++) {
+                        bo.push(mpq);
+                        ++boxNo;
+                    }
+                    var c = qty % mpq;
+                    if (c > 0) {
+                        bo.push(c);
+                        ++boxNo;
+                    }
+                    get.boxArr = bo
+                });
+
+                log.debug('getArr', getArr);
+
+                var loadRec = record.load({
+                    type: 'customrecord_dps_shipping_record',
+                    id: recId,
+                    isDynamic: true
+                });
+
+                var sublistId = "recmachcustrecord_dps_ship_box_fa_record_link"
+
+                var box_no = 1;
+                getArr.map(function (arr) {
+                    var boxArr = arr.boxArr;
+                    boxArr.map(function (b) {
+
+                        loadRec.selectNewLine({
+                            sublistId: sublistId
+                        });
+
+                        var j = "000" + box_no;
+
+                        var l = j.substring(j.length - 4);
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_box_number',
+                            value: l
+                        }); // 箱号
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_item',
+                            value: arr.itemId
+                        }); // 货品
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_sku',
+                            value: arr.sellersku
+                        }); // seller
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_quantity',
+                            value: b
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_weight',
+                            value: arr.packing_weight / 1000
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ful_rec_box_length',
+                            value: arr.box_long
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                            value: arr.box_wide
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                            value: arr.box_high
+                        });
+
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_asin',
+                            value: arr.asin
+                        });
+                        loadRec.setCurrentSublistValue({
+                            sublistId: sublistId,
+                            fieldId: 'custrecord_dps_ship_box_fnsku',
+                            value: arr.fnsku
+                        });
+
+                        loadRec.commitLine({
+                            sublistId: sublistId
+                        });
+
+                        box_no++;
+                    })
+                })
+
+                loadRec.setValue({
+                    fieldId: 'custrecord_dps_box_return_flag',
+                    value: true
+                });
+                var loadRec_id = loadRec.save();
+
+                log.audit('录入装箱信息成功 loadRec_id', loadRec_id);
+
+                retObj.code = 0;
+                retObj.data = null;
+                retObj.msg = "录入装箱信息成功";
+                log.audit('录入装箱信息成功, 返回参数 retObj', retObj);
                 return retObj;
             }
-        } else {
+        } catch (error) {
+            log.error('处理数据出错了', error);
             retObj.code = 5;
             retObj.data = null;
-            retObj.msg = "访问秘钥不存在";
+            retObj.msg = "系统错误, 请稍后重试";
             log.audit('不存在 token, 返回参数 retObj', retObj);
             return retObj;
         }
@@ -323,10 +453,10 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 }),
 
                 msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
-                englishTitle: rec.getValue({
-                    name: 'custitem_dps_declaration_us',
-                    join: 'custrecord_dps_shipping_record_item'
-                }),
+                // englishTitle: rec.getValue({
+                //     name: 'custitem_dps_declaration_us',
+                //     join: 'custrecord_dps_shipping_record_item'
+                // }),
                 productImageUrl: rec.getValue({
                     name: 'custitem_dps_picture',
                     join: 'custrecord_dps_shipping_record_item'

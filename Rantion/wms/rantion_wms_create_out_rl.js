@@ -284,9 +284,63 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
             else if (sourceType == 30) {
 
             }
-            // 移库单
+            // 移库单 (库存领用)
             else if (sourceType == 40) {
+search.create({
+                    type: 'customrecord_sample_use_return',
+                    filters: [
+                        {name: 'internalid', operator: 'anyof', values: context.id}
+                    ],
+                    columns: [
+                        'custrecord_logistics_channel_ser_num',
+                        'custrecord_logistics_channel_server',
+                        'custrecord_logistics_channel_pro_num',
+                        'custrecord_logistics_channel_provider',
+                        'name',
+                        {name: 'custrecord_dps_wms_location', join: 'custrecord_location_use_back'},
+                        {name: 'custrecord_dps_wms_location_name', join: 'custrecord_location_use_back'}
+                    ]
+                }).run().each(function (rec) {
+                    data["logisticsChannelCode"] = rec.getValue('custrecord_logistics_channel_ser_num'); //  '物流渠道服务编号';
+                    data["logisticsChannelName"] = rec.getText('custrecord_logistics_channel_server'); // '物流渠道服务名称';
+                    data["logisticsProviderCode"] = rec.getValue('custrecord_logistics_channel_pro_num'); //'物流渠道商编号';
+                    data["logisticsProviderName"] = rec.getText('custrecord_logistics_channel_provider'); //'物流渠道商名称';
+                    data["sourceNo"] = rec.getValue('name'); //'来源单号';
+                    data["sourceType"] = sourceType; //'来源类型 10: 销售订单 20: 采购退货单 30: 调拨单 40: 移库单 50: 库存调整';
+                    data["warehouseCode"] = rec.getValue({
+                        name: 'custrecord_dps_wms_location',
+                        join: 'custrecord_location_use_back'
+                    }); //'仓库编号';
+                    data["warehouseName"] = rec.getValue({
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'custrecord_location_use_back'
+                    }); //'仓库名称';
+                });
 
+                //货品行
+                var item_info = [];
+                search.create({
+                    type: 'customrecord_sample_useret_transfer_item',
+                    filters: [
+                        {name: 'custrecord_suti_link', operator: 'anyof', values: context.id}
+                    ],
+                    columns: [
+                        'custrecord_suti_item',
+                        'custrecord_suti_quantiy',
+                        {name: 'custitem_dps_picture', join: 'custrecord_suti_item'},
+                        {name: 'custitem_dps_skuchiense', join: 'custrecord_suti_item'}
+                    ]
+                }).run().each(function (rec) {
+                    item_info.push({
+                        productImageUrl: rec.getValue({name: 'custitem_dps_picture', join: 'custrecord_suti_item'}),
+                        productTitle: rec.getValue({name: 'custitem_dps_skuchiense', join: 'custrecord_suti_item'}),
+                        qty: rec.getValue('custrecord_suti_quantiy'),
+                        sku: rec.getText('custrecord_suti_item'),
+                    });
+                    return true;
+                });
+                data['detailCreateRequestDtos'] = item_info;
+                log.debug('data',data);
             }
             // 库存调整
             else if (sourceType == 50) {
@@ -311,6 +365,29 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
         } else {
             message.code = 1;
             message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
+        }
+      
+      if(sourceType == 40){
+            log.debug('message', message);
+            if(message.code != 0){
+                record.submitFields({
+                    type: 'customrecord_sample_use_return',
+                    id: context.id,
+                    values: {
+                        custrecord_stauts_wms: 5,
+                        custrecord_wms_info_t: message.data.msg
+                    }
+                });
+            }else{
+                record.submitFields({
+                    type: 'customrecord_sample_use_return',
+                    id: context.id,
+                    values: {
+                        custrecord_stauts_wms: 2,
+                        custrecord_wms_info_t: message.data.msg
+                    }
+                });
+            }
         }
 
         if (sourceType == 10) {

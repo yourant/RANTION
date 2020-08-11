@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-08-07 16:50:10
+ * @LastEditTime   : 2020-08-10 19:09:03
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -501,6 +501,12 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                 var newItemInfo = [];
 
                 if (tranType == 1) {
+
+                    if (!fbaAccount) {
+                        message.code = 3;
+                        message.data = 'FBA 调拨 不存在店铺';
+                        return message;
+                    }
                     var fls_skus = [];
                     var new_limit = 3999;
                     log.debug("fils:::::", fils)

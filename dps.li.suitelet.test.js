@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-08-09 20:15:24
+ * @LastEditTime   : 2020-08-10 22:19:47
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -15,8 +15,8 @@
 define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/file',
     'N/xml', './Rantion/Helper/tool.li', 'N/runtime', 'N/file', "N/ui/serverWidget",
     './douples_amazon/Helper/Moment.min', 'N/format', './douples_amazon/Helper/fields.min',
-    "./Rantion/Helper/config", 'N/http', 'N/encode', 'N/redirect'
-], function (search, record, log, core, file, xml, tool, runtime, file, serverWidget, moment, format, fields, config, http, encode, redirect) {
+    "./Rantion/Helper/config", 'N/http', 'N/encode', 'N/redirect', './Rantion/cux/Declaration_Information/handlebars-v4.1.1'
+], function (search, record, log, core, file, xml, tool, runtime, file, serverWidget, moment, format, fields, config, http, encode, redirect, Handlebars) {
 
     function onRequest(context) {
         try {
@@ -25,224 +25,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
             log.debug('userObj', userObj);
             if (userObj.role == 3 && userObj.id != 911) {
-                var request = context.request;
-                var response = context.response;
-                var parameters = request.parameters;
-                var account = parameters.custpage_dps_account;
-                var shipment = parameters.custpage_dps_shipment;
-                var print = parameters.print;
-
-                var form = serverWidget.createForm({
-                    title: '查询shipment'
-                });
-
-                form.addFieldGroup({
-                    id: 'search_groupid',
-                    label: '查询条件'
-                });
-
-                form.addFieldGroup({
-                    id: 'result_groupid',
-                    label: '结果信息'
-                });
-                if (account && shipment) {
-
-
-                    var auth = core.amazon.getAuthByAccountId(account);
-
-                    var s = core.amazon.listInboundShipments(auth, "", [shipment])
-
-                    log.debug('s', s)
-                    var item = core.amazon.listInboundShipmentsItems(auth, shipment, "");
-                    log.debug('item', item);
-
-
-                    var sublist = form.addSublist({
-                        id: 'sublistid',
-                        type: serverWidget.SublistType.LIST,
-                        label: 'Shipment信息'
-                    });
-
-                    var da = sublist.addField({
-                        id: 'custpage_shipment_id',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'shipment id'
-                    });
-                    var da = sublist.addField({
-                        id: 'custpage_shipment_name',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'shipment name'
-                    });
-                    var da = sublist.addField({
-                        id: 'custpage_center_id',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'center id'
-                    });
-                    var da = sublist.addField({
-                        id: 'custpage_label_prep_type',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'label prep type'
-                    });
-                    var da = sublist.addField({
-                        id: 'custpage_shipment_status',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'shipment status'
-                    });
-                    var da = sublist.addField({
-                        id: 'custpage_are_cases_required',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'are cases required'
-                    });
-                    var da = sublist.addField({
-                        id: 'custpage_box_contents_source',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'box contents source'
-                    });
-
-                    var line = form.getSublist({
-                        id: 'sublistid'
-                    });
-                    for (var i_s = 0, i_len = s.length; i_s < i_len; i_s++) {
-                        line.setSublistValue({
-                            id: 'custpage_shipment_id',
-                            value: s[i_s].shipment_id,
-                            line: i_s
-                        });
-                        line.setSublistValue({
-                            id: 'custpage_shipment_name',
-                            value: s[i_s].shipment_name,
-                            line: i_s
-                        });
-                        line.setSublistValue({
-                            id: 'custpage_center_id',
-                            value: s[i_s].center_id,
-                            line: i_s
-                        });
-                        line.setSublistValue({
-                            id: 'custpage_label_prep_type',
-                            value: s[i_s].label_prep_type,
-                            line: i_s
-                        });
-                        line.setSublistValue({
-                            id: 'custpage_shipment_status',
-                            value: s[i_s].shipment_status,
-                            line: i_s
-                        });
-                        line.setSublistValue({
-                            id: 'custpage_are_cases_required',
-                            value: s[i_s].are_cases_required,
-                            line: i_s
-                        });
-                        if (s[i_s].box_contents_source) {
-                            line.setSublistValue({
-                                id: 'custpage_box_contents_source',
-                                value: s[i_s].box_contents_source,
-                                line: i_s
-                            });
-                        }
-                    }
-
-                    var sublist_item = form.addSublist({
-                        id: 'sublistid_ship_item',
-                        type: serverWidget.SublistType.LIST,
-                        label: 'Shipment 货品'
-                    });
-
-                    var da = sublist_item.addField({
-                        id: 'custpage_item_shipment_id',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'shipment id'
-                    });
-                    var da = sublist_item.addField({
-                        id: 'custpage_item_seller_sku',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'seller sku'
-                    });
-                    var da = sublist_item.addField({
-                        id: 'custpage_item_quantity_shipped',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'quantity shipped'
-                    });
-                    var da = sublist_item.addField({
-                        id: 'custpage_item_quantity_in_case',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'quantity in case'
-                    });
-                    var da = sublist_item.addField({
-                        id: 'custpage_item_quantity_received',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'quantity received'
-                    });
-                    var da = sublist_item.addField({
-                        id: 'custpage_item_fulfillment_network_sku',
-                        type: serverWidget.FieldType.TEXT,
-                        label: 'fulfillment network sku'
-                    });
-
-
-                    var line_item = form.getSublist({
-                        id: 'sublistid_ship_item'
-                    });
-                    for (var it_i = 0, it_len = item.length; it_i < it_len; it_i++) {
-                        line_item.setSublistValue({
-                            id: 'custpage_item_shipment_id',
-                            value: item[it_i].shipment_id,
-                            line: it_i
-                        });
-                        line_item.setSublistValue({
-                            id: 'custpage_item_seller_sku',
-                            value: item[it_i].seller_sku,
-                            line: it_i
-                        });
-                        line_item.setSublistValue({
-                            id: 'custpage_item_quantity_shipped',
-                            value: item[it_i].quantity_shipped,
-                            line: it_i
-                        });
-                        line_item.setSublistValue({
-                            id: 'custpage_item_quantity_in_case',
-                            value: item[it_i].quantity_in_case,
-                            line: it_i
-                        });
-                        line_item.setSublistValue({
-                            id: 'custpage_item_quantity_received',
-                            value: item[it_i].quantity_received,
-                            line: it_i
-                        });
-                        line_item.setSublistValue({
-                            id: 'custpage_item_fulfillment_network_sku',
-                            value: item[it_i].fulfillment_network_sku,
-                            line: it_i
-                        });
-                    }
-
-                }
-
-
-                form.addSubmitButton({
-                    label: '查询',
-                });
-
-                var s_account = form.addField({
-                    id: 'custpage_dps_account',
-                    type: serverWidget.FieldType.SELECT,
-                    source: 'customrecord_aio_account',
-                    label: '店铺',
-                    container: 'search_groupid'
-                });
-                s_account.defaultValue = account;
-
-                var ship = form.addField({
-                    id: 'custpage_dps_shipment',
-                    type: serverWidget.FieldType.TEXT,
-                    label: 'ShipmentId',
-                    container: 'search_groupid'
-                });
-                ship.defaultValue = shipment;
-
-
-
-
+                var form = InitUI(context);
 
                 context.response.writePage({
                     pageObject: form
@@ -250,1216 +33,93 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
             } else if (userObj.id == 911 /* || userObj.id == 13440 */ ) {
 
-                var getArr = tool.getBoxInfo(70);
 
-                context.response.writeLine("\n\n\n getArr: " + JSON.stringify(getArr))
+                /*
+                 
+
+                // var print_data = {};
+
+                // var boxArr = [];
+                // for (var i = 0; i < 5; i++) {
+
+                //     var box = "000" + (i + 1)
+                //     var it = {
+                //         boxNo: i,
+                //         boxqty: i
+                //     };
+
+                //     boxArr.push(it);
+                // }
+                // print_data.boxNo = boxArr;
+
+                var getAmaInfo = tool.getAmazonBoxInfo(64);
+
+                context.response.writeLine("\n\n getAmaInfo: \n\n" + JSON.stringify(getAmaInfo));
+
+                return;
 
 
-                var obj = tool.groupBoxInfo(getArr);
 
-                context.response.writeLine("\n\n\n obj: " + JSON.stringify(obj))
-
-                log.debug('sendRequest data', obj);
+                var getArr = tool.getBoxInfo(64);
 
                 var redisId = Date.parse(new Date());
+                var print_data = tool.groupBoxInfo(getArr);
 
-                log.audit('redisId', redisId)
+                log.audit('print_data', print_data.data);
 
-                var token = getToken();
-                var message = {};
-                var code = 0;
-                var retdata;
-                var headerInfo = {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'access_token': token
-                };
-                var response = http.post({
-                    url: config.WMS_Debugging_URL + "/common/setBoxingReportBodyByRedis/" + redisId,
-                    headers: headerInfo,
-                    body: JSON.stringify(obj)
+                var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
+                // 获取模板内容,写全路径或者内部ID
+                var model = file.load({
+                    id: xmlID
+                }).getContents();
+
+                var template = Handlebars.compile(model);
+                var xml_1 = template(print_data);
+
+                var nowDate = new Date().toISOString();
+                var fileObj = file.create({
+                    name: "装箱信息-" + nowDate + ".xls",
+                    fileType: file.Type.EXCEL,
+                    contents: encode.convert({
+                        string: xml_1,
+                        inputEncoding: encode.Encoding.UTF_8,
+                        outputEncoding: encode.Encoding.BASE_64
+                    }),
+                    encoding: file.Encoding.UTF8,
+                    isOnline: true
                 });
 
-                log.audit('config.WMS_Debugging_URL + "/common/setBoxingReportBodyByRedis/" + redisId', config.WMS_Debugging_URL + "/common/setBoxingReportBodyByRedis/" + redisId)
-                // /common/setBoxingReportBodyByRedis/{redisId}
-                log.debug('response', JSON.stringify(response));
+                context.response.writeFile({
+                    file: fileObj,
+                    isInline: true
+                });
 
-                context.response.writeLine('\n\n\n response \n\n' + JSON.stringify(response))
-                if (response.code == 200) {
-                    retdata = JSON.parse(response.body);
-                    // 调用成功
-                    code = retdata.code;
-                } else {
-                    code = 1;
-                    // 调用失败
-                    retdata = {
-                        code: 1
-                    }
+
+                return;
+
+                /*
+                 */
+
+
+                // var to_id = [3378786, 3378785, 3378784, 3378783, 3378000, 6798];
+                var to_id = [3378786, 6798];
+
+                for (var i = 0, i_len = to_id.length; i < i_len; i++) {
+
+                    var data = tranferOrderToWMS(to_id[i]);
+
+                    context.response.writeLine("\n\n data: \n" + JSON.stringify(data))
+                    var token = tool.getToken();
+
+                    var cus_url = config.WMS_Debugging_URL + '/inMaster';
+
+                    var getRep = tool.sendRequest(token, data, cus_url);
+
+                    log.audit('推送 WMS 调拨入库 getRep  ' + i, getRep)
+
+                    context.response.writeLine("\n\n\n getTep :" + i + "\n " + JSON.stringify(getRep))
                 }
-
-                if (code == 0) {
-
-                    redirect.redirect({
-                        url: config.WMS_Debugging_URL + "/common/export/getBoxingReportExcel/" + redisId,
-                        parameters: {
-                            'custparam_test': 'helloWorld'
-                        }
-                    });
-
-                    return 1;
-                    var headerInfo = {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'access_token': token
-                    };
-                    var response = http.get({
-                        url: config.WMS_Debugging_URL + "/common/export/getBoxingReportExcel/" + redisId,
-                        headers: headerInfo,
-                        // body: JSON.stringify(obj)
-                    });
-                    log.debug('response', JSON.stringify(response));
-
-                    context.response.writeLine('\n\n\n response \n\n' + JSON.stringify(response))
-                    // /common/export/getBoxingReportExcel/{redisId}
-
-                    var fileObj = file.create({
-                        name: "装箱信息" + redisId + ".xls",
-                        fileType: file.Type.EXCEL,
-                        contents: encode.convert({
-                            string: response.body,
-                            inputEncoding: encode.Encoding.UTF_8,
-                            outputEncoding: encode.Encoding.BASE_64
-                        }),
-                        folder: -15,
-                        encoding: file.Encoding.UTF8,
-                        isOnline: true
-                    });
-
-                    var fileObj_id = fileObj.save();
-
-                    log.error('文件Id', fileObj_id);
-
-                    // context.response.writeFile({
-                    //     file: fileObj,
-                    //     isInline: true
-                    // });
-                }
-
-                return 1;
-                var boxNo = 1;
-                var newBoxArr = [];
-
-                for (var i = 0, i_len = getArr.length; i < i_len; i++) {
-                    var temp = getArr[i];
-
-                    var it = JSON.stringify(temp);
-
-                    var qty = temp.qty;
-                    var mpq = temp.mpq;
-                    var a = parseInt(qty / mpq);
-                    for (var j = 0; j < a; j++) {
-                        var get = JSON.parse(it);
-                        get.boxqty = mpq;
-                        get.boxNo = boxNo;
-                        boxNo++;
-                        newBoxArr.push(get)
-                    }
-                    var c = qty % mpq;
-                    if (c > 0) {
-                        var get = JSON.parse(it);
-                        get.boxqty = c;
-                        get.boxNo = boxNo;
-                        boxNo++;
-                        newBoxArr.push(get)
-                    }
-                }
-
-
-                var it = [];
-                getArr.forEach(function (get) {
-                    var qty = get.qty;
-                    var mpq = get.mpq;
-                    var a = parseInt(qty / mpq);
-                    var bo = [];
-                    for (var i = 0; i < a; i++) {
-                        bo.push(mpq);
-                        get.boxqty = c;
-                        get.boxNo = boxNo;
-                        boxNo++;
-                        it.push(get)
-                    }
-                    var c = qty % mpq;
-                    if (c > 0) {
-                        bo.push(c);
-                        boxNo++;
-                    }
-                    get.boxArr = bo
-                });
-
-                context.response.writeLine('\n\n\n newBoxArr : \n' + JSON.stringify(newBoxArr))
-                context.response.writeLine('\n\n\n getArr : \n' + JSON.stringify(getArr))
-
-
-
                 return;
-                var loadRec = record.load({
-                    type: 'customrecord_dps_shipping_record',
-                    id: 70,
-                    isDynamic: true
-                });
-
-                var sublistId = "recmachcustrecord_dps_ship_box_fa_record_link"
-
-                var box_no = 1;
-                getArr.map(function (arr) {
-                    var boxArr = arr.boxArr;
-                    boxArr.map(function (b) {
-
-                        loadRec.selectNewLine({
-                            sublistId: sublistId
-                        });
-
-                        var j = "000" + box_no;
-
-                        var l = j.substring(j.length - 4);
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_box_number',
-                            value: l
-                        }); // 箱号
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_item',
-                            value: arr.itemId
-                        }); // 货品
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_sku',
-                            value: arr.sellersku
-                        }); // seller
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_quantity',
-                            value: b
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_weight',
-                            value: arr.packing_weight / 1000
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ful_rec_box_length',
-                            value: arr.box_long
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_width',
-                            value: arr.box_wide
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_hight',
-                            value: arr.box_high
-                        });
-
-                        loadRec.commitLine({
-                            sublistId: sublistId
-                        });
-
-                        box_no++;
-                    })
-                })
-
-                // var loadRec_id = loadRec.save();
-
-
-                log.audit('保存记录 loadRec_id', loadRec_id);
-
-
-
-
-
-
-                return;
-                var o;
-                search.create({
-                    type: 'salesorder',
-                    filters: [{
-                        name: 'internalid',
-                        operator: 'anyof',
-                        values: 3305042
-                    }],
-                    columns: [
-                        "custbody_aio_api_content"
-                    ]
-                }).run().each(function (r) {
-                    o = r.getValue("custbody_aio_api_content");
-                });
-                o = JSON.parse(o);
-
-                log.audit('o.purchase_date', o.purchase_date);
-
-                var acc_local_time = format.format({
-                    value: moment.utc(o.purchase_date).toDate(),
-                    type: format.Type.DATETIMETZ,
-                    timezone: fields.timezone[37] // depositDate
-                }); // 状态店铺时间
-
-
-
-                context.response.writeLine('状态店铺时间: ' + acc_local_time);
-                var ord = record.load({
-                    type: 'salesorder',
-                    id: 3305042
-                });
-                ord.setText({
-                    fieldId: 'custbody_dps_acc_local_time',
-                    text: acc_local_time
-                });
-
-                var ord_id = ord.save();
-
-                context.response.writeLine("内部id： " + ord_id);
-
-
-                return;
-                var vemPre = record.load({
-                    type: 'customrecord_dps_shipping_record',
-                    id: 1248
-                });
-
-                wms(vemPre);
-
-                return;
-                var retObj = {
-                    "detailList": [{
-                        "detailRecordList": [{
-                            "barcode": "GX012A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 80,
-                            "sku": "GX012A",
-                            "type": 2
-                        }],
-                        "planQty": 80,
-                        "receivedQty": 80,
-                        "shelvesQty": 80,
-                        "sku": "GX012A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX012AX2",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 80,
-                            "sku": "GX012AX2",
-                            "type": 2
-                        }],
-                        "planQty": 80,
-                        "receivedQty": 80,
-                        "shelvesQty": 80,
-                        "sku": "GX012AX2",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX012B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 80,
-                            "sku": "GX012B",
-                            "type": 2
-                        }],
-                        "planQty": 80,
-                        "receivedQty": 80,
-                        "shelvesQty": 80,
-                        "sku": "GX012B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX012BX2",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 80,
-                            "sku": "GX012BX2",
-                            "type": 2
-                        }],
-                        "planQty": 80,
-                        "receivedQty": 80,
-                        "shelvesQty": 80,
-                        "sku": "GX012BX2",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX013B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 210,
-                            "sku": "GX013B",
-                            "type": 2
-                        }],
-                        "planQty": 210,
-                        "receivedQty": 210,
-                        "shelvesQty": 210,
-                        "sku": "GX013B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX019A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 180,
-                            "sku": "GX019A",
-                            "type": 2
-                        }],
-                        "planQty": 180,
-                        "receivedQty": 180,
-                        "shelvesQty": 180,
-                        "sku": "GX019A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX019C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 40,
-                            "sku": "GX019C",
-                            "type": 2
-                        }],
-                        "planQty": 40,
-                        "receivedQty": 40,
-                        "shelvesQty": 40,
-                        "sku": "GX019C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX019D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 20,
-                            "sku": "GX019D",
-                            "type": 2
-                        }],
-                        "planQty": 20,
-                        "receivedQty": 20,
-                        "shelvesQty": 20,
-                        "sku": "GX019D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX047E",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 5,
-                            "sku": "GX047E",
-                            "type": 2
-                        }],
-                        "planQty": 5,
-                        "receivedQty": 5,
-                        "shelvesQty": 5,
-                        "sku": "GX047E",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX059A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 190,
-                            "sku": "GX059A",
-                            "type": 2
-                        }],
-                        "planQty": 190,
-                        "receivedQty": 190,
-                        "shelvesQty": 190,
-                        "sku": "GX059A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX059B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 170,
-                            "sku": "GX059B",
-                            "type": 2
-                        }],
-                        "planQty": 170,
-                        "receivedQty": 170,
-                        "shelvesQty": 170,
-                        "sku": "GX059B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX059D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 240,
-                            "sku": "GX059D",
-                            "type": 2
-                        }],
-                        "planQty": 240,
-                        "receivedQty": 240,
-                        "shelvesQty": 240,
-                        "sku": "GX059D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX059E",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 190,
-                            "sku": "GX059E",
-                            "type": 2
-                        }],
-                        "planQty": 190,
-                        "receivedQty": 190,
-                        "shelvesQty": 190,
-                        "sku": "GX059E",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX059F",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 50,
-                            "sku": "GX059F",
-                            "type": 2
-                        }],
-                        "planQty": 50,
-                        "receivedQty": 50,
-                        "shelvesQty": 50,
-                        "sku": "GX059F",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX059G",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 80,
-                            "sku": "GX059G",
-                            "type": 2
-                        }],
-                        "planQty": 80,
-                        "receivedQty": 80,
-                        "shelvesQty": 80,
-                        "sku": "GX059G",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX083G",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 100,
-                            "sku": "GX083G",
-                            "type": 2
-                        }],
-                        "planQty": 100,
-                        "receivedQty": 100,
-                        "shelvesQty": 100,
-                        "sku": "GX083G",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX083H",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 60,
-                            "sku": "GX083H",
-                            "type": 2
-                        }],
-                        "planQty": 60,
-                        "receivedQty": 60,
-                        "shelvesQty": 60,
-                        "sku": "GX083H",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX087B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 395,
-                            "sku": "GX087B",
-                            "type": 2
-                        }],
-                        "planQty": 395,
-                        "receivedQty": 395,
-                        "shelvesQty": 395,
-                        "sku": "GX087B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX087C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 19,
-                            "sku": "GX087C",
-                            "type": 2
-                        }],
-                        "planQty": 19,
-                        "receivedQty": 19,
-                        "shelvesQty": 19,
-                        "sku": "GX087C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX087D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 322,
-                            "sku": "GX087D",
-                            "type": 2
-                        }],
-                        "planQty": 322,
-                        "receivedQty": 322,
-                        "shelvesQty": 322,
-                        "sku": "GX087D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX087E",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 66,
-                            "sku": "GX087E",
-                            "type": 2
-                        }],
-                        "planQty": 66,
-                        "receivedQty": 66,
-                        "shelvesQty": 66,
-                        "sku": "GX087E",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX087L",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 22,
-                            "sku": "GX087L",
-                            "type": 2
-                        }],
-                        "planQty": 22,
-                        "receivedQty": 22,
-                        "shelvesQty": 22,
-                        "sku": "GX087L",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX087M",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 115,
-                            "sku": "GX087M",
-                            "type": 2
-                        }],
-                        "planQty": 115,
-                        "receivedQty": 115,
-                        "shelvesQty": 115,
-                        "sku": "GX087M",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX087O",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 299,
-                            "sku": "GX087O",
-                            "type": 2
-                        }],
-                        "planQty": 299,
-                        "receivedQty": 299,
-                        "shelvesQty": 299,
-                        "sku": "GX087O",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX088A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 330,
-                            "sku": "GX088A",
-                            "type": 2
-                        }],
-                        "planQty": 330,
-                        "receivedQty": 330,
-                        "shelvesQty": 330,
-                        "sku": "GX088A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX089A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 10,
-                            "sku": "GX089A",
-                            "type": 2
-                        }],
-                        "planQty": 10,
-                        "receivedQty": 10,
-                        "shelvesQty": 10,
-                        "sku": "GX089A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX089B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 20,
-                            "sku": "GX089B",
-                            "type": 2
-                        }],
-                        "planQty": 20,
-                        "receivedQty": 20,
-                        "shelvesQty": 20,
-                        "sku": "GX089B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX090B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 125,
-                            "sku": "GX090B",
-                            "type": 2
-                        }],
-                        "planQty": 125,
-                        "receivedQty": 125,
-                        "shelvesQty": 125,
-                        "sku": "GX090B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX093D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 220,
-                            "sku": "GX093D",
-                            "type": 2
-                        }],
-                        "planQty": 220,
-                        "receivedQty": 220,
-                        "shelvesQty": 220,
-                        "sku": "GX093D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX093F",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 55,
-                            "sku": "GX093F",
-                            "type": 2
-                        }],
-                        "planQty": 55,
-                        "receivedQty": 55,
-                        "shelvesQty": 55,
-                        "sku": "GX093F",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX094A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 190,
-                            "sku": "GX094A",
-                            "type": 2
-                        }],
-                        "planQty": 190,
-                        "receivedQty": 190,
-                        "shelvesQty": 190,
-                        "sku": "GX094A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX094B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 160,
-                            "sku": "GX094B",
-                            "type": 2
-                        }],
-                        "planQty": 160,
-                        "receivedQty": 160,
-                        "shelvesQty": 160,
-                        "sku": "GX094B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX095A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 375,
-                            "sku": "GX095A",
-                            "type": 2
-                        }],
-                        "planQty": 375,
-                        "receivedQty": 375,
-                        "shelvesQty": 375,
-                        "sku": "GX095A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX095B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 170,
-                            "sku": "GX095B",
-                            "type": 2
-                        }],
-                        "planQty": 170,
-                        "receivedQty": 170,
-                        "shelvesQty": 170,
-                        "sku": "GX095B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX095D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 5,
-                            "sku": "GX095D",
-                            "type": 2
-                        }],
-                        "planQty": 5,
-                        "receivedQty": 5,
-                        "shelvesQty": 5,
-                        "sku": "GX095D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX095E",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 275,
-                            "sku": "GX095E",
-                            "type": 2
-                        }],
-                        "planQty": 275,
-                        "receivedQty": 275,
-                        "shelvesQty": 275,
-                        "sku": "GX095E",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX096A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 530,
-                            "sku": "GX096A",
-                            "type": 2
-                        }],
-                        "planQty": 530,
-                        "receivedQty": 530,
-                        "shelvesQty": 530,
-                        "sku": "GX096A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX096B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 155,
-                            "sku": "GX096B",
-                            "type": 2
-                        }],
-                        "planQty": 155,
-                        "receivedQty": 155,
-                        "shelvesQty": 155,
-                        "sku": "GX096B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX096C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 5,
-                            "sku": "GX096C",
-                            "type": 2
-                        }],
-                        "planQty": 5,
-                        "receivedQty": 5,
-                        "shelvesQty": 5,
-                        "sku": "GX096C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX096D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 5,
-                            "sku": "GX096D",
-                            "type": 2
-                        }],
-                        "planQty": 5,
-                        "receivedQty": 5,
-                        "shelvesQty": 5,
-                        "sku": "GX096D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX096E",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 5,
-                            "sku": "GX096E",
-                            "type": 2
-                        }],
-                        "planQty": 5,
-                        "receivedQty": 5,
-                        "shelvesQty": 5,
-                        "sku": "GX096E",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX105A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 20,
-                            "sku": "GX105A",
-                            "type": 2
-                        }],
-                        "planQty": 20,
-                        "receivedQty": 20,
-                        "shelvesQty": 20,
-                        "sku": "GX105A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX105C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 50,
-                            "sku": "GX105C",
-                            "type": 2
-                        }],
-                        "planQty": 50,
-                        "receivedQty": 50,
-                        "shelvesQty": 50,
-                        "sku": "GX105C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX105D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 20,
-                            "sku": "GX105D",
-                            "type": 2
-                        }],
-                        "planQty": 20,
-                        "receivedQty": 20,
-                        "shelvesQty": 20,
-                        "sku": "GX105D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX108C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 200,
-                            "sku": "GX108C",
-                            "type": 2
-                        }],
-                        "planQty": 200,
-                        "receivedQty": 200,
-                        "shelvesQty": 200,
-                        "sku": "GX108C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX108D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 100,
-                            "sku": "GX108D",
-                            "type": 2
-                        }],
-                        "planQty": 100,
-                        "receivedQty": 100,
-                        "shelvesQty": 100,
-                        "sku": "GX108D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX108E",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 250,
-                            "sku": "GX108E",
-                            "type": 2
-                        }],
-                        "planQty": 250,
-                        "receivedQty": 250,
-                        "shelvesQty": 250,
-                        "sku": "GX108E",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX112A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 39,
-                            "sku": "GX112A",
-                            "type": 2
-                        }],
-                        "planQty": 39,
-                        "receivedQty": 39,
-                        "shelvesQty": 39,
-                        "sku": "GX112A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX112C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 76,
-                            "sku": "GX112C",
-                            "type": 2
-                        }],
-                        "planQty": 76,
-                        "receivedQty": 76,
-                        "shelvesQty": 76,
-                        "sku": "GX112C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX112D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 89,
-                            "sku": "GX112D",
-                            "type": 2
-                        }],
-                        "planQty": 89,
-                        "receivedQty": 89,
-                        "shelvesQty": 89,
-                        "sku": "GX112D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX113A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 300,
-                            "sku": "GX113A",
-                            "type": 2
-                        }],
-                        "planQty": 300,
-                        "receivedQty": 300,
-                        "shelvesQty": 300,
-                        "sku": "GX113A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX113D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 220,
-                            "sku": "GX113D",
-                            "type": 2
-                        }],
-                        "planQty": 220,
-                        "receivedQty": 220,
-                        "shelvesQty": 220,
-                        "sku": "GX113D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX115L",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 170,
-                            "sku": "GX115L",
-                            "type": 2
-                        }],
-                        "planQty": 170,
-                        "receivedQty": 170,
-                        "shelvesQty": 170,
-                        "sku": "GX115L",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX116K",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 105,
-                            "sku": "GX116K",
-                            "type": 2
-                        }],
-                        "planQty": 105,
-                        "receivedQty": 105,
-                        "shelvesQty": 105,
-                        "sku": "GX116K",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX116L",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 20,
-                            "sku": "GX116L",
-                            "type": 2
-                        }],
-                        "planQty": 20,
-                        "receivedQty": 20,
-                        "shelvesQty": 20,
-                        "sku": "GX116L",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GX116M",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 210,
-                            "sku": "GX116M",
-                            "type": 2
-                        }],
-                        "planQty": 210,
-                        "receivedQty": 210,
-                        "shelvesQty": 210,
-                        "sku": "GX116M",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0124A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 137,
-                            "sku": "GXGN0124A",
-                            "type": 2
-                        }],
-                        "planQty": 137,
-                        "receivedQty": 137,
-                        "shelvesQty": 137,
-                        "sku": "GXGN0124A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0124B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 38,
-                            "sku": "GXGN0124B",
-                            "type": 2
-                        }],
-                        "planQty": 38,
-                        "receivedQty": 38,
-                        "shelvesQty": 38,
-                        "sku": "GXGN0124B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0124C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 96,
-                            "sku": "GXGN0124C",
-                            "type": 2
-                        }],
-                        "planQty": 96,
-                        "receivedQty": 96,
-                        "shelvesQty": 96,
-                        "sku": "GXGN0124C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0124D",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 87,
-                            "sku": "GXGN0124D",
-                            "type": 2
-                        }],
-                        "planQty": 87,
-                        "receivedQty": 87,
-                        "shelvesQty": 87,
-                        "sku": "GXGN0124D",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0124E",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 66,
-                            "sku": "GXGN0124E",
-                            "type": 2
-                        }],
-                        "planQty": 66,
-                        "receivedQty": 66,
-                        "shelvesQty": 66,
-                        "sku": "GXGN0124E",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0125A",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 110,
-                            "sku": "GXGN0125A",
-                            "type": 2
-                        }],
-                        "planQty": 110,
-                        "receivedQty": 110,
-                        "shelvesQty": 110,
-                        "sku": "GXGN0125A",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0125B",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 99,
-                            "sku": "GXGN0125B",
-                            "type": 2
-                        }],
-                        "planQty": 99,
-                        "receivedQty": 99,
-                        "shelvesQty": 99,
-                        "sku": "GXGN0125B",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "GXGN0125C",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 99,
-                            "sku": "GXGN0125C",
-                            "type": 2
-                        }],
-                        "planQty": 99,
-                        "receivedQty": 99,
-                        "shelvesQty": 99,
-                        "sku": "GXGN0125C",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "HP1011",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 30,
-                            "sku": "HP1011",
-                            "type": 2
-                        }],
-                        "planQty": 30,
-                        "receivedQty": 30,
-                        "shelvesQty": 30,
-                        "sku": "HP1011",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "HP1014",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 20,
-                            "sku": "HP1014",
-                            "type": 2
-                        }],
-                        "planQty": 20,
-                        "receivedQty": 20,
-                        "shelvesQty": 20,
-                        "sku": "HP1014",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "HP1105",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 10,
-                            "sku": "HP1105",
-                            "type": 2
-                        }],
-                        "planQty": 10,
-                        "receivedQty": 10,
-                        "shelvesQty": 10,
-                        "sku": "HP1105",
-                        "unqualifiedQty": 0
-                    }, {
-                        "detailRecordList": [{
-                            "barcode": "HP1106",
-                            "positionCode": "HD1A01",
-                            "shelvesQty": 20,
-                            "sku": "HP1106",
-                            "type": 2
-                        }],
-                        "planQty": 20,
-                        "receivedQty": 20,
-                        "shelvesQty": 20,
-                        "sku": "HP1106",
-                        "unqualifiedQty": 0
-                    }],
-                    "remark": "",
-                    "sourceNo": "LN202007310028",
-                    "sourceType": 10
-                }
-
-                var a = new Date();
-
-
-                log.error("开始时间：", a);
-                context.response.writeLine("开始时间： " + a.toISOString());
-
-                returnDelivery(retObj);
-
-                var b = new Date();
-                log.error("开始时间：", b);
-                context.response.writeLine("结束时间 " + b.toISOString());
-
-
-                return;
-                search.create({
-                    type: 'customrecord_dps_shipping_record_box',
-                    filters: [{
-                        name: 'custrecord_dps_ship_box_fa_record_link',
-                        operator: 'anyof',
-                        values: 46
-                    }],
-                }).run().each(function (rec) {
-                    record.delete({
-                        type: 'customrecord_dps_shipping_record_box',
-                        id: rec.id
-                    });
-                    return true;
-                });
-
-                record.submitFields({
-                    type: 'customrecord_dps_shipping_record',
-                    id: 46,
-                    values: {
-                        custrecord_dps_box_return_flag: false
-                    }
-                });
-
 
             } else {
                 context.response.writeLine('<html><head><meta charset="utf-8"></head><body><br><br><br><br><h1 style = "vertical-align:middle;text-align:center;color: red">权限不足</h1><p style = "vertical-align:middle;text-align:center;">无法运行此页面</p></body></html>')
@@ -1479,6 +139,398 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
 
 
+
+    function InitUI(context) {
+        var request = context.request;
+        var response = context.response;
+        var parameters = request.parameters;
+        var account = parameters.custpage_dps_account;
+        var shipment = parameters.custpage_dps_shipment;
+        var print = parameters.print;
+
+        var form = serverWidget.createForm({
+            title: '查询shipment'
+        });
+
+        form.addFieldGroup({
+            id: 'search_groupid',
+            label: '查询条件'
+        });
+
+        form.addFieldGroup({
+            id: 'result_groupid',
+            label: '结果信息'
+        });
+        if (account && shipment) {
+
+
+            var auth = core.amazon.getAuthByAccountId(account);
+
+            var s = core.amazon.listInboundShipments(auth, "", [shipment])
+
+            log.debug('s', s)
+            var item = core.amazon.listInboundShipmentsItems(auth, shipment, "");
+            log.debug('item', item);
+
+
+            var sublist = form.addSublist({
+                id: 'sublistid',
+                type: serverWidget.SublistType.LIST,
+                label: 'Shipment信息'
+            });
+
+            var da = sublist.addField({
+                id: 'custpage_shipment_id',
+                type: serverWidget.FieldType.TEXT,
+                label: 'shipment id'
+            });
+            var da = sublist.addField({
+                id: 'custpage_shipment_name',
+                type: serverWidget.FieldType.TEXT,
+                label: 'shipment name'
+            });
+            var da = sublist.addField({
+                id: 'custpage_center_id',
+                type: serverWidget.FieldType.TEXT,
+                label: 'center id'
+            });
+            var da = sublist.addField({
+                id: 'custpage_label_prep_type',
+                type: serverWidget.FieldType.TEXT,
+                label: 'label prep type'
+            });
+            var da = sublist.addField({
+                id: 'custpage_shipment_status',
+                type: serverWidget.FieldType.TEXT,
+                label: 'shipment status'
+            });
+            var da = sublist.addField({
+                id: 'custpage_are_cases_required',
+                type: serverWidget.FieldType.TEXT,
+                label: 'are cases required'
+            });
+            var da = sublist.addField({
+                id: 'custpage_box_contents_source',
+                type: serverWidget.FieldType.TEXT,
+                label: 'box contents source'
+            });
+
+            var line = form.getSublist({
+                id: 'sublistid'
+            });
+            for (var i_s = 0, i_len = s.length; i_s < i_len; i_s++) {
+                line.setSublistValue({
+                    id: 'custpage_shipment_id',
+                    value: s[i_s].shipment_id,
+                    line: i_s
+                });
+                line.setSublistValue({
+                    id: 'custpage_shipment_name',
+                    value: s[i_s].shipment_name,
+                    line: i_s
+                });
+                line.setSublistValue({
+                    id: 'custpage_center_id',
+                    value: s[i_s].center_id,
+                    line: i_s
+                });
+                line.setSublistValue({
+                    id: 'custpage_label_prep_type',
+                    value: s[i_s].label_prep_type,
+                    line: i_s
+                });
+                line.setSublistValue({
+                    id: 'custpage_shipment_status',
+                    value: s[i_s].shipment_status,
+                    line: i_s
+                });
+                line.setSublistValue({
+                    id: 'custpage_are_cases_required',
+                    value: s[i_s].are_cases_required,
+                    line: i_s
+                });
+                if (s[i_s].box_contents_source) {
+                    line.setSublistValue({
+                        id: 'custpage_box_contents_source',
+                        value: s[i_s].box_contents_source,
+                        line: i_s
+                    });
+                }
+            }
+
+            var sublist_item = form.addSublist({
+                id: 'sublistid_ship_item',
+                type: serverWidget.SublistType.LIST,
+                label: 'Shipment 货品'
+            });
+
+            var da = sublist_item.addField({
+                id: 'custpage_item_shipment_id',
+                type: serverWidget.FieldType.TEXT,
+                label: 'shipment id'
+            });
+            var da = sublist_item.addField({
+                id: 'custpage_item_seller_sku',
+                type: serverWidget.FieldType.TEXT,
+                label: 'seller sku'
+            });
+            var da = sublist_item.addField({
+                id: 'custpage_item_quantity_shipped',
+                type: serverWidget.FieldType.TEXT,
+                label: 'quantity shipped'
+            });
+            var da = sublist_item.addField({
+                id: 'custpage_item_quantity_in_case',
+                type: serverWidget.FieldType.TEXT,
+                label: 'quantity in case'
+            });
+            var da = sublist_item.addField({
+                id: 'custpage_item_quantity_received',
+                type: serverWidget.FieldType.TEXT,
+                label: 'quantity received'
+            });
+            var da = sublist_item.addField({
+                id: 'custpage_item_fulfillment_network_sku',
+                type: serverWidget.FieldType.TEXT,
+                label: 'fulfillment network sku'
+            });
+
+
+            var line_item = form.getSublist({
+                id: 'sublistid_ship_item'
+            });
+            for (var it_i = 0, it_len = item.length; it_i < it_len; it_i++) {
+                line_item.setSublistValue({
+                    id: 'custpage_item_shipment_id',
+                    value: item[it_i].shipment_id,
+                    line: it_i
+                });
+                line_item.setSublistValue({
+                    id: 'custpage_item_seller_sku',
+                    value: item[it_i].seller_sku,
+                    line: it_i
+                });
+                line_item.setSublistValue({
+                    id: 'custpage_item_quantity_shipped',
+                    value: item[it_i].quantity_shipped,
+                    line: it_i
+                });
+                line_item.setSublistValue({
+                    id: 'custpage_item_quantity_in_case',
+                    value: item[it_i].quantity_in_case,
+                    line: it_i
+                });
+                line_item.setSublistValue({
+                    id: 'custpage_item_quantity_received',
+                    value: item[it_i].quantity_received,
+                    line: it_i
+                });
+                line_item.setSublistValue({
+                    id: 'custpage_item_fulfillment_network_sku',
+                    value: item[it_i].fulfillment_network_sku,
+                    line: it_i
+                });
+            }
+
+        }
+
+
+        form.addSubmitButton({
+            label: '查询',
+        });
+
+        var s_account = form.addField({
+            id: 'custpage_dps_account',
+            type: serverWidget.FieldType.SELECT,
+            source: 'customrecord_aio_account',
+            label: '店铺',
+            container: 'search_groupid'
+        });
+        s_account.defaultValue = account;
+
+        var ship = form.addField({
+            id: 'custpage_dps_shipment',
+            type: serverWidget.FieldType.TEXT,
+            label: 'ShipmentId',
+            container: 'search_groupid'
+        });
+        ship.defaultValue = shipment;
+
+        return form;
+
+    }
+
+    function tranferOrderToWMS(recIds) {
+
+        // InMasterCreateRequestDto {
+        //     boxNum(integer): 箱数,       1
+        //     estimateTime(string): 预计到货时间,          1
+        //     inspectionType(integer): 质检类型 10: 全检 20: 抽检,             1
+        //     planQty(integer): 计划入库数量,
+        //     pono(string, optional): 采购单号,
+        //     purchaser(string): 采购员,
+        //     remark(string, optional): 备注,                1
+        //     skuList(Array[InDetailCreateRequestDto]): 入库SKU明细,
+        //     sourceNo(string): 来源单号,                  1
+        //     sourceType(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 借调入库,             1
+        //     supplierCode(string, optional): 供应商编号,
+        //     supplierName(string, optional): 供应商名称,
+        //     taxFlag(integer): 是否含税 0: 否1: 是,               1
+        //     tradeCompanyCode(string): 交易主体编号,              1
+        //     tradeCompanyName(string): 交易主体名称,              1
+        //     warehouseCode(string): 仓库编号,                 1
+        //     warehouseName(string): 仓库名称,                 1
+        //     waybillNo(string, optional): 运单号
+        // }
+        // InDetailCreateRequestDto {
+        //     boxInfo(InDetailBoxInfoCreateRequestDto): 箱子信息,
+        //     boxNum(integer): 箱数,
+        //     inspectionType(integer): 质检类型 10: 全检 20: 抽检 30: 免检,
+        //     planQty(integer): 计划入库数,
+        //     productCode(string): 产品编号,
+        //     productImageUrl(string): 图片路径,
+        //     productTitle(string): 产品标题,
+        //     remainderQty(integer): 余数,
+        //     sku(string): sku,
+        //     supplierVariant(string, optional): 供应商变体规格 json,
+        //     variant(string, optional): 变体规格 json
+        // }
+        // InDetailBoxInfoCreateRequestDto {
+        //     height(number): 高,
+        //     length(number): 长,
+        //     width(number): 宽
+        // }
+
+
+        var limit = 3999;
+
+        var data = {};
+        var itemInfo = [];
+        data.sourceType = 30;
+        data.estimateTime = new Date().toISOString();
+        data.inspectionType = 10;
+        data.boxNum = 10;
+        data.taxFlag = 0;
+
+        var planQty = 0;
+
+        search.create({
+            type: "transferorder",
+            filters: [{
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recIds
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                }
+            ],
+            columns: [
+                "subsidiary", // 子公司
+                // "transferlocation", // 入库地点
+                "memo", // 备注
+                "custbodyexpected_arrival_time", // 预计到货时间
+                "tranid", // 订单号
+                {
+                    name: "custrecord_dps_wms_location",
+                    join: "toLocation"
+                }, // 仓库编号
+                {
+                    name: 'custrecord_dps_wms_location_name',
+                    join: "toLocation"
+                }, // 仓库名称
+
+                "item", "quantity",
+                {
+                    name: 'custitem_dps_picture',
+                    join: 'item'
+                }, // 产品图片
+                {
+                    name: 'custitem_dps_skuchiense',
+                    join: 'item'
+                }, // 中文标题
+                {
+                    name: 'custitem_dps_mpq',
+                    join: 'item'
+                }, // 每箱数量
+            ]
+        }).run().each(function (rec) {
+
+            data.tradeCompanyCode = rec.getValue('subsidiary');
+            data.tradeCompanyName = rec.getText('subsidiary').split(":").slice(-1)[0].trim();
+            data.remark = rec.getValue('memo');
+
+
+
+            var loca_code = rec.getValue({
+                name: 'custrecord_dps_wms_location',
+                join: 'toLocation'
+            });
+
+            var loca_name = rec.getValue({
+                name: 'custrecord_dps_wms_location_name',
+                join: 'toLocation'
+            })
+            log.audit('loca_code: ' + loca_code, 'loca_name: ' + loca_name)
+
+            data.sourceNo = rec.getValue('tranid');
+            data.warehouseCode = rec.getValue({
+                name: 'custrecord_dps_wms_location',
+                join: 'toLocation'
+            });
+            data.warehouseName = rec.getValue({
+                name: 'custrecord_dps_wms_location_name',
+                join: 'toLocation'
+            });
+
+            var temp_qty = Number(rec.getValue('quantity'));
+
+            var mpq = rec.getValue({
+                name: 'custitem_dps_mpq',
+                join: 'item'
+            });
+            log.audit('mpq', mpq);
+
+            var imgUrl = rec.getValue({
+                name: 'custitem_dps_picture',
+                join: 'item'
+            })
+
+            var it = {
+                boxNum: 1,
+                inspectionType: 30,
+                planQty: temp_qty,
+                productCode: rec.getValue('item'),
+                productImageUrl: imgUrl ? imgUrl : 'imgUrl',
+                productTitle: rec.getValue({
+                    name: 'custitem_dps_skuchiense',
+                    join: 'item'
+                }),
+                remainderQty: (temp_qty % (mpq ? mpq : 1)) ? (temp_qty % (mpq ? mpq : 1)) : 1,
+                sku: rec.getText('item'),
+            }
+
+            if (temp_qty > 0) {
+
+                planQty += temp_qty;
+                itemInfo.push(it);
+            }
+
+            return --limit > 0;
+        });
+        data.skuList = itemInfo; //   货品数量
+        data.planQty = planQty; //   计划入库数
+
+        return data;
+
+    }
 
     function inventoryAdjustment(recId) {
 

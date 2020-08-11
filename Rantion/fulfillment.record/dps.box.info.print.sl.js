@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-09 20:17:42
- * @LastEditTime   : 2020-08-09 20:47:27
+ * @LastEditTime   : 2020-08-10 19:45:16
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.box.info.print.sl.js
@@ -28,6 +28,8 @@ define(['../Helper/config', '../Helper/tool.li', 'N/http',
             var redisId = Date.parse(new Date());
             var obj = tool.groupBoxInfo(getArr);
 
+            log.audit('obj', obj);
+
             log.audit('redisId', redisId)
 
             var token = tool.getToken();
@@ -44,6 +46,7 @@ define(['../Helper/config', '../Helper/tool.li', 'N/http',
                 body: JSON.stringify(obj)
             });
 
+            log.audit('response', response);
             if (response.code == 200) {
                 retdata = JSON.parse(response.body);
                 // 调用成功

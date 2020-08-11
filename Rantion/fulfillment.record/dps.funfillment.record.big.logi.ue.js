@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-08-07 19:59:43
+ * @LastEditTime   : 2020-08-10 19:11:57
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -34,7 +34,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
             var customs_information, bigRec_status, tracking_number, logistics_no, label, channel, logistStatus, amazon_box_flag, upload_packing_rec, location_type;
 
-            var rec_shipmentsid, reference_id, ful_reference_id;
+            var rec_shipmentsid, reference_id, ful_reference_id, box_flag;
 
             search.create({
                 type: bf_cur.type,
@@ -57,8 +57,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     "custrecord_dps_shipping_rec_shipmentsid", // shipmentId
                     "custrecord_dps_to_reference_id", // REFERENCE ID
                     "custrecord_dps_ful_reference_id", // 标记已经推送 REFERENCE ID
+                    "custrecord_dps_box_return_flag", // 已装箱
                 ]
             }).run().each(function (rec) {
+                box_flag = rec.getValue('custrecord_dps_box_return_flag');
                 ful_reference_id = rec.getValue('custrecord_dps_ful_reference_id');
                 reference_id = rec.getValue('custrecord_dps_to_reference_id'); // REFERENCE ID
                 rec_shipmentsid = rec.getValue("custrecord_dps_shipping_rec_shipmentsid"); // shipmentId
@@ -95,7 +97,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     functionName: "amazonShipment(" + bf_cur.id + ")"
                 });
             }
-            if (type == 'view' && bigRec_status == 27) {
+            if (type == 'view' && bigRec_status == 27 && box_flag) {
                 form.addButton({
                     id: 'custpage_dps_li_box_button',
                     label: '已完成录入装箱信息',
@@ -1616,6 +1618,20 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             var newItemInfo = [];
 
             if (tranType == 1) {
+
+                if (!fbaAccount) {
+                    message.code = 3;
+                    message.data = 'FBA 调拨 不存在店铺';
+                    var id = record.submitFields({
+                        type: 'customrecord_dps_shipping_record',
+                        id: af_rec.id,
+                        values: {
+                            custrecord_dps_shipping_rec_status: 8,
+                            custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
+                        }
+                    });
+                    return message;
+                }
                 var new_limit = 3999;
                 var fls_skus = [];
                 search.create({

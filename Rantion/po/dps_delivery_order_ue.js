@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-04 14:54:08
+ * @LastEditTime   : 2020-08-10 11:48:51
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\po\dps_delivery_order_ue.js
@@ -235,6 +235,9 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                 }
 
                 if (bf_rec.type == 'customrecord_dps_delivery_order' && type != 'delete') { // 交货单
+
+                    var bf_rec = context.newRecord;
+
                     var len = bf_rec.getLineCount({
                         sublistId: 'recmachcustrecord_dps_delivery_order_id'
                     });
@@ -327,7 +330,8 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                                 diffQty = hide_quantity - item_quantity
                             }
                             log.debug('diffQty', diffQty);
-                            var y_qty = Number(quantity_delivered) - Number(diffQty);
+                            var y_qty = Number(quantity_delivered) - Number(item_quantity);
+                            // var y_qty = Number(quantity_delivered) - Number(diffQty);
                             // 已交货数量
                             l_po.setSublistValue({
                                 sublistId: 'item',
@@ -386,6 +390,7 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
         function afterSubmit(context) {
             try {
                 var newRecord = context.newRecord;
+                log.audit('context type', context.type)
                 if (newRecord.type == 'customrecord_dps_delivery_order' && context.type != 'delete') {
                     var load_rec = record.load({
                         type: newRecord.type,
@@ -559,6 +564,7 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                         // 交货数量	custrecord_item_quantity	Integer Number	 	 	Yes
                         // 原交货数量	custrecord_hide_quantity	Integer Number	 	 	Yes
 
+                        log.audit("创建交货单", context.type)
                         if (context.type == 'create') { //  交货单的事件类型为 create
                             var flag = false;
                             var l_po = record.load({
@@ -577,13 +583,16 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                                     fieldId: 'custrecord_item_quantity',
                                     line: i
                                 });
+                                log.audit('本次交货数量', item_quantity);
                                 // 交货单 原交货数量
                                 var hide_quantity = load_rec.getSublistValue({
                                     sublistId: 'recmachcustrecord_dps_delivery_order_id',
                                     fieldId: 'custrecord_hide_quantity',
                                     line: i
                                 });
-                                if (hide_quantity) {
+
+                                log.audit('已交交货数量', hide_quantity);
+                                if (item_quantity) {
                                     var lineNumber = l_po.findSublistLineWithValue({
                                         sublistId: 'item',
                                         fieldId: 'item',
@@ -594,12 +603,14 @@ define(['../Helper/config.js', 'N/record', 'N/runtime', 'N/search', 'N/url'],
                                         fieldId: 'custcol_dps_quantity_delivered',
                                         line: lineNumber
                                     });
+
+                                    log.audit("交货数量", quantity_delivered)
                                     var quantity = l_po.getSublistValue({
                                         sublistId: 'item',
                                         fieldId: 'quantity',
                                         line: lineNumber
                                     });
-                                    var y_qty = Number(quantity_delivered) + Number(hide_quantity);
+                                    var y_qty = Number(item_quantity) + Number(quantity_delivered);
                                     // 已交货数量
                                     l_po.setSublistValue({
                                         sublistId: 'item',

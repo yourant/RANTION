@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-08-07 20:02:32
+ * @LastEditTime   : 2020-08-10 19:10:56
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -1178,6 +1178,19 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             log.debug('推送 WMS tranType', tranType);
             if (tranType == 1) {
 
+                if (!fbaAccount) {
+                    message.code = 3;
+                    message.data = 'FBA 调拨 不存在店铺';
+                    var id = record.submitFields({
+                        type: 'customrecord_dps_shipping_record',
+                        id: af_rec.id,
+                        values: {
+                            custrecord_dps_shipping_rec_status: 8,
+                            custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
+                        }
+                    });
+                    return message;
+                }
                 var new_limit = 3999;
                 var fls_skus = [];
                 search.create({

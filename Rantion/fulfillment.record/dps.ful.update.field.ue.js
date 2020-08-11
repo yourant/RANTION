@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-09 20:55:39
+ * @LastEditTime   : 2020-08-10 19:30:02
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -164,6 +164,8 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }
                 log.audit('box_flag', box_flag);
+                
+                /*
                 if (rec_status == 27 && !box_flag) {
                     context.form.addButton({
                         id: 'custpage_dps_li_input_box_info',
@@ -183,6 +185,8 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }
+
+                */
 
             }
         } catch (error) {

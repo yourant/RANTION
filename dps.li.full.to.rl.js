@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-22 23:57:07
- * @LastEditTime   : 2020-08-10 11:10:09
+ * @LastEditTime   : 2020-08-10 16:52:41
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.full.to.rl.js
@@ -14,12 +14,14 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https'], function (record, search, log, format, https) {
+define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https', './Rantion/Helper/tool.li'], function (record, search, log, format, https, tool) {
 
     function _post(context) {
 
 
         var action = context.action;
+
+        var recIds = context.recIds;
 
         if (action == "search") {
 
@@ -29,15 +31,17 @@ define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https'], function (recor
             try {
                 // VendorPrepayment(context.recId);
 
-                var get_data = tranferOrderToWMS();
-
-                var token = getToken();
-                if (token){
-                    
-                }
-
             } catch (error) {
                 log.error('更改字段出错了', error);
+            }
+        }
+
+        if (action == "tranferOrderToWMS") {
+            var get_data = tranferOrderToWMS();
+
+            var token = getToken();
+            if (token) {
+
             }
         }
 
@@ -98,26 +102,39 @@ define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https'], function (recor
         data.boxNum = 10;
         data.taxFlag = 0;
 
+        var planQty = 0;
+
         search.create({
-            type: 'transferorder',
+            type: "transferorder",
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: recIds
-            }],
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recIds
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                }
+            ],
             columns: [
                 "subsidiary", // 子公司
-                "transferlocation", // 入库地点
+                // "transferlocation", // 入库地点
                 "memo", // 备注
                 "custbodyexpected_arrival_time", // 预计到货时间
                 "tranid", // 订单号
                 {
-                    name: 'custrecord_dps_wms_location',
-                    join: 'transferlocation'
+                    name: "custrecord_dps_wms_location",
+                    join: "toLocation"
                 }, // 仓库编号
                 {
                     name: 'custrecord_dps_wms_location_name',
-                    join: 'transferlocation'
+                    join: "toLocation"
                 }, // 仓库名称
 
                 "item", "quantity",
@@ -140,42 +157,68 @@ define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https'], function (recor
             data.tradeCompanyName = rec.getText('subsidiary').split(":").slice(-1)[0].trim();
             data.remark = rec.getValue('memo');
 
+
+
+            var loca_code = rec.getValue({
+                name: 'custrecord_dps_wms_location',
+                join: 'toLocation'
+            });
+
+            var loca_name = rec.getValue({
+                name: 'custrecord_dps_wms_location_name',
+                join: 'toLocation'
+            })
+            log.audit('loca_code: ' + loca_code, 'loca_name: ' + loca_name)
+
             data.sourceNo = rec.getValue('tranid');
             data.warehouseCode = rec.getValue({
                 name: 'custrecord_dps_wms_location',
-                join: 'transferlocation'
+                join: 'toLocation'
             });
             data.warehouseName = rec.getValue({
                 name: 'custrecord_dps_wms_location_name',
-                join: 'transferlocation'
+                join: 'toLocation'
             });
 
+            var temp_qty = Number(rec.getValue('quantity'));
+
+            var mpq = rec.getValue({
+                name: 'custitem_dps_mpq',
+                join: 'item'
+            });
+            log.audit('mpq', mpq);
+
+            var imgUrl = rec.getValue({
+                name: 'custitem_dps_picture',
+                join: 'item'
+            })
+
             var it = {
-                boxInfo: [],
                 boxNum: 1,
                 inspectionType: 30,
-                planQty: rec.getValue('quantity'),
+                planQty: temp_qty,
                 productCode: rec.getValue('item'),
-                productImageUrl: rec.getValue({
-                    name: 'custitem_dps_picture',
-                    join: 'item'
-                }),
+                productImageUrl: imgUrl ? imgUrl : 'imgUrl',
                 productTitle: rec.getValue({
                     name: 'custitem_dps_skuchiense',
                     join: 'item'
                 }),
-                remainderQty: rec.getValue('quantity') / rec.getValue({
-                    name: 'custitem_dps_mpq',
-                    join: 'item'
-                }),
+                remainderQty: temp_qty % (mpq ? mpq : 1),
                 sku: rec.getText('item'),
             }
 
-            itemInfo.push(it);
+            if (temp_qty > 0) {
+
+                planQty += temp_qty;
+                itemInfo.push(it);
+            }
 
             return --limit > 0;
         });
         data.skuList = itemInfo; //   货品数量
+        data.planQty = planQty; //   计划入库数
+
+        return data;
 
     }
 

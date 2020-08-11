@@ -1,0 +1,232 @@
+<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:dt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Author>kingsoft</Author>
+  <LastAuthor>LI</LastAuthor>
+  <Created>2018-02-27T11:14:00Z</Created>
+  <LastSaved>2020-08-10T06:49:25Z</LastSaved>
+  <Version>16.00</Version>
+ </DocumentProperties>
+ <CustomDocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <KSOProductBuildVer dt:dt="string">2052-11.1.0.9828</KSOProductBuildVer>
+ </CustomDocumentProperties>
+ <OfficeDocumentSettings xmlns="urn:schemas-microsoft-com:office:office">
+  <AllowPNG/>
+ </OfficeDocumentSettings>
+ <ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel">
+  <WindowHeight>9420</WindowHeight>
+  <WindowWidth>23040</WindowWidth>
+  <WindowTopX>32767</WindowTopX>
+  <WindowTopY>32767</WindowTopY>
+  <ProtectStructure>False</ProtectStructure>
+  <ProtectWindows>False</ProtectWindows>
+ </ExcelWorkbook>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="宋体" x:CharSet="134" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="s64">
+   <Alignment ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="宋体" x:CharSet="134" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+  </Style>
+  <Style ss:ID="s65">
+   <Alignment ss:Vertical="Bottom" ss:WrapText="1"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="12" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#808080" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="s66">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="宋体" x:CharSet="134" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+  </Style>
+  <Style ss:ID="s67">
+   <Alignment ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="18"/>
+   <Interior/>
+  </Style>
+  <Style ss:ID="s69">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Bottom" ss:WrapText="1"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="12" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#808080" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="s72">
+   <Alignment ss:Horizontal="Right" ss:Vertical="Bottom"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Sheet2">
+  <Table ss:ExpandedColumnCount="15" ss:ExpandedRowCount="20" x:FullColumns="1"
+   x:FullRows="1" ss:StyleID="s64" ss:DefaultColumnWidth="48.6"
+   ss:DefaultRowHeight="14.4">
+   <Column ss:StyleID="s64" ss:AutoFitWidth="0" ss:Width="151.20000000000002"
+    ss:Span="1"/>
+   <Column ss:Index="3" ss:StyleID="s64" ss:AutoFitWidth="0"
+    ss:Width="329.40000000000003"/>
+   <Column ss:StyleID="s64" ss:AutoFitWidth="0" ss:Width="70.2"/>
+   <Column ss:StyleID="s64" ss:AutoFitWidth="0" ss:Width="113.39999999999999"/>
+   <Column ss:StyleID="s64" ss:AutoFitWidth="0" ss:Width="75.600000000000009"
+    ss:Span="4"/>
+   <Column ss:Index="11" ss:StyleID="s66" ss:AutoFitWidth="0"
+    ss:Width="5.3999999999999995"/>
+   <Column ss:StyleID="s64" ss:AutoFitWidth="0" ss:Width="70.2" ss:Span="3"/>
+   <Row ss:AutoFitHeight="0" ss:Height="27">
+    <Cell ss:StyleID="s67"><Data ss:Type="String">Shipment ID</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="String">FBA15P9FSZNL</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="22.05">
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Name: USFBA20200724快-InsNova-2</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="22.05">
+    <Cell ss:MergeAcross="1"/>
+   </Row>
+   <Row ss:Height="31.200000000000003" ss:StyleID="s65">
+    <Cell><Data ss:Type="String">Merchant SKU</Data></Cell>
+    <Cell><Data ss:Type="String">ASIN</Data></Cell>
+    <Cell><Data ss:Type="String">Title</Data></Cell>
+    <Cell><Data ss:Type="String">FNSKU</Data></Cell>
+    <Cell><Data ss:Type="String">External ID</Data></Cell>
+    <Cell><Data ss:Type="String">Who will prep?</Data></Cell>
+    <Cell><Data ss:Type="String">Prep Type</Data></Cell>
+    <Cell><Data ss:Type="String">Who will label?</Data></Cell>
+    <Cell><Data ss:Type="String">Expected QTY</Data></Cell>
+    <Cell><Data ss:Type="String">Boxed QTY</Data></Cell>
+    <Cell ss:StyleID="s69"/>
+    {{#each ItemArr.boxNo}}  <!-- 设置箱号-->
+    <Cell><Data ss:Type="String">{{boxNo}}  - QTY</Data></Cell>
+    {{/each}}
+   </Row>
+   {{#each ItemArr}} <!-- 设置货品行的值-->
+   <Row ss:Height="15.600000000000001">
+    <Cell><Data ss:Type="String">{{sellersku}}</Data></Cell>
+    <Cell><Data ss:Type="String">{{asin}}</Data></Cell>
+    <Cell><Data ss:Type="String">InsNova Black Cocktail Dresses for Women Homecoming Evening Party Wedding Guest Cold Shoulder Cute Little Black Skater Dress</Data></Cell>
+    <Cell><Data ss:Type="String">{{fnsku}}</Data></Cell>
+    <Cell><Data ss:Type="String"></Data></Cell>
+    <Cell><Data ss:Type="String">None Required</Data></Cell>
+    <Cell><Data ss:Type="String">&#45;-</Data></Cell>
+    <Cell><Data ss:Type="String">Merchant</Data></Cell>
+    <Cell><Data ss:Type="Number">{{qty}}</Data></Cell>
+    <Cell><Data ss:Type="Number">{{qty}}</Data></Cell>
+    <Cell ss:StyleID="s65"/>
+    {{#each ItemArr.boxNo}} <!-- 设置对应箱号的值-->
+    <Cell><Data ss:Type="Number">{{boxqty}}</Data></Cell>
+    {{/each}}
+   </Row>
+   {{/each}}
+
+   <Row ss:AutoFitHeight="0" ss:Height="4.95" ss:StyleID="s65"/>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Plan ID : </Data></Cell>
+    <Cell ss:MergeAcross="8"/>
+    {{#each ItemArr.boxNo}} <!-- 设置对应箱号的值-->
+    <Cell><Data ss:Type="Number">{{boxNo}}</Data></Cell>
+    {{/each}}
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Ship To : Amazon.com Services, Inc.&#13;&#10;10240 Old Dowd Rd&#13;&#10;Charlotte, NC 28214-8082&#13;&#10;US ( CLT2)</Data></Cell>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Weight of box (kg)</Data></Cell>
+    <Cell><Data ss:Type="Number">20.100000000000001</Data></Cell>
+    <Cell><Data ss:Type="Number">14.6</Data></Cell>
+    <Cell><Data ss:Type="Number">15.3</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total SKUs : 3</Data></Cell>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box length (cm)</Data></Cell>
+    <Cell><Data ss:Type="Number">51</Data></Cell>
+    <Cell><Data ss:Type="Number">51</Data></Cell>
+    <Cell><Data ss:Type="Number">51</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total Units : 115</Data></Cell>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box width (cm)</Data></Cell>
+    <Cell><Data ss:Type="Number">43</Data></Cell>
+    <Cell><Data ss:Type="Number">29</Data></Cell>
+    <Cell><Data ss:Type="Number">29</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"/>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box height (cm)</Data></Cell>
+    <Cell><Data ss:Type="Number">41</Data></Cell>
+    <Cell><Data ss:Type="Number">41</Data></Cell>
+    <Cell><Data ss:Type="Number">41</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="4.95" ss:StyleID="s65"/>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Plan ID : </Data></Cell>
+    <Cell ss:MergeAcross="8"/>
+    <Cell><Data ss:Type="String">001</Data></Cell>
+    <Cell><Data ss:Type="String">002</Data></Cell>
+    <Cell><Data ss:Type="String">003</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Ship To : Amazon.com Services, Inc.&#13;&#10;10240 Old Dowd Rd&#13;&#10;Charlotte, NC 28214-8082&#13;&#10;US ( CLT2)</Data></Cell>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Weight of box (lb)</Data></Cell>
+    <Cell><Data ss:Type="Number">44.31</Data></Cell>
+    <Cell><Data ss:Type="Number">32.19</Data></Cell>
+    <Cell><Data ss:Type="Number">33.729999999999997</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total SKUs : 3</Data></Cell>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box length (in)</Data></Cell>
+    <Cell><Data ss:Type="Number">20.079999999999998</Data></Cell>
+    <Cell><Data ss:Type="Number">20.079999999999998</Data></Cell>
+    <Cell><Data ss:Type="Number">20.079999999999998</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total Units : 115</Data></Cell>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box width (in)</Data></Cell>
+    <Cell><Data ss:Type="Number">16.93</Data></Cell>
+    <Cell><Data ss:Type="Number">11.42</Data></Cell>
+    <Cell><Data ss:Type="Number">11.42</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:MergeAcross="1"/>
+    <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box height (in)</Data></Cell>
+    <Cell><Data ss:Type="Number">16.14</Data></Cell>
+    <Cell><Data ss:Type="Number">16.14</Data></Cell>
+    <Cell><Data ss:Type="Number">16.14</Data></Cell>
+   </Row>
+   <Row ss:AutoFitHeight="0" ss:Height="4.95" ss:StyleID="s65"/>
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <PageSetup>
+    <Header x:Margin="0.51"/>
+    <Footer x:Margin="0.51"/>
+   </PageSetup>
+   <Selected/>
+   <FreezePanes/>
+   <FrozenNoSplit/>
+   <SplitVertical>2</SplitVertical>
+   <LeftColumnRightPane>2</LeftColumnRightPane>
+   <ActivePane>1</ActivePane>
+   <Panes>
+    <Pane>
+     <Number>3</Number>
+    </Pane>
+    <Pane>
+     <Number>1</Number>
+     <ActiveRow>15</ActiveRow>
+     <RangeSelection>R16C3:R16C11</RangeSelection>
+    </Pane>
+   </Panes>
+   <ProtectObjects>False</ProtectObjects>
+   <ProtectScenarios>False</ProtectScenarios>
+  </WorksheetOptions>
+ </Worksheet>
+</Workbook>

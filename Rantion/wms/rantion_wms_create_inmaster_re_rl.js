@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-08-03 17:21:29
+ * @LastEditTime   : 2020-08-10 22:09:47
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -72,9 +72,11 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     var subsidiary_type, account_type, location_use, bill_id;
                     search.create({
                         type: 'customrecord_sample_use_return',
-                        filters: [
-                            { name: 'name', operator: 'is', values: context.requestBody.sourceNo }
-                        ],
+                        filters: [{
+                            name: 'name',
+                            operator: 'is',
+                            values: context.requestBody.sourceNo
+                        }],
                         columns: [
                             'custrecord_subsidiary_type_1',
                             'custrecord_account_type1',
@@ -140,33 +142,67 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         }
         return JSON.stringify(retjson);
     }
-  
-  //库存归还
+
+    //库存归还
     function createInventoryadjustment(subsidiary_type, account_type, location_use, data) {
-        var inventory_ord = record.create({ type: 'inventoryadjustment', isDynamic: true });
-        inventory_ord.setValue({ fieldId: 'subsidiary', value: subsidiary_type });
-        inventory_ord.setValue({ fieldId: 'account', value: account_type });
-        inventory_ord.setValue({ fieldId: 'custbody_stock_use_type', value: 37 });
+        var inventory_ord = record.create({
+            type: 'inventoryadjustment',
+            isDynamic: true
+        });
+        inventory_ord.setValue({
+            fieldId: 'subsidiary',
+            value: subsidiary_type
+        });
+        inventory_ord.setValue({
+            fieldId: 'account',
+            value: account_type
+        });
+        inventory_ord.setValue({
+            fieldId: 'custbody_stock_use_type',
+            value: 37
+        });
 
         data.detailList.map(function (lia) {
             lia.detailRecordList.map(function (line) {
-                inventory_ord.selectNewLine({ sublistId: 'inventory' });
+                inventory_ord.selectNewLine({
+                    sublistId: 'inventory'
+                });
                 var item_id;
                 search.create({
                     type: 'item',
-                    filters: [
-                        { name: 'itemid', operator: 'is', values: line.sku }
-                    ]
+                    filters: [{
+                        name: 'itemid',
+                        operator: 'is',
+                        values: line.sku
+                    }]
                 }).run().each(function (rec) {
                     item_id = rec.id;
                 });
-                inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'item', value: item_id });
-                inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'location', value: location_use });
-                inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'adjustqtyby', value: line.shelvesQty });
-                inventory_ord.setCurrentSublistText({ sublistId: 'inventory', fieldId: 'custcol_location_bin', text: line.positionCode });
+                inventory_ord.setCurrentSublistValue({
+                    sublistId: 'inventory',
+                    fieldId: 'item',
+                    value: item_id
+                });
+                inventory_ord.setCurrentSublistValue({
+                    sublistId: 'inventory',
+                    fieldId: 'location',
+                    value: location_use
+                });
+                inventory_ord.setCurrentSublistValue({
+                    sublistId: 'inventory',
+                    fieldId: 'adjustqtyby',
+                    value: line.shelvesQty
+                });
+                inventory_ord.setCurrentSublistText({
+                    sublistId: 'inventory',
+                    fieldId: 'custcol_location_bin',
+                    text: line.positionCode
+                });
                 // 其他字段
                 try {
-                    inventory_ord.commitLine({ sublistId: 'inventory' })
+                    inventory_ord.commitLine({
+                        sublistId: 'inventory'
+                    })
                 } catch (err) {
                     throw (
                         'Error inserting item line: ' +
@@ -553,6 +589,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         // NO.1 调拨单的内部ID
         var sourceNo = context.sourceNo;
         var to_id, retObj = {};
+        var location;
         search.create({
             type: 'customrecord_dps_shipping_record',
             filters: [{
@@ -560,18 +597,45 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 operator: 'is',
                 values: sourceNo
             }],
-            columns: ['custrecord_transfer_order3']
+            columns: ['custrecord_transfer_order3', {
+                name: 'transferlocation',
+                join: 'custrecord_transfer_order3'
+            }]
         }).run().each(function (result) {
             to_id = result.getValue('custrecord_transfer_order3');
+            location = rec.getValue({
+                name: 'transferlocation',
+                join: 'custrecord_transfer_order3'
+            })
             return false;
         });
+
+
+        if (!to_id) {
+            search.create({
+                type: 'transferorder',
+                filters: [{
+                    name: 'tranid',
+                    operator: 'is',
+                    values: context.sourceNo
+                }],
+                columns: [
+                    "transferlocation", // 仓库
+                ]
+            }).run().each(function (rec) {
+                to_id = rec.id;
+                location = rec.getValue('transferlocation')
+            });
+
+        }
         if (to_id) {
 
             var detailList = context.detailList; // 入库明细
             log.debug('detailList', detailList);
             var getBinArr = tool.getAllBinBox(detailList); // 获取所有的库位和箱号信息
+            log.audit('getBinArr', getBinArr);
             var getArr = tool.judgmentBinBox('create', getBinArr); // 获取对应的库位, 箱号(若不存在,新建)
-
+            log.audit('getArr', getArr);
             if (getArr && getArr.length > 0) { // 出货的库位不存在, 返回报错信息
                 retObj.code = 3;
                 retObj.data = null;
@@ -581,11 +645,16 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             }
 
             var itemGroup = tool.SummaryBinBox(getBinArr);
+
+            log.audit('itemGroup', itemGroup);
             var boxObj = itemGroup.BoxObj,
                 binObj = itemGroup.BinObj;
 
             var BoxObjKey = Object.keys(boxObj),
                 BinObjKey = Object.keys(binObj);
+
+            log.audit('BoxObjKey', BoxObjKey);
+            log.audit('BinObjKey', BinObjKey);
 
             var recType = "transferorder";
 
@@ -603,20 +672,21 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 });
 
                 var temp_obj = boxObj[boxKey];
+                log.audit('temp_obj', temp_obj);
                 for (var j = 0, jLen = temp_obj.length; j < jLen; j++) {
 
                     var dl_sku = temp_obj[i];
 
                     for (var i_t = 0, i_t_len = toItemArr.length; i_t < i_t_len; i_t++) {
                         var fi_temp = toItemArr[i_t];
-                        log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                        log.debug('货品收据  box fi_temp: ' + i_t, fi_temp);
                         var lineNumber = irObj.findSublistLineWithValue({
                             sublistId: 'item',
                             fieldId: 'item',
                             value: fi_temp.itemId
                         });
 
-                        log.debug('货品行号', lineNumber);
+                        log.debug('box 货品行号', lineNumber);
 
                         irObj.setSublistValue({
                             sublistId: 'item',
@@ -645,6 +715,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                                 text: dl_sku.positionCode,
                                 line: lineNumber
                             }); // 仓库编号
+
+                            log.audit("boxKey", boxKey);
 
                             irObj.setSublistText({
                                 sublistId: 'item',
@@ -685,20 +757,23 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 });
 
                 var temp_obj = binObj[binKey];
+                log.audit('bin temp_obj', temp_obj);
                 for (var j = 0, jLen = temp_obj.length; j < jLen; j++) {
 
-                    var dl_sku = temp_obj[i];
+                    var dl_sku = temp_obj[j];
+
+                    log.debug('dl_sku', dl_sku);
 
                     for (var i_t = 0, i_t_len = toItemArr.length; i_t < i_t_len; i_t++) {
                         var fi_temp = toItemArr[i_t];
-                        log.debug('货品收据 fi_temp: ' + i_t, fi_temp);
+                        log.debug('货品收据  bin fi_temp: ' + i_t, fi_temp);
                         var lineNumber = irObj.findSublistLineWithValue({
                             sublistId: 'item',
                             fieldId: 'item',
                             value: fi_temp.itemId
                         });
 
-                        log.debug('货品行号', lineNumber);
+                        log.debug('bin 货品行号', lineNumber);
 
                         irObj.setSublistValue({
                             sublistId: 'item',
@@ -724,16 +799,9 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                             irObj.setSublistText({
                                 sublistId: 'item',
                                 fieldId: 'custcol_location_bin',
-                                text: dl_sku.positionCode,
+                                text: binKey,
                                 line: lineNumber
                             }); // 仓库编号
-
-                            irObj.setSublistText({
-                                sublistId: 'item',
-                                fieldId: 'custcol_case_number',
-                                text: boxKey,
-                                line: lineNumber
-                            }); // 箱号
 
                             irObj.setSublistValue({
                                 sublistId: 'item',
@@ -797,293 +865,104 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
 
             var location, subsidiary;
-            search.create({
-                type: 'transferorder',
-                filters: [{
-                        name: 'mainline',
-                        operator: 'is',
-                        values: true
-                    },
-                    {
-                        name: 'internalid',
-                        operator: 'is',
-                        values: to_id
-                    },
-                ],
-                columns: [
-                    "transferlocation", "subsidiary"
-                ]
-            }).run().each(function (rec) {
-                location = result.getValue('transferlocation');
-                subsidiary = result.getValue('subsidiary');
-            });
 
 
-            diffQty.map(function (diffQ) {
 
-                var difference = diffQ.diffQty;
-                var rec = record.create({
-                    type: 'inventoryadjustment',
-                    isDynamic: false
-                });
-                rec.setValue({
-                    fieldId: 'subsidiary',
-                    value: subsidiary
-                });
-                // type 2 盘亏出库，1 盘盈入库
-                var type = difference > 0 ? config.panying_transfer_type : config.deficit_transfer_type;
-                rec.setValue({
-                    fieldId: 'custbody_stock_use_type',
-                    value: type
-                });
-                rec.setValue({
-                    fieldId: 'account',
-                    value: getAccount(type)
-                });
-                rec.setValue({
-                    fieldId: 'custbody_related_transfer_order',
-                    value: to_id
-                });
-                rec.setSublistValue({
-                    sublistId: 'inventory',
-                    fieldId: 'item',
-                    value: skuid,
-                    line: 0
-                });
-                rec.setSublistValue({
-                    sublistId: 'inventory',
-                    fieldId: 'location',
-                    value: location,
-                    line: 0
-                });
-                rec.setSublistValue({
-                    sublistId: 'inventory',
-                    fieldId: 'custcol_location_bin',
-                    value: diffQ.positionCode,
-                    line: 0
-                }); // 库位
+            if (differQty && differQty.length > 0) {
 
-                if (diffQ.type == 1) {
-                    rec.setSublistValue({
-                        sublistId: 'inventory',
-                        fieldId: 'custcol_case_number',
-                        value: diffQ.barcode,
-                        line: 0
-                    }); // 箱号
-                }
-
-                rec.setSublistValue({
-                    sublistId: 'inventory',
-                    fieldId: 'adjustqtyby',
-                    value: difference,
-                    line: 0
-                });
-                var recId = rec.save();
-                log.debug('库存调整 recId', recId);
-
-            });
-
-
-            retObj.code = 0;
-            retObj.data = null;
-            retObj.msg = "NS 处理成功"
-
-            return;
-
-            var retskus = {};
-            var rettrues = {};
-            var skucodes = [];
-            var skuids = [];
-            context.detailList.map(function (line) {
-                var sku = line.sku;
-                var qty = line.shelvesQty;
-                var detailRecordList = line.detailRecordList;
-                retskus[sku] = qty;
-                skucodes.push(sku);
-            });
-            search.create({
-                type: 'item',
-                filters: [{
-                    name: 'name',
-                    operator: 'is',
-                    values: skucodes
-                }],
-                columns: ['name', 'internalid']
-            }).run().each(function (result) {
-                var code = result.getValue('name');
-                var id = result.getValue('internalid');
-                var json = {};
-                json.qty = retskus[code];
-                rettrues[id] = json;
-                skuids.push(id);
-            });
-            if (skuids.length > 0) {
-                var trueskus = {};
-                var location, subsidiary;
                 search.create({
                     type: 'transferorder',
                     filters: [{
-                            name: 'type',
-                            operator: 'anyof',
-                            values: ['TrnfrOrd']
+                            name: 'mainline',
+                            operator: 'is',
+                            values: true
                         },
                         {
                             name: 'internalid',
                             operator: 'is',
                             values: to_id
                         },
-                        {
-                            name: 'item',
-                            operator: 'anyof',
-                            values: skuids
-                        },
-                        {
-                            name: 'transferorderquantityreceived',
-                            operator: 'greaterthan',
-                            values: ['0']
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: ['F']
-                        }
                     ],
-                    columns: ['item', 'transferorderquantityreceived', 'transferlocation', 'subsidiary']
-                }).run().each(function (result) {
-                    var skuid = result.getValue('item');
-                    var sku = trueskus[skuid];
-                    var qty = Number(result.getValue('transferorderquantityreceived'));
-                    if (sku) {
-                        sku.qty = sku.qty + qty;
-                    } else {
-                        var json = {};
-                        sku.qty = qty;
-                        trueskus[skuid] = json;
-                    }
-                    location = result.getValue('transferlocation');
-                    subsidiary = result.getValue('subsidiary');
-                    return true;
+                    columns: [
+                        "transferlocation", "subsidiary"
+                    ]
+                }).run().each(function (rec) {
+                    location = rec.getValue('transferlocation');
+                    subsidiary = rec.getValue('subsidiary');
                 });
-                for (var index = 0; index < skuids.length; index++) {
-                    var skuid = skuids[index];
-                    var retsku = rettrues[skuid];
-                    var truesku = trueskus[skuid];
-                    var qty = 0;
-                    if (truesku) {
-                        var qty = Number(truesku.qty);
-                    }
-                    var lastQty = retsku.qty;
-                    var difference = lastQty;
-                    if (qty == 0) {
-                        var itemReceipt = record.transform({
-                            fromType: 'transferorder',
-                            toType: record.Type.ITEM_RECEIPT,
-                            fromId: Number(to_id),
-                        });
-                        itemReceipt.setValue({
-                            fieldId: 'shipstatus',
-                            value: 'C'
-                        });
-                        var lineIR = itemReceipt.getLineCount({
-                            sublistId: 'item'
-                        });
-                        for (var i = 0; i < lineIR; i++) {
-                            var itemre = itemReceipt.getSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'item',
-                                line: i
-                            });
-                            if (itemre != skuid) {
-                                itemReceipt.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'itemreceive',
-                                    value: false,
-                                    line: i
-                                });
-                                continue;
-                            }
-                            qty = itemReceipt.getSublistValue({
-                                sublistId: 'item',
-                                fieldId: 'quantity',
-                                line: i
-                            });
-                        }
-                        var itemReceipt_id = itemReceipt.save();
-                        log.debug('货品收据 itemReceipt_id', itemReceipt_id);
-                        difference = lastQty - qty;
-                    }
-                    if (difference != 0) {
-                        if (!location || !subsidiary) {
-                            search.create({
-                                type: 'transferorder',
-                                filters: [{
-                                        name: 'type',
-                                        operator: 'anyof',
-                                        values: ['TrnfrOrd']
-                                    },
-                                    {
-                                        name: 'internalid',
-                                        operator: 'anyof',
-                                        values: to_id
-                                    },
-                                    {
-                                        name: 'mainline',
-                                        operator: 'is',
-                                        values: ['T']
-                                    }
-                                ],
-                                columns: ['transferlocation', 'subsidiary']
-                            }).run().each(function (result) {
-                                location = result.getValue('transferlocation');
-                                subsidiary = result.getValue('subsidiary');
-                                return true;
-                            });
-                        }
-                        var rec = record.create({
-                            type: 'inventoryadjustment',
-                            isDynamic: false
-                        });
-                        rec.setValue({
-                            fieldId: 'subsidiary',
-                            value: subsidiary
-                        });
-                        // type 2 盘亏出库，1 盘盈入库
-                        var type = difference > 0 ? config.panying_transfer_type : config.deficit_transfer_type;
-                        rec.setValue({
-                            fieldId: 'custbody_stock_use_type',
-                            value: type
-                        });
-                        rec.setValue({
-                            fieldId: 'account',
-                            value: getAccount(type)
-                        });
-                        rec.setValue({
-                            fieldId: 'custbody_related_transfer_order',
-                            value: to_id
-                        });
+
+                differQty.map(function (diffQ) {
+                    log.debug('diffQ', diffQ);
+
+                    var difference = diffQ.diffQty;
+                    var rec = record.create({
+                        type: 'inventoryadjustment',
+                        isDynamic: false
+                    });
+                    rec.setValue({
+                        fieldId: 'subsidiary',
+                        value: subsidiary
+                    });
+                    // type 2 盘亏出库，1 盘盈入库
+                    var type = difference > 0 ? config.panying_transfer_type : config.deficit_transfer_type;
+                    rec.setValue({
+                        fieldId: 'custbody_stock_use_type',
+                        value: type
+                    });
+                    rec.setValue({
+                        fieldId: 'account',
+                        value: getAccount(type)
+                    });
+                    rec.setValue({
+                        fieldId: 'custbody_related_transfer_order',
+                        value: to_id
+                    });
+                    rec.setSublistValue({
+                        sublistId: 'inventory',
+                        fieldId: 'item',
+                        value: skuid,
+                        line: 0
+                    });
+                    rec.setSublistValue({
+                        sublistId: 'inventory',
+                        fieldId: 'location',
+                        value: location,
+                        line: 0
+                    });
+                    rec.setSublistValue({
+                        sublistId: 'inventory',
+                        fieldId: 'custcol_location_bin',
+                        value: diffQ.positionCode,
+                        line: 0
+                    }); // 库位
+
+                    if (diffQ.type == 1) {
                         rec.setSublistValue({
                             sublistId: 'inventory',
-                            fieldId: 'item',
-                            value: skuid,
+                            fieldId: 'custcol_case_number',
+                            value: diffQ.barcode,
                             line: 0
-                        });
-                        rec.setSublistValue({
-                            sublistId: 'inventory',
-                            fieldId: 'location',
-                            value: location,
-                            line: 0
-                        });
-                        rec.setSublistValue({
-                            sublistId: 'inventory',
-                            fieldId: 'adjustqtyby',
-                            value: difference,
-                            line: 0
-                        });
-                        var recId = rec.save();
-                        log.debug('库存调整 recId', recId);
+                        }); // 箱号
                     }
-                }
+
+                    rec.setSublistValue({
+                        sublistId: 'inventory',
+                        fieldId: 'adjustqtyby',
+                        value: difference,
+                        line: 0
+                    });
+                    var recId = rec.save();
+                    log.debug('库存调整 recId', recId);
+
+                });
             }
+
+            retObj.code = 0;
+            retObj.data = null;
+            retObj.msg = "NS 处理成功"
+
+            return retObj;
+
         } else { // 不存在对应的第二段调拨单
             retObj.code = 3;
             retObj.data = null;

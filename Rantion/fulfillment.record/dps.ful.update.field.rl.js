@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-08 15:44:13
+ * @LastEditTime   : 2020-08-10 17:56:53
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
@@ -499,30 +499,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             return --ful_limit > 0;
         });
 
-        log.debug('itemArr', itemArr);
-        // 2020/7/18 13：44 改动 
-        var fils = [],
-            add_fils = []; //过滤
-        var len = item_info.length,
-            num = 0;
-        item_info.map(function (ld) {
-            num++;
-            add_fils.push([
-                ["name", "is", ld.msku],
-                "and",
-                ["custrecord_ass_sku", "anyof", ld.itemId]
-            ]);
-            if (num < len)
-                add_fils.push("or");
-        });
-        fils.push(add_fils);
-        fils.push("and",
-            ["custrecord_ass_account", "anyof", fbaAccount]
-        );
-        fils.push("and",
-            ["isinactive", "is", false]
-        );
-        log.debug('fils', fils);
+
         log.debug('item_info', item_info);
         var newItemInfo = [];
 
@@ -530,7 +507,39 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
         log.debug('推送 WMS tranType', tranType);
         if (tranType == 1) {
 
+            if (!fbaAccount) {
+                message.code = 3;
+                message.data = null;
+                message.msg = "不存在店铺信息";
+
+                return message;
+            }
+            log.debug('itemArr', itemArr);
+            // 2020/7/18 13：44 改动 
+            var fils = [],
+                add_fils = []; //过滤
+            var len = item_info.length,
+                num = 0;
+            item_info.map(function (ld) {
+                num++;
+                add_fils.push([
+                    ["name", "is", ld.msku],
+                    "and",
+                    ["custrecord_ass_sku", "anyof", ld.itemId]
+                ]);
+                if (num < len)
+                    add_fils.push("or");
+            });
+            fils.push(add_fils);
+            fils.push("and",
+                ["custrecord_ass_account", "anyof", fbaAccount]
+            );
+            fils.push("and",
+                ["isinactive", "is", false]
+            );
+            log.debug('fils', fils);
             var new_limit = 3999;
+
             var fls_skus = [];
             search.create({
                 type: 'customrecord_aio_amazon_seller_sku',

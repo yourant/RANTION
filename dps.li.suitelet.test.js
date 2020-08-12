@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-08-10 22:19:47
+ * @LastEditTime   : 2020-08-12 20:07:59
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \dps.li.suitelet.test.js
@@ -34,92 +34,63 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             } else if (userObj.id == 911 /* || userObj.id == 13440 */ ) {
 
 
-                /*
-                 
-
-                // var print_data = {};
-
-                // var boxArr = [];
-                // for (var i = 0; i < 5; i++) {
-
-                //     var box = "000" + (i + 1)
-                //     var it = {
-                //         boxNo: i,
-                //         boxqty: i
-                //     };
-
-                //     boxArr.push(it);
-                // }
-                // print_data.boxNo = boxArr;
-
-                var getAmaInfo = tool.getAmazonBoxInfo(64);
-
-                context.response.writeLine("\n\n getAmaInfo: \n\n" + JSON.stringify(getAmaInfo));
-
                 return;
 
+                // var limit = 250;
+
+                // var add = 1;
+
+                // search.create({
+                //     type: 'customrecord_dps_shipping_record_box',
+                //     filters: [{
+                //         name: 'custrecord_dps_ship_box_fa_record_link',
+                //         operator: 'anyof',
+                //         values: 2096
+                //     }]
+                // }).run().each(function (rec) {
 
 
-                var getArr = tool.getBoxInfo(64);
+                //     record.delete({
+                //         type: 'customrecord_dps_shipping_record_box',
+                //         id: rec.id
+                //     });
 
-                var redisId = Date.parse(new Date());
-                var print_data = tool.groupBoxInfo(getArr);
+                //     add++;
+                //     return --limit > 0;
+                // });
 
-                log.audit('print_data', print_data.data);
+                // log.debug('runtime', runtime.getCurrentScript().getRemainingUsage());
+                // log.audit('删除总数', add);
+                // return;
+                var form = InventoryReportUI(context);
 
-                var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
-                // 获取模板内容,写全路径或者内部ID
-                var model = file.load({
-                    id: xmlID
-                }).getContents();
 
-                var template = Handlebars.compile(model);
-                var xml_1 = template(print_data);
-
-                var nowDate = new Date().toISOString();
-                var fileObj = file.create({
-                    name: "装箱信息-" + nowDate + ".xls",
-                    fileType: file.Type.EXCEL,
-                    contents: encode.convert({
-                        string: xml_1,
-                        inputEncoding: encode.Encoding.UTF_8,
-                        outputEncoding: encode.Encoding.BASE_64
-                    }),
-                    encoding: file.Encoding.UTF8,
-                    isOnline: true
-                });
-
-                context.response.writeFile({
-                    file: fileObj,
-                    isInline: true
+                var subli = form.getSublist({
+                    id: 'sublistid'
                 });
 
 
-                return;
+                var request = context.request;
+                var response = context.response;
+                var parameters = request.parameters;
+                var param = {};
 
-                /*
-                 */
+                param.location = parameters.custpage_dps_search_location;
+                param.sku = parameters.custpage_dps_search_sku;
+                param.department = parameters.custpage_dps_search_department;
+                param.sellersku = parameters.custpage_dps_search_sellersku;
+                param.fnsku = parameters.custpage_dps_search_fnsku;
+                param.asin = parameters.custpage_dps_search_asin;
+                param.productstatus = parameters.custpage_dps_search_productstatus;
 
 
-                // var to_id = [3378786, 3378785, 3378784, 3378783, 3378000, 6798];
-                var to_id = [3378786, 6798];
+                var itemInfoArr = getSearchResult(param);
+                setSublistValue(subli, itemInfoArr);
 
-                for (var i = 0, i_len = to_id.length; i < i_len; i++) {
 
-                    var data = tranferOrderToWMS(to_id[i]);
-
-                    context.response.writeLine("\n\n data: \n" + JSON.stringify(data))
-                    var token = tool.getToken();
-
-                    var cus_url = config.WMS_Debugging_URL + '/inMaster';
-
-                    var getRep = tool.sendRequest(token, data, cus_url);
-
-                    log.audit('推送 WMS 调拨入库 getRep  ' + i, getRep)
-
-                    context.response.writeLine("\n\n\n getTep :" + i + "\n " + JSON.stringify(getRep))
-                }
-                return;
+                context.response.writePage({
+                    pageObject: form
+                });
 
             } else {
                 context.response.writeLine('<html><head><meta charset="utf-8"></head><body><br><br><br><br><h1 style = "vertical-align:middle;text-align:center;color: red">权限不足</h1><p style = "vertical-align:middle;text-align:center;">无法运行此页面</p></body></html>')
@@ -132,11 +103,578 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             log.error("开始时间：", b)
             context.response.writeLine("\n\n\n 结束时间     " + b.toISOString());
 
-
             log.error('函数执行出错了', error);
         }
     }
 
+
+    function InventoryReportUI(context) {
+
+        var form = serverWidget.createForm({
+            title: '库存报表'
+        });
+
+        form.addFieldGroup({
+            id: 'search_groupid',
+            label: '查询条件'
+        });
+
+        form.addFieldGroup({
+            id: 'result_groupid',
+            label: '结果信息'
+        });
+
+        var sublist = form.addSublist({
+            id: 'sublistid',
+            type: serverWidget.SublistType.LIST,
+            label: '详情'
+        });
+
+
+        var request = context.request;
+        var response = context.response;
+        var parameters = request.parameters;
+        var param = {};
+
+        param.location = parameters.custpage_dps_search_location;
+        param.sku = parameters.custpage_dps_search_sku;
+        param.department = parameters.custpage_dps_search_department;
+        param.sellersku = parameters.custpage_dps_search_sellersku;
+        param.fnsku = parameters.custpage_dps_search_fnsku;
+        param.asin = parameters.custpage_dps_search_asin;
+        param.productstatus = parameters.custpage_dps_search_productstatus;
+
+
+        InventoryReportUIField(form, "search_groupid", param);
+
+        InventoryReportUISublistFields(sublist);
+
+        return form;
+
+    }
+
+
+    /**
+     * 设置表单的字段
+     * @param {Object} form 
+     * @param {String} container 
+     * @param {Object} defaultValue 
+     */
+    function InventoryReportUIField(form, container, defaultValue) {
+        var field_location = form.addField({
+            id: 'custpage_dps_search_location',
+            type: serverWidget.FieldType.SELECT,
+            source: 'location',
+            label: '仓库',
+            container: container
+        });
+        field_location.defaultValue = defaultValue.location;
+
+        var field_sku = form.addField({
+            id: 'custpage_dps_search_sku',
+            type: serverWidget.FieldType.SELECT,
+            source: 'item',
+            label: 'SKU',
+            container: container
+        });
+        field_sku.defaultValue = defaultValue.sku;
+
+        var field_department = form.addField({
+            id: 'custpage_dps_search_department',
+            type: serverWidget.FieldType.SELECT,
+            source: 'department',
+            label: '部门',
+            container: container
+        });
+        field_department.defaultValue = defaultValue.department;
+
+        var field_sellersku = form.addField({
+            id: 'custpage_dps_search_sellersku',
+            type: serverWidget.FieldType.TEXT,
+            label: 'SELLERSKU',
+            container: container
+        });
+        field_sellersku.defaultValue = defaultValue.sellersku;
+
+        var field_fnsku = form.addField({
+            id: 'custpage_dps_search_fnsku',
+            type: serverWidget.FieldType.TEXT,
+            label: 'FNSKU',
+            container: container
+        });
+        field_fnsku.defaultValue = defaultValue.fnsku;
+
+        var field_asin = form.addField({
+            id: 'custpage_dps_search_asin',
+            type: serverWidget.FieldType.TEXT,
+            label: 'ASIN',
+            container: container
+        });
+        field_asin.defaultValue = defaultValue.asin;
+
+        var field_productstatus = form.addField({
+            id: 'custpage_dps_search_productstatus',
+            type: serverWidget.FieldType.TEXT,
+            label: '产品状态',
+            container: container
+        });
+        field_productstatus.defaultValue = defaultValue.productstatus;
+
+    }
+
+
+    /**
+     * 增加子列表的字段
+     * @param {Object} sublist 
+     */
+    function InventoryReportUISublistFields(sublist) {
+
+        var da = sublist.addField({
+            id: 'custpage_sublist_location',
+            type: serverWidget.FieldType.TEXT,
+            label: '仓库'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_sku',
+            type: serverWidget.FieldType.TEXT,
+            label: 'SKU'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_produstname',
+            type: serverWidget.FieldType.TEXT,
+            label: '产品名称'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_brand',
+            type: serverWidget.FieldType.TEXT,
+            label: '品牌'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_category',
+            type: serverWidget.FieldType.TEXT,
+            label: '品类'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_department',
+            type: serverWidget.FieldType.TEXT,
+            label: '部门'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_vendor',
+            type: serverWidget.FieldType.TEXT,
+            label: '默认供应商'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_sellersku',
+            type: serverWidget.FieldType.TEXT,
+            label: 'SELLERSKU'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_fnsku',
+            type: serverWidget.FieldType.TEXT,
+            label: 'FNSKU'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_asin',
+            type: serverWidget.FieldType.TEXT,
+            label: 'ASIN'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_productstatus',
+            type: serverWidget.FieldType.TEXT,
+            label: '产品状态'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_wps',
+            type: serverWidget.FieldType.INTEGER,
+            label: 'WPS'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_sales',
+            type: serverWidget.FieldType.TEXT,
+            label: '过去9天销量（倒序0-8）'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_inventoryturnover',
+            type: serverWidget.FieldType.INTEGER,
+            label: '库周转'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_turnaroundintransit',
+            type: serverWidget.FieldType.INTEGER,
+            label: '途周转'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_planturnaround',
+            type: serverWidget.FieldType.INTEGER,
+            label: '计周转'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_warehousing',
+            type: serverWidget.FieldType.INTEGER,
+            label: '入库'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_warehouse',
+            type: serverWidget.FieldType.INTEGER,
+            label: '库'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_reserved',
+            type: serverWidget.FieldType.INTEGER,
+            label: '预留'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_transit',
+            type: serverWidget.FieldType.INTEGER,
+            label: '中转'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_plan',
+            type: serverWidget.FieldType.INTEGER,
+            label: '计'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_order',
+            type: serverWidget.FieldType.INTEGER,
+            label: '定'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_delivery',
+            type: serverWidget.FieldType.INTEGER,
+            label: '交'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_inboundworking',
+            type: serverWidget.FieldType.TEXT,
+            label: 'inboundworking'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_inboundshipped',
+            type: serverWidget.FieldType.TEXT,
+            label: 'inboundshipped'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_inboundreceiving',
+            type: serverWidget.FieldType.TEXT,
+            label: 'inboundreceiving'
+        });
+        var da = sublist.addField({
+            id: 'custpage_sublist_updatetime',
+            type: serverWidget.FieldType.DATE,
+            label: '更新时间'
+        });
+
+    }
+
+    function getSearchResult(filter) {
+
+        // name: "type",
+        // operator: "anyof",
+        // values: ["InvtPart"]
+
+
+        var limit_1 = 100;
+        var item_info_obj = {},
+            item_info_arr = [];
+        search.create({
+            type: 'item',
+            filters: filter,
+            columns: [
+                "itemid", //"Name",
+                "custitem_dps_use", // "产品用途",
+                "inventorylocation", //"Inventory Location",
+                "custitem_dps_skuchiense", //"SKU中文标题",
+                "custitem_dps_brand", //"品牌",
+                "custitem_dps_ctype", //"产品类型",
+                "department", //"Department",
+                "vendor", //"Preferred Vendor",
+                "isinactive", //"Inactive",
+                "locationquantitybackordered", // 延交订单
+                "locationquantityavailable", // 可用数量
+            ]
+        }).run().each(function (rec) {
+
+            var itemId = rec.id;
+
+            var temp_item_info = [];
+
+
+            var temp_str = '正常';
+
+            if (rec.getValue('isinactive')) {
+                temp_str = '停用';
+            }
+            var it = {
+                itemId: rec.id, // 货品 ID
+                itemName: rec.getValue('itemid'), // 货品名称
+                purpose: rec.getValue('custitem_dps_use'), // 用途
+                inventorylocation: rec.getText('inventorylocation'), // 库存地点
+                productTitle: rec.getValue('custitem_dps_skuchiense'), // 产品标题
+                brand: rec.getText('custitem_dps_brand'), // 品牌
+                category: rec.getText('custitem_dps_ctype'), // 产品类型
+                department: rec.getText('department'), // 部门
+                vendor: rec.getText('vendor'), // 默认供应商
+                isinactive: temp_str, // 活动状态
+                locationquantitybackordered: rec.getValue('locationquantitybackordered'), // 延交订单
+                delivery: rec.getValue('locationquantityavailable'), // 可用数量
+            }
+
+            if (item_info_obj[itemId]) {
+                temp_item_info = item_info_obj[itemId];
+            }
+
+            temp_item_info.push(it);
+            item_info_obj[itemId] = temp_item_info;
+
+            return --limit_1 > 0;
+        });
+
+
+        return item_info_obj;
+
+    }
+
+
+
+    function setSublistValue(subli, valueObj) {
+
+        var line_no = 0;
+        Object.keys(valueObj).map(function (value, key) {
+
+            var temp_arr = valueObj[value];
+            log.debug("temp_arr", temp_arr);
+
+            temp_arr.map(function (tem) {
+                if (tem.inventorylocation) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_location',
+                        value: tem.inventorylocation,
+                        line: line_no
+                    });
+                }
+                if (tem.itemName) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_sku',
+                        value: tem.itemName,
+                        line: line_no
+                    });
+
+                }
+
+                if (tem.productTitle) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_produstname',
+                        value: tem.productTitle,
+                        line: line_no
+                    });
+                }
+
+                if (tem.brand) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_brand',
+                        value: tem.brand,
+                        line: line_no
+                    });
+                }
+
+                if (tem.category) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_category',
+                        value: tem.category,
+                        line: line_no
+                    });
+                }
+
+                if (tem.department) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_department',
+                        value: tem.department,
+                        line: line_no
+                    });
+                }
+                if (tem.vendor) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_vendor',
+                        value: tem.vendor,
+                        line: line_no
+                    });
+                }
+
+                if (tem.sellersku) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_sellersku',
+                        value: tem.sellersku,
+                        line: line_no
+                    });
+                }
+
+                if (tem.fnsku) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_fnsku',
+                        value: tem.fnsku,
+                        line: line_no
+                    });
+                }
+
+                if (tem.asin) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_asin',
+                        value: tem.asin,
+                        line: line_no
+                    });
+                }
+
+                if (tem.isinactive) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_productstatus',
+                        value: tem.isinactive,
+                        line: line_no
+                    });
+                }
+
+                if (tem.wps) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_wps',
+                        value: tem.wps,
+                        line: line_no
+                    });
+                }
+
+                if (tem.sales) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_sales',
+                        value: tem.sales,
+                        line: line_no
+                    });
+                }
+                if (tem.inventoryturnover) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_inventoryturnover',
+                        value: tem.inventoryturnover,
+                        line: line_no
+                    });
+                }
+
+                if (tem.turnaroundintransit) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_turnaroundintransit',
+                        value: tem.turnaroundintransit,
+                        line: line_no
+                    });
+                }
+
+                if (tem.planturnaround) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_planturnaround',
+                        value: tem.planturnaround,
+                        line: line_no
+                    });
+                } // '计周转'
+                if (tem.warehousing) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_warehousing',
+                        value: tem.warehousing,
+                        line: line_no
+                    });
+                } // '入库'
+
+                if (tem.warehouse) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_warehouse',
+                        value: tem.warehouse,
+                        line: line_no
+                    });
+                } // '库'
+
+                if (tem.reserved) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_reserved',
+                        value: tem.reserved,
+                        line: line_no
+                    });
+                } // '预留'
+
+                if (tem.transit) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_transit',
+                        value: tem.transit,
+                        line: line_no
+                    });
+                } // '中转'
+
+                if (tem.plan) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_plan',
+                        value: tem.plan,
+                        line: line_no
+                    });
+                } // '计'
+
+                if (tem.order) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_order',
+                        value: tem.order,
+                        line: line_no
+                    });
+                } // '定'
+
+                if (tem.delivery) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_delivery',
+                        value: tem.delivery,
+                        line: line_no
+                    });
+                } // '交'
+
+                if (tem.inboundworking) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_inboundworking',
+                        value: tem.inboundworking,
+                        line: line_no
+                    });
+                } // inboundworking
+
+                if (tem.inboundshipped) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_inboundshipped',
+                        value: tem.inboundshipped,
+                        line: line_no
+                    });
+                } // inboundshipped
+
+                if (tem.inboundreceiving) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_inboundreceiving',
+                        value: tem.inboundreceiving,
+                        line: line_no
+                    });
+                } // inboundreceiving
+
+                if (tem.updatetime) {
+                    subli.setSublistValue({
+                        id: 'custpage_sublist_updatetime',
+                        // value: tem.updatetime,
+                        line: line_no
+                    });
+                } // 更新时间
+
+                subli.setSublistValue({
+                    id: 'custpage_sublist_updatetime',
+                    value: new Date().toISOString().split('T')[0],
+                    // value: new Date(),
+                    line: line_no
+                });
+
+                line_no++;
+            })
+
+
+
+        });
+
+
+    }
 
 
 
@@ -2371,6 +2909,82 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         return token;
     }
 
+
+
+    function others() {
+
+        return;
+        // var getAmaInfo = tool.getAmazonBoxInfo(231);
+        var getAmaInfo = tool.AmazonBoxInfo(287);
+        var getAmaInfo = tool.AmazonBoxInfo(231);
+
+        log.audit('getAmaInfo', getAmaInfo);
+
+        context.response.writeLine("\n\n getAmaInfo shipment: \n" + JSON.stringify(getAmaInfo.itemInfoArr));
+
+        return;
+
+
+        // var getArr = tool.getBoxInfo(64);
+
+        // var redisId = Date.parse(new Date());
+        // var print_data = tool.groupBoxInfo(getArr);
+
+        // log.audit('print_data', print_data.data);
+
+        // 获取模板内容,写全路径或者内部ID
+        var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
+        xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/Amazon格式 装箱信息.xml";
+        var model = file.load({
+            id: xmlID
+        }).getContents();
+
+        log.debug('xmlID', xmlID);
+
+        var template = Handlebars.compile(model);
+        var xml_1 = template(getAmaInfo);
+
+        var nowDate = new Date().toISOString();
+        var fileObj = file.create({
+            name: "Amazon 格式 装箱信息-" + getAmaInfo.aono + ".xls",
+            fileType: file.Type.EXCEL,
+            contents: encode.convert({
+                string: xml_1,
+                inputEncoding: encode.Encoding.UTF_8,
+                outputEncoding: encode.Encoding.BASE_64
+            }),
+            encoding: file.Encoding.UTF8,
+            isOnline: true
+        });
+
+        context.response.writeFile({
+            file: fileObj,
+            isInline: true
+        });
+
+
+        return;
+
+        // var to_id = [3378786, 3378785, 3378784, 3378783, 3378000, 6798];
+        var to_id = [3378786, 6798];
+
+        for (var i = 0, i_len = to_id.length; i < i_len; i++) {
+
+            var data = tranferOrderToWMS(to_id[i]);
+
+            context.response.writeLine("\n\n data: \n" + JSON.stringify(data))
+            var token = tool.getToken();
+
+            var cus_url = config.WMS_Debugging_URL + '/inMaster';
+
+            var getRep = tool.sendRequest(token, data, cus_url);
+
+            log.audit('推送 WMS 调拨入库 getRep  ' + i, getRep)
+
+            context.response.writeLine("\n\n\n getTep :" + i + "\n " + JSON.stringify(getRep))
+        }
+        return;
+    }
     return {
         onRequest: onRequest
     }

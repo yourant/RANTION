@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 11:07:52
- * @LastEditTime   : 2020-08-09 20:52:44
+ * @LastEditTime   : 2020-08-12 20:14:28
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.to.control.field.cs.js
@@ -87,6 +87,10 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
             console.log('userObj id', userObj.id)
 
             if (userObj.role != 3 && runtime.executionContext == "USERINTERFACE") {
+
+                cur.getField({
+                    fieldId: 'custrecord_dps_box_return_flag'
+                }).isDisabled = true;
 
                 var custpage_abc_text = cur.getValue('custpage_abc_text');
                 if (custpage_abc_text) {
@@ -372,6 +376,11 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
 
     }
 
+
+    /**
+     * 打印装箱单
+     * @param {Number} rec_id 
+     */
     function printBoxInfo(rec_id) {
 
         var url1 = url.resolveScript({
@@ -383,12 +392,40 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
             }
         });
 
-        var tempwindow = window.open('', '打印装箱信息', 'height=10%,width=10&,top=50%,left=50%,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no');
-        tempwindow.location = url1;
+        var tempwindow = window.open(url1);
 
-        setTimeout(function () {
-            tempwindow.close();
-        }, 5000);
+        // var tempwindow = window.open('', '打印装箱信息', 'height=10%,width=10&,top=50%,left=50%,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no');
+        // var tempwindow = window.open();
+        // tempwindow.location = url1;
+
+        // setTimeout(function () {
+        //     tempwindow.close();
+        // }, 5000);
+
+    }
+    /**
+     * 打印 Amazon 格式装箱信息
+     * @param {Number} rec_id 
+     */
+    function printAmazonBoxInfo(rec_id) {
+
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_box_info_print_sl',
+            deploymentId: 'customdeploy_dps_box_info_print_sl',
+            returnExternalUrl: false,
+            params: {
+                custpage_print_amazon: rec_id
+            }
+        });
+
+        var tempwindow = window.open(url1);
+
+        // var tempwindow = window.open('', '打印Amazon装箱信息', 'height=10%,width=10&,top=50%,left=50%,toolbar=no,menubar=no,scrollbars=no, resizable=no,location=no, status=no');
+        // var tempwindow = window.open(url1);
+        // tempwindow.location = url1;
+        // setTimeout(function () {
+        //     tempwindow.close();
+        // }, 5000);
 
     }
 
@@ -406,7 +443,8 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
         saveRecord: saveRecord,
         updateWMS: updateWMS,
         inputPackingInfo: inputPackingInfo,
-        printBoxInfo: printBoxInfo
+        printBoxInfo: printBoxInfo,
+        printAmazonBoxInfo: printAmazonBoxInfo
     };
 
 });

@@ -87,10 +87,10 @@
    <Column ss:StyleID="s64" ss:AutoFitWidth="0" ss:Width="70.2" ss:Span="3"/>
    <Row ss:AutoFitHeight="0" ss:Height="27">
     <Cell ss:StyleID="s67"><Data ss:Type="String">Shipment ID</Data></Cell>
-    <Cell ss:StyleID="s67"><Data ss:Type="String">FBA15P9FSZNL</Data></Cell>
+    <Cell ss:StyleID="s67"><Data ss:Type="String">{{shipment}}</Data></Cell>
    </Row>
    <Row ss:AutoFitHeight="0" ss:Height="22.05">
-    <Cell ss:MergeAcross="1"><Data ss:Type="String">Name: USFBA20200724快-InsNova-2</Data></Cell>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Name: {{shipmentName}}</Data></Cell>
    </Row>
    <Row ss:AutoFitHeight="0" ss:Height="22.05">
     <Cell ss:MergeAcross="1"/>
@@ -107,15 +107,15 @@
     <Cell><Data ss:Type="String">Expected QTY</Data></Cell>
     <Cell><Data ss:Type="String">Boxed QTY</Data></Cell>
     <Cell ss:StyleID="s69"/>
-    {{#each ItemArr.boxNo}}  <!-- 设置箱号-->
+    {{#each boxNoArr}}  <!-- 设置箱号-->
     <Cell><Data ss:Type="String">{{boxNo}}  - QTY</Data></Cell>
     {{/each}}
    </Row>
-   {{#each ItemArr}} <!-- 设置货品行的值-->
+   {{#each itemInfoArr}} <!-- 设置货品行的值-->
    <Row ss:Height="15.600000000000001">
     <Cell><Data ss:Type="String">{{sellersku}}</Data></Cell>
     <Cell><Data ss:Type="String">{{asin}}</Data></Cell>
-    <Cell><Data ss:Type="String">InsNova Black Cocktail Dresses for Women Homecoming Evening Party Wedding Guest Cold Shoulder Cute Little Black Skater Dress</Data></Cell>
+    <Cell><Data ss:Type="String">{{title}}</Data></Cell>
     <Cell><Data ss:Type="String">{{fnsku}}</Data></Cell>
     <Cell><Data ss:Type="String"></Data></Cell>
     <Cell><Data ss:Type="String">None Required</Data></Cell>
@@ -124,8 +124,8 @@
     <Cell><Data ss:Type="Number">{{qty}}</Data></Cell>
     <Cell><Data ss:Type="Number">{{qty}}</Data></Cell>
     <Cell ss:StyleID="s65"/>
-    {{#each ItemArr.boxNo}} <!-- 设置对应箱号的值-->
-    <Cell><Data ss:Type="Number">{{boxqty}}</Data></Cell>
+    {{#each boxNo}} <!-- 设置对应箱号的值-->
+    <Cell><Data ss:Type="String">{{boxqty}}</Data></Cell>
     {{/each}}
    </Row>
    {{/each}}
@@ -134,73 +134,73 @@
    <Row>
     <Cell ss:MergeAcross="1"><Data ss:Type="String">Plan ID : </Data></Cell>
     <Cell ss:MergeAcross="8"/>
-    {{#each ItemArr.boxNo}} <!-- 设置对应箱号的值-->
-    <Cell><Data ss:Type="Number">{{boxNo}}</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱号-->
+    <Cell><Data ss:Type="String">{{boxNo}}</Data></Cell>
     {{/each}}
    </Row>
    <Row>
-    <Cell ss:MergeAcross="1"><Data ss:Type="String">Ship To : Amazon.com Services, Inc.&#13;&#10;10240 Old Dowd Rd&#13;&#10;Charlotte, NC 28214-8082&#13;&#10;US ( CLT2)</Data></Cell>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Ship To : {{shipTo}}</Data></Cell>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Weight of box (kg)</Data></Cell>
-    <Cell><Data ss:Type="Number">20.100000000000001</Data></Cell>
-    <Cell><Data ss:Type="Number">14.6</Data></Cell>
-    <Cell><Data ss:Type="Number">15.3</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱重-->
+    <Cell><Data ss:Type="Number">{{box_weight}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row>
-    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total SKUs : 3</Data></Cell>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total SKUs : {{skus}}</Data></Cell>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box length (cm)</Data></Cell>
-    <Cell><Data ss:Type="Number">51</Data></Cell>
-    <Cell><Data ss:Type="Number">51</Data></Cell>
-    <Cell><Data ss:Type="Number">51</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱长-->
+    <Cell><Data ss:Type="Number">{{box_length}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row>
-    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total Units : 115</Data></Cell>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total Units : {{Total}}</Data></Cell>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box width (cm)</Data></Cell>
-    <Cell><Data ss:Type="Number">43</Data></Cell>
-    <Cell><Data ss:Type="Number">29</Data></Cell>
-    <Cell><Data ss:Type="Number">29</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱宽-->
+    <Cell><Data ss:Type="Number">{{box_width}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row>
     <Cell ss:MergeAcross="1"/>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box height (cm)</Data></Cell>
-    <Cell><Data ss:Type="Number">41</Data></Cell>
-    <Cell><Data ss:Type="Number">41</Data></Cell>
-    <Cell><Data ss:Type="Number">41</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱高-->
+    <Cell><Data ss:Type="Number">{{box_hight}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row ss:AutoFitHeight="0" ss:Height="4.95" ss:StyleID="s65"/>
    <Row>
     <Cell ss:MergeAcross="1"><Data ss:Type="String">Plan ID : </Data></Cell>
     <Cell ss:MergeAcross="8"/>
-    <Cell><Data ss:Type="String">001</Data></Cell>
-    <Cell><Data ss:Type="String">002</Data></Cell>
-    <Cell><Data ss:Type="String">003</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱号-->
+    <Cell><Data ss:Type="String">{{boxNo}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row>
-    <Cell ss:MergeAcross="1"><Data ss:Type="String">Ship To : Amazon.com Services, Inc.&#13;&#10;10240 Old Dowd Rd&#13;&#10;Charlotte, NC 28214-8082&#13;&#10;US ( CLT2)</Data></Cell>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Ship To : {{shipTo}}</Data></Cell>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Weight of box (lb)</Data></Cell>
-    <Cell><Data ss:Type="Number">44.31</Data></Cell>
-    <Cell><Data ss:Type="Number">32.19</Data></Cell>
-    <Cell><Data ss:Type="Number">33.729999999999997</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱重-->
+    <Cell><Data ss:Type="Number">{{box_weight_lb}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row>
-    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total SKUs : 3</Data></Cell>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total SKUs : {{skus}}</Data></Cell>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box length (in)</Data></Cell>
-    <Cell><Data ss:Type="Number">20.079999999999998</Data></Cell>
-    <Cell><Data ss:Type="Number">20.079999999999998</Data></Cell>
-    <Cell><Data ss:Type="Number">20.079999999999998</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱长-->
+    <Cell><Data ss:Type="Number">{{box_length_in}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row>
-    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total Units : 115</Data></Cell>
+    <Cell ss:MergeAcross="1"><Data ss:Type="String">Total Units : {{Total}}</Data></Cell>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box width (in)</Data></Cell>
-    <Cell><Data ss:Type="Number">16.93</Data></Cell>
-    <Cell><Data ss:Type="Number">11.42</Data></Cell>
-    <Cell><Data ss:Type="Number">11.42</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱宽-->
+    <Cell><Data ss:Type="Number">{{box_width_in}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row>
     <Cell ss:MergeAcross="1"/>
     <Cell ss:MergeAcross="8" ss:StyleID="s72"><Data ss:Type="String">Box height (in)</Data></Cell>
-    <Cell><Data ss:Type="Number">16.14</Data></Cell>
-    <Cell><Data ss:Type="Number">16.14</Data></Cell>
-    <Cell><Data ss:Type="Number">16.14</Data></Cell>
+    {{#each boxNoArr}}  <!-- 设置箱高-->
+    <Cell><Data ss:Type="Number">{{box_hight_in}}</Data></Cell>
+    {{/each}}
    </Row>
    <Row ss:AutoFitHeight="0" ss:Height="4.95" ss:StyleID="s65"/>
   </Table>

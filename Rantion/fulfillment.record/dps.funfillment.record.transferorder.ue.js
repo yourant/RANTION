@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-08-10 19:10:56
+ * @LastEditTime   : 2020-08-12 10:04:38
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
@@ -1437,11 +1437,59 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 value: shipment_id
             }); // 设置shipmentID
 
-            var locationNO = rec.getValue('custbody_dps_ama_location_centerid');
+            var centerId = rec.getValue('custbody_dps_ama_location_centerid');
             objRecord.setValue({
                 fieldId: 'custrecord_dps_shipping_rec_destinationf',
-                value: locationNO
+                value: centerId
             }); // 设置仓库中心编码
+
+            if (centerId) {
+                var te = tool.searchCenterIdInfo(centerId);
+
+                if (JSON.stringify(te) != "{}") {
+
+                    objRecord.setValue({
+                        fieldId: 'custrecord_dps_ship_small_recipient_dh',
+                        value: te.recipien
+                    }); // 收件人
+
+                    var cityId = tool.searchCreateCity("create", te.city);
+
+                    log.debug('调拨单 cityId', cityId);
+
+                    if (cityId) {
+                        objRecord.setValue({
+                            fieldId: 'custrecord_dps_recipient_city_dh',
+                            value: cityId
+                        }); // 城市
+                    }
+                    log.debug('调拨单 te.country', te.country);
+
+                    var countyrId = tool.searchCreateCountry("create", te.country);
+                    if (countyrId) {
+                        objRecord.setValue({
+                            fieldId: 'custrecord_dps_recipient_country_dh',
+                            value: countyrId
+                        }); // 国家
+                    }
+                    log.debug('调拨单 te.country', te.country);
+                    objRecord.setValue({
+                        fieldId: 'custrecord_dps_shipping_rec_country_regi',
+                        value: te.country
+                    }); // 国家简码
+                    objRecord.setValue({
+                        fieldId: 'custrecord_dps_street1_dh',
+                        value: te.addr1
+                    }); // 地址 1
+                    objRecord.setValue({
+                        fieldId: 'custrecord_dps_recipien_code_dh',
+                        value: te.postcode
+                    }); // 邮编
+                }
+
+            }
+
+            log.debug('设置字段的值', "设置字段的值")
 
             var numLines = rec.getLineCount({
                 sublistId: 'item'
@@ -1928,8 +1976,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             log.debug('objRecord_id', objRecord_id);
             return objRecord_id || false;
         } catch (error) {
-            log.debug("error:", error);
-            return "error:" + JSON.stringify(error.message);
+            log.debug("创建调拨单出错 error:", error);
+            return "error:" + error.message;
         }
     }
 

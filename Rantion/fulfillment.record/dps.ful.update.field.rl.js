@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-10 17:56:53
+ * @LastEditTime   : 2020-08-12 19:50:28
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
@@ -23,6 +23,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
         var retObj = {};
         var recId = context.recordID;
         var action = context.action;
+        log.audit('action', action);
 
         try {
 
@@ -238,12 +239,18 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
                         box_no++;
                     })
-                })
+                });
 
+
+
+                loadRec.setValue({
+                    fieldId: 'custrecord_dps_total_number',
+                    value: boxNo
+                }); // 箱子总数
                 loadRec.setValue({
                     fieldId: 'custrecord_dps_box_return_flag',
                     value: true
-                });
+                }); // 已装箱
                 var loadRec_id = loadRec.save();
 
                 log.audit('录入装箱信息成功 loadRec_id', loadRec_id);

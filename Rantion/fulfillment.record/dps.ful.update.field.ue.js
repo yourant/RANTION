@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-10 19:30:02
+ * @LastEditTime   : 2020-08-12 10:43:42
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -164,29 +164,33 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }
                 log.audit('box_flag', box_flag);
-                
-                /*
+
+
                 if (rec_status == 27 && !box_flag) {
                     context.form.addButton({
                         id: 'custpage_dps_li_input_box_info',
                         label: '输入装箱信息',
                         functionName: "inputPackingInfo(" + context.newRecord.id + ")"
                     });
-
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }
                 if (rec_status == 29 || rec_status == 30) {
-                    // if (1) {
                     context.form.addButton({
                         id: 'custpage_dps_li_print_box_info',
                         label: '装箱信息导出',
                         functionName: "printBoxInfo(" + context.newRecord.id + ")"
                     });
-
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }
 
-                */
+                if (box_flag /* && userObj.id == 911 */ ) {
+                    context.form.addButton({
+                        id: 'custpage_dps_li_print_box_info',
+                        label: 'Amazon 格式装箱信息导出',
+                        functionName: "printAmazonBoxInfo(" + context.newRecord.id + ")"
+                    });
+                    context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
+                }
 
             }
         } catch (error) {
@@ -262,7 +266,8 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
                 var fieldKey = Object.keys(fieldMapping);
 
-                var statusArr = [1, 2, 3, 4, 5, 9, 10, 11, 15, 16, 17, 18]
+                var statusArr = [1, 2, 3, 4, 5, 9, 10, 11, 15, 16, 17, 18];
+
 
                 log.audit('发运记录状态', af_rec_status);
                 if (af_rec_status == 14) {
@@ -412,6 +417,8 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     } else {
                         for (var z = 0, z_len = newItem.length; z < z_len; z++) {
                             var temp = newItem[z];
+
+                            log.audit('差异货品对象', temp);
                             if (temp.itemId == dif) { // 找到对应的货品, 新增
 
                                 toRec.selectNewLine({
@@ -435,18 +442,22 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                                     value: temp.sellerSku,
                                     ignoreFieldChange: true
                                 });
+
+                                var temp1 = itemInfoObj[dif].averagecost ? itemInfoObj[dif].averagecost : (itemInfoObj[dif].cost ? itemInfoObj[dif].cost : 1);
                                 toRec.setCurrentSublistValue({
                                     sublistId: 'item',
                                     fieldId: 'rate',
                                     value: itemInfoObj[dif].averagecost ? itemInfoObj[dif].averagecost : (itemInfoObj[dif].cost ? itemInfoObj[dif].cost : 1),
                                     ignoreFieldChange: true
                                 });
-                                // toRec.setCurrentSublistValue({
-                                //     sublistId: 'item',
-                                //     fieldId: 'amount',
-                                //     value: 0,
-                                //     ignoreFieldChange: true
-                                // });
+
+                                log.debug('temp.qty * temp1', temp.qty * temp1);
+                                toRec.setCurrentSublistValue({
+                                    sublistId: 'item',
+                                    fieldId: 'amount',
+                                    value: temp.qty * temp1,
+                                    ignoreFieldChange: true
+                                });
 
                                 toRec.commitLine({
                                     sublistId: 'item'
@@ -471,9 +482,12 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     })
                 }
 
+
+                log.debug('总计 amount', amount)
+
                 toRec.setValue({
                     fieldId: 'total',
-                    value: amount
+                    value: amount.toFixed(2)
                 });
 
                 var toRec_id = toRec.save();

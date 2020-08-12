@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-09 20:17:42
- * @LastEditTime   : 2020-08-10 19:45:16
+ * @LastEditTime   : 2020-08-12 11:07:40
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.box.info.print.sl.js
@@ -13,13 +13,14 @@
  *@NScriptType Suitelet
  */
 define(['../Helper/config', '../Helper/tool.li', 'N/http',
-    'N/redirect'
-], function (config, tool, http, redirect) {
+    'N/redirect', 'N/file', '../cux/Declaration_Information/handlebars-v4.1.1', 'N/encode'
+], function (config, tool, http, redirect, file, Handlebars, encode) {
 
     function onRequest(context) {
 
         var parameters = context.request.parameters;
         var custpage_print = parameters.custpage_print;
+        var custpage_print_amazon = parameters.custpage_print_amazon;
 
         if (custpage_print) {
 
@@ -64,6 +65,82 @@ define(['../Helper/config', '../Helper/tool.li', 'N/http',
             } else {
 
             }
+
+            return;
+
+
+            var getArr = tool.getBoxInfo(64);
+
+            var redisId = Date.parse(new Date());
+            var print_data = tool.groupBoxInfo(getArr);
+
+            log.audit('print_data', print_data.data);
+
+            // 获取模板内容,写全路径或者内部ID
+            var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
+            var model = file.load({
+                id: xmlID
+            }).getContents();
+
+            log.debug('xmlID', xmlID);
+
+            var template = Handlebars.compile(model);
+            var xml_1 = template(getAmaInfo);
+
+            var nowDate = new Date().toISOString();
+            var fileObj = file.create({
+                name: "装箱单-" + nowDate + ".xls",
+                fileType: file.Type.EXCEL,
+                contents: encode.convert({
+                    string: xml_1,
+                    inputEncoding: encode.Encoding.UTF_8,
+                    outputEncoding: encode.Encoding.BASE_64
+                }),
+                encoding: file.Encoding.UTF8,
+                isOnline: true
+            });
+
+            context.response.writeFile({
+                file: fileObj,
+                isInline: true
+            });
+
+        } else if (custpage_print_amazon) {
+            var getAmaInfo = tool.AmazonBoxInfo(custpage_print_amazon);
+
+            log.audit('getAmaInfo', getAmaInfo);
+
+            // 获取模板内容,写全路径或者内部ID
+            var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
+            xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/Amazon格式 装箱信息.xml";
+            var model = file.load({
+                id: xmlID
+            }).getContents();
+
+            log.debug('xmlID', xmlID);
+
+            var template = Handlebars.compile(model);
+            var xml_1 = template(getAmaInfo);
+
+            var nowDate = new Date().toISOString();
+            var fileObj = file.create({
+                name: "Amazon 格式 装箱信息-" + getAmaInfo.aono + ".xls",
+                fileType: file.Type.EXCEL,
+                contents: encode.convert({
+                    string: xml_1,
+                    inputEncoding: encode.Encoding.UTF_8,
+                    outputEncoding: encode.Encoding.BASE_64
+                }),
+                encoding: file.Encoding.UTF8,
+                isOnline: true
+            });
+
+            context.response.writeFile({
+                file: fileObj,
+                isInline: true
+            });
+
+            return "1";
         }
 
     }

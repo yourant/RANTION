@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-08-14 16:05:32
+ * @LastEditTime   : 2020-08-14 16:13:22
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -2255,7 +2255,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      */
     function searchAmazonOrder(message) {
 
-        var RegExp = /[0-9]{3}-[0-9]{7}-[0-9]{7}/ig; // Amazon 订单号格式
+        var RegExp = /[0-9]{3}-[0-9]{7}-[0-9]{7}/g; // Amazon 订单号格式
 
         var amazon_order;
 
@@ -2286,7 +2286,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {String} message 
      */
     function matchAmazonOrder(message) {
-        var RegExp = /[0-9]{3}-[0-9]{7}-[0-9]{7}/ig; // Amazon 订单号格式
+        var RegExp = /[0-9]{3}-[0-9]{7}-[0-9]{7}/g; // Amazon 订单号格式
 
         var amazon_order;
 

@@ -2,12 +2,13 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-29 12:00:25
+ * @LastEditTime   : 2020-08-14 15:39:20
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
+
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
@@ -42,21 +43,23 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
 
 
         // {
-        //     "deliveryTime": "2020-06-01 19:01:44",
-        //     "abno": "AB200601000002",
-        //     "aono": "103411",
-        //     "containerNo": "123",
-        //     "boxQty": 1,
-        //     "volume": 1000.00,
-        //     "weight": 321.00,
-        //     "storageList": [{
-        //         "sku": "1101",
-        //         "type": 2,
-        //         "barcode": "1101",
-        //         "positionCode": "AAAD6610101",
-        //         "qty": 1
-        //     }],
-        //     "delivery": true
+        //     "requestId": "491671578044665856",
+        //     "requestBody": {
+        //         "volume": 2232000,
+        //         "delivery": true,
+        //         "storageList": [{
+        //             "qty": 300,
+        //             "positionCode": "HD1A01",
+        //             "sku": "HY0404",
+        //             "type": 2,
+        //             "barcode": "HY0404"
+        //         }],
+        //         "aono": "TOJP2008120048",
+        //         "deliveryTime": "2020-08-14 15:28:24",
+        //         "boxQty": 30,
+        //         "weight": 282,
+        //         "abno": "AB200814000032"
+        //     }
         // }
 
 
@@ -141,6 +144,17 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
                         type: 'customrecord_dps_shipping_record',
                         id: aono_id
                     });
+
+
+                    var deli_date = deliveryTime.split(' ')[0];
+                    log.debug('deli_date', deli_date);
+                    l_rec.setText({
+                        fieldId: 'custrecord_dps_shipping_rec_shippingdate',
+                        text: deli_date
+                    }); // 设置发运时间
+
+                    val.custrecord_dps_shipping_rec_shippingdate = deli_date;
+
                     l_rec.setValue({
                         fieldId: 'custrecord_dps_total_number',
                         value: boxQty
@@ -225,9 +239,9 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
                     }
                     l_rec.setValue({
                         fieldId: 'custrecord_dps_ship_rec_dono',
-                        value: dono
+                        value: abno
                     });
-                    val.custrecord_dps_ship_rec_dono = dono;
+                    val.custrecord_dps_ship_rec_dono = abno;
 
                     l_rec.setValue({
                         fieldId: 'custrecord_dps_ship_rec_pickno',

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-08-14 13:54:36
+ * @LastEditTime   : 2020-08-14 16:05:32
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -905,12 +905,15 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 }
             });
 
-            log.debug('搜索货品 itemObj', itemObj)
+            log.debug('getInfo  搜索货品 itemObj', itemObj);
 
-            boxArr.map(function (box) {
-                box.asin = itemObj[box.itemId].asin
-                box.fnsku = itemObj[box.itemId].fnsku
-            });
+            if (JSON.stringify(itemObj) != "{}") {
+                boxArr.map(function (box) {
+                    box.asin = itemObj[box.itemId].asin
+                    box.fnsku = itemObj[box.itemId].fnsku
+                });
+            }
+
         }
 
         return boxArr;
@@ -1116,7 +1119,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 }
             });
 
-            // log.debug('搜索货品 itemObj', itemObj)
+            // log.debug('getBoxInfo 搜索货品 itemObj', itemObj)
 
             if (JSON.stringify(itemObj) != "{}") {
                 boxArr.map(function (box) {
@@ -1773,7 +1776,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 }
             });
 
-            log.debug('搜索货品 itemObj', itemObj)
+            log.debug('getGroupBoxInfo 搜索货品 itemObj', itemObj)
             if (JSON.stringify(itemObj) != "{}") {
 
                 boxArr.map(function (box) {
@@ -2251,7 +2254,8 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {String} message 
      */
     function searchAmazonOrder(message) {
-        var req = /[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9]/; // Amazon 订单号格式
+
+        var RegExp = /[0-9]{3}-[0-9]{7}-[0-9]{7}/ig; // Amazon 订单号格式
 
         var amazon_order;
 
@@ -2259,7 +2263,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             return amazon_order;
         }
 
-        var b_starts = message.search(req); // 起始位置
+        var b_starts = message.search(RegExp); // 起始位置
 
         log.audit('开始位置', b_starts);
 
@@ -2282,7 +2286,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {String} message 
      */
     function matchAmazonOrder(message) {
-        var req = /[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9]/ig; // Amazon 订单号格式
+        var RegExp = /[0-9]{3}-[0-9]{7}-[0-9]{7}/ig; // Amazon 订单号格式
 
         var amazon_order;
 
@@ -2290,7 +2294,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             return amazon_order;
         }
 
-        var order_arrary = message.match(req); // 单号数组
+        var order_arrary = message.match(RegExp); // 单号数组
 
         if (order_arrary && order_arrary.length == 0) {
             return '';

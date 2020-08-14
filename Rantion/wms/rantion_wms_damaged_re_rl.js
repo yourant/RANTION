@@ -1,3 +1,13 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-07-10 11:37:16
+ * @LastEditTime   : 2020-08-14 15:10:30
+ * @LastEditors    : Li
+ * @Description    : 
+ * @FilePath       : \Rantion\wms\rantion_wms_damaged_re_rl.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
@@ -100,7 +110,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
                             diffCount = remainCount
                             remainCount = 0
                         }
-                        var id = saveTransferOrder(firstCompany, item, firstLocation, toLocation, diffCount, context.fono, getParentLocationId(firstCompany, context.positionCode))
+                        var id = saveTransferOrder(firstCompany, item, firstLocation, toLocation, diffCount, context)
                         idArray.push(id)
                     }
                     if (secondCount > 0 && remainCount > 0) {
@@ -114,7 +124,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
                             diffCount = remainCount
                             remainCount = 0
                         }
-                        var id = saveTransferOrder(secondCompany, item, secondLocation, toLocation, diffCount, context.fono, getParentLocationId(secondCompany, context.positionCode))
+                        var id = saveTransferOrder(secondCompany, item, secondLocation, toLocation, diffCount, context)
                         idArray.push(id)
                     }
                     if (remainCount > 0) {
@@ -122,13 +132,18 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
                         if (!thirdLocation) throw new Error("广州蓝深科技有限公司 对应仓库不存在 仓库编号：" + context.warehouseCode)
                         var toLocation = getLocationId(thirdCompany, damageedLocation)
                         if (!toLocation) throw new Error("广州蓝深科技有限公司 对应新仓库不存在 仓库编号：" + damageedLocation)
-                        var id = saveTransferOrder(thirdCompany, item, thirdLocation, toLocation, diffCount, context.fono, getParentLocationId(thirdCompany, context.positionCode))
+                        var id = saveTransferOrder(thirdCompany, item, thirdLocation, toLocation, diffCount, context)
                         idArray.push(id)
                     }
                     var retjson = {
                         code: 0,
-                        data: {}
+                        data: {
+                            msg: idArray
+                        },
+                        msg: JSON.stringify(idArray)
                     }
+
+                    log.debug('retjson', retjson);
                     requestRecord.saveRequestRecord(requestData.requestId, JSON.stringify(requestData.requestBody), JSON.stringify(retjson), 1, "库存报损");
                     return JSON.stringify(retjson);
                 }
@@ -145,7 +160,14 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
     }
 
     //保存数据
-    function saveTransferOrder(company, item, location, toLocation, diffCount, fono, parentLocation) {
+    function saveTransferOrder(company, item, location, toLocation, diffCount, cont) {
+        var fono = cont.fono,
+            positionCode = cont.positionCode,
+            type = cont.type,
+            barcode = cont.barcode;
+
+        log.audit('company, item, location, toLocation, diffCount, cont',
+            company + ',' + item + ',' + location + ',' + toLocation + ',' + diffCount + ',' + JSON.stringify(cont))
         var price;
         search.create({
             type: 'item',
@@ -184,22 +206,26 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
         })
         rec.setValue({
             fieldId: 'custbody_dps_start_location',
-            value: parentLocation
+            value: location
         })
         rec.setValue({
             fieldId: 'custbody_dps_transferor_type',
-            value: '6'
+            value: '4'
         })
         rec.setValue({
             fieldId: 'transferlocation',
             value: toLocation
         })
-        rec.setValue({
-            fieldId: 'custbody_dps_end_location',
-            value: toLocation
-        })
+        // rec.setValue({
+        //     fieldId: 'custbody_dps_end_location',
+        //     value: toLocation
+        // })
         rec.setValue({
             fieldId: 'custbody_dps_wms_damage_num',
+            value: fono
+        })
+        rec.setValue({
+            fieldId: 'tranid',
             value: fono
         })
         rec.setValue({
@@ -219,6 +245,22 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
             line: 0
         });
 
+        rec.setSublistText({
+            sublistId: 'item',
+            fieldId: 'custcol_location_bin',
+            text: positionCode,
+            line: 0
+        }); // 仓库编号
+
+        if (type == 1) {
+            rec.setSublistText({
+                sublistId: 'item',
+                fieldId: 'custcol_case_number',
+                text: barcode,
+                line: 0
+            }); // 箱号
+        }
+
         if (price) {
             log.audit('saveTransferOrder price', price);
             rec.setSublistValue({
@@ -230,6 +272,8 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
         }
 
         var id = rec.save();
+
+        log.debug('库存转移订单', id);
         var itemf = record.transform({
             fromType: 'transferorder',
             toType: record.Type.ITEM_FULFILLMENT,
@@ -238,14 +282,42 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
         itemf.setValue({
             fieldId: 'shipstatus',
             value: 'C'
-        })
-        itemf.save()
+        });
+
+        var ifl_id = itemf.save();
+        log.debug('货品履行 id', ifl_id);
         var itemr = record.transform({
             fromType: 'transferorder',
             toType: 'itemreceipt',
             fromId: id
         });
-        itemr.save()
+
+
+        var numLines = itemr.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            itemr.setSublistText({
+                sublistId: 'item',
+                fieldId: 'custcol_location_bin',
+                text: '',
+                line: 0
+            }); // 仓库编号
+
+            if (type == 1) {
+                itemr.setSublistText({
+                    sublistId: 'item',
+                    fieldId: 'custcol_case_number',
+                    text: '',
+                    line: 0
+                }); // 箱号
+            }
+        }
+
+        var itre_id = itemr.save();
+        log.debug('货品接收 id', itre_id);
         return id
     }
 

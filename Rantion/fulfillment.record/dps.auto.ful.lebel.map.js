@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-23 21:17:12
- * @LastEditTime   : 2020-07-23 21:46:10
+ * @LastEditTime   : 2020-08-14 10:56:41
  * @LastEditors    : Li
  * @Description    : 定时执行, 自动获取装箱信息处理情况, 并回传箱唛标签至WMS
  * @FilePath       : \Rantion\fulfillment.record\dps.auto.ful.lebel.map.js
@@ -34,6 +34,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     values: ["24", "26"]
                 }
             ]
+
         }).run().each(function (rec) {
 
             fulArr.push(rec.id);

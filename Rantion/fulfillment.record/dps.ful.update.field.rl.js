@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-12 19:50:28
+ * @LastEditTime   : 2020-08-13 14:42:03
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
@@ -191,47 +191,66 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                             fieldId: 'custrecord_dps_ship_box_item',
                             value: arr.itemId
                         }); // 货品
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_sku',
-                            value: arr.sellersku
-                        }); // seller
+                        if (arr.sellersku) {
+                            loadRec.setCurrentSublistValue({
+                                sublistId: sublistId,
+                                fieldId: 'custrecord_dps_ship_box_sku',
+                                value: arr.sellersku
+                            }); // seller
+                        }
                         loadRec.setCurrentSublistValue({
                             sublistId: sublistId,
                             fieldId: 'custrecord_dps_ship_box_quantity',
                             value: b
                         });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_weight',
-                            value: arr.packing_weight / 1000
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ful_rec_box_length',
-                            value: arr.box_long
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_width',
-                            value: arr.box_wide
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ful_rec_big_box_hight',
-                            value: arr.box_high
-                        });
+                        if (arr.packing_weight) {
+                            loadRec.setCurrentSublistValue({
+                                sublistId: sublistId,
+                                fieldId: 'custrecord_dps_ship_box_weight',
+                                value: Number(arr.packing_weight * b) / 1000
+                            });
+                        }
 
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_asin',
-                            value: arr.asin
-                        });
-                        loadRec.setCurrentSublistValue({
-                            sublistId: sublistId,
-                            fieldId: 'custrecord_dps_ship_box_fnsku',
-                            value: arr.fnsku
-                        });
+                        if (arr.box_long) {
+                            loadRec.setCurrentSublistValue({
+                                sublistId: sublistId,
+                                fieldId: 'custrecord_dps_ful_rec_box_length',
+                                value: arr.box_long
+                            });
+                        }
+
+                        if (arr.box_wide) {
+                            loadRec.setCurrentSublistValue({
+                                sublistId: sublistId,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_width',
+                                value: arr.box_wide
+                            });
+                        }
+
+                        if (arr.box_high) {
+                            loadRec.setCurrentSublistValue({
+                                sublistId: sublistId,
+                                fieldId: 'custrecord_dps_ful_rec_big_box_hight',
+                                value: arr.box_high
+                            });
+                        }
+
+
+                        if (arr.asin) {
+                            loadRec.setCurrentSublistValue({
+                                sublistId: sublistId,
+                                fieldId: 'custrecord_dps_ship_box_asin',
+                                value: arr.asin
+                            });
+                        }
+
+                        if (arr.fnsku) {
+                            loadRec.setCurrentSublistValue({
+                                sublistId: sublistId,
+                                fieldId: 'custrecord_dps_ship_box_fnsku',
+                                value: arr.fnsku
+                            });
+                        }
 
                         loadRec.commitLine({
                             sublistId: sublistId
@@ -260,6 +279,41 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 retObj.msg = "录入装箱信息成功";
                 log.audit('录入装箱信息成功, 返回参数 retObj', retObj);
                 return retObj;
+            }
+
+            if(action == 'deleteBoxInfo'){
+
+
+                var retObj = {};
+                var userObj = runtime.getCurrentUser();
+
+                if(userObj.role == 3){
+                  var boxLine=  tool.deleteBoxInfo(recId);
+
+
+                  if(boxLine == 0){
+                      retObj.code = 0;
+                    }
+                    else{
+                        retObj.code = 3;
+                  }
+                  retObj.data = null;
+                  retObj.msg = "装箱信息 剩余数量 "+boxLine;
+                  log.audit('删除装箱信息 剩余数量, 返回参数 retObj', retObj);
+
+                  return retObj;
+                }else{
+
+                    retObj.code = 5;
+                    retObj.data = null;
+                    retObj.msg = "权限不足, 无法删除装箱信息";
+                    log.audit('权限不足, 无法删除装箱信息, 返回参数 retObj', retObj);
+
+                    return retObj;
+                }
+
+
+
             }
         } catch (error) {
             log.error('处理数据出错了', error);

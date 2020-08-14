@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 11:07:52
- * @LastEditTime   : 2020-08-12 20:14:28
+ * @LastEditTime   : 2020-08-13 14:46:06
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.to.control.field.cs.js
@@ -430,6 +430,51 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
     }
 
 
+    function deleteBoxInfo(rec_id) {
+
+        commonTool.startMask('正在删除装箱信息,请耐心等待...');
+
+        var url1 = url.resolveScript({
+            scriptId: 'customscript_dps_ful_update_field_rl',
+            deploymentId: 'customdeploy_dps_ful_update_field_rl',
+            returnExternalUrl: false
+        });
+
+        https.post.promise({
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8',
+                'Accept': 'application/json'
+            },
+            url: url1,
+            body: {
+                action: "deleteBoxInfo",
+                recordID: rec_id
+            }
+        }).then(function (response) {
+
+            var data = response.body;
+
+            commonTool.endMask();
+
+            dialog.alert({
+                title: '删除装箱信息',
+                message: JSON.parse(data).msg
+            }).then(function () {
+                window.location.reload();
+            });
+        }).catch(function onRejected(reason) {
+            dialog.alert({
+                title: '删除装箱信息',
+                message: reason
+            }).then(function () {
+                window.location.reload();
+            });
+        });
+
+    }
+
+
+
     return {
         pageInit: pageInit,
         fieldChanged: fieldChanged,
@@ -444,7 +489,8 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
         updateWMS: updateWMS,
         inputPackingInfo: inputPackingInfo,
         printBoxInfo: printBoxInfo,
-        printAmazonBoxInfo: printAmazonBoxInfo
+        printAmazonBoxInfo: printAmazonBoxInfo,
+        deleteBoxInfo: deleteBoxInfo
     };
 
 });

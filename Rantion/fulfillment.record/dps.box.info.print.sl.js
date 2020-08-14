@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-09 20:17:42
- * @LastEditTime   : 2020-08-12 11:07:40
+ * @LastEditTime   : 2020-08-13 19:46:48
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.box.info.print.sl.js
@@ -41,6 +41,8 @@ define(['../Helper/config', '../Helper/tool.li', 'N/http',
                 'Accept': 'application/json',
                 'access_token': token
             };
+
+            log.audit('JSON.stringify(obj)', JSON.stringify(obj));
             var response = http.post({
                 url: config.WMS_Debugging_URL + "/common/setBoxingReportBodyByRedis/" + redisId,
                 headers: headerInfo,
@@ -61,35 +63,43 @@ define(['../Helper/config', '../Helper/tool.li', 'N/http',
                         }
                     });
 
+                } else {
+
+                    context.response.writeLine(JSON.stringify(retdata));
                 }
             } else {
-
+                context.response.writeLine("error");
+                context.response.writeLine(JSON.stringify(retdata));
             }
 
             return;
 
 
-            var getArr = tool.getBoxInfo(64);
 
-            var redisId = Date.parse(new Date());
+            var getArr = tool.getBoxInfo(custpage_print);
+
             var print_data = tool.groupBoxInfo(getArr);
-
-            log.audit('print_data', print_data.data);
-
             // 获取模板内容,写全路径或者内部ID
             var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
+
             var model = file.load({
                 id: xmlID
             }).getContents();
 
             log.debug('xmlID', xmlID);
 
+            var strName = '装箱单';
+
+            if (print_data.aono) {
+                strName += print_data.aono
+            }
+
             var template = Handlebars.compile(model);
-            var xml_1 = template(getAmaInfo);
+            var xml_1 = template(print_data);
 
             var nowDate = new Date().toISOString();
             var fileObj = file.create({
-                name: "装箱单-" + nowDate + ".xls",
+                name: strName + ".xls",
                 fileType: file.Type.EXCEL,
                 contents: encode.convert({
                     string: xml_1,

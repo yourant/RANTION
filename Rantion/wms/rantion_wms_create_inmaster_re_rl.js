@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-08-10 22:09:47
+ * @LastEditTime   : 2020-08-13 20:20:00
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
@@ -1709,7 +1709,6 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     }
 
                     var irObj_id = irObj.save();
-
 
                     var dec_objRecord = record.load({
                         type: 'customrecord_dps_delivery_order',

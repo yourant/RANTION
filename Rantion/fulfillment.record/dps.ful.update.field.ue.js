@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-12 10:43:42
+ * @LastEditTime   : 2020-08-13 14:44:35
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -185,9 +185,17 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
                 if (box_flag /* && userObj.id == 911 */ ) {
                     context.form.addButton({
-                        id: 'custpage_dps_li_print_box_info',
+                        id: 'custpage_dps_li_print_amazon_box_info',
                         label: 'Amazon 格式装箱信息导出',
                         functionName: "printAmazonBoxInfo(" + context.newRecord.id + ")"
+                    });
+                    context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
+                }
+                if (box_flag  && userObj.role == 3 ) {
+                    context.form.addButton({
+                        id: 'custpage_dps_li_delete_box_info',
+                        label: '删除装箱信息',
+                        functionName: "deleteBoxInfo(" + context.newRecord.id + ")"
                     });
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }

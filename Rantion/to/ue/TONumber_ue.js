@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-20 21:02:30
- * @LastEditTime   : 2020-07-31 14:45:59
+ * @LastEditTime   : 2020-07-29 09:50:20
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\to\ue\TONumber_ue.js
@@ -72,7 +72,7 @@ define(['N/search', 'N/record'], function (search, record) {
                     } else if (a_num >= 100 && a_num < 1000) {
                         str = "0" + (a_num + 1);
                     } else if (a_num >= 1000) {
-                        str = '' + (a_num + 1);
+                        str = '' + a_num;
                     } else {
                         str = "000" + (a_num + 1);
                     }

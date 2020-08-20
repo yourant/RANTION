@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-08-10 19:09:03
+ * @LastEditTime   : 2020-08-19 19:25:08
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -477,7 +477,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                     num++;
                     if (ld.msku) { // 存在 msku
                         add_fils.push([
-                            ["name", "is", ld.msku],
+                            ["name", "contains", ld.msku.trim()],
                             "and",
                             ["custrecord_ass_sku", "anyof", ld.itemId]
                         ]);
@@ -522,7 +522,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                         var temp_name = rec.getValue('name');
                         var it = rec.getValue('custrecord_ass_sku');
                         item_info.forEach(function (item, key) {
-                            if (item.itemId == it && item.msku == temp_name && fls_skus.indexOf(temp_name) == -1) {
+                            if (item.itemId == it && item.msku.trim() == temp_name.trim() && fls_skus.indexOf(temp_name) == -1) {
                                 item.asin = rec.getValue("custrecord_ass_asin");
                                 item.fnsku = rec.getValue("custrecord_ass_fnsku");
                                 item.msku = rec.getValue('name');

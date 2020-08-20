@@ -107,7 +107,6 @@ function(config, search, record, url, https) {
                         }
                         var transferorder_c_id = transferorder_c_rec.save();
                         to_id = transferorder_c_id;
-                        log.debug('创建NO.3库存转移订单', transferorder_c_id);
 
                         // 修改发运记录
                         var shipping_rec = record.load({ type: 'customrecord_dps_shipping_record', id: shipping_id });
@@ -127,8 +126,7 @@ function(config, search, record, url, https) {
                             itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'location', value: from_location, line: i });
                             itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity, line: i });
                         }
-                        var ifId = itemFulfillment.save();
-                        log.debug('库存转移订单if生成成功', ifId);
+                        itemFulfillment.save();
                     }
                     if (shipping_id && to_id && from_location && to1_location && subsidiary) {
                         adjustmentInventroyQuantiy(to_id, skuid, newRecord, 2);
@@ -180,9 +178,8 @@ function(config, search, record, url, https) {
                 deploymentId: 'customdeploy_dps_wms_finish_fba_rl'
             });
             if (type == 1) {
-                log.debug('url_finish_fba', url_finish_fba);
                 https.post({
-                    url: 'https://6188472-sb1.app.netsuite.com' + url_finish_fba,
+                    url: config.service_url + url_finish_fba,
                     body: {
                         transferOrderNO: to_id
                     },

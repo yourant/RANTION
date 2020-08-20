@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-07-25 17:28:53
+ * @LastEditTime   : 2020-08-19 15:18:33
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
@@ -520,6 +520,41 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
                 action: 'confirmOut',
                 recordID: rec_id
             };
+
+
+
+
+            commonTool.startMask('正在确认出库履行中，请耐心等待');
+            https.post.promise({
+                url: url1,
+                body: body2,
+                headers: header3
+            }).then(function (response) {
+                var rebody = JSON.parse(response.body);
+                commonTool.endMask();
+                var msg;
+                if (rebody.code == 500) {
+                    msg = '完成出库履行失败：' + rebody.msg;
+                } else {
+                    msg = '完成出库履行成功';
+                }
+                dialog.alert({
+                    title: '提示',
+                    message: msg
+                }).then(function () {
+                    window.location.reload();
+                });
+            }).catch(function (reason) {
+                commonTool.endMask();
+                dialog.alert({
+                    title: '提示',
+                    message: reason
+                }).then(function () {
+                    window.location.reload();
+                });
+            })
+
+            /*
             var options = {
                 title: "确认出库履行",
                 message: "是否确认出库履行?"
@@ -555,6 +590,8 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
                 log.debug('reason', reason)
             }
             dialog.confirm(options).then(success).catch(failure);
+
+            */
         }
 
         /**
@@ -575,6 +612,38 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
                 action: 'finishPackage',
                 recordID: rec_id
             };
+
+            commonTool.startMask('正在确认完成录入装箱信息中，请耐心等待');
+            https.post.promise({
+                url: url1,
+                body: body2,
+                headers: header3
+            }).then(function (response) {
+                var rebody = JSON.parse(response.body);
+                commonTool.endMask();
+                var msg;
+                if (rebody.code == 500) {
+                    msg = '完成录入装箱信息失败：' + rebody.msg;
+                } else {
+                    msg = '完成录入装箱信息成功';
+                }
+                dialog.alert({
+                    title: '提示',
+                    message: msg
+                }).then(function () {
+                    window.location.reload();
+                });
+            }).catch(function (reason) {
+                commonTool.endMask();
+                dialog.alert({
+                    title: '提示',
+                    message: reason
+                }).then(function () {
+                    window.location.reload();
+                });
+            })
+
+            /*
             var options = {
                 title: "确认完成录入装箱信息",
                 message: "是否确认完成录入装箱信息?"
@@ -610,6 +679,8 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
                 log.debug('reason', reason)
             }
             dialog.confirm(options).then(success).catch(failure);
+
+            */
         }
 
 

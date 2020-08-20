@@ -794,14 +794,21 @@ function(search, ui, moment, format, runtime, record) {
         }
         var zl = 0, data_arr = [];
         var re_zl;
+
+        var skucs = [];
+        SKUIds.map(function(fs){
+          if(JSON.stringify(sku_arrys).indexOf(fs.item_sku)>-1){
+            skucs.push(fs)
+          }
+        })
         for(var key in acc_skus){
-        for (var z = 0; z < SKUIds.length; z++) {
+        for (var z = 0; z < skucs.length; z++) {
             if (result.length > 0) {
                 var arr_list = {},need1_zl;
                 for(var a = 0; a < result.length; a++){
-                    if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']
-                    && key.split(".")[0]  == SKUIds[z]['item_sku'] 
-                    && acc_skus[key] == SKUIds[z]['forecast_account']
+                    if(skucs[z]['item_sku'] == result[a]['item_sku'] && skucs[z]['forecast_account'] == result[a]['account']
+                    && key.split(".")[0]  == skucs[z]['item_sku'] 
+                    && acc_skus[key] == skucs[z]['forecast_account']
                     ){
                         sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
                         sublist.setSublistValue({ id: 'custpage_store_name_id', value: result[a]['account'], line: zl });

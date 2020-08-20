@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-08-13 20:20:00
+ * @LastEditTime   : 2020-08-20 18:18:04
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\wms\rantion_wms_create_inmaster_re_rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -216,7 +216,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         return inventory_ord.save();
     }
 
-    // 单主体调拨 —— 
+    // 单主体调拨 ——
     function returnSubsidiaryTransfer(context) {
 
         var retObj = {};
@@ -439,30 +439,30 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         search.create({
             type: 'transferorder',
             filters: [{
-                    name: 'type',
-                    operator: 'anyof',
-                    values: ['TrnfrOrd']
-                },
-                {
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: to_id
-                },
-                {
-                    name: 'item',
-                    operator: 'anyof',
-                    values: skuid
-                },
-                {
-                    name: 'transferorderquantityreceived',
-                    operator: 'greaterthan',
-                    values: ['0']
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: ['F']
-                }
+                name: 'type',
+                operator: 'anyof',
+                values: ['TrnfrOrd']
+            },
+            {
+                name: 'internalid',
+                operator: 'anyof',
+                values: to_id
+            },
+            {
+                name: 'item',
+                operator: 'anyof',
+                values: skuid
+            },
+            {
+                name: 'transferorderquantityreceived',
+                operator: 'greaterthan',
+                values: ['0']
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: ['F']
+            }
             ],
             columns: ['item', 'transferorderquantityreceived', 'transferlocation', 'subsidiary', 'custbody_dps_transferor_type']
         }).run().each(function (result) {
@@ -515,20 +515,20 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 search.create({
                     type: 'transferorder',
                     filters: [{
-                            name: 'type',
-                            operator: 'anyof',
-                            values: ['TrnfrOrd']
-                        },
-                        {
-                            name: 'internalid',
-                            operator: 'anyof',
-                            values: to_id
-                        },
-                        {
-                            name: 'mainline',
-                            operator: 'is',
-                            values: ['T']
-                        }
+                        name: 'type',
+                        operator: 'anyof',
+                        values: ['TrnfrOrd']
+                    },
+                    {
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: to_id
+                    },
+                    {
+                        name: 'mainline',
+                        operator: 'is',
+                        values: ['T']
+                    }
                     ],
                     columns: ['transferlocation', 'subsidiary']
                 }).run().each(function (result) {
@@ -583,7 +583,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 自营仓调拨入库
-     * @param {Object} context 
+     * @param {Object} context
      */
     function returnTransfer(context) {
         // NO.1 调拨单的内部ID
@@ -593,7 +593,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         search.create({
             type: 'customrecord_dps_shipping_record',
             filters: [{
-                name: 'custrecord_dps_shipping_rec_order_num',
+                name: 'tranid',
+                join: 'custrecord_dps_shipping_rec_order_num',
                 operator: 'is',
                 values: sourceNo
             }],
@@ -603,7 +604,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             }]
         }).run().each(function (result) {
             to_id = result.getValue('custrecord_transfer_order3');
-            location = rec.getValue({
+            location = result.getValue({
                 name: 'transferlocation',
                 join: 'custrecord_transfer_order3'
             })
@@ -873,15 +874,15 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 search.create({
                     type: 'transferorder',
                     filters: [{
-                            name: 'mainline',
-                            operator: 'is',
-                            values: true
-                        },
-                        {
-                            name: 'internalid',
-                            operator: 'is',
-                            values: to_id
-                        },
+                        name: 'mainline',
+                        operator: 'is',
+                        values: true
+                    },
+                    {
+                        name: 'internalid',
+                        operator: 'is',
+                        values: to_id
+                    },
                     ],
                     columns: [
                         "transferlocation", "subsidiary"
@@ -961,6 +962,8 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
             retObj.data = null;
             retObj.msg = "NS 处理成功"
 
+            log.debug('回传数据', JSON.stringify(retObj))
+
             return retObj;
 
         } else { // 不存在对应的第二段调拨单
@@ -975,7 +978,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 大包退件入库
-     * @param {Object} body 
+     * @param {Object} body
      */
     function logisticsReturnTransfer(body) {
 
@@ -1277,7 +1280,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 小包退件入库
-     * @param {Object} body 
+     * @param {Object} body
      */
     function logisticsReturnItemReceipt(body) {
         var sourceNo = body.sourceNo;
@@ -1294,9 +1297,9 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 values: sourceNo
             }],
             columns: [{
-                    name: 'subsidiary',
-                    join: 'custrecord_dps_ship_small_salers_order'
-                },
+                name: 'subsidiary',
+                join: 'custrecord_dps_ship_small_salers_order'
+            },
                 "custrecord_dps_ship_small_salers_order"
             ]
         }).run().each(function (rec) {
@@ -1545,7 +1548,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 查询科目
-     * @param {*} type 
+     * @param {*} type
      */
     function getAccount(type) {
         var account
@@ -1565,7 +1568,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 交货单入库回传
-     * @param {Object} context 
+     * @param {Object} context
      */
     function returnDelivery(context) {
         var ret = {};
@@ -1579,9 +1582,9 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 values: sourceNo
             }],
             columns: [{
-                    name: 'custrecord_dps_wms_location',
-                    join: 'custrecord_dsp_delivery_order_location'
-                }, // WMS仓库编码
+                name: 'custrecord_dps_wms_location',
+                join: 'custrecord_dsp_delivery_order_location'
+            }, // WMS仓库编码
             ]
         }).run().each(function (rec) {
             ret_id = rec.id;
@@ -1610,13 +1613,13 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                         values: ret_id
                     }],
                     columns: [{
-                            name: 'custrecord_item_sku',
-                            join: "custrecord_dps_delivery_order_id"
-                        }, // 交货货品
-                        {
-                            name: 'custrecord_item_quantity',
-                            join: "custrecord_dps_delivery_order_id"
-                        }, // 交货数量
+                        name: 'custrecord_item_sku',
+                        join: "custrecord_dps_delivery_order_id"
+                    }, // 交货货品
+                    {
+                        name: 'custrecord_item_quantity',
+                        join: "custrecord_dps_delivery_order_id"
+                    }, // 交货数量
                         "custrecord_dsp_delivery_order_location", // 地点
                         "custrecord_purchase_order_no", // 采购订单
                     ]
@@ -1710,6 +1713,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
                     var irObj_id = irObj.save();
 
+
                     var dec_objRecord = record.load({
                         type: 'customrecord_dps_delivery_order',
                         id: ret_id
@@ -1797,6 +1801,11 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     value: 4
                 });
 
+                objRecord.setText({
+                    fieldId: 'custrecord_dps_warehous_date',
+                    text: new Date().toISOString().split('T')[0]
+                });
+
                 // objRecord.setValue({
                 //     fieldId: 'custrecord_dps_warehousing_end',
                 //     value: true
@@ -1863,22 +1872,22 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 检查单据的状态, 属于等待审批的, 直接设置为等待收货
-     * @param {*} po_id 
+     * @param {*} po_id
      */
     function checkStatusPO(po_id) {
         var recStatus;
         search.create({
             type: 'purchaseorder',
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: [po_id]
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: true
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: [po_id]
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: true
+            }
             ],
             columns: ['statusref']
         }).run().each(function (rec) {
@@ -1891,7 +1900,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
     }
 
     /**
-     * 
+     *
      * @param {Number} po_id 采购订单ID
      * @param {Array} itemList 货品数组
      * @param {Number} location 地点ID
@@ -1907,20 +1916,20 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         search.create({
             type: 'purchaseorder',
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: [po_id]
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: [po_id]
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            }
             ],
             columns: [
                 "item",
@@ -2119,28 +2128,28 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 搜索对应的地点
-     * @param {s} warCode 
-     * @param {*} Subsidiary 
+     * @param {s} warCode
+     * @param {*} Subsidiary
      */
     function searchLocationCode(warCode, Subsidiary) {
         var locationId;
         search.create({
             type: 'location',
             filters: [{
-                    name: 'custrecord_dps_wms_location',
-                    operator: 'is',
-                    values: warCode
-                },
-                {
-                    name: 'subsidiary',
-                    operator: 'anyof',
-                    values: Subsidiary
-                },
-                {
-                    name: 'isinactive',
-                    operator: 'is',
-                    values: false
-                }
+                name: 'custrecord_dps_wms_location',
+                operator: 'is',
+                values: warCode
+            },
+            {
+                name: 'subsidiary',
+                operator: 'anyof',
+                values: Subsidiary
+            },
+            {
+                name: 'isinactive',
+                operator: 'is',
+                values: false
+            }
             ],
         }).run().each(function (rec) {
             locationId = rec.id;
@@ -2154,7 +2163,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 创建箱子
-     * @param {*} boxName 
+     * @param {*} boxName
      */
     function createBoxLocation(boxName, Subsidiary, fLocation) {
 
@@ -2199,13 +2208,13 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 values: fLocation
             }],
             columns: [{
-                    name: 'custrecord_dps_wms_location',
-                    join: 'custrecord_dps_parent_location'
-                },
-                {
-                    name: 'custrecord_dps_wms_location_name',
-                    join: 'custrecord_dps_parent_location'
-                }
+                name: 'custrecord_dps_wms_location',
+                join: 'custrecord_dps_parent_location'
+            },
+            {
+                name: 'custrecord_dps_wms_location_name',
+                join: 'custrecord_dps_parent_location'
+            }
             ]
         }).run().each(function (result) {
             var code = result.getValue({
@@ -2245,7 +2254,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
     /**
      * 退货入库
-     * @param {Object} context 
+     * @param {Object} context
      */
     function returnInfo(context) {
         var limit = 3999;
@@ -2255,21 +2264,21 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
         search.create({
             type: 'returnauthorization',
             filters: [{
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                },
-                // { name: 'poastext', operator: 'is', values: sourceNo }
-                {
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: sourceNo
-                }
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            },
+            // { name: 'poastext', operator: 'is', values: sourceNo }
+            {
+                name: 'internalid',
+                operator: 'anyof',
+                values: sourceNo
+            }
             ],
             columns: ['item', 'custcol_dps_trans_order_item_sku']
         }).run().each(function (rec) {

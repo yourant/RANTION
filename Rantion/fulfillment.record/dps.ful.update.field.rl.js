@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-13 14:42:03
+ * @LastEditTime   : 2020-08-18 11:12:06
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
@@ -270,7 +270,14 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                     fieldId: 'custrecord_dps_box_return_flag',
                     value: true
                 }); // 已装箱
+
+                // var userObj = runtime.getCurrentUser();
                 var loadRec_id = loadRec.save();
+                // if(userObj.id == 911){
+
+                // }else{
+                //     loadRec_id = loadRec.save();
+                // }
 
                 log.audit('录入装箱信息成功 loadRec_id', loadRec_id);
 

@@ -168,7 +168,8 @@ function(search, ui, moment, format, runtime, record) {
             var result = rsJson.result;
             var totalCount = rsJson.totalCount;
             var pageCount = rsJson.pageCount;
-            var need_result = createLineData(form, result, date_from, date_to); //创建行数据
+            var sell_arrys = rsJson.sell_arrys;
+            var need_result = createLineData(form, result, date_from, date_to,sell_arrys); //创建行数据
             log.debug('need_result ',need_result);
             if(need_result){
                 try{
@@ -864,9 +865,32 @@ function(search, ui, moment, format, runtime, record) {
          item_data=GetPredictionData (item_data, 22, today, account, sku_arrys, SKUIds, {data_type: '6',data_type_text: '修改调拨计划量'},week_rs,true,nowPage,acc_skus);
 
         // log.debug("11111111111111111111item_data",item_data)
+        //查询对应关系，找出sku 对应的 seller sku，一对多时，选择所需要生成的SKU
+        var sellerskus = {},ck = true,sell_arrys = [];
+        search.create({
+            type:"customrecord_aio_amazon_seller_sku",
+            filters:[
+                {name:"custrecord_ass_sku",operator:"anyof",values:sku_arrys}
+            ],columns:[{name:"name"},{name:"custrecord_ass_sku"}]
+        }).run().each(function(e){
+            ck = true;
+            for(var keysle in sellerskus){
+                if(keysle == e.getValue("custrecord_ass_sku")){
+                    ck = false;
+                    sellerskus[keysle].push(e.getValue("name"))
+                }
+            }
+            if(ck){
+                sell_arrys= [];
+                sell_arrys.push(e.getValue("name"));
+                sellerskus[ e.getValue("custrecord_ass_sku")] = sell_arrys;
+            }
+            return true;
+        })
         rsJson.result = item_data;
         rsJson.totalCount = totalCount;
         rsJson.pageCount = pageCount;
+        rsJson.sell_arrys = sell_arrys;
         log.debug('rsJson',rsJson);
         return rsJson;
     }
@@ -875,7 +899,7 @@ function(search, ui, moment, format, runtime, record) {
     * 创建行数据
     * @param {*} data 
     */
-    function createLineData(form, result, date_from, date_to) {
+    function createLineData(form, result, date_from, date_to,sell_arrys) {
         var week = {};
         var today = new Date(+new Date()+8*3600*1000);
         var week_objs = weekofday(today, date_from, date_to);
@@ -929,19 +953,26 @@ function(search, ui, moment, format, runtime, record) {
         }
         var zl = 0,data_arr = [];
         log.debug("最后拿到的数据::::",acc_skus)
+        var skucs = [];
+        SKUIds.map(function(fs){
+          if(JSON.stringify(sku_arrys).indexOf(fs.item_sku)>-1){
+            skucs.push(fs)
+          }
+        })
         for(var key in acc_skus){
-        for (var z = 0; z < SKUIds.length; z++) {
+        for (var z = 0; z < skucs.length; z++) {
             if (result.length > 0) {
                 var need1_zl, need2_zl, need3_zl,need4_zl,need5_zl;
                 for(var a = 0; a < result.length; a++){
-                    if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']
-                    && key.split(".")[0]  == SKUIds[z]['item_sku'] 
-                    && acc_skus[key] == SKUIds[z]['forecast_account']
+                    if(skucs[z]['item_sku'] == result[a]['item_sku'] && skucs[z]['forecast_account'] == result[a]['account']
+                    && key.split(".")[0]  == skucs[z]['item_sku'] 
+                    && acc_skus[key] == skucs[z]['forecast_account']
                     ){ 
                         sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl });   
                         sublist.setSublistValue({ id: 'custpage_store_name_id', value: result[a]['account'], line: zl }); 
                         sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl }); 
-                        sublist.setSublistValue({ id: 'custpage_item_sku_id', value: result[a]['item_sku'], line: zl });  
+                        sublist.setSublistValue({ id: 'custpage_item_sku_id', value: result[a]['item_sku'], line: zl });
+                       
                         if(result[a]['item_name'])  
                         sublist.setSublistValue({ id: 'custpage_item_name', value: result[a]['item_name'], line: zl });
                         sublist.setSublistValue({ id: 'custpage_data_type', value: result[a]['data_type_text'], line: zl }); 

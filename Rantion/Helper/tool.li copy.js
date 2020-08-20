@@ -1,24 +1,29 @@
+
 /*
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-08-20 21:08:32
+ * @LastEditTime   : 2020-08-20 15:44:46
  * @LastEditors    : Li
  * @Description    :
- * @FilePath       : \Rantion\Helper\tool.li.js
+ * @FilePath       : \Rantion\Helper\tool.li copy.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
-define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], function (search, record, log, http, runtime, util) {
+define(['require', 'exports', 'N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'
+], function (require, exports, search, record, log, http, runtime, util) {
 
 
+    Object.defineProperty(exports, '__esModule', {
+        value: true
+    });
 
     /**
      * 搜索调拨单关联的采购订单
      * @param {Array} itemArr
      * @param {Number} toId
      */
-    function searchToLinkPO(itemArr, toId) {
+    exports.searchToLinkPO = function (itemArr, toId) {
 
         var limit = 3999;
         var getInfo = [];
@@ -73,14 +78,13 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
     }
 
 
-
     /**
      * 保存推送 WMS 的数据
      * @param {Number} linkId
      * @param {Object} info
      * @param {String} recType
      */
-    function wmsInfo(linkId, info, recType, event) {
+    exports.wmsInfo = function (linkId, info, recType, event) {
 
         var recId;
         search.create({
@@ -144,7 +148,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Object} info
      * @param {String} recType
      */
-    function wmsRetInfo(linkId, info, recType, event) {
+    exports.wmsRetInfo = function (linkId, info, recType, event) {
 
         /*
         var recId;
@@ -207,13 +211,12 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
     }
 
 
-
     /**
      * 获取出入库货品信息
      * @param {Array} detailList 出/入库货品详情
      * @returns {Array} allArr 货品详情数组
      */
-    function getAllBinBox(detailList) {
+    exports.getAllBinBox = function (detailList) {
         // add 获取所有库位和箱号
         var allArr = [];
         for (var i_d = 0, i_dLen = detailList.length; i_d < i_dLen; i_d++) {
@@ -234,8 +237,8 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Array} itemArr  货品数组
      * @returns {Array || Boolean} a_arr(库位/箱号 数组) || false
      */
-    function judgmentBinBox(action, itemArr) {
-        var itemObj = SummaryBinBox(itemArr);
+    exports.judgmentBinBox = function (action, itemArr) {
+        var itemObj = this.SummaryBinBox(itemArr);
         var boxObj = itemObj.BoxObj,
             binObj = itemObj.BinObj;
         log.debug('itemObj', itemObj);
@@ -248,10 +251,10 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             a_arr = [];
         if (BoxObjKey && BoxObjKey.length > 0) {
             for (var i = 0, iLen = BoxObjKey.length; i < iLen; i++) { // 箱号动态
-                var s_a = searchLocationBin(boxType, BoxObjKey[i]);
+                var s_a = this.searchLocationBin(boxType, BoxObjKey[i]);
                 if (!s_a) {
                     if (action == "create") {
-                        var boxId = createLocationBin(boxType, BoxObjKey[i]);
+                        var boxId = this.createLocationBin(boxType, BoxObjKey[i]);
 
                     } else {
                         a_arr.push("箱号" + BoxObjKey[i]);
@@ -262,7 +265,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
         if (BinObjKey && BinObjKey.length > 0) {
             for (var i = 0, iLen = BinObjKey.length; i < iLen; i++) { // 库位固定
-                var s_a = searchLocationBin(binType, BinObjKey[i]);
+                var s_a = this.searchLocationBin(binType, BinObjKey[i]);
                 if (!s_a) {
                     a_arr.push("库位：" + BinObjKey[i]);
                 }
@@ -279,7 +282,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Array} itemArr 货币数组
      * @returns {Object} itemObj{BoxObj(箱号对象), BinObj(库位对象)}  || false
      */
-    function SummaryBinBox(itemArr) {
+    exports.SummaryBinBox = function (itemArr) {
         var BinArr = [],
             BoxArr = [],
             sBinBox = [];
@@ -347,7 +350,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {String} BinName  库位名称
      * @returns {Number || Boolean} BinId - 库位(箱号)对应的内部ID  || false
      */
-    function searchLocationBin(listType, BinName) {
+    exports.searchLocationBin = function (listType, BinName) {
 
         var BinId;
         search.create({
@@ -375,7 +378,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {String} BinName  库位名称 || 箱号
      * @returns {Number || Boolean} BinId - 库位(箱号)对应的内部ID  || false
      */
-    function createLocationBin(listType, BinName) {
+    exports.createLocationBin = function (listType, BinName) {
 
         var BinId;
         var bin = record.create({
@@ -395,7 +398,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 生成销售订单的货品履行单
      * @param {Number} recId  记录ID
      */
-    function createItemFulfillment(recId) {
+    exports.createItemFulfillment = function (recId) {
         var f = record.transform({
             fromType: record.Type.SALES_ORDER,
             toType: record.Type.ITEM_FULFILLMENT,
@@ -413,7 +416,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 生成销售订单的发票
      * @param {Number} recId
      */
-    function createInvoice(recId) {
+    exports.createInvoice = function (recId) {
         var invId;
         var inv = record.transform({
             fromType: record.Type.SALES_ORDER,
@@ -431,7 +434,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Number} recId 记录ID
      * @returns {*} itemArr(货品信息数组) || false
      */
-    function searchTransactionItemInfo(recType, recId) {
+    exports.searchTransactionItemInfo = function (recType, recId) {
         var limit = 3999,
             itemArr = [],
             item_temp, quantity_temp;
@@ -496,7 +499,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Number} recId 记录ID
      * @returns {*} itemObj {货品名称:货品ID} (货品信息对象) || false
      */
-    function searchTransactionItemObj(recType, recId) {
+    exports.searchTransactionItemObj = function (recType, recId) {
         var limit = 3999,
             itemObj = {},
             item_temp, quantity_temp;
@@ -554,7 +557,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Number} recId
      * @param {Array} judArr
      */
-    function judgmentFlag(recId, judArr) {
+    exports.judgmentFlag = function (recId, judArr) {
 
         var limit = 3999,
             fulArr = [];
@@ -581,8 +584,6 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             return --limit > 0;
         });
 
-        log.audit('judgmentFlag   fulArr', fulArr);
-
 
         var itemIdArr = [];
         judArr.map(function (jud) {
@@ -590,10 +591,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             itemIdArr.push(itemId);
         });
 
-        log.audit('judgmentFlag   itemIdArr', itemIdArr);
 
-
-        var diffArr = checkDifferentArr(itemIdArr, fulArr);
+        var diffArr = this.checkDifferentArr(itemIdArr, fulArr);
+        var diffArr = this.diffArr(itemIdArr, fulArr);
 
         return diffArr;
     }
@@ -605,7 +605,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Array} arr1 数组1
      * @param {Array} arr2 数组2
      */
-    function checkDifferentArr(arr1, arr2) {
+    exports.checkDifferentArr = function (arr1, arr2) {
         var newArr = [];
         var arr3 = [];
         for (var i = 0; i < arr1.length; i++) {
@@ -625,7 +625,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
     /**
      * 获取token
      */
-    function getToken() {
+    exports.getToken = function () {
         var token;
         search.create({
             type: 'customrecord_wms_token',
@@ -646,7 +646,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {*} token
      * @param {*} data
      */
-    function sendRequest(token, data, url) {
+    exports.sendRequest = function (token, data, url) {
         var message = {};
         var code = 0;
         var body;
@@ -680,7 +680,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 获取发运记录的信息
      * @param {*} recId
      */
-    function getInfo(recId) {
+    exports.getInfo = function (recId) {
 
         var itemArr = [],
             itemObj = {},
@@ -857,7 +857,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 num++;
                 if (ld.sellersku) { // 存在 msku
                     add_fils.push([
-                        ["name", "contains", ld.sellersku.trim()],
+                        ["name", "is", ld.sellersku],
                         "and",
                         ["custrecord_ass_sku", "anyof", ld.itemId]
                     ]);
@@ -919,7 +919,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 获取发运记录的装箱信息
      * @param {*} recId
      */
-    function getBoxInfo(recId) {
+    exports.getBoxInfo = function (recId) {
 
         var data = {};
 
@@ -1084,7 +1084,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 num++;
                 if (ld.sellersku) { // 存在 msku
                     add_fils.push([
-                        ["name", "contains", ld.sellersku.trim()],
+                        ["name", "is", ld.sellersku],
                         "and",
                         ["custrecord_ass_sku", "anyof", ld.itemId]
                     ]);
@@ -1150,7 +1150,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 获取装箱信息数据
      * @param {Array} boxInfo
      */
-    function groupBoxInfo(boxInfo) {
+    exports.groupBoxInfo = function (boxInfo) {
 
         var shipment, shipmentName, shipTo = '',
             aono, centerId, department, referenceId, targetWarehouseName, tradeCompanyName, transport
@@ -1209,7 +1209,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         var country = '';
 
         if (centerId) {
-            var te = searchCenterIdInfo(centerId);
+            var te = this.searchCenterIdInfo(centerId);
             country = te.country;
             shipTo = te.recipien + ',' + te.addr1 + ',' + te.city + ',' + te.state + ',' + te.postcode + ',' + te.country + "(" + te.centerId + ')'
         }
@@ -1352,7 +1352,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 获取发运记录的装箱信息
      * @param {*} recId
      */
-    function getGroupBoxInfo(recId) {
+    exports.getGroupBoxInfo = function (recId) {
 
         // 现在货品、数量、箱子信息 分组
 
@@ -1745,7 +1745,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 num++;
                 if (ld.sellersku) { // 存在 msku
                     add_fils.push([
-                        ["name", "contains", ld.sellersku.trim()],
+                        ["name", "is", ld.sellersku],
                         "and",
                         ["custrecord_ass_sku", "anyof", ld.itemId]
                     ]);
@@ -1810,7 +1810,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      *
      * @param {Number} recId
      */
-    function AmazonBoxInfo(recId) {
+    exports.AmazonBoxInfo = function (recId) {
 
         var shipment, shipmentName, shipTo = '',
             aono, centerId;
@@ -1883,7 +1883,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         });
 
         if (centerId) {
-            var te = searchCenterIdInfo(centerId);
+            var te = this.searchCenterIdInfo(centerId);
             shipTo = te.recipien + ',' + te.addr1 + ',' + te.city + ',' + te.state + ',' + te.postcode + ',' + te.country + "(" + te.centerId + ')'
         }
 
@@ -2047,7 +2047,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 搜索 Amazon shipTo 的地址
      * @param {String} centerId
      */
-    function searchCenterIdInfo(centerId) {
+    exports.searchCenterIdInfo = function (centerId) {
 
         if (!centerId) { // 不存在直接返回空对象
             return {};
@@ -2100,7 +2100,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {String} action
      * @param {String} city
      */
-    function searchCreateCity(action, city) {
+    exports.searchCreateCity = function (action, city) {
 
         var cityId;
         search.create({
@@ -2143,7 +2143,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {String} action
      * @param {String} country
      */
-    function searchCreateCountry(action, country) {
+    exports.searchCreateCountry = function (action, country) {
 
         var countryId;
 
@@ -2185,7 +2185,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 删除发运记录 的装箱信息
      * @param {Number} recId
      */
-    function deleteBoxInfo(recId) {
+    exports.deleteBoxInfo = function (recId) {
 
         var limit = 1200;
 
@@ -2242,7 +2242,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
     }
 
-    function getBoxLine(recId) {
+    exports.getBoxLine = function (recId) {
 
         var limit = 3999;
         var boxLine = 0;
@@ -2266,7 +2266,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 获取Amazon订单号  sear
      * @param {String} message
      */
-    function searchAmazonOrder(message) {
+    exports.searchAmazonOrder = function (message) {
         var req = /[0-9]{3}-[0-9]{7}-[0-9]{7}/ig; // Amazon 订单号格式
 
         var amazon_order;
@@ -2293,11 +2293,12 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
         return amazon_order;
     }
+
     /**
      * 获取Amazon订单号数组  match
      * @param {String} message
      */
-    function matchAmazonOrder(message) {
+    exports.matchAmazonOrder = function (message) {
         var req = /[0-9]{3}-[0-9]{7}-[0-9]{7}/ig; // Amazon 订单号格式
 
         var amazon_order;
@@ -2321,7 +2322,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * 用于获取 case massage 内容
      * @param {Object} con
      */
-    function searchCaseMessage(con) {
+    exports.searchCaseMessage = function (con) {
 
         var message = '';
         search.create({
@@ -2351,7 +2352,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Boolean} isDynamic 是否为动态
      * @param {Boolean} flag 是否保存
      */
-    function copyRecordType(recType, recId, defaultValues, isDynamic, flag) {
+    exports.copyRecordType = function (recType, recId, defaultValues, isDynamic, flag) {
 
         var copyRec = record.copy({
             type: recType,
@@ -2369,12 +2370,13 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
     }
 
+
     /**
      * 推送调拨单入库单 至 WMS
      * @param {Number} recIds
      * @param {String} url
      */
-    function tranferOrderToWMS(recIds, url) {
+    exports.tranferOrderToWMS = function (recIds, url) {
 
         // InMasterCreateRequestDto {
         //     boxNum(integer): 箱数,       1
@@ -2541,10 +2543,10 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         data.skuList = itemInfo; //   货品数量
         data.planQty = planQty; //   计划入库数
 
-        var token = getToken();
+        var token = this.getToken();
         var message = {};
         if (token) {
-            message = sendRequest(token, data, url)
+            message = this.sendRequest(token, data, url)
         }
 
         log.debug('推送结果', message);
@@ -2552,6 +2554,8 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         return message;
 
     }
+
+
 
     /**
      * 比较两个数组, 并返回两个数组之间的差异数组
@@ -2561,7 +2565,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {Array} arr1  数组1
      * @param {Array} arr2  数组2
      */
-    function diffArr(arr1, arr2) {
+    exports.diffArr = function (arr1, arr2) {
 
         var newArr = [];
         var arr3 = arr1.concat(arr2); //将arr1和arr2合并为arr3
@@ -2573,7 +2577,37 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         return newArr;
     }
 
+    exports.tranStatus = ["pendingReceipt", "等待收货", "pendingFulfillment", "等待发货", "received", "已收货"];
 
+
+
+
+    /**
+     * 格式化时间函数
+     *    format = ["yyyy", "MM", "dd", "yyyy-MM-dd", "yyyy/MM/dd", "yyyyMMdd", "yyyy-MM-dd hh:mm:ss",
+        "yyyy年MM月dd日 hh时mm分ss秒", "yyyy-MM-dd hh:mm:ss.S", "yyyy-M-d h:m:s.S"]
+     * @param {format} 时间显示格式
+     */
+    Date.prototype.Format = function (format) {
+        var date = {
+            "M+": this.getMonth() + 1,                 //月份
+            "d+": this.getDate(),                    //日
+            "h+": this.getHours(),                   //小时
+            "m+": this.getMinutes(),                 //分
+            "s+": this.getSeconds(),                 //秒
+            "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+            "S": this.getMilliseconds()             //毫秒
+        };
+        if (/(y+)/i.test(format)) {
+            format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+        }
+        for (var k in date) {
+            if (new RegExp("(" + k + ")").test(format)) {
+                format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
+            }
+        }
+        return format;
+    };
 
 
     /**
@@ -2582,7 +2616,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {*} weeks  周数
      * @param {String} fmt 需要格式的时间
      */
-    function weekGetDate(year, weeks, fmt) {    //通过周取日期范围   year 年   weeks 周
+    exports.weekGetDate = function (year, weeks, fmt) {    //通过周取日期范围   year 年   weeks 周
         var date = new Date(year, "0", "1");
         // 获取当前星期几,0:星期一
         var time = date.getTime();
@@ -2630,9 +2664,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 lastcnt = 5;
             }
             if (weeks == 1) {//第1周特殊处理    // 为日期对象 date 重新设置成时间 time
-                var start = dateFormat(date, fmt);
+                var start = date.Format(fmt);
                 date.setTime(time - 24 * 3600000);
-                var end = dateFormat(date, fmt);
+                var end = date.Format(fmt);
                 return start + "-----" + end;
             } else if (weeks == 53) {//第53周特殊处理
                 //第53周开始时间
@@ -2640,17 +2674,17 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 //第53周结束时间
                 var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             } else {
                 var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
                 var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             }
         } else {//一年54周情况
@@ -2694,9 +2728,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 lastcnt = 5;
             }
             if (weeks == 1) {//第1周特殊处理
-                var start = dateFormat(date, fmt);
+                var start = date.Format(fmt);
                 date.setTime(time - 24 * 3600000);
-                var end = dateFormat(date, fmt);
+                var end = date.Format(fmt);
                 return _start + "-----" + end;
             } else if (weeks == 54) {//第54周特殊处理
                 //第54周开始时间
@@ -2704,323 +2738,30 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 //第53周结束时间
                 var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             } else {
                 var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
                 var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             }
         }
     }
 
-
-    function showShipmentInfo(context) {
-        var request = context.request;
-        var response = context.response;
-        var parameters = request.parameters;
-        var account = parameters.custpage_dps_account;
-        var shipment = parameters.custpage_dps_shipment;
-        var print = parameters.print;
-
-        var form = serverWidget.createForm({
-            title: '查询shipment'
-        });
-
-        form.addFieldGroup({
-            id: 'search_groupid',
-            label: '查询条件'
-        });
-
-        form.addFieldGroup({
-            id: 'result_groupid',
-            label: '结果信息'
-        });
-        if (account && shipment) {
-
-
-            var auth = core.amazon.getAuthByAccountId(account);
-
-            var s = core.amazon.listInboundShipments(auth, "", [shipment])
-
-            log.debug('s', s)
-            var item = core.amazon.listInboundShipmentsItems(auth, shipment, "");
-            log.debug('item', item);
-
-
-            var sublist = form.addSublist({
-                id: 'sublistid',
-                type: serverWidget.SublistType.LIST,
-                label: 'Shipment信息'
-            });
-
-            var da = sublist.addField({
-                id: 'custpage_shipment_id',
-                type: serverWidget.FieldType.TEXT,
-                label: 'shipment id'
-            });
-            var da = sublist.addField({
-                id: 'custpage_shipment_name',
-                type: serverWidget.FieldType.TEXT,
-                label: 'shipment name'
-            });
-            var da = sublist.addField({
-                id: 'custpage_center_id',
-                type: serverWidget.FieldType.TEXT,
-                label: 'center id'
-            });
-            var da = sublist.addField({
-                id: 'custpage_label_prep_type',
-                type: serverWidget.FieldType.TEXT,
-                label: 'label prep type'
-            });
-            var da = sublist.addField({
-                id: 'custpage_shipment_status',
-                type: serverWidget.FieldType.TEXT,
-                label: 'shipment status'
-            });
-            var da = sublist.addField({
-                id: 'custpage_are_cases_required',
-                type: serverWidget.FieldType.TEXT,
-                label: 'are cases required'
-            });
-            var da = sublist.addField({
-                id: 'custpage_box_contents_source',
-                type: serverWidget.FieldType.TEXT,
-                label: 'box contents source'
-            });
-
-            var line = form.getSublist({
-                id: 'sublistid'
-            });
-            for (var i_s = 0, i_len = s.length; i_s < i_len; i_s++) {
-                line.setSublistValue({
-                    id: 'custpage_shipment_id',
-                    value: s[i_s].shipment_id,
-                    line: i_s
-                });
-                line.setSublistValue({
-                    id: 'custpage_shipment_name',
-                    value: s[i_s].shipment_name,
-                    line: i_s
-                });
-                line.setSublistValue({
-                    id: 'custpage_center_id',
-                    value: s[i_s].center_id,
-                    line: i_s
-                });
-                line.setSublistValue({
-                    id: 'custpage_label_prep_type',
-                    value: s[i_s].label_prep_type,
-                    line: i_s
-                });
-                line.setSublistValue({
-                    id: 'custpage_shipment_status',
-                    value: s[i_s].shipment_status,
-                    line: i_s
-                });
-                line.setSublistValue({
-                    id: 'custpage_are_cases_required',
-                    value: s[i_s].are_cases_required,
-                    line: i_s
-                });
-                if (s[i_s].box_contents_source) {
-                    line.setSublistValue({
-                        id: 'custpage_box_contents_source',
-                        value: s[i_s].box_contents_source,
-                        line: i_s
-                    });
-                }
-            }
-
-            var sublist_item = form.addSublist({
-                id: 'sublistid_ship_item',
-                type: serverWidget.SublistType.LIST,
-                label: 'Shipment 货品'
-            });
-
-            var da = sublist_item.addField({
-                id: 'custpage_item_shipment_id',
-                type: serverWidget.FieldType.TEXT,
-                label: 'shipment id'
-            });
-            var da = sublist_item.addField({
-                id: 'custpage_item_seller_sku',
-                type: serverWidget.FieldType.TEXT,
-                label: 'seller sku'
-            });
-            var da = sublist_item.addField({
-                id: 'custpage_item_quantity_shipped',
-                type: serverWidget.FieldType.TEXT,
-                label: 'quantity shipped'
-            });
-            var da = sublist_item.addField({
-                id: 'custpage_item_quantity_in_case',
-                type: serverWidget.FieldType.TEXT,
-                label: 'quantity in case'
-            });
-            var da = sublist_item.addField({
-                id: 'custpage_item_quantity_received',
-                type: serverWidget.FieldType.TEXT,
-                label: 'quantity received'
-            });
-            var da = sublist_item.addField({
-                id: 'custpage_item_fulfillment_network_sku',
-                type: serverWidget.FieldType.TEXT,
-                label: 'fulfillment network sku'
-            });
-
-
-            var line_item = form.getSublist({
-                id: 'sublistid_ship_item'
-            });
-            for (var it_i = 0, it_len = item.length; it_i < it_len; it_i++) {
-                line_item.setSublistValue({
-                    id: 'custpage_item_shipment_id',
-                    value: item[it_i].shipment_id,
-                    line: it_i
-                });
-                line_item.setSublistValue({
-                    id: 'custpage_item_seller_sku',
-                    value: item[it_i].seller_sku,
-                    line: it_i
-                });
-                line_item.setSublistValue({
-                    id: 'custpage_item_quantity_shipped',
-                    value: item[it_i].quantity_shipped,
-                    line: it_i
-                });
-                line_item.setSublistValue({
-                    id: 'custpage_item_quantity_in_case',
-                    value: item[it_i].quantity_in_case,
-                    line: it_i
-                });
-                line_item.setSublistValue({
-                    id: 'custpage_item_quantity_received',
-                    value: item[it_i].quantity_received,
-                    line: it_i
-                });
-                line_item.setSublistValue({
-                    id: 'custpage_item_fulfillment_network_sku',
-                    value: item[it_i].fulfillment_network_sku,
-                    line: it_i
-                });
-            }
-
-        }
-
-
-        form.addSubmitButton({
-            label: '查询',
-        });
-
-        var s_account = form.addField({
-            id: 'custpage_dps_account',
-            type: serverWidget.FieldType.SELECT,
-            source: 'customrecord_aio_account',
-            label: '店铺',
-            container: 'search_groupid'
-        });
-        s_account.defaultValue = account;
-
-        var ship = form.addField({
-            id: 'custpage_dps_shipment',
-            type: serverWidget.FieldType.TEXT,
-            label: 'ShipmentId',
-            container: 'search_groupid'
-        });
-        ship.defaultValue = shipment;
-
-        return form;
-
-    }
-
-
-    /**
-     * 显示一个弹窗,用于输入字段的值
-     */
-    function showWindownInput() {
-
-        var name = prompt("请输入你的名字:", "");
-
-        console.log(name);
-
-        console.log(typeof (name));
-
-        if ("php中文网" === name) {
-            alert("欢迎您:" + name);
-        } else {
-            alert("输入有误!");
-        }
-    }
-
-
     /**
      *格式时间, 返回当前时区的时间格式
-     * format = ["yyyy", "MM", "dd", "yyyy-MM-dd", "yyyy/MM/dd", "yyyyMMdd", "yyyy-MM-dd hh:mm:ss",
-       "yyyy年MM月dd日 hh时mm分ss秒", "yyyy-MM-dd hh:mm:ss.S", "yyyy-M-d h:m:s.S"]
-      * @param {Object} date 日期
-     * @param {String} fmt 需要格式样例
+     * @param {*} date 日期
+     * @param {String} format 需要格式样例
      */
-    function dateFormat(date, fmt) {
-        var o = {
-            "M+": date.getMonth() + 1,
-            "d+": date.getDate(),
-            "h+": date.getHours(),
-            "m+": date.getMinutes(),
-            "s+": date.getSeconds(),
-            "q+": Math.floor((date.getMonth() + 3) / 3),
-            "S": date.getMilliseconds()
-        }
-        if (/(y+)/.test(fmt)) {
-            fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
-        }
-        for (var k in o) {
-            if (new RegExp('(' + k + ')').test(fmt)) {
-                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)))
-            }
-        }
-        return fmt
+    exports.dateFormat = function (date, format) {
+        var _date = date.Format(format);
+        return _date;
     }
 
-    return {
-        SummaryBinBox: SummaryBinBox,
-        searchLocationBin: searchLocationBin,
-        createLocationBin: createLocationBin,
-        judgmentBinBox: judgmentBinBox,
-        getAllBinBox: getAllBinBox,
-        searchTransactionItemInfo: searchTransactionItemInfo,
-        searchTransactionItemObj: searchTransactionItemObj,
-        wmsInfo: wmsInfo,
-        wmsRetInfo: wmsRetInfo,
-        judgmentFlag: judgmentFlag,
-        searchToLinkPO: searchToLinkPO,
-        checkDifferentArr: checkDifferentArr,
-        getToken: getToken,
-        sendRequest: sendRequest,
-        getInfo: getInfo,
-        getBoxInfo: getBoxInfo,
-        groupBoxInfo: groupBoxInfo,
-        getGroupBoxInfo: getGroupBoxInfo,
-        AmazonBoxInfo: AmazonBoxInfo,
-        searchCenterIdInfo: searchCenterIdInfo,
-        searchCreateCity: searchCreateCity,
-        searchCreateCountry: searchCreateCountry,
-        deleteBoxInfo: deleteBoxInfo,
-        searchAmazonOrder: searchAmazonOrder,
-        matchAmazonOrder: matchAmazonOrder,
-        searchCaseMessage: searchCaseMessage,
-        copyRecordType: copyRecordType,
-        tranferOrderToWMS: tranferOrderToWMS,
-        diffArr: diffArr,
-        weekGetDate: weekGetDate,
-        dateFormat: dateFormat,
-        showShipmentInfo: showShipmentInfo
-    }
 });

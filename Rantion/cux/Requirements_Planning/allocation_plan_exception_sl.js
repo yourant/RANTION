@@ -642,11 +642,17 @@ define(['N/search', 'N/ui/serverWidget','../../Helper/Moment.min', 'N/format', '
             week_hi.updateDisplayType({displayType:ui.FieldDisplayType.HIDDEN});
         }
         var zl = 0, data_arr = [];
-        for (var z = 0; z < SKUIds.length; z++) {
+        var skucs = [];
+        SKUIds.map(function(fs){
+          if(JSON.stringify(sku_arrys).indexOf(fs.item_sku)>-1){
+            skucs.push(fs)
+          }
+        })
+        for (var z = 0; z < skucs.length; z++) {
             if (result.length > 0) {
                 var need1_zl, need2_zl, need3_zl;
                 for(var a = 0; a < result.length; a++){
-                    if(SKUIds[z]['item_sku'] == result[a]['item_sku'] && SKUIds[z]['forecast_account'] == result[a]['account']){
+                    if(skucs[z]['item_sku'] == result[a]['item_sku'] && skucs[z]['forecast_account'] == result[a]['account']){
                         sublist.setSublistValue({ id: 'custpage_store_name', value: result[a]['account_text'], line: zl }); 
                         sublist.setSublistValue({ id: 'custpage_store_name_id', value: result[a]['account'], line: zl });   
                         sublist.setSublistValue({ id: 'custpage_item_sku', value: result[a]['item_sku_text'], line: zl }); 

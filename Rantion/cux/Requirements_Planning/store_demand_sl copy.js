@@ -2,7 +2,7 @@
  * @version: 1.0
  * @Author: ZJG
  * @Date: 2020-05-06 17:27:17
- * @LastEditTime   : 2020-08-20 10:52:46
+ * @LastEditTime   : 2020-08-18 20:54:33
  * @FilePath       : \Rantion\cux\Requirements_Planning\store_demand_sl.js
  */
 /**
@@ -78,7 +78,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
 
     /**
      * 查询逻辑
-     *
+     * 
      * @param form
      * @param status 状态
      * @param serialNumber   个案序列号
@@ -199,27 +199,27 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                 search.create({
                     type: 'customrecord_demand_forecast_child',
                     filters: [{
-                        join: 'custrecord_demand_forecast_parent',
-                        name: 'custrecord_demand_forecast_item_sku',
-                        operator: 'anyof',
-                        values: line.item_sku
-                    },
-                    {
-                        join: 'custrecord_demand_forecast_parent',
-                        name: 'custrecord_demand_forecast_account',
-                        operator: 'anyof',
-                        values: line.account_id
-                    },
-                    {
-                        name: 'custrecord_demand_forecast_l_date',
-                        operator: 'on',
-                        values: today
-                    },
-                    {
-                        name: 'custrecord_demand_forecast_l_data_type',
-                        operator: 'anyof',
-                        values: line.data_type
-                    }
+                            join: 'custrecord_demand_forecast_parent',
+                            name: 'custrecord_demand_forecast_item_sku',
+                            operator: 'anyof',
+                            values: line.item_sku
+                        },
+                        {
+                            join: 'custrecord_demand_forecast_parent',
+                            name: 'custrecord_demand_forecast_account',
+                            operator: 'anyof',
+                            values: line.account_id
+                        },
+                        {
+                            name: 'custrecord_demand_forecast_l_date',
+                            operator: 'on',
+                            values: today
+                        },
+                        {
+                            name: 'custrecord_demand_forecast_l_data_type',
+                            operator: 'anyof',
+                            values: line.data_type
+                        }
                     ]
                 }).run().each(function (rec) {
                     bill_id = rec.id
@@ -260,15 +260,15 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                     search.create({
                         type: 'customrecord_demand_forecast',
                         filters: [{
-                            name: 'custrecord_demand_forecast_item_sku',
-                            operator: 'anyof',
-                            values: line.item_sku
-                        },
-                        {
-                            name: 'custrecord_demand_forecast_account',
-                            operator: 'anyof',
-                            values: line.account_id
-                        }
+                                name: 'custrecord_demand_forecast_item_sku',
+                                operator: 'anyof',
+                                values: line.item_sku
+                            },
+                            {
+                                name: 'custrecord_demand_forecast_account',
+                                operator: 'anyof',
+                                values: line.account_id
+                            }
                         ]
                     }).run().each(function (rec) {
                         forecast_id = rec.id
@@ -310,9 +310,9 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
 
     /**
      * 查询结果
-     * @param {*} item
-     * @param {*} date_from
-     * @param {*} date_to
+     * @param {*} item 
+     * @param {*} date_from 
+     * @param {*} date_to 
      */
     function getResult(item, date_from, date_to, pageSize, nowPage, site, account, form, department) {
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
@@ -322,242 +322,242 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         func_type = week_objs.func_type;
         week_rs = week_objs.weeks;
         var cols = [{
-            name: 'custrecord_demand_forecast_account'
-        },
-        {
-            name: 'custrecord_demand_forecast_site'
-        },
-        {
-            name: 'custrecord_demand_forecast_item_sku'
-        },
-        {
-            name: 'custitem_dps_skuchiense',
-            join: 'custrecord_demand_forecast_item_sku'
-        },
-        {
-            name: 'custrecord_demand_forecast_l_data_type',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week1',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week2',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week3',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week4',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week5',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week6',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week7',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week8',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week9',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week10',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week11',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week12',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week13',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week14',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week15',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week16',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week17',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week18',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week19',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week20',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week21',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week22',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week23',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week24',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week25',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week26',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week27',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week28',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week29',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week30',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week31',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week32',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week33',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week34',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week35',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week36',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week37',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week38',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week39',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week40',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week41',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week42',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week43',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week44',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week45',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week46',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week47',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week48',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week49',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week50',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week51',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custrecord_quantity_week52',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custitem_product_grading',
-            join: 'custrecord_demand_forecast_item_sku'
-        }, // 产品分级
-        {
-            name: 'custitemf_product_grading',
-            join: 'custrecord_demand_forecast_item_sku'
-        }, // 产品初始分级
-        {
-            name: 'custrecord_quantity_week53',
-            join: 'custrecord_demand_forecast_parent'
-        }
+                name: 'custrecord_demand_forecast_account'
+            },
+            {
+                name: 'custrecord_demand_forecast_site'
+            },
+            {
+                name: 'custrecord_demand_forecast_item_sku'
+            },
+            {
+                name: 'custitem_dps_skuchiense',
+                join: 'custrecord_demand_forecast_item_sku'
+            },
+            {
+                name: 'custrecord_demand_forecast_l_data_type',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week1',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week2',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week3',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week4',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week5',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week6',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week7',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week8',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week9',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week10',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week11',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week12',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week13',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week14',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week15',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week16',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week17',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week18',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week19',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week20',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week21',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week22',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week23',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week24',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week25',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week26',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week27',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week28',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week29',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week30',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week31',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week32',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week33',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week34',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week35',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week36',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week37',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week38',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week39',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week40',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week41',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week42',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week43',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week44',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week45',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week46',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week47',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week48',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week49',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week50',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week51',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custrecord_quantity_week52',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custitem_product_grading',
+                join: 'custrecord_demand_forecast_item_sku'
+            }, // 产品分级
+            {
+                name: 'custitemf_product_grading',
+                join: 'custrecord_demand_forecast_item_sku'
+            }, // 产品初始分级
+            {
+                name: 'custrecord_quantity_week53',
+                join: 'custrecord_demand_forecast_parent'
+            }
         ];
         var rsJson = {},
             SKUs = {},
@@ -596,31 +596,31 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
             type: 'customrecord_demand_forecast',
             filters: filters_sku,
             columns: [{
-                name: 'custrecord_demand_forecast_item_sku',
-                sort: search.Sort.ASC
-            },
-            {
-                name: 'custrecord_demand_forecast_account'
-            },
-            {
-                name: 'custitem_dps_skuchiense',
-                join: 'custrecord_demand_forecast_item_sku'
-            }, // 供应商名称
-            {
-                name: 'custrecord_demand_forecast_site'
-            },
-            {
-                name: 'custitem_product_grading',
-                join: 'custrecord_demand_forecast_item_sku'
-            }, // 产品分级
-            {
-                name: 'custitemf_product_grading',
-                join: 'custrecord_demand_forecast_item_sku'
-            }, // 产品初始分级
-            {
-                name: 'custrecord_aio_fbaorder_location',
-                join: "custrecord_demand_forecast_account"
-            },
+                    name: 'custrecord_demand_forecast_item_sku',
+                    sort: search.Sort.ASC
+                },
+                {
+                    name: 'custrecord_demand_forecast_account'
+                },
+                {
+                    name: 'custitem_dps_skuchiense',
+                    join: 'custrecord_demand_forecast_item_sku'
+                }, // 供应商名称
+                {
+                    name: 'custrecord_demand_forecast_site'
+                },
+                {
+                    name: 'custitem_product_grading',
+                    join: 'custrecord_demand_forecast_item_sku'
+                }, // 产品分级
+                {
+                    name: 'custitemf_product_grading',
+                    join: 'custrecord_demand_forecast_item_sku'
+                }, // 产品初始分级
+                {
+                    name: 'custrecord_aio_fbaorder_location',
+                    join: "custrecord_demand_forecast_account"
+                },
             ]
         }).run().each(function (rec) {
             SKUIds.push({
@@ -658,17 +658,17 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         log.debug("today", today)
         // 需求量 - > 销售预测
         var filters = [{
-            name: 'custrecord_demand_forecast_l_data_type',
-            join: 'custrecord_demand_forecast_parent',
-            operator: 'anyof',
-            values: 1
-        },
-        {
-            name: 'custrecord_demand_forecast_l_date',
-            join: 'custrecord_demand_forecast_parent',
-            operator: 'on',
-            values: today
-        }
+                name: 'custrecord_demand_forecast_l_data_type',
+                join: 'custrecord_demand_forecast_parent',
+                operator: 'anyof',
+                values: 1
+            },
+            {
+                name: 'custrecord_demand_forecast_l_date',
+                join: 'custrecord_demand_forecast_parent',
+                operator: 'on',
+                values: today
+            }
         ];
         if (account) {
             filters.push({
@@ -779,7 +779,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                 })
                 sku_arrys.push(rs.getValue(rs.columns[2]))
 
-                acc_skus[rs.getValue(rs.columns[2]) + "." + rs.getValue(rs.columns[0])] = rs.getValue(rs.columns[0]) // sku +acc
+                acc_skus[rs.getValue(rs.columns[2]) + "." + rs.getValue(rs.columns[0])] = rs.getValue(rs.columns[0]) // sku +acc 
             });
         }
         var pageSizeField = form.getField({
@@ -799,36 +799,36 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         search.create({
             type: 'transferorder',
             filters: [{
-                join: 'item',
-                name: 'internalid',
-                operator: 'is',
-                values: sku_arrys
-            },
-            {
-                name: 'custbody_actual_target_warehouse',
-                operator: 'anyof',
-                values: location
-            }, // FBA仓，实际目标仓
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: ['F']
-            },
-            {
-                name: 'taxline',
-                operator: 'is',
-                values: ['F']
-            },
-            {
-                name: 'shipping',
-                operator: 'is',
-                values: ['F']
-            },
-            {
-                name: 'transactionlinetype',
-                operator: 'is',
-                values: 'RECEIVING'
-            }
+                    join: 'item',
+                    name: 'internalid',
+                    operator: 'is',
+                    values: sku_arrys
+                },
+                {
+                    name: 'custbody_actual_target_warehouse',
+                    operator: 'anyof',
+                    values: location
+                }, // FBA仓，实际目标仓
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: ['F']
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: ['F']
+                },
+                {
+                    name: 'shipping',
+                    operator: 'is',
+                    values: ['F']
+                },
+                {
+                    name: 'transactionlinetype',
+                    operator: 'is',
+                    values: 'RECEIVING'
+                }
             ],
             columns: [
                 'item',
@@ -959,22 +959,22 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         search.create({
             type: 'item',
             filters: [{
-                name: 'inventorylocation',
-                operator: 'anyof',
-                values: location
-            },
-            {
-                name: 'internalid',
-                operator: 'anyof',
-                values: sku_arrys
-            }
+                    name: 'inventorylocation',
+                    operator: 'anyof',
+                    values: location
+                },
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: sku_arrys
+                }
             ],
             columns: [{
-                name: 'inventorylocation'
-            },
-            {
-                name: 'locationquantityavailable'
-            }
+                    name: 'inventorylocation'
+                },
+                {
+                    name: 'locationquantityavailable'
+                }
             ]
         }).run().each(function (rec) {
 
@@ -1172,7 +1172,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
 
     /**
      * 创建行数据
-     * @param {*} data
+     * @param {*} data 
      */
     function createLineData(form, result, date_from, date_to) {
         var num = 0;
@@ -1258,29 +1258,54 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         var abs = Math.abs(md),
             num = 0;
 
-        log.error('today_week', today_week);
+        var week_arr = getWeekObj(date_from, func_type);
 
-        var year = new Date(date_from).getFullYear();
-        // var year = new Date(date_to).getFullYear();
+        var week_start_date = week_arr[0].start_date ? week_arr[0].start_date : '';
+        var week_end_date = week_arr[0].end_date ? week_arr[0].end_date : '';
+
+        log.debug('week_start_date', week_start_date)
+        log.debug('week_end_date', week_end_date)
+
         week_rs.map(function (wek) {
             var sub_filed = 'custpage_quantity_week' + wek;
             var ff = wek;
-            if (func_type == 'B' && wek < week_rs[0]) { // 跨年，明年的第一周不要
+            if (func_type == 'B' && wek < week_rs[0]) // 跨年，明年的第一周不要
                 ff = wek - 1;
+
+            var getTimezoneOffset = new Date(date_from).getTimezoneOffset();
+
+            log.debug('getTimezoneOffset', getTimezoneOffset);
+
+
+            var addTime = 0;
+            if (getTimezoneOffset > 0) {
+                getTimezoneOffset += 460;
+                addTime = getTimezoneOffset * 60 * 1000;
+
+            } else {
+                getTimezoneOffset = 460 - getTimezoneOffset;
+                addTime = getTimezoneOffset * 60 * 1000;
             }
 
-            if (ff < today_week) {
-                year = new Date(date_to).getFullYear();
+
+            var Label = 'W' + ff + "(" + JSON.stringify(week_start_date).split("T")[0].replace(/[0-9]{4}-/, '') + ',' + JSON.stringify(week_end_date).split("T")[0].replace(/[0-9]{4}-/, '') + ")"
+
+            var day = new Date(new Date(date_from).getTime() + addTime).getDay();
+
+            log.debug('day', day);
+
+            if (ff < week_arr[0].num) {
+                var year = new Date(date_to).getFullYear;
+                week_start_date = getXDate(year, ff, day);
+
+                week_end_date = getXDate(year, ff + 1, day);
+            } else {
+                var year = new Date(date_from).getFullYear;
+                week_start_date = getXDate(year, ff, day);
+
+                week_end_date = getXDate(year, ff + 1, day);
             }
 
-            var format = "MM/dd" + '';
-            var str_date = weekGetDate(year, ff, format)
-            var Label = 'W' + ff + '(' + str_date + ')';
-
-            log.error('str_date', str_date);
-            // Label = Label.replace("-----", ',').replace(year, '')
-            Label = Label.replace(/[-]{5}/g, ',')
-            // Label = Label.replace(/[-]{5}/g, ',').replace(/[0-9]{4}-/g, '')
             week_ = sublist.addField({
                 id: sub_filed,
                 label: Label,
@@ -1485,7 +1510,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                             week_rs.map(function (wek) {
                                 var sub_filed = 'custpage_quantity_week' + wek
                                 var x1 = Math.round(result[a]['quantity_week' + wek]) ? Math.round(result[a]['quantity_week' + wek]).toFixed(0) : '0'
-                                // 如果等于0，就让他与净需求相同
+                                // 如果等于0，就让他与净需求相同 
                                 if (x1 == 0)
                                     x1 = sublist.getSublistValue({
                                         id: sub_filed,
@@ -1505,7 +1530,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                             for (var s = 1; s < 54; s++) {
                                 var sub_filed = 'custpage_quantity_weekhi' + s
                                 var x1 = Math.round(result[a]['quantity_week' + s]) ? Math.round(result[a]['quantity_week' + s]).toFixed(0) : '0'
-                                // 如果等于0，就让他与净需求相同
+                                // 如果等于0，就让他与净需求相同 
                                 if (x1 == 0)
                                     x1 = sublist.getSublistValue({
                                         id: sub_filed,
@@ -1693,7 +1718,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
 
     /**
      * 在界面显示：数据选择数据组（包括数据选择列表、当前页/总页数）
-     *
+     * 
      * @param form
      * @param hidePageSelect 是否隐藏数据选择select
      * @returns
@@ -1770,8 +1795,8 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
     }
 
     /**
-     * 设置数据选择列表、当前页、总页数到界面
-     *
+     * 设置数据选择列表、当前页、总页数到界面    
+     * 
      * @param form
      * @param nowPage
      * @param totalCount
@@ -1820,7 +1845,7 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
 
     /**
      * 判断某一日属于这一年的第几周
-     * @param {*} data
+     * @param {*} data 
      */
     function weekofday(data, date_from, date_to) {
         log.debug('date_from:' + date_from, date_to)
@@ -1893,22 +1918,22 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         return num
     }
 
-    /**
+    /**  
      * 搜索销售预测数据
      */
     function GetPredictionData(item_data, datatype, today, account, skuids, SKUIds, params, week_rs, func_type) {
         var filters = [{
-            name: 'custrecord_demand_forecast_l_data_type',
-            join: 'custrecord_demand_forecast_parent',
-            operator: 'anyof',
-            values: datatype
-        },
-        {
-            name: 'custrecord_demand_forecast_l_date',
-            join: 'custrecord_demand_forecast_parent',
-            operator: 'on',
-            values: today
-        }
+                name: 'custrecord_demand_forecast_l_data_type',
+                join: 'custrecord_demand_forecast_parent',
+                operator: 'anyof',
+                values: datatype
+            },
+            {
+                name: 'custrecord_demand_forecast_l_date',
+                join: 'custrecord_demand_forecast_parent',
+                operator: 'on',
+                values: today
+            }
         ]
         if (account) {
             filters.push({
@@ -1923,30 +1948,30 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
             values: skuids
         })
         var colus = [{
-            name: 'custrecord_demand_forecast_account'
-        },
-        {
-            name: 'custrecord_demand_forecast_site'
-        },
-        {
-            name: 'custrecord_demand_forecast_item_sku'
-        },
-        {
-            name: 'custitem_dps_skuchiense',
-            join: 'custrecord_demand_forecast_item_sku'
-        },
-        {
-            name: 'custrecord_demand_forecast_l_data_type',
-            join: 'custrecord_demand_forecast_parent'
-        },
-        {
-            name: 'custitem_product_grading',
-            join: 'custrecord_demand_forecast_item_sku'
-        }, // 分级
-        {
-            name: 'custitemf_product_grading',
-            join: 'custrecord_demand_forecast_item_sku'
-        }, // 初级分级
+                name: 'custrecord_demand_forecast_account'
+            },
+            {
+                name: 'custrecord_demand_forecast_site'
+            },
+            {
+                name: 'custrecord_demand_forecast_item_sku'
+            },
+            {
+                name: 'custitem_dps_skuchiense',
+                join: 'custrecord_demand_forecast_item_sku'
+            },
+            {
+                name: 'custrecord_demand_forecast_l_data_type',
+                join: 'custrecord_demand_forecast_parent'
+            },
+            {
+                name: 'custitem_product_grading',
+                join: 'custrecord_demand_forecast_item_sku'
+            }, // 分级
+            {
+                name: 'custitemf_product_grading',
+                join: 'custrecord_demand_forecast_item_sku'
+            }, // 初级分级
         ]
         week_rs.map(function (wek) {
             colus.push({
@@ -1969,17 +1994,17 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
         if (pageCount == 0 && datatype == '22') {
             // 调拨计划量  ，取自修改的调拨计划量
             var filters = [{
-                name: 'custrecord_demand_forecast_l_data_type',
-                join: 'custrecord_demand_forecast_parent',
-                operator: 'anyof',
-                values: ['6']
-            },
-            {
-                name: 'custrecord_demand_forecast_l_date',
-                join: 'custrecord_demand_forecast_parent',
-                operator: 'on',
-                values: today
-            }
+                    name: 'custrecord_demand_forecast_l_data_type',
+                    join: 'custrecord_demand_forecast_parent',
+                    operator: 'anyof',
+                    values: ['6']
+                },
+                {
+                    name: 'custrecord_demand_forecast_l_date',
+                    join: 'custrecord_demand_forecast_parent',
+                    operator: 'on',
+                    values: today
+                }
             ]
 
             if (account) {
@@ -2055,170 +2080,136 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
     }
 
 
+    function getWeekObj(day, func_type) {
+
+        var weekObj = {};
+        var weekArr = [];
+        var start_date, end_date;
+        var d1 = new Date(day);
+        var d2 = new Date(day);
+
+        var getTimezoneOffset = new Date(day).getTimezoneOffset();
+
+        log.debug('getTimezoneOffset', getTimezoneOffset);
+
+
+        var addTime = 0;
+        if (getTimezoneOffset > 0) {
+            getTimezoneOffset += 460;
+            addTime = getTimezoneOffset * 60 * 1000;
+
+        } else {
+            getTimezoneOffset = 460 - getTimezoneOffset;
+            addTime = getTimezoneOffset * 60 * 1000;
+        }
+
+        d2.setMonth(0);
+        d2.setDate(1);
+        var numweekf = d2.getDay();
+        log.debug('numweekf', numweekf);
+
+        var weeekDay = [1, 2, 3, 4, 5, 6, 0];
+        var s_str = weeekDay.indexOf(numweekf);
+
+        start_date = new Date(d1.getTime() + addTime - (24 * 60 * 60 * 1000 * s_str)).toISOString().split('T')[0];
+        end_date = new Date(d1.getTime() + addTime + (24 * 60 * 60 * 1000 * (6 - s_str))).toISOString().split('T')[0];
+
+        log.debug('start_date', start_date);
+        log.debug('end_date', end_date);
+
+        var rq = d1.getTime() - d2.getTime() + (24 * 60 * 60 * 1000 * numweekf);
+        var days = Math.ceil(rq / (24 * 60 * 60 * 1000));
+        var num = Math.ceil(days / 7);
+        if (func_type == 'B' && num == 1) {
+            num = 53;
+            weekObj[num] = {
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            }
+
+            weekArr.push({
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            })
+        } else if (func_type == 'C' && num == 53) {
+            num = 1;
+            weekObj[num] = {
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            }
+            weekArr.push({
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            })
+        } else {
+            weekObj[num] = {
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            }
+            weekArr.push({
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            })
+        }
+
+        return weekArr;
+    }
 
     /**
-     * 格式化时间函数
-     * @param {format} 时间显示格式
+     * 这个方法将取得某年(year)第几周(weeks)的星期几(weekDay)的日期 
      */
-    Date.prototype.Format = function (fmt) { //需要JS格式化时间，后期做的时候方便使用
-        var o = {
-            "M+": this.getMonth() + 1,                 //月份
-            "d+": this.getDate(),                    //日
-            "h+": this.getHours(),                   //小时
-            "m+": this.getMinutes(),                 //分
-            "s+": this.getSeconds(),                 //秒
-            "q+": Math.floor((this.getMonth() + 3) / 3), //季度
-            "S": this.getMilliseconds()             //毫秒
-        };
-        if (/(y+)/.test(fmt))
-            fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
-        for (var k in o)
-            if (new RegExp("(" + k + ")").test(fmt))
-                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
-        return fmt;
-    };
 
-    //通过周取日期范围   year 年   weeks 周
-    function weekGetDate(year, weeks, format) {
+    function getXDate(year, weeks, weekDay) {
+        // 用指定的年构造一个日期对象，并将日期设置成这个年的1月1日 
+        // 因为计算机中的月份是从0开始的,所以有如下的构造方法 
         var date = new Date(year, "0", "1");
 
-        // 获取当前星期几,0:星期一
-        var time = date.getTime();
-        //当这一年的1月1日为周日时则本年有54周,否则没有54周,没有则去除第54周的提示
-        var _week = date.getDay();
+        // log.debug('year', date);
 
-        if (_week != 0) {//一年53周情况
-            if (weeks == 54) {
-                return '今年没有54周';
-            }
-            var cnt = 0;// 获取距离周末的天数
-            if (_week == 0) {
-                cnt = 7;
-            } else if (_week == 1) {
-                cnt = 6;
-            } else if (_week == 2) {
-                cnt = 5;
-            } else if (_week == 3) {
-                cnt = 4;
-            } else if (_week == 4) {
-                cnt = 3;
-            } else if (_week == 5) {
-                cnt = 2;
-            } else if (_week == 6) {
-                cnt = 1;
-            }
-            cnt += 1;//加1表示以星期一为一周的第一天    // 将这个长整形时间加上第N周的时间偏移
-            time += cnt * 24 * 3600000; //第2周开始时间
-            var nextYear = new Date(parseInt(year, 10) + 1, "0", "1");
-            var nextWeek = nextYear.getDay();
-            var lastcnt = 0;//获取最后一周开始时间到周末的天数
-            if (nextWeek == 0) {
-                lastcnt = 6;
-            } else if (nextWeek == 1) {
-                lastcnt = 0;
-            } else if (nextWeek == 2) {
-                lastcnt = 1;
-            } else if (nextWeek == 3) {
-                lastcnt = 2;
-            } else if (nextWeek == 4) {
-                lastcnt = 3;
-            } else if (nextWeek == 5) {
-                lastcnt = 4;
-            } else if (nextWeek == 6) {
-                lastcnt = 5;
-            }
-            if (weeks == 1) {//第1周特殊处理    // 为日期对象 date 重新设置成时间 time
-                var start = date.Format(format);
-                date.setTime(time - 24 * 3600000);
-                var end = date.Format(format);
-                return start + "-----" + end;
-            } else if (weeks == 53) {//第53周特殊处理
-                //第53周开始时间
-                var start = time + (weeks - 2) * 7 * 24 * 3600000;
-                //第53周结束时间
-                var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
-                date.setTime(start);
-                var _start = date.Format(format);
-                date.setTime(end);
-                var _end = date.Format(format);
-                return _start + "-----" + _end;
-            } else {
-                var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
-                var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
-                date.setTime(start);
-                var _start = date.Format(format);
-                date.setTime(end);
-                var _end = date.Format(format);
-                return _start + "-----" + _end;
-            }
-        } else {//一年54周情况
-            var cnt = 0;// 获取距离周末的天数
-            if (_week == 0 && weeks == 1) {//第一周
-                cnt = 0;
-            } else if (_week == 0) {
-                cnt = 7;
-            } else if (_week == 1) {
-                cnt = 6;
-            } else if (_week == 2) {
-                cnt = 5;
-            } else if (_week == 3) {
-                cnt = 4;
-            } else if (_week == 4) {
-                cnt = 3;
-            } else if (_week == 5) {
-                cnt = 2;
-            } else if (_week == 6) {
-                cnt = 1;
-            }
-            cnt += 1;//加1表示以星期一为一周的第一天
-            // 将这个长整形时间加上第N周的时间偏移
-            time += 24 * 3600000; //第2周开始时间
-            var nextYear = new Date(parseInt(year, 10) + 1, "0", "1");
-            var nextWeek = nextYear.getDay();
-            var lastcnt = 0;//获取最后一周开始时间到周末的天数
-            if (nextWeek == 0) {
-                lastcnt = 6;
-            } else if (nextWeek == 1) {
-                lastcnt = 0;
-            } else if (nextWeek == 2) {
-                lastcnt = 1;
-            } else if (nextWeek == 3) {
-                lastcnt = 2;
-            } else if (nextWeek == 4) {
-                lastcnt = 3;
-            } else if (nextWeek == 5) {
-                lastcnt = 4;
-            } else if (nextWeek == 6) {
-                lastcnt = 5;
-            }
-            if (weeks == 1) {//第1周特殊处理
-                var start = date.Format(format);
-                date.setTime(time - 24 * 3600000);
-                var end = date.Format(format);
-                return _start + "-----" + end;
-            } else if (weeks == 54) {//第54周特殊处理
-                //第54周开始时间
-                var start = time + (weeks - 2) * 7 * 24 * 3600000;
-                //第53周结束时间
-                var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
-                date.setTime(start);
-                var _start = date.Format(format);
-                date.setTime(end);
-                var _end = date.Format(format);
-                return _start + "-----" + _end;
-            } else {
-                var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
-                var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
-                date.setTime(start);
-                var _start = date.Format(format);
-                date.setTime(end);
-                var _end = date.Format(format);
-                return _start + "-----" + _end;
-            }
-        }
+        // 取得这个日期对象 date 的长整形时间 time 
+        var time = date.getTime();
+
+        // 将这个长整形时间加上第N周的时间偏移 
+        // 因为第一周就是当前周,所以有:weeks-1,以此类推 
+        // 7*24*3600000 是一星期的时间毫秒数,(JS中的日期精确到毫秒) 
+        time += (weeks - 1) * 7 * 24 * 3600000;
+
+        time -= 8 * 3600000 + 1; // 加 8 小时
+
+        // 为日期对象 date 重新设置成时间 time
+        date.setTime(time);
+
+        // log.debug('date', date);
+        return getNextDate(date, weekDay);
     }
-    //两个参数分别为         年份 第12周
-    // console.log(weekGetDate(2020, 35))//2020-08-17---2020-08-23
+
+
+    function getNextDate(nowDate, weekDay) {
+        // 0是星期日,1是星期一,... 
+
+        // 0123456  - 日一二三四五六
+        weekDay %= 7;
+
+        // log.debug('weekDay', weekDay);
+        var day = nowDate.getDay();
+        // log.debug('day', day);
+        var time = nowDate.getTime();
+        var sub = weekDay - day;
+        if (sub <= 0) {
+            sub += 7;
+        }
+
+        // log.debug('sub', sub);
+        time += sub * 24 * 3600000;
+        nowDate.setTime(time);
+        return nowDate;
+    }
 
 
     return {

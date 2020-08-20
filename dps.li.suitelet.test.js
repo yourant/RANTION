@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-08-13 21:28:18
+ * @LastEditTime   : 2020-08-20 21:10:45
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \dps.li.suitelet.test.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -16,9 +16,9 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
     'N/xml', './Rantion/Helper/tool.li', 'N/runtime', 'N/file', "N/ui/serverWidget",
     './douples_amazon/Helper/Moment.min', 'N/format', './douples_amazon/Helper/fields.min',
     "./Rantion/Helper/config", 'N/http', 'N/encode', 'N/redirect',
-    './Rantion/cux/Declaration_Information/handlebars-v4.1.1',
+    './Rantion/cux/Declaration_Information/handlebars-v4.1.1', "./Rantion/fulfillment.record/dps.information.values.js",
 ], function (search, record, log, core, file, xml, tool, runtime, file, serverWidget,
-    moment, format, fields, config, http, encode, redirect, Handlebars) {
+    moment, format, fields, config, http, encode, redirect, Handlebars, information) {
 
     function onRequest(context) {
         try {
@@ -34,171 +34,16 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     pageObject: form
                 });
 
-            } else if (userObj.id == 911 /* || userObj.id == 13440 */ ) {
+            } else if (userObj.id == 911 /* || userObj.id == 13440 */) {
 
-                // log.audit('脚本使用量  Starts', runtime.getCurrentScript().getRemainingUsage());
+                var nowDate = new Date();
+                var format = "yyyy年MM月dd日"
 
-                // tool.deleteBoxInfo(70);
+                var get = tool.dateFormat(nowDate, format);
 
-                // log.audit('脚本使用量 End', runtime.getCurrentScript().getRemainingUsage());
+                log.debug('get', get);
 
-
-                var firstCompany = getCompanyId("蓝深贸易有限公司")
-                var secondCompany = getCompanyId("广州蓝图创拓进出口贸易有限公司")
-                var thirdCompany = getCompanyId("广州蓝深科技有限公司")
-
-                var warehouseName = "花都仓";
-                var warehouseCode = "HD";
-
-                var firstLocation = getLocationId(firstCompany, warehouseCode)
-                // var firstLocation = getLocationId(firstCompany, context.positionCode)
-                var secondLocation = getLocationId(secondCompany, warehouseCode)
-                var thirdLocation = getLocationId(thirdCompany, warehouseCode)
-
-
-
-                log.debug('firstLocation', firstLocation);
-                log.debug('secondLocation', secondLocation);
-                log.debug('thirdLocation', thirdLocation);
-
-
-                var firstCount, secondCount, thirdCount;
-
-
-                var item = 4448;
-                if (firstLocation) {
-                    firstCount = getCount(item, firstLocation)
-                }
-                if (secondLocation) {
-                    secondCount = getCount(item, secondLocation)
-                }
-                if (thirdLocation) {
-                    thirdCount = getCount(item, thirdLocation)
-                }
-
-
-                log.debug('总和', firstCount + " - " + secondCount + ' - ' + thirdCount);
-
-
-
-
-                return;
-
-                // return ;
-                // var getAmaInfo = tool.getAmazonBoxInfo(231);
-                // var getAmaInfo = tool.AmazonBoxInfo(287);
-                // var getAmaInfo = tool.AmazonBoxInfo(231);
-
-                // log.audit('getAmaInfo', getAmaInfo);
-
-                // context.response.writeLine("\n\n getAmaInfo shipment: \n" + JSON.stringify(getAmaInfo.itemInfoArr));
-
-                // return;
-
-
-                // var getArr = tool.getBoxInfo(64);
-                var getArr = tool.getBoxInfo(70);
-
-                var print_data = tool.groupBoxInfo(getArr);
-
-
-                log.audit('海运数据', print_data.sea);
-                log.audit('空运数据', print_data.air);
-
-                // context.response.writeLine("\n 海运数据 : \n\n" + JSON.stringify(print_data.sea));
-                // context.response.writeLine("\n 空运数据 : \n\n" + JSON.stringify(print_data.air));
-
-                // return;
-
-                // 获取模板内容,写全路径或者内部ID
-                var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
-                xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/工厂直发装箱信息.xml";
-                // xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/Amazon格式 装箱信息.xml";
-                var model = file.load({
-                    id: xmlID
-                }).getContents();
-
-                log.debug('xmlID', xmlID);
-
-                var strName = '装箱单';
-
-                if (print_data.aono) {
-                    strName += print_data.aono
-                }
-
-                var template = Handlebars.compile(model);
-                var xml_1 = template(print_data);
-
-                var nowDate = new Date().toISOString();
-                var fileObj = file.create({
-                    name: strName + ".xls",
-                    fileType: file.Type.EXCEL,
-                    contents: encode.convert({
-                        string: xml_1,
-                        inputEncoding: encode.Encoding.UTF_8,
-                        outputEncoding: encode.Encoding.BASE_64
-                    }),
-                    encoding: file.Encoding.UTF8,
-                    isOnline: true
-                });
-
-                context.response.writeFile({
-                    file: fileObj,
-                    isInline: true
-                });
-
-
-
-
-
-
-
-
-
-                return;
-
-                // 库存报表   Starts
-                var request = context.request;
-                var response = context.response;
-                var parameters = request.parameters;
-                var param = {};
-
-                // log.debug('parameters', parameters);
-
-
-                param.location = parameters.custpage_dps_search_location;
-                param.sku = parameters.custpage_dps_search_sku;
-                param.department = parameters.custpage_dps_search_department;
-                param.msku = parameters.custpage_dps_search_sellersku;
-                param.fnsku = parameters.custpage_dps_search_fnsku;
-                param.asin = parameters.custpage_dps_search_asin;
-                param.productstatus = parameters.custpage_dps_search_productstatus;
-
-
-                for (var key in param) {
-                    if (!param[key]) {
-                        delete param[key]
-                    }
-                }
-
-                log.debug("param", param);
-
-                var form = InventoryReportUI(param);
-
-                var subli = form.getSublist({
-                    id: 'sublistid'
-                });
-
-                var itemInfoArr = getSearchResult(param);
-                setSublistValue(subli, itemInfoArr);
-
-
-                context.response.writePage({
-                    pageObject: form
-                });
-
-
-                // 库存报表   End
+                context.response.writeLine('get: ' + get)
 
             } else {
                 context.response.writeLine('<html><head><meta charset="utf-8"></head><body><br><br><br><br><h1 style = "vertical-align:middle;text-align:center;color: red">权限不足</h1><p style = "vertical-align:middle;text-align:center;">无法运行此页面</p></body></html>')
@@ -216,8 +61,74 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
     }
 
 
+    function getWeekObj(day, func_type) {
 
-    //获取子公司的ID 
+        var weekObj = {};
+        var weekArr = [];
+        var start_date, end_date;
+        var d1 = new Date(day);
+        var d2 = new Date(day);
+
+        d2.setMonth(0);
+        d2.setDate(1);
+        var numweekf = d2.getDay();
+        log.debug('numweekf', numweekf);
+
+        var weeekDay = [1, 2, 3, 4, 5, 6, 0];
+        var s_str = weeekDay.indexOf(numweekf);
+
+        start_date = new Date(d1.getTime() - (24 * 60 * 60 * 1000 * s_str)).toISOString().split('T')[0];
+        end_date = new Date(d1.getTime() + (24 * 60 * 60 * 1000 * (6 - s_str))).toISOString().split('T')[0];
+
+        log.debug('start_date', start_date);
+        log.debug('end_date', end_date);
+
+        var rq = d1.getTime() - d2.getTime() + (24 * 60 * 60 * 1000 * numweekf);
+        var days = Math.ceil(rq / (24 * 60 * 60 * 1000));
+        var num = Math.ceil(days / 7);
+        if (func_type == 'B' && num == 1) {
+            num = 53;
+            weekObj[num] = {
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            }
+
+            weekArr.push({
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            })
+        } else if (func_type == 'C' && num == 53) {
+            num = 1;
+            weekObj[num] = {
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            }
+            weekArr.push({
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            })
+        } else {
+            weekObj[num] = {
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            }
+            weekArr.push({
+                week: num,
+                start_date: start_date,
+                end_date: end_date
+            })
+        }
+
+        return weekArr;
+    }
+
+
+    //获取子公司的ID
     function getCompanyId(companyName) {
         var result
         search.create({
@@ -226,7 +137,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 name: 'namenohierarchy',
                 operator: 'is',
                 values: companyName
-            }, ],
+            },],
             columns: [{
                 name: 'internalId'
             }]
@@ -237,7 +148,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         return result
     }
 
-    //获取子公司的ID 
+    //获取子公司的ID
     function getLocationId(companyId, positionCode) {
 
         log.debug('companyId', companyId);
@@ -247,15 +158,15 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         search.create({
             type: 'location',
             filters: [{
-                    name: 'subsidiary',
-                    operator: 'anyof',
-                    values: companyId
-                },
-                {
-                    name: 'custrecord_dps_wms_location',
-                    operator: 'is',
-                    values: positionCode
-                }
+                name: 'subsidiary',
+                operator: 'anyof',
+                values: companyId
+            },
+            {
+                name: 'custrecord_dps_wms_location',
+                operator: 'is',
+                values: positionCode
+            }
             ],
             columns: [{
                 name: 'internalId'
@@ -273,15 +184,15 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         search.create({
             type: 'item',
             filters: [{
-                    name: 'internalId',
-                    operator: 'is',
-                    values: item
-                },
-                {
-                    name: 'inventorylocation',
-                    operator: 'is',
-                    values: location
-                }
+                name: 'internalId',
+                operator: 'is',
+                values: item
+            },
+            {
+                name: 'inventorylocation',
+                operator: 'is',
+                values: location
+            }
             ],
             columns: [{
                 name: 'locationquantityonhand'
@@ -333,9 +244,9 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
     /**
      * 设置表单的字段
-     * @param {Object} form 
-     * @param {String} container 
-     * @param {Object} defaultValue 
+     * @param {Object} form
+     * @param {String} container
+     * @param {Object} defaultValue
      */
     function InventoryReportUIField(form, container, defaultValue) {
         var field_location = form.addField({
@@ -415,7 +326,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
     /**
      * 增加子列表的字段
-     * @param {Object} sublist 
+     * @param {Object} sublist
      */
     function InventoryReportUISublistFields(sublist) {
 
@@ -559,7 +470,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
     /**
      * 获取搜索的结果
-     * @param {Object} param 
+     * @param {Object} param
      */
     function getSearchResult(param) {
 
@@ -671,14 +582,13 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
 
         return new_mskuInfoObj;
-        return item_info_obj;
 
     }
 
 
     /**
      * 获取货品信息
-     * @param {Array} itemFilter 
+     * @param {Array} itemFilter
      */
     function searchItemResult(itemFilter) {
 
@@ -741,9 +651,9 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
 
     /**
-     * 搜索映射关系中 msku, fnsku, asin 
-     * @param {Array} mskuFilter 
-     * @param {Object} itemInfoObj 
+     * 搜索映射关系中 msku, fnsku, asin
+     * @param {Array} mskuFilter
+     * @param {Object} itemInfoObj
      */
     function searchMskuResult(mskuFilter, itemInfoObj) {
 
@@ -1338,20 +1248,20 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         search.create({
             type: "transferorder",
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: recIds
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: recIds
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            }
             ],
             columns: [
                 "subsidiary", // 子公司
@@ -1462,62 +1372,62 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         search.create({
             type: "customrecord_amazon_fulfill_invtory_rep",
             filters: [{
-                    isnot: false,
-                    isor: false,
-                    name: "custrecord_invful_transation_type",
-                    operator: "startswith",
-                    values: ["VendorReturns"]
-                },
-                {
-                    isnot: false,
-                    isor: true,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["CARRIER_DAMAGED"]
-                },
-                {
-                    isnot: false,
-                    isor: true,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["DISTRIBUTOR_DAMAGED"]
-                },
-                {
-                    isnot: false,
-                    isor: true,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["DEFECTIVE"]
-                },
-                {
-                    isnot: false,
-                    isor: false,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["CUSTOMER_DAMAGED"]
-                },
-                {
-                    name: 'custrecord_dps_invful_processed',
-                    operator: 'is',
-                    values: false
-                }
+                isnot: false,
+                isor: false,
+                name: "custrecord_invful_transation_type",
+                operator: "startswith",
+                values: ["VendorReturns"]
+            },
+            {
+                isnot: false,
+                isor: true,
+                name: "custrecord_invful_disposition",
+                operator: "is",
+                values: ["CARRIER_DAMAGED"]
+            },
+            {
+                isnot: false,
+                isor: true,
+                name: "custrecord_invful_disposition",
+                operator: "is",
+                values: ["DISTRIBUTOR_DAMAGED"]
+            },
+            {
+                isnot: false,
+                isor: true,
+                name: "custrecord_invful_disposition",
+                operator: "is",
+                values: ["DEFECTIVE"]
+            },
+            {
+                isnot: false,
+                isor: false,
+                name: "custrecord_invful_disposition",
+                operator: "is",
+                values: ["CUSTOMER_DAMAGED"]
+            },
+            {
+                name: 'custrecord_dps_invful_processed',
+                operator: 'is',
+                values: false
+            }
             ],
             columns: [{
-                    name: "custrecord_division",
-                    join: 'custrecord_invful_account'
-                }, // 部门
-                {
-                    name: 'custrecord_aio_subsidiary',
-                    join: 'custrecord_invful_account'
-                }, // 子公司
-                {
-                    name: 'custrecord_aio_fbaorder_location',
-                    join: 'custrecord_invful_account'
-                }, // 地点
-                {
-                    name: 'custrecord_aio_seller_id',
-                    join: 'custrecord_invful_account'
-                }, // sellerId
+                name: "custrecord_division",
+                join: 'custrecord_invful_account'
+            }, // 部门
+            {
+                name: 'custrecord_aio_subsidiary',
+                join: 'custrecord_invful_account'
+            }, // 子公司
+            {
+                name: 'custrecord_aio_fbaorder_location',
+                join: 'custrecord_invful_account'
+            }, // 地点
+            {
+                name: 'custrecord_aio_seller_id',
+                join: 'custrecord_invful_account'
+            }, // sellerId
                 "custrecord_invful_quantity", // 数量
                 "custrecord_invful_transation_type", // TRANSACTION-TYPE
                 "custrecord_invful_fnsku", // fnsku
@@ -1555,16 +1465,16 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         search.create({
             type: 'customrecord_aio_amazon_seller_sku',
             filters: [{
-                    name: 'custrecord_aio_seller_id',
-                    join: 'custrecord_ass_account',
-                    operator: 'is',
-                    values: info.sellerId
-                },
-                {
-                    name: 'name',
-                    operator: 'is',
-                    values: info.sku
-                }
+                name: 'custrecord_aio_seller_id',
+                join: 'custrecord_ass_account',
+                operator: 'is',
+                values: info.sellerId
+            },
+            {
+                name: 'name',
+                operator: 'is',
+                values: info.sku
+            }
             ],
             columns: [
                 "custrecord_ass_sku", // NS 货品
@@ -1629,7 +1539,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
     /**
      * 交货单入库回传
-     * @param {Object} context 
+     * @param {Object} context
      */
     function returnDelivery(context) {
         var ret = {};
@@ -1643,9 +1553,9 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 values: sourceNo
             }],
             columns: [{
-                    name: 'custrecord_dps_wms_location',
-                    join: 'custrecord_dsp_delivery_order_location'
-                }, // WMS仓库编码
+                name: 'custrecord_dps_wms_location',
+                join: 'custrecord_dsp_delivery_order_location'
+            }, // WMS仓库编码
             ]
         }).run().each(function (rec) {
             ret_id = rec.id;
@@ -1674,13 +1584,13 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                         values: ret_id
                     }],
                     columns: [{
-                            name: 'custrecord_item_sku',
-                            join: "custrecord_dps_delivery_order_id"
-                        }, // 交货货品
-                        {
-                            name: 'custrecord_item_quantity',
-                            join: "custrecord_dps_delivery_order_id"
-                        }, // 交货数量
+                        name: 'custrecord_item_sku',
+                        join: "custrecord_dps_delivery_order_id"
+                    }, // 交货货品
+                    {
+                        name: 'custrecord_item_quantity',
+                        join: "custrecord_dps_delivery_order_id"
+                    }, // 交货数量
                         "custrecord_dsp_delivery_order_location", // 地点
                         "custrecord_purchase_order_no", // 采购订单
                     ]
@@ -1906,20 +1816,20 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         search.create({
             type: 'purchaseorder',
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: [po_id]
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: [po_id]
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            }
             ],
             columns: [
                 "item",
@@ -2191,7 +2101,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     name: "tranid",
                     join: "custrecord_dps_shipping_rec_order_num"
                 }, // 调拨单号
-                "custrecord_dps_to_shipment_name", // shipment name 
+                "custrecord_dps_to_shipment_name", // shipment name
                 "custrecord_dps_to_reference_id", // reference id
             ]
         }).run().each(function (rec) {
@@ -2263,8 +2173,8 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 logiFlag = 0;
             }
 
-            // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
-            // FIXME 需要判断物流渠道是否存在面单文件, 
+            // logisticsFlag (integer): 是否需要物流面单 0:否 1:是
+            // FIXME 需要判断物流渠道是否存在面单文件,
             data["logisticsFlag"] = logiFlag;
 
 
@@ -2365,92 +2275,92 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 values: context.recordID
             }],
             columns: [{
-                    join: 'custrecord_dps_shipping_record_item',
-                    name: 'custitem_dps_msku'
-                },
-                {
-                    name: 'custrecord_dps_f_b_purpose',
-                    join: 'custrecord_dps_shipping_record_parentrec'
-                },
-                {
-                    join: 'custrecord_dps_shipping_record_item',
-                    name: 'custitem_dps_fnsku'
-                },
-                {
-                    name: 'custitem_aio_asin',
-                    join: 'custrecord_dps_shipping_record_item'
-                },
-                {
-                    name: 'custitem_dps_skuchiense',
-                    join: 'custrecord_dps_shipping_record_item'
-                },
-                {
-                    name: 'custitem_dps_picture',
-                    join: 'custrecord_dps_shipping_record_item'
-                },
-                {
-                    name: 'itemid',
-                    join: 'custrecord_dps_shipping_record_item'
-                },
-                {
-                    name: 'custrecord_dps_ship_record_sku_item'
-                },
-                {
-                    name: 'custrecord_dps_ship_record_item_quantity'
-                },
+                join: 'custrecord_dps_shipping_record_item',
+                name: 'custitem_dps_msku'
+            },
+            {
+                name: 'custrecord_dps_f_b_purpose',
+                join: 'custrecord_dps_shipping_record_parentrec'
+            },
+            {
+                join: 'custrecord_dps_shipping_record_item',
+                name: 'custitem_dps_fnsku'
+            },
+            {
+                name: 'custitem_aio_asin',
+                join: 'custrecord_dps_shipping_record_item'
+            },
+            {
+                name: 'custitem_dps_skuchiense',
+                join: 'custrecord_dps_shipping_record_item'
+            },
+            {
+                name: 'custitem_dps_picture',
+                join: 'custrecord_dps_shipping_record_item'
+            },
+            {
+                name: 'itemid',
+                join: 'custrecord_dps_shipping_record_item'
+            },
+            {
+                name: 'custrecord_dps_ship_record_sku_item'
+            },
+            {
+                name: 'custrecord_dps_ship_record_item_quantity'
+            },
 
-                {
-                    name: 'custitem_dps_heavy2',
-                    join: 'custrecord_dps_shipping_record_item'
-                }, // 产品重量(cm),
-                {
-                    name: 'custitem_dps_high',
-                    join: 'custrecord_dps_shipping_record_item'
-                }, // 产品高(cm),
-                {
-                    name: 'custitem_dps_long',
-                    join: 'custrecord_dps_shipping_record_item'
-                }, // 产品长(cm),
-                {
-                    name: 'custitem_dps_wide',
-                    join: 'custrecord_dps_shipping_record_item'
-                }, // 产品宽(cm),
-                {
-                    name: 'custitem_dps_brand',
-                    join: 'custrecord_dps_shipping_record_item'
-                }, // 品牌名称,
-                {
-                    name: 'custitem_dps_declaration_us',
-                    join: 'custrecord_dps_shipping_record_item'
-                }, // 产品英文标题,
+            {
+                name: 'custitem_dps_heavy2',
+                join: 'custrecord_dps_shipping_record_item'
+            }, // 产品重量(cm),
+            {
+                name: 'custitem_dps_high',
+                join: 'custrecord_dps_shipping_record_item'
+            }, // 产品高(cm),
+            {
+                name: 'custitem_dps_long',
+                join: 'custrecord_dps_shipping_record_item'
+            }, // 产品长(cm),
+            {
+                name: 'custitem_dps_wide',
+                join: 'custrecord_dps_shipping_record_item'
+            }, // 产品宽(cm),
+            {
+                name: 'custitem_dps_brand',
+                join: 'custrecord_dps_shipping_record_item'
+            }, // 品牌名称,
+            {
+                name: 'custitem_dps_declaration_us',
+                join: 'custrecord_dps_shipping_record_item'
+            }, // 产品英文标题,
 
-                {
-                    name: 'custitem_dps_use',
-                    join: 'custrecord_dps_shipping_record_item'
-                },
+            {
+                name: 'custitem_dps_use',
+                join: 'custrecord_dps_shipping_record_item'
+            },
                 'custrecord_dps_shipping_record_item', // 货品
 
-                // {
-                //     name: 'taxamount',
-                //     join: 'custrecord_dps_trans_order_link'
-                // }
+            // {
+            //     name: 'taxamount',
+            //     join: 'custrecord_dps_trans_order_link'
+            // }
 
-                {
-                    name: "custitem_dps_nature",
-                    join: "custrecord_dps_shipping_record_item"
-                }, // 材质  material
-                {
-                    name: "custitem_dps_group",
-                    join: "custrecord_dps_shipping_record_item"
-                }, // 物流分组 logisticsGroup
-                {
-                    name: "cost",
-                    join: "custrecord_dps_shipping_record_item"
-                }, // 采购成本  purchaseCost
-                {
-                    name: "custitem_dps_skuenglish",
-                    join: "custrecord_dps_shipping_record_item"
-                }, // 英文标题/描述 englishTitle
+            {
+                name: "custitem_dps_nature",
+                join: "custrecord_dps_shipping_record_item"
+            }, // 材质  material
+            {
+                name: "custitem_dps_group",
+                join: "custrecord_dps_shipping_record_item"
+            }, // 物流分组 logisticsGroup
+            {
+                name: "cost",
+                join: "custrecord_dps_shipping_record_item"
+            }, // 采购成本  purchaseCost
+            {
+                name: "custitem_dps_skuenglish",
+                join: "custrecord_dps_shipping_record_item"
+            }, // 英文标题/描述 englishTitle
             ]
         }).run().each(function (rec) {
 
@@ -2559,7 +2469,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
         log.debug('itemArr', itemArr);
 
-        // 2020/7/18 13：44 改动 
+        // 2020/7/18 13：44 改动
         var fils = [],
             add_fils = []; //过滤
         var len = item_info.length,
@@ -2681,6 +2591,34 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
     }
 
 
+    function getToken() {
+        var token;
+        search.create({
+            type: 'customrecord_wms_token',
+            filters: [{
+                name: 'internalid',
+                operator: 'anyof',
+                values: 1
+            }],
+            columns: ['custrecord_wtr_token']
+        }).run().each(function (result) {
+            token = result.getValue('custrecord_wtr_token');
+        });
+        return token;
+    }
+
+
+
+    function others() {
+
+        return;
+    }
+    return {
+        onRequest: onRequest
+    }
+
+
+
     function wms(af_rec) {
         // 推送 WMS, 获取装箱信息
 
@@ -2696,9 +2634,9 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 values: af_rec.id
             }],
             columns: [{
-                    name: 'custrecord_dps_financia_warehous',
-                    join: 'custrecord_dps_shipping_rec_location'
-                }, // 财务分仓 类型
+                name: 'custrecord_dps_financia_warehous',
+                join: 'custrecord_dps_shipping_rec_location'
+            }, // 财务分仓 类型
             ]
         }).run().each(function (rec) {
             flagLocation = rec.getValue({
@@ -2713,14 +2651,6 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             // 27	等待录入装箱信息
             log.debug('发出仓库属于工厂仓', "直接退出, 不推送WMS")
 
-            var id = record.submitFields({
-                type: 'customrecord_dps_shipping_record',
-                id: af_rec.id,
-                values: {
-                    custrecord_dps_shipping_rec_status: 27,
-                    custrecord_dps_shipping_rec_wms_info: '发出仓为工厂仓, 不推送WMS '
-                }
-            });
 
             return;
         }
@@ -2742,8 +2672,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
         var message = {};
         // 获取token
-        // var token = getToken();
-        var token = 1;
+        var token = getToken();
         if (token) {
             var data = {};
             var tranType, fbaAccount, logisticsFlag = 0;
@@ -2884,7 +2813,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 } else {
                     data["logisticsFlag"] = 0;
                 }
-                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
+                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是
 
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer'); // 渠道商名称
 
@@ -2971,92 +2900,92 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     values: af_rec.id
                 }],
                 columns: [{
-                        join: 'custrecord_dps_shipping_record_item',
-                        name: 'custitem_dps_msku'
-                    },
-                    {
-                        name: 'custrecord_dps_f_b_purpose',
-                        join: 'custrecord_dps_shipping_record_parentrec'
-                    },
-                    {
-                        join: 'custrecord_dps_shipping_record_item',
-                        name: 'custitem_dps_fnsku'
-                    },
-                    {
-                        name: 'custitem_aio_asin',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    {
-                        name: 'custitem_dps_skuchiense',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    {
-                        name: 'custitem_dps_picture',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    {
-                        name: 'itemid',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
-                    {
-                        name: 'custrecord_dps_ship_record_sku_item'
-                    },
-                    {
-                        name: 'custrecord_dps_ship_record_item_quantity'
-                    },
+                    join: 'custrecord_dps_shipping_record_item',
+                    name: 'custitem_dps_msku'
+                },
+                {
+                    name: 'custrecord_dps_f_b_purpose',
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                },
+                {
+                    join: 'custrecord_dps_shipping_record_item',
+                    name: 'custitem_dps_fnsku'
+                },
+                {
+                    name: 'custitem_aio_asin',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'custitem_dps_skuchiense',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'custitem_dps_picture',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'itemid',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'custrecord_dps_ship_record_sku_item'
+                },
+                {
+                    name: 'custrecord_dps_ship_record_item_quantity'
+                },
 
-                    {
-                        name: 'custitem_dps_heavy2',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }, // 产品重量(cm),
-                    {
-                        name: 'custitem_dps_high',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }, // 产品高(cm),
-                    {
-                        name: 'custitem_dps_long',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }, // 产品长(cm),
-                    {
-                        name: 'custitem_dps_wide',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }, // 产品宽(cm),
-                    {
-                        name: 'custitem_dps_brand',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }, // 品牌名称,
-                    {
-                        name: 'custitem_dps_declaration_us',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }, // 产品英文标题,
+                {
+                    name: 'custitem_dps_heavy2',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品重量(cm),
+                {
+                    name: 'custitem_dps_high',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品高(cm),
+                {
+                    name: 'custitem_dps_long',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品长(cm),
+                {
+                    name: 'custitem_dps_wide',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品宽(cm),
+                {
+                    name: 'custitem_dps_brand',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 品牌名称,
+                {
+                    name: 'custitem_dps_declaration_us',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品英文标题,
 
-                    {
-                        name: 'custitem_dps_use',
-                        join: 'custrecord_dps_shipping_record_item'
-                    },
+                {
+                    name: 'custitem_dps_use',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
                     'custrecord_dps_shipping_record_item', // 货品
                     'custrecord_dps_ship_record_sku_item', //seller sku
-                    // {
-                    //     name: 'taxamount',
-                    //     join: 'custrecord_dps_trans_order_link'
-                    // }
+                // {
+                //     name: 'taxamount',
+                //     join: 'custrecord_dps_trans_order_link'
+                // }
 
-                    {
-                        name: "custitem_dps_nature",
-                        join: "custrecord_dps_shipping_record_item"
-                    }, // 材质  material
-                    {
-                        name: "custitem_dps_group",
-                        join: "custrecord_dps_shipping_record_item"
-                    }, // 物流分组 logisticsGroup
-                    {
-                        name: "cost",
-                        join: "custrecord_dps_shipping_record_item"
-                    }, // 采购成本  purchaseCost
-                    {
-                        name: "custitem_dps_skuenglish",
-                        join: "custrecord_dps_shipping_record_item"
-                    }, // 英文标题/描述 englishTitle
+                {
+                    name: "custitem_dps_nature",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 材质  material
+                {
+                    name: "custitem_dps_group",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 物流分组 logisticsGroup
+                {
+                    name: "cost",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 采购成本  purchaseCost
+                {
+                    name: "custitem_dps_skuenglish",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 英文标题/描述 englishTitle
                 ]
             }).run().each(function (rec) {
 
@@ -3099,10 +3028,10 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     }),
 
                     msku: rec.getValue("custrecord_dps_ship_record_sku_item"), //sellersku
-                    englishTitle: rec.getValue({
-                        name: 'custitem_dps_declaration_us',
-                        join: 'custrecord_dps_shipping_record_item'
-                    }),
+                    // englishTitle: rec.getValue({
+                    //     name: 'custitem_dps_declaration_us',
+                    //     join: 'custrecord_dps_shipping_record_item'
+                    // }),
                     productImageUrl: rec.getValue({
                         name: 'custitem_dps_picture',
                         join: 'custrecord_dps_shipping_record_item'
@@ -3145,10 +3074,9 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 return --ful_limit > 0;
             });
 
-
-            log.audit('发运记录 原货品数据 item_info', item_info);
-            log.debug('发运记录货品数据itemArr', itemArr);
-            // 2020/7/18 13：44 改动 
+            log.debug('itemArr', itemArr);
+            log.debug('item_info', item_info);
+            // 2020/7/18 13：44 改动
             var fils = [],
                 add_fils = []; //过滤
             var len = item_info.length,
@@ -3156,7 +3084,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             item_info.map(function (ld) {
                 num++;
                 add_fils.push([
-                    ["name", "is", ld.msku],
+                    ["name", "contains", ld.msku],
                     "and",
                     ["custrecord_ass_sku", "anyof", ld.itemId]
                 ]);
@@ -3167,21 +3095,27 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             fils.push("and",
                 ["custrecord_ass_account", "anyof", fbaAccount]
             );
-            fils.push("and",
-                ["isinactive", "is", false]
-            );
+            // fils.push("and",
+            //     ["isinactive", "is", false]
+            // );
             log.debug('fils', fils);
             log.debug('item_info', item_info);
             var newItemInfo = [];
 
-
             log.debug('推送 WMS tranType', tranType);
             if (tranType == 1) {
 
+                if (!fbaAccount) {
+                    message.code = 3;
+                    message.data = 'FBA 调拨 不存在店铺';
+                    log.debug('message', message);
+
+                    return message;
+                }
+
+                var search_item = [];
                 var new_limit = 3999;
                 var fls_skus = [];
-
-                var fls_obj = {};
                 search.create({
                     type: 'customrecord_aio_amazon_seller_sku',
                     filters: fils,
@@ -3189,14 +3123,15 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                         "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
                 }).run().each(function (rec) {
-
                     var temp_name = rec.getValue('name');
-
                     var it = rec.getValue('custrecord_ass_sku');
-                    fls_obj[temp_name] = it;
+                    search_item.push(it)
+
+                    log.error('temp_name: ' + temp_name, "it: " + it);
+
                     item_info.map(function (item, key) {
 
-                        if (item.itemId == it && item.msku == temp_name && fls_skus.indexOf(temp_name) == -1) {
+                        if (item.itemId == it && item.msku.trim() == temp_name.trim() && fls_skus.indexOf(temp_name) == -1) {
                             item.asin = rec.getValue("custrecord_ass_asin");
                             item.fnsku = rec.getValue("custrecord_ass_fnsku");
                             item.msku = rec.getValue('name');
@@ -3207,28 +3142,24 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     return --new_limit > 0;
                 });
 
+                log.audit('search_item search', search_item);
+                log.audit('item_info search', item_info);
                 log.audit('fls_skus', fls_skus);
-                log.debug('搜索映射关系表 newItemInfo', newItemInfo);
-                log.debug('搜索映射关系表 item_info', item_info);
+                log.debug('newItemInfo ', newItemInfo);
 
                 if (newItemInfo && newItemInfo.length == 0) {
 
                     message.code = 3;
                     message.data = 'Amazon Seller SKU 中找不到对应的映射关系';
-                    var id = record.submitFields({
-                        type: 'customrecord_dps_shipping_record',
-                        id: af_rec.id,
-                        values: {
-                            custrecord_dps_shipping_rec_status: 8,
-                            custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
-                        }
-                    });
+
+
+                    log.debug('message', message);
 
                     return message;
                 }
 
 
-                var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link)
+                var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link);
 
                 newItemInfo.map(function (newItem) {
                     var itemId = newItem.itemId;
@@ -3241,7 +3172,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 data['allocationDetailCreateRequestDtos'] = item_info;
             }
 
-            log.audit('推送 WMS 货品数据 newItemInfo', newItemInfo);
+            log.audit('newItemInfo', newItemInfo);
 
             if (Number(taxamount) > 0) {
                 data["taxFlag"] = 1;
@@ -3260,114 +3191,261 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 message.code = 3;
                 message.data = juArr + ':  Amazon Seller SKU 中找不到对应的映射关系, 或者信息不全';
 
-                log.audit('message', message)
+                log.debug('message', message);
 
                 return message;
             }
 
+
+            // 发送请求
+            // message = sendRequest(token, data);
         } else {
             message.code = 1;
             message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
+
+            log.debug('message', message);
+
         }
 
-        log.debug('message', message);
 
     }
 
 
-    function getToken() {
-        var token;
-        search.create({
-            type: 'customrecord_wms_token',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: 1
-            }],
-            columns: ['custrecord_wtr_token']
-        }).run().each(function (result) {
-            token = result.getValue('custrecord_wtr_token');
-        });
-        return token;
-    }
 
 
 
-    function others() {
-
-        return;
-        // var getAmaInfo = tool.getAmazonBoxInfo(231);
-        var getAmaInfo = tool.AmazonBoxInfo(287);
-        var getAmaInfo = tool.AmazonBoxInfo(231);
-
-        log.audit('getAmaInfo', getAmaInfo);
-
-        context.response.writeLine("\n\n getAmaInfo shipment: \n" + JSON.stringify(getAmaInfo.itemInfoArr));
-
-        return;
-
-
-        // var getArr = tool.getBoxInfo(64);
-
-        // var redisId = Date.parse(new Date());
-        // var print_data = tool.groupBoxInfo(getArr);
-
-        // log.audit('print_data', print_data.data);
-
-        // 获取模板内容,写全路径或者内部ID
-        var xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/装箱单.xml";
-        xmlID = "SuiteScripts/Rantion/fulfillment.record/xml/Amazon格式 装箱信息.xml";
-        var model = file.load({
-            id: xmlID
-        }).getContents();
-
-        log.debug('xmlID', xmlID);
-
-        var template = Handlebars.compile(model);
-        var xml_1 = template(getAmaInfo);
-
-        var nowDate = new Date().toISOString();
-        var fileObj = file.create({
-            name: "Amazon 格式 装箱信息-" + getAmaInfo.aono + ".xls",
-            fileType: file.Type.EXCEL,
-            contents: encode.convert({
-                string: xml_1,
-                inputEncoding: encode.Encoding.UTF_8,
-                outputEncoding: encode.Encoding.BASE_64
-            }),
-            encoding: file.Encoding.UTF8,
-            isOnline: true
-        });
-
-        context.response.writeFile({
-            file: fileObj,
-            isInline: true
-        });
-
-
-        return;
-
-        // var to_id = [3378786, 3378785, 3378784, 3378783, 3378000, 6798];
-        var to_id = [3378786, 6798];
-
-        for (var i = 0, i_len = to_id.length; i < i_len; i++) {
-
-            var data = tranferOrderToWMS(to_id[i]);
-
-            context.response.writeLine("\n\n data: \n" + JSON.stringify(data))
-            var token = tool.getToken();
-
-            var cus_url = config.WMS_Debugging_URL + '/inMaster';
-
-            var getRep = tool.sendRequest(token, data, cus_url);
-
-            log.audit('推送 WMS 调拨入库 getRep  ' + i, getRep)
-
-            context.response.writeLine("\n\n\n getTep :" + i + "\n " + JSON.stringify(getRep))
+    function getWeekOfYear() {
+        var today = new Date();
+        var firstDay = new Date(today.getFullYear(), 0, 1);
+        var dayOfWeek = firstDay.getDay();
+        var spendDay = 1;
+        if (dayOfWeek != 0) {
+            spendDay = 7 - dayOfWeek + 1;
         }
-        return;
+        firstDay = new Date(today.getFullYear(), 0, 1 + spendDay);
+        var d = Math.ceil((today.valueOf() - firstDay.valueOf()) / 86400000);
+        var result = Math.ceil(d / 7);
+        return result + 1;
+    };
+
+
+    /**
+     * 这个方法将取得某年(year)第几周(weeks)的星期几(weekDay)的日期
+     * @param {*} year
+     * @param {*} weeks
+     * @param {*} weekDay
+     */
+    function getXDate(year, weeks, weekDay) {
+        // 用指定的年构造一个日期对象，并将日期设置成这个年的1月1日
+        // 因为计算机中的月份是从0开始的,所以有如下的构造方法
+        var date = new Date(year, "0", "1");
+
+        log.debug('year', date);
+
+        // 取得这个日期对象 date 的长整形时间 time
+        var time = date.getTime();
+
+        // 将这个长整形时间加上第N周的时间偏移
+        // 因为第一周就是当前周,所以有:weeks-1,以此类推
+        // 7*24*3600000 是一星期的时间毫秒数,(JS中的日期精确到毫秒)
+        time += (weeks - 1) * 7 * 24 * 3600000;
+
+        time -= 8 * 3600000 + 1; // 加 8 小时
+
+        // 为日期对象 date 重新设置成时间 time
+        date.setTime(time);
+
+        log.debug('date', date);
+        return getNextDate(date, weekDay);
     }
-    return {
-        onRequest: onRequest
+
+
+    function getNextDate(nowDate, weekDay) {
+        // 0是星期日,1是星期一,...
+
+        // 0123456  - 日一二三四五六
+        weekDay %= 7;
+
+        log.debug('weekDay', weekDay);
+        var day = nowDate.getDay();
+        log.debug('day', day);
+        var time = nowDate.getTime();
+        var sub = weekDay - day;
+        if (sub <= 0) {
+            sub += 7;
+        }
+
+        log.debug('sub', sub);
+        time += sub * 24 * 3600000;
+        nowDate.setTime(time);
+        return nowDate;
     }
+
+
+    /**
+     * 格式化时间函数
+     * @param {format} 时间显示格式
+     */
+    Date.prototype.format = function (format) {
+        var date = {
+            "M+": this.getMonth() + 1,                 //月份
+            "d+": this.getDate(),                    //日
+            "h+": this.getHours(),                   //小时
+            "m+": this.getMinutes(),                 //分
+            "s+": this.getSeconds(),                 //秒
+            "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+            "S": this.getMilliseconds()             //毫秒
+        };
+        if (/(y+)/i.test(format)) {
+            format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+        }
+        for (var k in date) {
+            if (new RegExp("(" + k + ")").test(format)) {
+                format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
+            }
+        }
+        return format;
+    };
+
+    //通过周取日期范围   year 年   weeks 周
+    function weekGetDate(year, weeks) {
+        var date = new Date(year, "0", "1");
+
+        // 获取当前星期几,0:星期一
+        var time = date.getTime();
+        //当这一年的1月1日为周日时则本年有54周,否则没有54周,没有则去除第54周的提示
+        var _week = date.getDay();
+
+        if (_week != 0) {//一年53周情况
+            if (weeks == 54) {
+                return '今年没有54周';
+            }
+            var cnt = 0;// 获取距离周末的天数
+            if (_week == 0) {
+                cnt = 7;
+            } else if (_week == 1) {
+                cnt = 6;
+            } else if (_week == 2) {
+                cnt = 5;
+            } else if (_week == 3) {
+                cnt = 4;
+            } else if (_week == 4) {
+                cnt = 3;
+            } else if (_week == 5) {
+                cnt = 2;
+            } else if (_week == 6) {
+                cnt = 1;
+            }
+            cnt += 1;//加1表示以星期一为一周的第一天    // 将这个长整形时间加上第N周的时间偏移
+            time += cnt * 24 * 3600000; //第2周开始时间
+            var nextYear = new Date(parseInt(year, 10) + 1, "0", "1");
+            var nextWeek = nextYear.getDay();
+            var lastcnt = 0;//获取最后一周开始时间到周末的天数
+            if (nextWeek == 0) {
+                lastcnt = 6;
+            } else if (nextWeek == 1) {
+                lastcnt = 0;
+            } else if (nextWeek == 2) {
+                lastcnt = 1;
+            } else if (nextWeek == 3) {
+                lastcnt = 2;
+            } else if (nextWeek == 4) {
+                lastcnt = 3;
+            } else if (nextWeek == 5) {
+                lastcnt = 4;
+            } else if (nextWeek == 6) {
+                lastcnt = 5;
+            }
+            if (weeks == 1) {//第1周特殊处理    // 为日期对象 date 重新设置成时间 time
+                var start = date.Format("yyyy-MM-dd");
+                date.setTime(time - 24 * 3600000);
+                var end = date.Format("yyyy-MM-dd");
+                return start + "-----" + end;
+            } else if (weeks == 53) {//第53周特殊处理
+                //第53周开始时间
+                var start = time + (weeks - 2) * 7 * 24 * 3600000;
+                //第53周结束时间
+                var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
+                date.setTime(start);
+                var _start = date.Format("yyyy-MM-dd");
+                date.setTime(end);
+                var _end = date.Format("yyyy-MM-dd");
+                return _start + "-----" + _end;
+            } else {
+                var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
+                var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
+                date.setTime(start);
+                var _start = date.Format("yyyy-MM-dd");
+                date.setTime(end);
+                var _end = date.Format("yyyy-MM-dd");
+                return _start + "-----" + _end;
+            }
+        } else {//一年54周情况
+            var cnt = 0;// 获取距离周末的天数
+            if (_week == 0 && weeks == 1) {//第一周
+                cnt = 0;
+            } else if (_week == 0) {
+                cnt = 7;
+            } else if (_week == 1) {
+                cnt = 6;
+            } else if (_week == 2) {
+                cnt = 5;
+            } else if (_week == 3) {
+                cnt = 4;
+            } else if (_week == 4) {
+                cnt = 3;
+            } else if (_week == 5) {
+                cnt = 2;
+            } else if (_week == 6) {
+                cnt = 1;
+            }
+            cnt += 1;//加1表示以星期一为一周的第一天
+            // 将这个长整形时间加上第N周的时间偏移
+            time += 24 * 3600000; //第2周开始时间
+            var nextYear = new Date(parseInt(year, 10) + 1, "0", "1");
+            var nextWeek = nextYear.getDay();
+            var lastcnt = 0;//获取最后一周开始时间到周末的天数
+            if (nextWeek == 0) {
+                lastcnt = 6;
+            } else if (nextWeek == 1) {
+                lastcnt = 0;
+            } else if (nextWeek == 2) {
+                lastcnt = 1;
+            } else if (nextWeek == 3) {
+                lastcnt = 2;
+            } else if (nextWeek == 4) {
+                lastcnt = 3;
+            } else if (nextWeek == 5) {
+                lastcnt = 4;
+            } else if (nextWeek == 6) {
+                lastcnt = 5;
+            }
+            if (weeks == 1) {//第1周特殊处理
+                var start = date.Format("yyyy-MM-dd");
+                date.setTime(time - 24 * 3600000);
+                var end = date.Format("yyyy-MM-dd");
+                return _start + "-----" + end;
+            } else if (weeks == 54) {//第54周特殊处理
+                //第54周开始时间
+                var start = time + (weeks - 2) * 7 * 24 * 3600000;
+                //第53周结束时间
+                var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
+                date.setTime(start);
+                var _start = date.Format("yyyy-MM-dd");
+                date.setTime(end);
+                var _end = date.Format("yyyy-MM-dd");
+                return _start + "-----" + _end;
+            } else {
+                var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
+                var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
+                date.setTime(start);
+                var _start = date.Format("yyyy-MM-dd");
+                date.setTime(end);
+                var _end = date.Format("yyyy-MM-dd");
+                return _start + "-----" + _end;
+            }
+        }
+    }
+
+
 });

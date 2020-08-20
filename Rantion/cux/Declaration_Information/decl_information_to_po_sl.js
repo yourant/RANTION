@@ -2,7 +2,7 @@
  *@NApiVersion 2.x
  *@NScriptType Suitelet
  */
-define(['N/record'], function(record) {
+define(['N/record', 'N/currency'], function(record, currency) {
 
     function onRequest(context) {
         var request = context.request;
@@ -15,7 +15,6 @@ define(['N/record'], function(record) {
             var poData = JSON.parse(params.poData);
             var msg = '生成成功';
             var poid;
-            log.debug('poData', JSON.stringify(poData));
             if (poData) {
                 try {
                     var poRec = record.create({ type: 'purchaseorder', isDynamic: true });
@@ -39,15 +38,15 @@ define(['N/record'], function(record) {
                     }
                     var skus = poData.skus;
                     for (var index = 0; index < skus.length; index++) {
-                        log.debug('skus', JSON.stringify(skus));
                         poRec.selectNewLine({ sublistId: 'item' });
                         poRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'item', value: skus[index].item });
                         poRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity', value: Number(skus[index].qty) });
-                        poRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: Number(skus[index].price) });
+                        var exchangerate = currency.exchangeRate({ source: 'USD', target: 'CNY', date: new Date() });
+                        poRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: Number(skus[index].price) * exchangerate });
                         // poRec.setCurrentSublistValue({ sublistId: 'item', fieldId: 'location', value: poData.to_subsidiary_location });
                         poRec.commitLine({ sublistId: 'item' });
                     }
-                    poid = poRec.save();
+                    poid = poRec.save({ ignoreMandatoryFields: true });
                     if (poid) {
                         var informaRec = record.load({ type: 'customrecord_customs_declaration_informa', id: poData.informationId });
                         informaRec.setValue({ fieldId: 'custrecord_inter_po_report', value: poid });

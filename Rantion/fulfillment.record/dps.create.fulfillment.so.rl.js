@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-12 19:57:07
- * @LastEditTime   : 2020-07-18 17:36:36
+ * @LastEditTime   : 2020-08-17 20:20:29
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.rl.js
@@ -818,6 +818,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             log.debug('获取关税起征点的值', JSON.stringify(temp));
             if (temp.length > 0) {
                 var dec_value = temp[0].tariff;
+                log.debug('dec_value', dec_value);
                 currency = temp[0].currency;
                 if (dec_value) {
                     if (amount > dec_value) {
@@ -825,10 +826,10 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                             h_v = Number(dec_value) * 0.8;
                         set_value = randomNum(l_v, h_v);
                     } else {
-                        set_value = account;
+                        set_value = amount;
                     }
                 } else {
-                    set_value = account;
+                    set_value = amount;
                 }
             }
             ful_create_rec.setValue({
@@ -1037,8 +1038,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             ]
         }).run().each(function (result) {
 
-            custbody_dps_distributors = rec.getValue('custbody_dps_distributors'); // 渠道商
-            custbody_dps_service_channels = rec.getValue('custbody_dps_service_channels'); // 渠道服务
+            custbody_dps_distributors = result.getValue('custbody_dps_distributors'); // 渠道商
+            custbody_dps_service_channels = result.getValue('custbody_dps_service_channels'); // 渠道服务
 
             if (flag) {
                 order.id = soid;

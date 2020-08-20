@@ -338,10 +338,9 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function (
   }
 
   function createBill (items_arr, week, need_location_arr) {
-    var item_arr = [],item_n ={};
+    var item_arr = []
     for (var i = 0; i < items_arr.length; i++) {
       item_arr.push(items_arr[i]['item_id'])
-      item_n[items_arr[i]['item_id']] = items_arr[i]['item_Name'];
     }
     log.debug('item_arr', item_arr)
     var new_item = [],
@@ -840,61 +839,26 @@ try{
               fieldId: 'employee',
               value: runtime.getCurrentUser().id
             })
-            var sf = [];
             l.lineItems.map(function (lia) {
               t_ord.selectNewLine({ sublistId: 'item' })
-              var num =0,MSKU;
-              search.create({
-                type: 'customrecord_aio_amazon_seller_sku',
-                filters:[{
-                  name: "custrecord_ass_sku",
-                  operator: 'anyof',
-                  values: lia.item_id
-              },
-              {
-                  name: 'custrecord_ass_account',
-                  operator: 'anyof',
-                  values: l.account_id
-              }],
-                columns: [
-                    "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
-                ]
-              }).run().each(function (rec) {
-                MSKU = rec.getValue("name") 
-                num++;
-                return true;
-              })
               t_ord.setCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'item',
                 value: lia.item_id
-              });
-              //如果有多对应关系，就不设置MSKU；
-              if(num==1){
-                t_ord.setCurrentSublistValue({
-                  sublistId: 'item',
-                  fieldId: 'custcol_aio_amazon_msku',
-                  value: MSKU
-                });
-              }else{
-                sf.push({
-                  "SKU_name":item_n[lia.item_id]
-                });
-                return ;
-              }
+              })
               t_ord.setCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'quantity',
-                value: Math.abs(lia.item_quantity)
-              });
+                value: lia.item_quantity
+              })
               t_ord.setCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'rate',
                 value: lia.price_no ? lia.price_no : 0
-              });
+              })
               // 其他字段
               try {
-                t_ord.commitLine({ sublistId: 'item' });
+                t_ord.commitLine({ sublistId: 'item' })
               } catch (err) {
                 throw (
                 'Error inserting item line: ' +
@@ -903,13 +867,13 @@ try{
                 err
                 );
               }
-            });
+            })
             var t_ord_id = t_ord.save({
               enableSourcing: true,
               ignoreMandatoryFields: true
-            });
+            })
             ord_len.push(t_ord_id);
-          });
+          })
         })
       }
       if (ord_len.length > 0) {
@@ -921,11 +885,11 @@ try{
       }
     })
   }catch(e){
-    result_data.status = 'error';
-    result_data.data = '生成失败:'+e;
+    result_data.status = 'error'
+    result_data.data = '生成失败:'+e
   }
-    log.debug('result_data', result_data);
-    return result_data;
+    log.debug('result_data', result_data)
+    return result_data
   }
 
   function _put (context) { }

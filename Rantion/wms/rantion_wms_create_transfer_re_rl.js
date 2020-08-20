@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-14 15:39:20
+ * @LastEditTime   : 2020-08-17 11:59:07
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
@@ -241,7 +241,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
                         fieldId: 'custrecord_dps_ship_rec_dono',
                         value: abno
                     });
-                    val.custrecord_dps_ship_rec_dono = abno;
+                    // val.custrecord_dps_ship_rec_dono = abno;
 
                     l_rec.setValue({
                         fieldId: 'custrecord_dps_ship_rec_pickno',

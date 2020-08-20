@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 11:07:52
- * @LastEditTime   : 2020-08-13 14:46:06
+ * @LastEditTime   : 2020-08-20 21:05:43
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.to.control.field.cs.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -379,7 +379,7 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
 
     /**
      * 打印装箱单
-     * @param {Number} rec_id 
+     * @param {Number} rec_id
      */
     function printBoxInfo(rec_id) {
 
@@ -405,7 +405,7 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
     }
     /**
      * 打印 Amazon 格式装箱信息
-     * @param {Number} rec_id 
+     * @param {Number} rec_id
      */
     function printAmazonBoxInfo(rec_id) {
 
@@ -475,6 +475,71 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
 
 
 
+
+    /**
+     * 显示一个弹窗,用于输入字段的值
+     */
+    function showWindownInput(recId) {
+
+        console.log('recId', recId);
+
+        // var name = prompt("请输入你的名字:", "");
+
+        var text = "请输入 reference Id", value = "";
+
+        var name = window.prompt(text, value);
+
+        console.log(name);
+
+        console.log(typeof (name));
+
+        if (name && name.trim()) {
+            commonTool.startMask('正在reference Id,请耐心等待...');
+
+            var submitFieldsPromise = record.submitFields.promise({
+                type: "customrecord_dps_shipping_record",
+                id: recId,
+                values: {
+                    custrecord_dps_ful_popups_li: name
+                },
+            });
+
+            submitFieldsPromise.then(function (recordId) {
+                commonTool.endMask();
+
+                log.debug({
+                    title: 'Record updated',
+                    details: 'Id of updated record: ' + recordId
+                });
+
+                console.log("Record updated", 'Id of updated record: ' + recordId)
+
+                window.location.reload(true);
+            }, function (e) {
+
+                commonTool.endMask();
+
+
+                console.log(e.name, e.message)
+                log.error({
+                    title: e.name,
+                    details: e.message
+                });
+
+                window.location.reload(true);
+            });
+
+        }
+
+
+
+
+    }
+
+
+
+
+
     return {
         pageInit: pageInit,
         fieldChanged: fieldChanged,
@@ -490,7 +555,8 @@ define(['N/search', 'N/ui/dialog', 'N/record', '../Helper/commonTool.js', 'N/ui/
         inputPackingInfo: inputPackingInfo,
         printBoxInfo: printBoxInfo,
         printAmazonBoxInfo: printAmazonBoxInfo,
-        deleteBoxInfo: deleteBoxInfo
+        deleteBoxInfo: deleteBoxInfo,
+        showWindownInput: showWindownInput
     };
 
 });

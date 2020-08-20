@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-13 13:52:41
- * @LastEditTime   : 2020-07-20 17:19:50
+ * @LastEditTime   : 2020-08-17 10:03:21
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\so\multichannel\dps_sales_multichannel_rl.js
@@ -67,6 +67,9 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                                 name: 'custcol_aio_amazon_msku'
                             },
                             {
+                                name: 'otherrefnum'
+                            },
+                            {
                                 name: 'quantity'
                             },
                             {
@@ -75,9 +78,7 @@ define(["N/record", "N/log", 'N/search', '../../Helper/md5', '../../Helper/Crypt
                             {
                                 name: 'tranid'
                             }, //订单号
-                            {
-                                name: 'custbody_mcf_displayable_order_comment'
-                            },
+                            {},
                             {
                                 name: 'custbody_mcf_fulfillment_action'
                             },

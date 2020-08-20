@@ -33,7 +33,8 @@ define(["N/search", "N/https", "N/task", "N/format", "N/ui/message", "N/ui/serve
             filters.push({ name: 'custrecord_rsf_sales_forcast_store', operator: search.Operator.ANYOF, values: context.request.parameters['custpage_store'] });
         }
         if (context.request.parameters['custpage_department']) {
-            filters.push({ name: 'custitem_dps_division', join: 'custrecord_rsf_sales_forcast_item', operator: search.Operator.ANYOF, values: context.request.parameters['custpage_department'] });
+            // filters.push({ name: 'custitem_dps_division', join: 'custrecord_rsf_sales_forcast_item', operator: search.Operator.ANYOF, values: context.request.parameters['custpage_department'] });
+            filters.push({ name: 'department', join: 'custrecord_rsf_sales_forcast_item', operator: search.Operator.ANYOF, values: context.request.parameters['custpage_department'] });
         }
         if (context.request.parameters['custpage_site']) {
             filters.push({ name: 'custrecord_aio_enabled_sites', join: 'custrecord_rsf_sales_forcast_store', operator: search.Operator.ANYOF, values: context.request.parameters['custpage_site'] });
@@ -45,6 +46,7 @@ define(["N/search", "N/https", "N/task", "N/format", "N/ui/message", "N/ui/serve
         sb_02.addField({ id: 'store', type: ui.FieldType.TEXT, label: '店铺' });
         sb_02.addField({ id: 'store_id', label: '店铺id', type: ui.FieldType.TEXT }).updateDisplayType({ displayType: ui.FieldDisplayType.HIDDEN });
         sb_02.addField({ id: 'sku', type: ui.FieldType.TEXT, label: '货品名称' });
+        sb_02.addField({ id: 'department', type: ui.FieldType.TEXT, label: '事业部' });
         sb_02.addField({ id: 'sku_id', label: '货品id', type: ui.FieldType.TEXT }).updateDisplayType({ displayType: ui.FieldDisplayType.HIDDEN });
         sb_02.addField({ id: 'unit', type: ui.FieldType.TEXT, label: '单位' });
         sb_02.addField({ id: 'date', type: ui.FieldType.TEXT, label: '预测日期' });
@@ -75,6 +77,7 @@ define(["N/search", "N/https", "N/task", "N/format", "N/ui/message", "N/ui/serve
                 alter: rec.getValue(rec.columns[6]),
                 created: rec.getValue(rec.columns[7]),
                 updated: rec.getValue(rec.columns[8]),
+                department: rec.getText(rec.columns[9])
             });
             return --limit > 0;
         });
@@ -93,6 +96,7 @@ define(["N/search", "N/https", "N/task", "N/format", "N/ui/message", "N/ui/serve
             sb_02.setSublistValue({ id: 'alter', value: "" + (d.alter || '0'), line: line });
             sb_02.setSublistValue({ id: 'created', value: "" + (d.created || '-'), line: line });
             sb_02.setSublistValue({ id: 'updated', value: "" + (d.updated || '-'), line: line });
+            sb_02.setSublistValue({ id: 'department', value: "" + (d.department || '-'), line: line });
         });
         return context.response.writePage({ pageObject: form });
     }

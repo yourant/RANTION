@@ -589,6 +589,8 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
                             check_rec_id = e.id
                         })
                     } else if (mapping.record_type_id == 'customrecord_amazon_fulfill_invtory_rep') { // 亚马逊库存动作详情报告
+
+                        /*  HACK
                         search.create({
                             type: mapping.record_type_id,
                             filters: [{
@@ -620,6 +622,8 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
                         }).run().each(function (e) {
                             check_rec_id = e.id
                         })
+
+                        */
                     }
                     if (check_rec_id) {
                         log.audit('0load ' + line['amazon-order-id'] ? line['amazon-order-id'] : line['order-id'], '1 load: ' + mapping.record_type_id)

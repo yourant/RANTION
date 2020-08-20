@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-07 20:03:48
+ * @LastEditTime   : 2020-08-20 15:23:49
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -94,7 +94,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             join: 'custrecord_dps_recipient_country_dh'
                         });
                         //直接取MSKU
-                        // 直接获取发运记录货品行的 SellerSKU 
+                        // 直接获取发运记录货品行的 SellerSKU
                         var SellerSKU = rec.getValue({
                             name: "custrecord_dps_ship_record_sku_item",
                             join: "custrecord_dps_shipping_record_parentrec"
@@ -481,6 +481,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     gross_margin = gross_margin / 100;
                     log.audit('毛利率  已处理', gross_margin);
                     var info = informationValue.searchPOItem(order_num);
+                    // var info = informationValue.searchItemReceiptItem(order_num);
                     if (info && info.length > 0) {
                         log.debug('存在对应的货品', info.length);
                         // 创建报关资料
@@ -577,20 +578,20 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     values: recordId
                 }],
                 columns: [{
-                        name: "url",
-                        join: "file"
-                    },
-                    {
-                        name: 'custrecord_ls_service_code',
-                        join: 'custrecord_dps_shipping_r_channelservice'
-                    }, // 渠道服务代码
+                    name: "url",
+                    join: "file"
+                },
+                {
+                    name: 'custrecord_ls_service_code',
+                    join: 'custrecord_dps_shipping_r_channelservice'
+                }, // 渠道服务代码
                     'custrecord_dps_shipment_label_file', // 装运标签文件
                     'custrecord_dps_shipping_r_channelservice', // 渠道服务
                     'custrecord_dps_shipping_r_channel_dealer', //渠道商
-                    {
-                        name: "tranid",
-                        join: "custrecord_dps_shipping_rec_order_num"
-                    }, // 调拨单号
+                {
+                    name: "tranid",
+                    join: "custrecord_dps_shipping_rec_order_num"
+                }, // 调拨单号
                     'custrecord_dps_ship_record_tranor_type', // 调拨单类型
                     'custrecord_fulfill_dh_label_addr', // 面单地址,
                     'custrecord_dps_shipping_rec_logistics_no', // 物流运单号
@@ -927,9 +928,9 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     values: recordID
                 }],
                 columns: [{
-                        name: 'tranid',
-                        join: 'custrecord_dps_shipping_rec_order_num'
-                    }, // 调拨单号
+                    name: 'tranid',
+                    join: 'custrecord_dps_shipping_rec_order_num'
+                }, // 调拨单号
                     "custrecord_dps_to_reference_id", // REFERENCE ID
                 ]
             }).run().each(function (re) {
@@ -987,7 +988,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 获取装箱信息处理情况, 若处理成功, 则推送标签文件给 WMS
-     * @param {Number} recordID 
+     * @param {Number} recordID
      */
     function amazonFeedStatus(recordID) {
 
@@ -1005,7 +1006,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 {
                     name: 'custrecord_aio_feed_submission_id',
                     join: 'custrecord_dps_upload_packing_rec'
-                }, // feed ID 
+                }, // feed ID
                 "custrecord_dps_shipment_info", // amazon 装运信息
             ]
         }).run().each(function (rec) {
@@ -1128,7 +1129,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 if (add && add.length > 0) {
                     recValue.custrecord_dps_recpir_flag = add ? add : '';
                     var addLen = add.length;
-                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人 
+                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人
                     recValue.custrecord_dps_street1_dh = add[1]; // 街道1
                     if (addLen > 6) {
                         recValue.custrecord_dps_street2_dh = add[2]; // 街道2
@@ -1176,6 +1177,15 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 labelToWMS(af_rec);
             }
 
+        } else if (feed_processing_status == "_CANCELLED_") {
+            var id = record.submitFields({
+                type: 'customrecord_dps_shipping_record',
+                id: recordID,
+                values: {
+                    custrecord_dps_shipping_rec_status: 31,
+                    custrecord_dps_shipment_info: a[0].ResultDescription
+                }
+            });
         } else {
             var st = 26;
             if (feed_processing_status == "_DONE_") {
@@ -1200,7 +1210,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 重新上传装箱信息, 若已完成, 且无报错信息, 则获取标签文件并推送 WMS
-     * @param {Number} recId 
+     * @param {Number} recId
      */
     function amazonBoxInfo(recId) {
 
@@ -1215,7 +1225,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             }],
             columns: [
                 "custrecord_dps_shipping_rec_account", // 账号
-                "custrecord_dps_shipping_rec_shipmentsid", // shipmentId 
+                "custrecord_dps_shipping_rec_shipmentsid", // shipmentId
             ]
         }).run().each(function (rec) {
             rec_account = rec.getValue('custrecord_dps_shipping_rec_account');
@@ -1269,8 +1279,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 发送请求
-     * @param {*} token 
-     * @param {*} data 
+     * @param {*} token
+     * @param {*} data
      */
     function sendRequest(token, data) {
 
@@ -1358,7 +1368,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 标签文件推送 WMS
-     * @param {Object} af_rec 
+     * @param {Object} af_rec
      */
     function labelToWMS(af_rec) {
 
@@ -1371,13 +1381,13 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 values: af_rec.id
             }],
             columns: [{
-                    name: "url",
-                    join: "file"
-                },
-                {
-                    name: 'custrecord_ls_service_code',
-                    join: 'custrecord_dps_shipping_r_channelservice'
-                }, // 渠道服务代码
+                name: "url",
+                join: "file"
+            },
+            {
+                name: 'custrecord_ls_service_code',
+                join: 'custrecord_dps_shipping_r_channelservice'
+            }, // 渠道服务代码
                 'custrecord_dps_shipment_label_file', // 装运标签文件
                 'custrecord_dps_shipping_r_channelservice', // 渠道服务
                 'custrecord_dps_shipping_r_channel_dealer', //渠道商
@@ -1385,14 +1395,14 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 'custrecord_dps_ship_record_tranor_type', // 调拨单类型
                 'custrecord_fulfill_dh_label_addr', // 面单地址,
                 'custrecord_dps_shipping_rec_logistics_no', // 物流运单号
-                {
-                    name: 'custrecord_dps_financia_warehous',
-                    join: 'custrecord_dps_shipping_rec_location'
-                },
-                {
-                    name: 'tranid',
-                    join: 'custrecord_dps_shipping_rec_order_num'
-                }
+            {
+                name: 'custrecord_dps_financia_warehous',
+                join: 'custrecord_dps_shipping_rec_location'
+            },
+            {
+                name: 'tranid',
+                join: 'custrecord_dps_shipping_rec_order_num'
+            }
             ]
         }).run().each(function (rec) {
 

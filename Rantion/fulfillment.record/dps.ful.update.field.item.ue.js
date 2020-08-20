@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-07 10:17:20
- * @LastEditTime   : 2020-08-13 10:03:32
+ * @LastEditTime   : 2020-08-20 11:36:46
  * @LastEditors    : Li
  * @Description    : 应用于发运记录货品行, 当前发运记录货品行存在关联的发运记录, 则锁定记录
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.item.ue.js
@@ -84,6 +84,19 @@ define(['N/record', 'N/search', 'N/log', 'N/workflow', 'N/runtime'], function (r
     }
 
     function beforeSubmit(context) {
+
+
+        var userObj = runtime.getCurrentUser();
+
+        log.debug('beforeSubmit   userObj', userObj);
+
+        var old_cur = context.oldRecord;
+        var new_cur = context.newRecord;
+
+        var old_link = old_cur.getValue('custrecord_dps_shipping_record_parentrec');
+        var new_link = new_cur.getValue('custrecord_dps_shipping_record_parentrec');
+
+        log.debug('old_link:  new_link', old_link + ":  " + new_link);
 
     }
 

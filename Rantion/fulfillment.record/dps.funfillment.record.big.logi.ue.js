@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-08-11 18:09:23
+ * @LastEditTime   : 2020-08-17 20:32:16
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -134,7 +134,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     functionName: "amazonFeedStatus(" + bf_cur.id + ")"
                 });
             }
-            if (bigRec_status == 28) { //原有的装箱信息已上传, 并且存在错误
+            if (bigRec_status == 28 || bigRec_status == 31) { //原有的装箱信息已上传, 并且存在错误 或者 已被取消
                 form.addButton({
                     id: 'custpage_dps_li_up_feed_info',
                     label: '重新上传装箱信息',
@@ -724,18 +724,18 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             log.debug('getRe', getRe);
                             log.debug('获取箱外标签', 'end');
                             if (getRe) {
-                                // var add;
-                                // if (channel_dealer == 6) {
-                                //     try {
-                                //         add = getShipAddByContent({
-                                //             "base64": getRe
-                                //         });
+                                var add;
+                                if (channel_dealer == 6) {
+                                    try {
+                                        add = getShipAddByContent({
+                                            "base64": getRe
+                                        });
 
-                                //         log.audit('返回解析PDF的文本', add);
-                                //     } catch (error) {
-                                //         log.audit('解析PDF error', error);
-                                //     }
-                                // }
+                                        log.audit('返回解析PDF的文本', add);
+                                    } catch (error) {
+                                        log.audit('解析PDF error', error);
+                                    }
+                                }
                                 var fileObj = file.create({
                                     name: rec_shipmentsid + '.ZIP',
                                     fileType: file.Type.ZIP,
@@ -751,42 +751,42 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 var recValue = {};
                                 recValue.custrecord_dps_shipping_rec_status = 17;
                                 recValue.custrecord_dps_shipment_label_file = fileObj_id;
-                                // if (add && add.length > 0) {
-                                //     recValue.custrecord_dps_recpir_flag = add ? add : '';
-                                //     var addLen = add.length;
-                                //     recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人 
-                                //     recValue.custrecord_dps_street1_dh = add[1]; // 街道1
-                                //     if (addLen > 6) {
-                                //         recValue.custrecord_dps_street2_dh = add[2]; // 街道2
-                                //     }
-                                //     recValue.custrecord_dps_state_dh = add[addLen - 3]; // 州
-                                //     var temp1 = add[addLen - 1],
-                                //         temp2 = '',
-                                //         temp3 = temp1.split(" ");
-                                //     if (temp3.length > 1) {
-                                //         temp2 = temp3[temp3.length - 1];
-                                //         recValue.custrecord_dps_recipien_code_dh = temp3[0] + ' ' + temp3[1]; // 邮编
-                                //     }
-                                //     var seaCout;
+                                if (add && add.length > 0) {
+                                    recValue.custrecord_dps_recpir_flag = add ? add : '';
+                                    var addLen = add.length;
+                                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人 
+                                    recValue.custrecord_dps_street1_dh = add[1]; // 街道1
+                                    if (addLen > 6) {
+                                        recValue.custrecord_dps_street2_dh = add[2]; // 街道2
+                                    }
+                                    recValue.custrecord_dps_state_dh = add[addLen - 3]; // 州
+                                    var temp1 = add[addLen - 1],
+                                        temp2 = '',
+                                        temp3 = temp1.split(" ");
+                                    if (temp3.length > 1) {
+                                        temp2 = temp3[temp3.length - 1];
+                                        recValue.custrecord_dps_recipien_code_dh = temp3[0] + ' ' + temp3[1]; // 邮编
+                                    }
+                                    var seaCout;
 
-                                //     try {
-                                //         seaCout = searchCreateCountry(temp2);
-                                //     } catch (error) {
-                                //         log.debug('搜索创建国家 error', error);
-                                //     }
-                                //     if (seaCout) {
-                                //         recValue.custrecord_dps_recipient_country_dh = seaCout; // 国家
-                                //     }
-                                //     var searCity;
-                                //     try {
-                                //         searCity = searchCreateCity(add[addLen - 2]);
-                                //     } catch (error) {
-                                //         log.debug('搜索创建城市 error', error);
-                                //     }
-                                //     if (searCity) {
-                                //         recValue.custrecord_dps_recipient_city_dh = searCity; // 城市
-                                //     }
-                                // }
+                                    try {
+                                        seaCout = searchCreateCountry(temp2);
+                                    } catch (error) {
+                                        log.debug('搜索创建国家 error', error);
+                                    }
+                                    if (seaCout) {
+                                        recValue.custrecord_dps_recipient_country_dh = seaCout; // 国家
+                                    }
+                                    var searCity;
+                                    try {
+                                        searCity = searchCreateCity(add[addLen - 2]);
+                                    } catch (error) {
+                                        log.debug('搜索创建城市 error', error);
+                                    }
+                                    if (searCity) {
+                                        recValue.custrecord_dps_recipient_city_dh = searCity; // 城市
+                                    }
+                                }
 
                                 recValue.custrecord_dps_amazon_box_flag = true;
 

@@ -12,10 +12,10 @@ define(['N/search', 'N/record'],
         type: 'journalentry',
         filters: [
           ['memomain', 'contains', '结算'],
-          //   'and',
-          //   ['custbody_coll_s', 'noneof', '@NONE@'],
           'and',
           ['mainline', 'is', true],
+          'and',
+          ['custbody_kfak_depo', 'is', false],
           'and',
           ['custbody_jourentry_relative_checked', 'is', false]
         ],columns: [
@@ -35,24 +35,40 @@ define(['N/search', 'N/record'],
         jo2_id.map(function (jo2) {
           log.debug('冲销日记账', jo2)
           jo2_rec = record.load({ type: 'journalentry', id: jo2 })
-          // jo3 = jo2_rec.getValue('custbody_coll_s')
           jo1_arrys = jo2_rec.getValue('custbody_estimate_s')
           inv_objs = JSON.parse(jo2_rec.getValue('custbody_settlement_inv_ids'))
           log.debug('inv_objs', inv_objs)
-          for (var key in inv_objs) {
-            inv_objs[key].map(function (inv_ojbs) {
-              record.submitFields({
-                type: 'invoice',
-                id: inv_ojbs.inv_id,
-                values: {
-                  custbody_amazon_settlement_memo: key,
-                  custbody_dp_expected_due_date: inv_ojbs.end_date,
-                  custbody_setllement_depositamount: inv_ojbs.depAmaount
-                }
-              })
-              log.debug('设置发票成功', inv_ojbs)
+          var invs1 = [],invs2 = []
+          if (inv_objs)
+            inv_objs.map(function (inv_ojbs) {
+              invs1.push(inv_ojbs.inv_id)
+            })
+          if (invs1.length > 0) {
+            search.create({
+              type: 'invoice',
+              filters: [
+                {name: 'custbody_setllement_depositamount',operator: 'isempty'},
+                {name: 'mainline',operator: 'is',values: true},
+                {name: 'internalid',operator: 'anyof',values: invs1}
+              ]
+            }).run().each(function (e) {
+              invs2.push(e.id)
+              return true
+            })
+            inv_objs.map(function (inv_ojbs) {
+              if (JSON.stringify(invs2).indexOf(inv_ojbs.inv_id) > -1)
+                record.submitFields({
+                  type: 'invoice',
+                  id: inv_ojbs.inv_id,
+                  values: {
+                    // custbody_amazon_settlement_memo: key,
+                    custbody_dp_expected_due_date: inv_ojbs.end_date,
+                    custbody_setllement_depositamount: inv_ojbs.depAmaount
+                  }
+                })
             })
           }
+
           settlmenid_arrys = jo2_rec.getValue('custbody_set_payment_report_recids')
           if (settlmenid_arrys) {
             settlmenid_arrys = JSON.parse(settlmenid_arrys)
@@ -61,7 +77,6 @@ define(['N/search', 'N/record'],
           if (jo1_arrys.length > 0) {
             fils1 = [
               [
-                ['custbody_coll_s', 'anyof', '@NONE@'], 'or',
                 ['custbody_blot_s', 'anyof', '@NONE@']
               ]
             ]
@@ -104,11 +119,11 @@ define(['N/search', 'N/record'],
                 id: jo1_id,
                 values: {
                   custbody_estimate_s: jo1_id,
-                  custbody_blot_s: jo2,
-                // custbody_coll_s: jo3
+                  custbody_blot_s: jo2
                 }
               })
             })
+            log.audit('jo1_s: ' + jo1_s.length, 'set_rs: ' + set_rs.length)
             if (jo1_s.length == 0 && set_rs)
               record.submitFields({
                 type: 'journalentry',
@@ -118,6 +133,7 @@ define(['N/search', 'N/record'],
                 }
               })
           } else {
+            log.audit('设置为true', 'jo2:' + jo2)
             record.submitFields({
               type: 'journalentry',
               id: jo2,

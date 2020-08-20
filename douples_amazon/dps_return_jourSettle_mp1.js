@@ -22,26 +22,34 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
     // �����Ѹ���ķ�Ʊ�����г���
     function getInputData () {
       try {
-        var limit = 100, orders = []
+        var limit = 4000, orders = []
         var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_sotre' })
-        var country = runtime.getCurrentScript().getParameter({ name: 'custscript_country_refund' })
-        log.audit('ѡ��ĵ���:' + acc, 'country:' + country)
+        // var country = runtime.getCurrentScript().getParameter({ name: 'custscript_country_refund' })
+        var group = runtime.getCurrentScript().getParameter({ name: 'custscript_refund_settle_group' })
+        log.audit('ѡ��ĵ���:' + acc, 'group:' + group)
         var fils = [
           ['custrecord_settlement_enddate', 'within', ['2020-6-1', '2020-6-30']],
           'and',
           ['custrecord_aio_sett_tran_type', 'contains', 'Refund'],
           'and',
           ['custrecord_settlement_acc', 'noneof', '@NONE@'],
+          // 'and',
+          // ['custrecord_aio_sett_credit_memo', 'is', 'T'],
           'and',
           ['custrecord_settle_is_generate_voucher', 'is', false],
           'and',
-          ['custrecord_february_undeal', 'isnot', 'F'],
+          ['custrecord_payment_itemprice_pt', 'is', false],
           'and',
-          ['custrecord_missingorder_settlement', 'isnot', 'F']
+          ['custrecord_february_undeal', 'isnot', 'F']
+
         ]
         if (acc) {
           fils.push('and')
           fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [acc]])
+        }
+        if (group) {
+          fils.push('and')
+          fils.push(['custrecord_aio_account_2.custrecord_aio_getorder_group', 'anyof', [group]])
         }
         search.create({
           type: 'customrecord_aio_amazon_settlement',
@@ -66,7 +74,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
       } catch (e) {
         log.error('get input :error', e)
       }
-      log.audit('����������', orders.length)
+      log.audit('订单总数：', orders.length)
       return orders
     }
     function map (context) {
@@ -80,25 +88,26 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         var reportId = obj.reportId
         var merchant_order_id = obj.merchant_order_id
         var entity, orderstatus, subsidiary, currency,settlement_idObj = {},settlement_ids = [], settlmentID = {}, shipsID = {},item_code
-        var cl_date; // ��������ʱ��
+        var cl_date
         var endDate,postDate,depositDate,incomeaccount
         var postdate_arry = []
         var postdate_obj = {},check_post_date,PT_Arrys = [] // ��¼�»��ۺ�˰
         var currency_txt
         var Item_amount = 0,m_postdate_obj = {},settlement_idArrs = []
 
-        var search_acc ,seller_id,report_acc,report_site,report_subsidiary,report_customer,report_siteId
+        var search_acc ,seller_id,report_acc,report_site,report_subsidiary,report_customer,report_siteId,dept // 部门
         // �õ�seller id
         search.create({
-          type: 'customrecord_aio_amazon_report',
+          type: 'customrecord_aio_account',
           filters: [
-            {name: 'internalidnumber',operator: 'equalto',values: report_site}
+            {name: 'internalidnumber',operator: 'equalto',values: settlement_acc}
           ],columns: [
             {name: 'custrecord_aio_seller_id'},
             {name: 'custrecord_aio_subsidiary'},
             {name: 'custrecord_aio_customer'},
             {name: 'custrecord_aio_enabled_sites'},
-            {name: 'custrecord_aio_origin_account'}
+            {name: 'name'},
+            {name: 'custrecord_division'}
           ]
         }).run().each(function (e) {
           seller_id = e.getValue(e.columns[0])
@@ -106,6 +115,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           report_customer = e.getValue(e.columns[2])
           report_site = e.getText(e.columns[3])
           report_siteId = e.getValue(e.columns[3])
+          report_acc = settlement_acc
+          acc_text = e.getValue(e.columns[4])
+          dept = e.getValue(e.columns[5])
         })
         search_acc = settlement_acc
         log.debug('seller_id: ' + seller_id, 'search_acc ' + search_acc)
@@ -131,10 +143,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           subsidiary = rec.getValue('subsidiary')
           // currency = rec.getValue('currency')
           pr_store = rec.getValue('custbody_order_locaiton')
-          return false
         })
         if (!so_id) {
-          return
+          log.debug('找不到订单?', orderid)
+          entity = report_customer
+          subsidiary = report_subsidiary
+          pr_store = report_acc
         }
         log.audit('orderstatus ' + orderstatus + ',' + 'entity: ' + entity, 'orderid:' + orderid)
         //  delJour(orderid)
@@ -145,7 +159,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             { name: 'custrecord_aio_sett_order_id', operator: 'is', values: orderid },
             { name: 'custrecord_aio_sett_id', operator: 'is', values: settlmentid + ''  },
             { name: 'custrecord_settle_is_generate_voucher', operator: 'is', values: false },
-            { name: 'custrecord_aio_sett_tran_type', operator: 'is', values: 'Refund' }
+            { name: 'custrecord_payment_itemprice_pt', operator: 'is', values: false },
+            { name: 'custrecord_aio_sett_tran_type', operator: 'contains', values: 'Refund' }
           ],
           columns: [
             { name: 'custrecord_aio_sett_tran_type' },
@@ -163,6 +178,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             { name: 'custrecord_aio_sett_start_date' }
           ]
         }).run().each(function (rec) {
+          log.audit('1', rec)
           if (!currency)
             currency_txt = rec.getValue('custrecord_aio_sett_currency')
           if (!pr_store)
@@ -179,15 +195,17 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           if (amount.indexOf(',') != -1) {
             amount = amount.replace(',', '.')
           }
-
-          log.debug('check_post_date: ' + check_post_date, 'postDate: ' + postDate + ', endDate: ' + endDate)
-
+          log.audit('2', rec)
           item_code = rec.getValue('custrecord_aio_sett_order_item_code')
-          if (!(Tranction_type == 'Refund' && Amount_type == 'ItemPrice' && Amount_desc == 'Principal')) {
+          var ck = interfun.getArFee(Tranction_type, Amount_type, Amount_desc, currency_txt)
+          log.audit('3', rec)
+          if (ck || !Tranction_type) {
+            log.audit('是属于应收:' + rec.id, Tranction_type + ' , ' + Amount_type + ' , ' + Amount_desc)
+            PT_Arrys.push(rec.id)
+          }else {
+            log.audit('不是属于应收:' + rec.id, Tranction_type + ' , ' + Amount_type + ' , ' + Amount_desc)
             settlement_idArrs.push(rec.id)
-            // Refund���������Tax���������ʱ��Ҫ�ж�Tax����0�ļ�Ϊ����
             var month ,mok = false,pos
-            // getFormatedDate(postDate, endDate, depositDate,startDate)
             pos = interfun.getFormatedDate('', '', postDate)
             month = pos.Month // �õ���
             for (var mo in m_postdate_obj) {
@@ -206,18 +224,16 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
               settlement_ids.push(rec.id)
               settlement_idObj[settlmentid + '-' + month] = settlement_ids // �洢��IDҲҪ����settlmentid+"-"+month ������
             }
-
+            log.audit('查看金额', amount)
             var sek = false, shk = false
             if (Number(amount) != 0) {
               for (var key in settlmentID) {
                 log.debug('key:' + key, settlmentid)
                 if (key == settlmentid + '-' + month) {
                   sek = true
-                  // var ships = settlmentID[settlmentid]
                   for (var ke in settlmentID[key]) {
                     if (ke == item_code) {
                       settlmentID[key][ke].push({
-                        // "incomeaccount": incomeaccount,
                         'Tranction_type': Tranction_type,
                         'Amount_type': Amount_type,
                         'Amount_desc': Amount_desc,
@@ -230,11 +246,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                       break
                     }
                   }
-                  // ���shipment id ��ͬ��settlmentId��ͬ�������µ�shipment id
                   if (!shk) {
                     shipmentid_Arrys = []
                     shipmentid_Arrys.push({
-                      // "incomeaccount": incomeaccount,
                       'Tranction_type': Tranction_type,
                       'Amount_type': Amount_type,
                       'Amount_desc': Amount_desc,
@@ -248,12 +262,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                   break
                 }
               }
-              // settlmentId����ͬ��ֱ��push
               if (!sek) {
                 shipmentid_Arrys = []
                 shipsID = {}
                 shipmentid_Arrys.push({
-                  // "incomeaccount": incomeaccount,
                   'Tranction_type': Tranction_type,
                   'Amount_type': Amount_type,
                   'Amount_desc': Amount_desc,
@@ -266,12 +278,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                 settlmentID[settlmentid + '-' + month] = shipsID
               }
             }
-          } else {
-            // log.debug("��¼�²�����FBM�Ļ�Ʒ����˰���´β�������")
-            PT_Arrys.push(rec.id)
           }
           return true
         })
+
         PT_Arrys.map(function (pt) {
           record.submitFields({
             type: 'customrecord_aio_amazon_settlement',
@@ -293,17 +303,16 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           }).run().each(function (e) {
             currency = e.id
           })
-        // ���״̬�Ǵ����У��Ҵ��ڿͻ����
         var so_obj = interfun.SearchSO(orderid, merchant_order_id, search_acc, cl_date.date)
 
-        if (so_obj.fulfill = 'isrefund') {
-          // �����ͻ��˿δ�������˿�����
+        if (so_obj.fulfill == 'isrefund') {
           var sdk = record.create({type: 'customerrefund',isDynamic: true})
           sdk.setValue({fieldId: 'customer',value: so_obj.entity})
           sdk.setValue({fieldId: 'paymentmethod',value: paymentmethod}) // ����
           sdk.setValue({fieldId: 'account',value: AR_settle}) // ��Ŀ
           sdk.setValue({fieldId: 'aracct',value: Amazon_Plat}) // Ӧ�տ���ͻ�
           sdk.setValue({fieldId: 'currency',value: currency})
+          sdk.setValue({fieldId: 'department',value: dept})
           sdk.setText({fieldId: 'trandate',text: cl_date.date})
           var len = sdk.getLineCount({sublistId: 'deposit'})
           log.debug('len:' + len)
@@ -314,7 +323,6 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             break
           }
           var ss = sdk.save()
-          log.debug('δ�����Ƚ��㣬�����ͻ����ɹ�', ss)
           settlement_idArrs.map(function (set_id) {
             record.submitFields({
               type: 'customrecord_aio_amazon_settlement',
@@ -326,7 +334,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           })
           return
         }
-        log.debug('Item_amount:' + Item_amount, 'settlmentID:' + JSON.stringify(settlmentID))
+        log.debug('settlmentID:' + JSON.stringify(settlmentID))
         log.debug('settlement_idObj:', JSON.stringify(settlement_idObj))
         for (var key in settlmentID) {
           log.debug('key write:' + key)
@@ -337,16 +345,15 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
               value: {
                 'cl_date': cl_date,
                 'subsidiary': subsidiary,
-                // "acc_text": acc_text, 
                 'orderid': orderid, 'entity': entity, 'so_id': so_id, 'currency': currency,
                 'pr_store': pr_store,
                 'shipmentids': settlmentID[key],
                 'settlement_ids': settlement_idObj[key],
                 'postdate_arry': m_postdate_obj[key.split('-')[1]], // ���·����post date
-                // "rec_id": rec_id,
                 'search_acc': search_acc, // ���������ĵ���
                 'report_site': report_site, // վ�������
                 'report_siteId': report_siteId, // վ��
+                'dept': dept, // վ��
               }
             })
           }
@@ -390,6 +397,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           var search_acc = obj.search_acc
           var report_site = obj.report_site
           var report_siteId = obj.report_siteId
+          var dept = obj.dept
 
           var depositDate
           // ===========================================
@@ -420,18 +428,20 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
               if (currency == JP_currency)   x = Math.round(x)
               var incc = interfun.GetSettlmentFee(obj.Amount_type, obj.Amount_desc, obj.Tranction_type, report_site.split(' ')[1], x, report_siteId, pr_store)
               if (!incc) throw '找不到费用,' + obj.Amount_type + ',' + obj.Amount_desc + ',' + obj.Tranction_type
-              if (incc.incomeaccount != '125') {
+              else if (incc.incomeaccount != '125' && incc != 'unable') {
                 jour.selectNewLine({ sublistId: 'line' })
                 jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'account', value: incc.incomeaccount })
-                jour.setCurrentSublistValue({ sublistId: 'line', fieldId: obj.field, value: x})
-                jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'credit', value: incc.L_memo}) // credit 
+                jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: incc.L_memo})
+                jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'credit', value: x}) // credit 
                 jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'entity', value: entity}) // credit 
+                jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'department', value: dept}) // credit 
                 jour.commitLine({ sublistId: 'line' })
                 jour.selectNewLine({ sublistId: 'line' })
                 jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'account', value: income_settle })
                 jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: incc.L_memo })
                 jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'debit', value: x}) // ��
                 jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'entity', value: entity }) // �ͻ�
+                jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'department', value: dept }) // �ͻ�
                 jour.commitLine({ sublistId: 'line' })
               }
             })
@@ -451,7 +461,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
     }
 
     function summarize (summary) {
-      log.debug('�������,summary��', JSON.stringify(summary))
+      log.debug('处理完成,summary��', JSON.stringify(summary))
     }
 
     /**

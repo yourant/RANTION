@@ -5,147 +5,47 @@
 define(['N/search', 'N/log', 'N/record', './Helper/interfunction.min.js'],
   function (search, log, record, interfun) {
     function getInputData () {
-      return search.load({ id: 'customsearch327'})
-    // return search.create({
-    //   type: 'customrecord_aio_amazon_seller_sku',
-    //   filters: [
-    //     {name: 'internalid',operator: 'greaterthan',summarytype:"count",values:["1"]}
-    //   ],columns: [
-    //     {name: 'internalid',summary:"COUNT"},
-    //     {name:"name",summary:"GROUP"},
-    //     {name:"custrecord_ass_account",summary:"GROUP"}
-    //   ]
-    // })
+      // return search.load({ id: 'customsearch327'})
+      return search.create({
+        type: record.Type.RETURN_AUTHORIZATION,
+        filters: [
+          {name: 'custbody_origin_customer_return_order',operator: 'noneof',values: '@NONE@'}
+        ]
+      })
     }
 
     function map (context) {
       log.debug('context', context)
       var obj = JSON.parse(context.value)
-      try {
-        var vals = obj.values
-        var inv = record.load({type: obj.recordType,id: obj.id})
-        var len = inv.getLineCount({sublistId: 'item'})
-        var oid = vals['otherrefnum.createdFrom']
-        var acc = vals['custbody_order_locaiton.createdFrom'].value,objItem,dept
-        search.create({
-          type: 'customrecord_aio_order_import_cache',
-          filters: [
-            { name: 'custrecord_aio_cache_acc_id', operator: search.Operator.ANYOF,values: acc},
-            { name: 'custrecord_aio_cache_order_id',operator: 'is',values: oid}
-          ],columns: [{name: 'custrecord_amazonorder_iteminfo'} , { name: 'custrecord_division',join: 'custrecord_aio_cache_acc_id'}]
-        }).run().each(function (ds) {
-          objItem = JSON.parse(ds.getValue('custrecord_amazonorder_iteminfo'))
-          dept = ds.getValue(ds.columns[1])
-        })
-        inv.setValue({fieldId: 'department',value: dept})
-        var seller = {}
-
-        objItem.map(function (line) {
-          var skuid = interfun.getskuId(line.seller_sku.trim(), acc, oid)
-          seller[skuid] = line.seller_sku.trim()
-        })
-        for (var i = 0;i < len;i++) {
-          var itemid = inv.getSublistValue({sublistId: 'item',fieldId: 'item',line: i})
-          inv.setSublistValue({sublistId: 'item',fieldId: 'custcol_aio_amazon_msku',value: seller[itemid],line: i})
+      var meo = '平台发货成本-退回[Amazon]',rt_id
+      search.create({
+        type: 'itemreceipt',
+        filters: [
+          {name: 'createdfrom',operator: 'anyof',values: obj.id}
+        ]
+      }).run().each(function (e) {
+        rt_id = e.id
+      })
+      record.submitFields({
+        type: 'itemreceipt',
+        id: rt_id,
+        values: {
+          memo: meo
         }
-        var ss = inv.save({ ignoreMandatoryFields: true})
-        log.audit('保存成功', ss)
-      } catch(e) {
-        log.error('出错拉', e)
-      }
+      })
+      record.submitFields({
+        type: obj.recordType,
+        id: obj.id,
+        values: {
+          memo: meo
+        }
+      })
+      log.debug('OK itemreceipt: ', rt_id)
       return
-      // obj = obj.values
-      // var repid = obj['GROUP(custbody_shipment_report_rel)'].value
-      // var createdfrom = obj['GROUP(createdfrom)'].value
-      // var fxamount = obj['SUM(fxamount)']
-      // var ship_qty = obj['SUM(quantity)']
-      // log.debug('发货报告：' + repid, '金额： ' + fxamount + ' ,发货数量：' + ship_qty)
-      // var qty = 0
-      // // 查询有没有关联此发货报告的货品实施单
-      // search.create({
-      //   type: 'itemfulfillment',
-      //   filters: [
-      //     { name: 'custbody_shipment_report_rel', operator: 'anyof', values: repid},
-      //     { name: 'account', operator: 'noneof', values: ['214']},
-      //     { name: 'taxline', operator: 'is', values: false },
-      //     { name: 'mainline', operator: 'is', values: false }
-      //   ],columns: [{name: 'quantity'}]
-      // }).run().each(function (rec) {
-      //   qty += Number(rec.getValue('quantity'))
-      //   return true
-      // })
-      // log.debug('货品实施的数量:'+qty,"发货数量:"+ship_qty)
-      // if(qty!=ship_qty){
-      //   log.audit("开票数量不对","发货报告："+repid)
-      //   record.submitFields({
-      //     type: 'customrecord_amazon_sales_report',
-      //     id: repid,
-      //     values: {
-      //       custrecord_fulfill_in_ns: '没发货已开票'
-      //     }
-      //   })
-      // }
-
-      // var acc = obj["GROUP(custrecord_ass_account)"].value
-      // log.debug("seller sku : "+nama,"acc: "+acc)
-
-      // var kds=[]
-      //     search.create({
-      //       type: 'customrecord_aio_amazon_seller_sku',
-      //       filters: [
-      //         {name: 'name',operator: 'is',values: nama},
-      //         {name: 'custrecord_ass_account',operator: 'anyof',values: acc}
-      //       ],columns: [
-      //         {name: 'internalid'}
-      //       ]
-      //     }).run().each(function(e){
-      //       kds.push(e.id)
-      //       return true
-      //     })
-      //    for(var i =0;i<kds.length - 1;i++){
-      //       var so = record.delete({type:"customrecord_aio_amazon_seller_sku",id: kds[i]})
-      //       log.audit("删除成功",so)
-      //     }
+      try {
+      } catch(e) {}
 
       return
-      var so = record.load({type: obj.recordType,id: obj.id})
-      var item_obj = so.getValue('custrecord_amazonorder_iteminfo')
-      if (!item_obj) {
-        log.debug('不存在')
-        so.save()
-        return
-      }
-      var lst = interfun.getFormatedDate('', '', JSON.parse(so.getValue('custrecord_aio_cache_body')).last_update_date, true).date
-      if (lst == '2') {
-        so.setValue({fieldId: 'custrecord_dds111',value: 'T'})
-        so.setValue({fieldId: 'custrecord_aio_memo',value: '时间不对'})
-        so.save()
-        return
-      }
-      item_obj = JSON.parse(item_obj)
-
-      for (var i = 0;i < item_obj.length;i++) {
-        var ss = record.create({type: 'customrecord_amazon_item_lines'})
-        ss.setValue({fieldId: 'custrecord_aitem_title',value: item_obj[i].title})
-        ss.setValue({fieldId: 'custrecord_aitem_seller_sku',value: item_obj[i].seller_sku})
-        ss.setValue({fieldId: 'custrecord_aitem_qty',value: item_obj[i].qty})
-        ss.setValue({fieldId: 'custrecord_aitem_shipping_discount',value: item_obj[i].shipping_discount})
-        ss.setValue({fieldId: 'custrecord_aitem_item_price',value: item_obj[i].item_price})
-        ss.setValue({fieldId: 'custrecord_aitem_promotion_discount',value: item_obj[i].promotion_discount})
-        ss.setValue({fieldId: 'custrecord_aitem_gift_wrap_price',value: item_obj[i].gift_wrap_price})
-        ss.setValue({fieldId: 'custrecord_aitem_shipping_price',value: item_obj[i].shipping_price})
-        ss.setValue({fieldId: 'custrecord_aitem_rel_cahce',value: obj.id})
-        ss.save()
-      }
-      so.setValue({fieldId: 'custrecord_dds111',value: 'T'})
-      so.setValue({fieldId: 'custrecord_dps_cache_fulfillment_channel',value: JSON.parse(so.getValue('custrecord_aio_cache_body')).fulfillment_channel})
-      so.setValue({fieldId: 'custrecord_shipment_date_cache',value: JSON.parse(so.getValue('custrecord_aio_cache_body')).latest_ship_date})
-      so.setValue({fieldId: 'custrecord_purchase_date_1',value: JSON.parse(so.getValue('custrecord_aio_cache_body')).purchase_date})
-      so.setValue({fieldId: 'custrecord_last_update_date',value: JSON.parse(so.getValue('custrecord_aio_cache_body')).last_update_date})
-      so.setValue({fieldId: 'custrecord_seller_order_id_1',value: JSON.parse(so.getValue('custrecord_aio_cache_body')).seller_order_id  })
-      so.setValue({fieldId: 'custrecord_dps_cache_shipped_byamazont_f',value: JSON.parse(so.getValue('custrecord_aio_cache_body')).shipped_byamazont_fm})
-      so.save()
-      log.debug('保存成功:' + obj.id, JSON.parse(so.getValue('custrecord_aio_cache_body')).fulfillment_channel)
     }
 
     function reduce (context) {

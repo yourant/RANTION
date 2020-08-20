@@ -2,8 +2,8 @@
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript 
  */
-define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js', './Helper/interfunction.min', './Helper/core.min.js', 'N/xml'],
-  function (format, runtime, search, record, moment, interfun, core, xml) {
+define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js', './Helper/interfunction.min', './Helper/core.min.js', 'N/xml'],
+  function (fields, format, runtime, search, record, moment, interfun, core, xml) {
     // 单价的计算逻辑
     const price_conf = {
       'SKU售价': 'item_price',
@@ -28,7 +28,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       'Canceled': 6,
       'Unfulfillable': 7
     }
-    const MissingReportType = 1 // Missing report 发货报告
+    const MissingReportType = 1; // Missing report 发货报告
     function getInputData () {
       var startT = new Date().getTime()
       var limit = 4000, orders = []
@@ -39,18 +39,26 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       var group_req = runtime.getCurrentScript().getParameter({ name: 'custscript_fulfill_accgroup' })
       var full_bj = runtime.getCurrentScript().getParameter({ name: 'custscript_full_bj' }) ? runtime.getCurrentScript().getParameter({ name: 'custscript_full_bj' }) : 'F'; // 搜索对应的标记
       var fils = []
-      fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: 'isnot', values: 'T' }))
+      fils.push(search.createFilter({ name: 'custrecord_fulfill_in_ns', operator: 'is', values: full_bj }))
+      fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: 'before', values: '2020-7-1' }))
       var acc_arrys = []
-      if (group_req) { // 根据拉单分组去履行
+      if (group_req) { // 根据拉单分组去履行  
         core.amazon.getReportAccountList(group_req).map(function (acount) {
           acc_arrys.push(acount.id)
         })
+      // if (group_req == '1' || group_req == '3' || group_req == '8' || group_req == '5' || group_req == '6') {
+      //   // fils.push(search.createFilter({ name: 'custrecord_aio_account_region',join: 'custrecord_shipment_account', operator: 'anyof', values: ['1'] }))
+      //   fils.push(search.createFilter({ name: 'custrecord_aio_account_region',join: 'custrecord_shipment_account', operator: 'noneof', values: ['1'] }))
+      // }else {
+      //   fils.push(search.createFilter({ name: 'custrecord_aio_account_region',join: 'custrecord_shipment_account', operator: 'noneof', values: ['1'] }))
+      // }
       }
       acc ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc })) : ''
       acc_arrys.length > 0 ? fils.push(search.createFilter({ name: 'custrecord_shipment_account', operator: search.Operator.ANYOF, values: acc_arrys })) : ''
       shipdate_st ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORAFTER, values: shipdate_st })) : ''
       shipdate_ed ? fils.push(search.createFilter({ name: 'custrecord_shipment_date', operator: search.Operator.ONORBEFORE, values: shipdate_ed })) : ''
       orderid ? fils.push(search.createFilter({ name: 'custrecord_amazon_order_id', operator: search.Operator.IS, values: orderid })) : ''
+      log.audit('fils:', fils)
       search.create({
         type: 'customrecord_amazon_sales_report',
         filters: fils,
@@ -124,14 +132,15 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
           })
           return
         }
-        var flss = [],acc_search = interfun.getSearchAccount(obj.seller_id)
+        var flss = [],rs = interfun.getSearchAccount(obj.seller_id)
         var ord_status
         log.debug('order_id', order_id)
-        var so_obj = interfun.SearchSO(order_id, merchant_order_id, acc_search)
+        var so_obj = interfun.SearchSO(order_id, merchant_order_id, rs.acc_search)
         so_id = so_obj.so_id
         acc = so_obj.acc
         ord_status = so_obj.ord_status
-
+        var acc_loca = so_obj.acc_loca
+        var ord_loca = so_obj.ord_loca
         log.debug('ord_status: ' + ord_status, 'so_obj: ' + JSON.stringify(so_obj))
         if (so_id) {
           if (ord_status == 'pendingApproval') { // 待批准
@@ -140,6 +149,19 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               id: so_id,
               values: {
                 orderstatus: 'B'
+              },
+              options: {
+                enableSourcing: false,
+                ignoreMandatoryFields: true
+              }
+            })
+          }
+          if (ord_loca != acc_loca) {
+            record.submitFields({
+              type: record.Type.SALES_ORDER,
+              id: so_id,
+              values: {
+                location: acc_loca
               },
               options: {
                 enableSourcing: false,
@@ -207,7 +229,8 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
             })
             return
           }
-          var ful_rs = fullfillment(so_id, shipDate, ship_sku, ship_qty, repid, obj.loca, dept); // 发货
+          // (so_id, order_id, shipdate, ship_sku, qty, rei, loca, dept, acc)
+          var ful_rs = fullfillment(so_id, order_id, shipDate, ship_sku, ship_qty, repid, acc_loca, dept, acc); // 发货
           if (ful_rs.indexOf('不足') > -1) {
             err.push(ful_rs)
             record.submitFields({
@@ -215,6 +238,22 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               id: repid,
               values: {
                 custrecord_fulfill_in_ns: '库存不足'
+              }
+            })
+          }else if (ful_rs == '找不到货品') {
+            record.submitFields({
+              type: 'customrecord_amazon_sales_report',
+              id: repid,
+              values: {
+                custrecord_fulfill_in_ns: '找不到货品'
+              }
+            })
+          }else if (ful_rs == '缺少SKU对应关系') {
+            record.submitFields({
+              type: 'customrecord_amazon_sales_report',
+              id: repid,
+              values: {
+                custrecord_fulfill_in_ns: '缺少SKU对应关系'
               }
             })
           }
@@ -233,20 +272,45 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
             }).run().each(function (e) {
               cach = e.id
             })
-            if (!cach)
+            if (!cach) {
               getOrderAndCreateCache(T_acc, T_acc, order_id); // 找不到订单，根据单号把订单拉回来；
-            else {
+              record.submitFields({
+                type: 'customrecord_amazon_sales_report',
+                id: repid,
+                values: {
+                  custrecord_fulfill_in_ns: 'F'
+                }
+              })
+            }else {
               var invs = orderupRl(order_id, cach, T_acc)
+              if (invs == '缺少SKU对应关系') {
+                record.submitFields({
+                  type: 'customrecord_amazon_sales_report',
+                  id: repid,
+                  values: {
+                    custrecord_fulfill_in_ns: '缺少SKU对应关系'
+                  }
+                })
+              }else {
+                record.submitFields({
+                  type: 'customrecord_amazon_sales_report',
+                  id: repid,
+                  values: {
+                    custrecord_fulfill_in_ns: 'F'
+                  }
+                })
+              }
               log.debug('转单：', invs)
             }
+          }else {
+            record.submitFields({
+              type: 'customrecord_amazon_sales_report',
+              id: repid,
+              values: {
+                custrecord_fulfill_in_ns: 'S找不到订单'
+              }
+            })
           }
-          record.submitFields({
-            type: 'customrecord_amazon_sales_report',
-            id: repid,
-            values: {
-              custrecord_fulfill_in_ns: 'F'
-            }
-          })
         }
       } catch (e) {
         log.error(' error ：' + order_id, e)
@@ -364,6 +428,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       if (orders.length == 0)
         return '店铺 :' + acc + 'order:' + orders.length
       try {
+        var skck = false
         orders.map(function (obj) {
           log.audit('obj', obj)
           var amazon_account_id = obj.id
@@ -487,7 +552,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                 type: format.Type.DATETIMETZ,
                 timezone: fields.timezone[timezone]
               }); // 当地店铺时间
-      
+
               ord.setText({
                 fieldId: 'custbody_dps_acc_local_time',
                 text: acc_local_time
@@ -724,60 +789,17 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               })
               return mark_resolved(amazon_account_id, o.amazon_order_id)
             }
-            try {
-              line_items = JSON.parse(line_items)
-            } catch (error) {
-              line_items = ''
-              log.error('error', error)
-            }
-            if (!line_items || line_items.length == 0) {
-              line_items = core.amazon.getOrderItems(a, o.amazon_order_id)
-              log.debug('0000011line_items:' + obj.rec_id, line_items)
 
-              record.submitFields({
-                type: 'customrecord_aio_order_import_cache',
-                id: obj.rec_id,
-                values: {
-                  'custrecord_amazonorder_iteminfo': JSON.stringify(line_items)
-                }
-              })
-              var fs = []
-              search.create({
-                type: 'customrecord_amazon_item_lines',
-                filters: [
-                  {name: 'custrecord_aitem_rel_cahce',operator: 'anyof',values: obj.rec_id }
-                ]
-              }).run().each(function (e) {
-                fs.push(e.id)
-                return true
-              })
+            line_items = core.amazon.getOrderItems(a, o.amazon_order_id)
+            log.debug('0000011line_items:' + obj.rec_id, line_items)
 
-              if (line_items.length < 1 || !line_items) {
-                log.debug('item_obj为空,退出', line_items)
-                return
+            record.submitFields({
+              type: 'customrecord_aio_order_import_cache',
+              id: obj.rec_id,
+              values: {
+                'custrecord_amazonorder_iteminfo': JSON.stringify(line_items)
               }
-
-              for (var i = 0;i < line_items.length;i++) {
-                var ss = record.create({type: 'customrecord_amazon_item_lines'})
-                ss.setValue({fieldId: 'custrecord_aitem_title',value: line_items[i].title})
-                ss.setValue({fieldId: 'custrecord_aitem_seller_sku',value: line_items[i].seller_sku})
-                ss.setValue({fieldId: 'custrecord_aitem_qty',value: line_items[i].qty})
-                ss.setValue({fieldId: 'custrecord_aitem_shipping_discount',value: line_items[i].shipping_discount})
-                ss.setValue({fieldId: 'custrecord_aitem_item_price',value: line_items[i].item_price})
-                ss.setValue({fieldId: 'custrecord_aitem_promotion_discount',value: line_items[i].promotion_discount})
-                ss.setValue({fieldId: 'custrecord_aitem_gift_wrap_price',value: line_items[i].gift_wrap_price})
-                ss.setValue({fieldId: 'custrecord_aitem_shipping_price',value: line_items[i].shipping_price})
-                ss.setValue({fieldId: 'custrecord_ord_itemtax',value: line_items[i].item_tax})
-                log.debug('设置sippingTax', line_items[i].shipping_tax)
-                ss.setValue({fieldId: 'custrecord_ord_shippingtax',value: line_items[i].shipping_tax})
-                ss.setValue({fieldId: 'custrecord_aitem_rel_cahce',value: obj.rec_id})
-                ss.save()
-              }
-              fs.map(function (ds) {
-                record.delete({type: 'customrecord_amazon_item_lines',id: ds})
-                log.debug('先删除')
-              })
-            }
+            })
 
             log.debug('OKokokok:' + obj.rec_id, line_items)
             var itemAry = [],
@@ -813,9 +835,9 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
               log.debug('amazon_account_id', amazon_account_id)
               itemAry.push(line.seller_sku)
               var skuid
-
+              if (line.qty == 0) return
               try {
-                skuid = interfun.getskuId(line.seller_sku.trim(), amazon_account_id, o.amazon_order_id)
+                skuid = interfun.getskuId(line.seller_sku.trim(), amazon_account_id, o.amazon_order_id).skuid
               } catch (e) {
                 log.error('assemblyitem error :::', e)
               }
@@ -946,9 +968,7 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
                 })
                 log.debug(externalid, externalid + ' | \u884C\u4FE1\u606F\u63D2\u5165\u6210\u529F! #' + line.order_item_id + ' * ' + line.qty)
               } catch (err) {
-                // mark_resolved(amazon_account_id, o.amazon_order_id)
-                error_message.push('Item Line Error: ' + err + '. Associated SKU: ' + line.seller_sku + ';')
-                throw 'Item Line Error: ' + err + '. Associated SKU: ' + line.seller_sku + ';'
+                skck = true
               }
             })
 
@@ -1171,6 +1191,8 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
           }
         })
         var DET = new Date().getTime() - startT
+        if (skck)
+          return '缺少SKU对应关系'
         return 'success: ' + orderid + ', 耗时：' + DET
       } catch (e) {
         log.error('e', e)
@@ -1530,13 +1552,8 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
       })
     }
 
-    function fullfillment (so_id, shipdate, ship_sku, qty, rei, loca, dept) {
-      var so = record.load({ type: 'salesorder', id: so_id })
-      var location = so.getValue('location'), skuid,fulfill_items = []
-      if (!location)
-        location = loca
-      var acc = so.getValue('custbody_aio_account')
-      var order_id = so.getValue('otherrefnum')
+    function fullfillment (so_id, order_id, shipdate, ship_sku, qty, rei, loca, dept, acc) {
+      var location = loca, skuid,fulfill_items = []
       var f = record.transform({
         fromType: record.Type.SALES_ORDER,
         toType: record.Type.ITEM_FULFILLMENT,
@@ -1577,7 +1594,8 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
         } catch (e) {
           log.error('cc error', e)
         }
-        skuid = interfun.getskuId(ship_sku.trim(), acc, order_id)
+        skuid = interfun.getskuId(ship_sku.trim(), acc, order_id).skuid
+        if (!skuid) return '缺少SKU对应关系'
         if (JSON.stringify(skuid).indexOf(itemid) > -1 && onhand >= qty) {
           if (quantity < qty) {
             ful = 'full_blot', fulfill_line = ln + 1
@@ -1619,9 +1637,10 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
 
         // 自动开票
         if (ss)
-          createInvioce(so_id, shipdate, so.getValue('custbody_aio_account'), rei, fulfill_items, ship_sku, dept)
+          createInvioce(so_id, shipdate, acc, rei, fulfill_items, ship_sku, dept)
       }else {
         log.debug('不满足发货条件 qty:' + qty, '发货报告ID:' + rei)
+        return '找不到货品'
       }
       return 'OK'
     }
@@ -1718,9 +1737,9 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
     function getOrderAndCreateCache (acc, accountid, orderid) {
       var orders = []
       var ss = ''
-      log.debug('acc', acc)
       var auth = core.amazon.getAuthByAccountId(accountid)
-
+      var timezone = auth.timezone
+      log.debug('0000000000000000000000timezone' + timezone, auth)
       var params_1 = {}
       params_1['AmazonOrderId.Id.1'] = orderid
 
@@ -2178,10 +2197,18 @@ define(['N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js
             fieldId: 'custrecord_aio_cache_resolved',
             value: false
           })
-          r.setValue({
-            fieldId: 'custrecord_aio_cache_status',
-            value: order.order_status || ''
-          })
+          if (order.order_status == 'Pending') {
+            r.setValue({
+              fieldId: 'custrecord_aio_cache_status',
+              value: 'Shipped'
+            })
+          }else {
+            r.setValue({
+              fieldId: 'custrecord_aio_cache_status',
+              value: order.order_status || ''
+            })
+          }
+
           r.setValue({
             fieldId: 'custrecord_aio_cache_version',
             value: 1

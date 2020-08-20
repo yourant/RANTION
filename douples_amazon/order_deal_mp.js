@@ -5,19 +5,15 @@
 define(['N/search', 'N/log', 'N/record', './Helper/interfunction.min.js', './Helper/core.min.js'],
   function (search, log, record, interfun, core) {
     function getInputData () {
-      // return  search.create({
-      //   type: 'customrecordafasf',
-      //   filters: [
-      //     { name: 'custrecord_sf', operator: 'is',values:false}
-      //   ]
-      // });
       return search.create({
         type: 'customrecord_aio_order_import_cache',
         filters: [
-          {name: 'custrecord_aio_cache_acc_id',operator: 'anyof',values: ['78', '79', '80', '81', '82', '164', '165']},
-          {name: "custrecord_ord_shippingtax", join: "custrecord_aitem_rel_cahce", operator: "isempty"}
+          // {name: 'custrecord_aio_cache_acc_id',operator: 'anyof',values: ['78', '79', '80', '81', '82', '164', '165']},
+          {name: 'custrecord_ord_shippingtax', join: 'custrecord_aitem_rel_cahce', operator: 'isempty'},
+          { name: 'custrecord_aio_cache_status',operator: 'isnot',values: 'Pending' }, // 除了pending以外的订单都转
+          { name: 'custrecord_aio_cache_resolved',operator: 'is',values: true }, // 除了pending以外的订单都转
         ],columns: [
-          {name: 'internalid',sort:"DESC"}
+          {name: 'internalid',sort: 'DESC'}
         ]
       })
     }
@@ -25,21 +21,14 @@ define(['N/search', 'N/log', 'N/record', './Helper/interfunction.min.js', './Hel
     function map (context) {
       try {
         log.debug('context', context)
-        var obj = JSON.parse(context.value)
-        var sf = record.load({type: obj.recordType,id:obj.id,isDynamic:true});
+        var obj = JSON.parse(context.value),fs = []
+        var curr = record.load({type: obj.recordType,id: obj.id})
+        item_obj = curr.getValue('custrecord_amazonorder_iteminfo')
 
-        search.create({
-          type: 'customrecord_amazon_item_lines',
-          filters: [
-            {name: 'custrecord_aitem_rel_cahce',operator: 'anyof',values: curr.id }
-          ]
-        }).run().each(function (e) {
-          fs.push(e.id);
-          return true;
-        })
-        var auth = core.amazon.getAuthByAccountId(curr.getValue('custrecord_aio_cache_acc_id'))
-        if (curr.getValue('custrecord_aio_cache_status') != ord_sta1 || !item_obj)
+        if (!item_obj) {
+          var auth = core.amazon.getAuthByAccountId(curr.getValue('custrecord_aio_cache_acc_id'))
           item_obj = JSON.stringify(core.amazon.getOrderItems(auth, curr.getValue('custrecord_aio_cache_order_id')))
+        }
         log.debug('item_objssssssssssssssssssssssssssssssssssssssssssssss', item_obj)
         item_obj = JSON.parse(item_obj)
         if (item_obj.length < 1 || !item_obj) {
@@ -53,6 +42,15 @@ define(['N/search', 'N/log', 'N/record', './Helper/interfunction.min.js', './Hel
           })
           return
         }
+        search.create({
+          type: 'customrecord_amazon_item_lines',
+          filters: [
+            {name: 'custrecord_aitem_rel_cahce',operator: 'anyof',values: obj.id }
+          ]
+        }).run().each(function (e) {
+          fs.push(e.id)
+          return true
+        })
         for (var i = 0;i < item_obj.length;i++) {
           var ss = record.create({type: 'customrecord_amazon_item_lines'})
           ss.setValue({fieldId: 'custrecord_aitem_title',value: item_obj[i].title})
@@ -66,17 +64,17 @@ define(['N/search', 'N/log', 'N/record', './Helper/interfunction.min.js', './Hel
           ss.setValue({fieldId: 'custrecord_ord_itemtax',value: item_obj[i].item_tax})
           log.debug('设置sippingTax', item_obj[i].shipping_tax)
           ss.setValue({fieldId: 'custrecord_ord_shippingtax',value: item_obj[i].shipping_tax})
-          ss.setValue({fieldId: 'custrecord_aitem_rel_cahce',value: curr.id})
+          ss.setValue({fieldId: 'custrecord_aitem_rel_cahce',value: obj.id})
           ss.save()
         }
         fs.map(function (ds) {
           record.delete({type: 'customrecord_amazon_item_lines',id: ds})
           log.debug('先删除')
         })
-        var ss = sf.save();
-        log.debug("OK",ss)
+        var ss = curr.save()
+        log.debug('OK', ss)
       } catch(e) {
-        log.error('000出错啦', e);
+        log.error('000出错啦', e)
       }
     }
 

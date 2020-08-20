@@ -8,12 +8,12 @@
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript
  */
-define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.min', 'require', 'exports', './Helper/core.min', 'N/log', 'N/search', 'N/record', 'N/xml', './Helper/fields.min'],
-  function (interfun, runtime, format, moment, require, exports, core, log, search, record, xml, fiedls) {
+define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.min', './Helper/core.min', 'N/log', 'N/search', 'N/record', './Helper/fields.min'],
+  function (interfun, runtime, format, moment, core, log, search, record, fiedls) {
     // 结算报告退款 欧洲可以根据 marcktplace Name区分国家
     const fba_return_location = 2502
     function getInputData () {
-      var payments = [],limit_payments = 1
+      var payments = [],limit_payments = 4000
       var sT = new Date().getTime()
       try {
         var acc = runtime.getCurrentScript().getParameter({
@@ -24,17 +24,17 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         })
         var fils = [
           { name: 'custrecord_aio_sett_tran_type', operator: 'contains', values: 'Refund' },
-          { name: 'custrecord_settlement_enddate', operator: 'onorafter', values: '2020-6-1' }, // end date从2月份开始
+          { name: 'custrecord_settlement_enddate', operator: 'within', values: ['2020-6-1', '2020-6-30'] }, // end date从2月份开始
           { name: 'custrecord_aio_sett_amount_type', operator: 'is', values: ['ItemPrice'] },
           { name: 'custrecord_aio_sett_amount_desc', operator: 'is', values: ['Principal'] },
           { name: 'custrecord_aio_sett_credit_memo', operator: 'isnot', values: 'T' },
           { name: 'custrecord_february_undeal', operator: 'isnot', values: 'F' }
         ]
         if (acc) {
-          fils.push({ name: 'custrecord_settlement_acc', operator: 'anyof', values: acc })
+          fils.push({ name: 'custrecord_aio_account_2', operator: 'anyof', values: acc })
         }
         if (group) {
-          fils.push({ name: 'custrecord_aio_getorder_group',join: 'custrecord_settlement_acc', operator: 'anyof', values: group })
+          fils.push({ name: 'custrecord_aio_getorder_group',join: 'custrecord_aio_account_2', operator: 'anyof', values: group })
         }
         search.create({
           type: 'customrecord_aio_amazon_settlement',
@@ -131,9 +131,8 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
           var deposit_date = obj.deposit_date
           var curency_txt = obj.curency_txt
           var dept = obj.dept
-          var amount = obj.amount.replace(/-/, '').replace(/,/, '.')
+          var amount = Number(obj.amount.replace(',', '.'))
           var quantity = Math.abs(obj.quantity)
-          log.debug('查看数量 :' + quantity, 'obj.quantity:' + obj.quantity)
           var endDate = interfun.getFormatedDate('', '', endDate_txt, '', true)
           if (endDate.date == '2') { // posted date为2月份之前的不处理
             log.debug('posted date为2月份之前的不处理:', endDate)
@@ -147,7 +146,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             return
           }
           log.debug('endDate', endDate)
-          var skuid = interfun.getskuId(sku, acc),rs
+          var skuid = interfun.getskuId(sku, acc).skuid,rs
           var status; // 退货订单状态
           // 去重 搜索退货授权单
           log.debug('skuid ' + skuid, acc + ',settlerecord_id,' + settlerecord_id + ',merchant_order_id:' + merchant_order_id)
@@ -181,7 +180,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                   currency = e.id
                 })
               // 如果没有对应的退货授权就create ，然后生成贷项通知单
-              createAuthorationFromPayment(settlerecord_id, acc, sku, endDate, merchant_order_id, quantity, amount, acc_text, merchant_adjustment_itemid, currency, skuid, dept)
+              createAuthorationFromPayment(settlerecord_id, acc, sku, endDate, merchant_order_id, quantity, amount, order_id, merchant_adjustment_itemid, currency, skuid, dept)
             }else if (status == 'pendingReceipt' || status == 'pendingApproval') {
               if (status == 'pendingApproval')
                 record.submitFields({
@@ -212,16 +211,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                   toType: record.Type.CREDIT_MEMO,
                   fromId: Number(rs)
                 })
-                acc_text = acc_text.substring(0, 2) + acc_text.substring(acc_text.length - 2, acc_text.length)
-                var Year = endDate.Year
-                var Month = endDate.Month
-                if (Year.length == 1) Year = '0' + Year
-                if (Month.length == 1) Month = '0' + Month
-                var T_memo = acc_text + Year + Month + '-0' // 付款备注
-                var R_memo = interfun.CreatePaymentRec('refunds', acc, credit_memo.getValue('entity'), T_memo, Year + Month + '', credit_memo.getValue('currency'), endDate.date, 1)
-                log.debug('R_memo :', R_memo)
                 credit_memo.setText({fieldId: 'trandate', text: endDate.date })
-                credit_memo.setValue({fieldId: 'custbody_amazon_settlement_memo',value: R_memo})
                 credit_memo.setValue({fieldId: 'custbody_order_locaiton',value: acc})
                 credit_memo.setValue({fieldId: 'custbody_aio_marketplaceid',value: 1})
 
@@ -250,11 +240,11 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             log.error('error!' + order_id, e)
             err.push(e)
           }
+          log.audit('00000结束耗时', (new Date().getTime() - startT))
         })
       } catch (error) {
         log.error('error', error)
       }
-
       if (err.length > 0) {
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
         var date = format.parse({
@@ -266,8 +256,6 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
       }else {
         makeresovle(transactionType, merchant_order_id, acc)
       }
-      log.error('00000结束耗时', (new Date().getTime() - startT))
-      log.audit('最终剩余点数: ', scriptObj.getRemainingUsage())
     }
 
     function reduce (context) {
@@ -512,7 +500,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
      * @param {*} deposit_date 
      * @param {*} merchant_adjustment_itemid 
      */
-    function createAuthorationFromPayment (settlerecord_id, acc, sku, endDate, merchant_order_id, quantity, amount, acc_text, merchant_adjustment_itemid, currency, skuid, dept) {
+    function createAuthorationFromPayment (settlerecord_id, acc, sku, endDate, merchant_order_id, quantity, amount, order_id, merchant_adjustment_itemid, currency, skuid, dept) {
       var account = getAcc(acc)
       log.debug('account', account)
       var loc,cid,rt_tax, R_memo,
@@ -522,56 +510,81 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         country = account.country
       // 根据merchant_adjustment_itemid merchant_order_id和sku匹配对应的tax
       var tray
+      // 配置为应收待结算的都算作收入/退款金额
+      var fils = [
+        { name: 'custrecord_aio_sett_tran_type', operator: 'contains', values: ['Refund'] },
+        { name: 'custrecord_aio_sett_adjust_item_id', operator: 'is', values: merchant_adjustment_itemid },
+        { name: 'custrecord_aio_sett_sku', operator: 'is', values: sku }
+
+      ]
+      if (merchant_order_id) {
+        fils.push({ name: 'custrecord_aio_sett_merchant_order_id', operator: 'is', values: merchant_order_id })
+      }
+      if (order_id) {
+        fils.push({ name: 'custrecord_aio_sett_order_id', operator: 'is', values: order_id })
+      }
       search.create({
         type: 'customrecord_aio_amazon_settlement',
-        filters: [
-          { name: 'custrecord_aio_sett_tran_type', operator: 'contains', values: ['Refund'] },
-          { name: 'custrecord_aio_sett_amount_type', operator: 'is', values: ['ItemPrice'] },
-          { name: 'custrecord_aio_sett_amount_desc', operator: 'is', values: ['Tax'] },
-          { name: 'custrecord_aio_sett_adjust_item_id', operator: 'is', values: merchant_adjustment_itemid },
-          { name: 'custrecord_aio_sett_sku', operator: 'is', values: sku },
-          { name: 'custrecord_aio_sett_merchant_order_id', operator: 'is', values: merchant_order_id }
-        ],
+        filters: fils,
         columns: [
           { name: 'custrecord_aio_sett_amount' },
-          { name: 'custrecord_aio_sett_tran_type' }
+          { name: 'custrecord_aio_sett_currency' },
+          { name: 'custrecord_aio_sett_tran_type' },
+          { name: 'custrecord_aio_sett_amount_type' },
+          { name: 'custrecord_aio_sett_amount_desc' }
         ]
       }).run().each(function (rec) {
-        tray = rec.getValue('custrecord_aio_sett_tran_type')
-        rt_tax = rec.getValue('custrecord_aio_sett_amount').replace(/,/, '.').replace(/-/, ''); // 金额可能会含有其他符合，，-,要换掉
+        var Tranction_type = rec.getValue('custrecord_aio_sett_tran_type')
+        var Amount_type = rec.getValue('custrecord_aio_sett_amount_type')
+        var Amount_desc = rec.getValue('custrecord_aio_sett_amount_desc')
+        var currency_txt = rec.getValue('custrecord_aio_sett_currency')
+        var a = rec.getValue('custrecord_aio_sett_amount').replace(',', '.')
+        log.audit('金额:' + a, '类型：' + Tranction_type + ',' + Amount_type + ',' + Amount_desc)
+        if (!(Amount_type == 'ItemPrice' && Amount_desc == 'Principal')) {
+          var ck = interfun.getArFee(Tranction_type, Amount_type, Amount_desc, currency_txt)
+          if (ck) {
+            log.debug('属于应收 金额 : ' + typeof (a) , a)
+            amount = amount + Number(a)
+            log.debug('等于,' , amount)
+          }
+        }
+        return true
       })
+      // search.create({
+      //   type: 'customrecord_aio_account',
+      //   filters: [
+      //     {name: 'internalidnumber',operator: 'equalto',values: acc}
+      //   ],columns: [
+      //     {name: 'custrecord_aio_seller_id'},
+      //     {name: 'custrecord_aio_subsidiary'},
+      //     {name: 'custrecord_aio_customer'},
+      //     {name: 'custrecord_aio_enabled_sites'},
+      //     {name: 'name'},
+      //     {name: 'custrecord_division'}, // object
+      //   ]
+      // }).run().each(function (e) {
 
-      search.create({
-        type: 'customrecord_aio_account',
-        filters: [
-          {name: 'internalidnumber',operator: 'equalto',values: acc}
-        ],columns: [
-          {name: 'custrecord_aio_seller_id'},
-          {name: 'custrecord_aio_subsidiary'},
-          {name: 'custrecord_aio_customer'},
-          {name: 'custrecord_aio_enabled_sites'},
-          {name: 'name'},
-          {name: 'custrecord_division'}, // object
-        ]
-      }).run().each(function (e) {
-        report_site = e.getText(e.columns[3])
-        report_siteId = e.getValue(e.columns[3])
-      })
+      //   report_site = e.getText(e.columns[3])
+      //   report_siteId = e.getValue(e.columns[3])
+      // })
 
-      var incc = interfun.GetSettlmentFee('ItemPrice', 'Tax', tray, report_site.split(' ')[1], rt_tax, report_siteId, acc)
-      log.debug('amount1111:' + amount + ',rt_tax:' + rt_tax, 'incc:' + JSON.stringify(incc))
-      if (!incc) throw '找不到费用,' + 'Tax' + ',' + 'ItemPrice' + ',' + tray
-      if (incc.incomeaccount == '125') {
-        amount += Number(rt_tax)
-      }
+      // var incc = interfun.GetSettlmentFee('ItemPrice', 'Tax', tray, report_site.split(' ')[1], rt_tax, report_siteId, acc)
+      // log.debug('amount1111:' + amount + ',rt_tax:' + rt_tax, 'incc:' + JSON.stringify(incc))
+      // if (!incc) throw '找不到费用,' + 'Tax' + ',' + 'ItemPrice' + ',' + tray
+      // if (incc.incomeaccount == '125') {
+      //   amount += Number(rt_tax)
+      // }
       log.debug('amount2222:' + amount, '单价:' + amount + '/' + quantity + ' = ' + (amount / quantity).toFixed(2))
-      return
       cid = account.customer
       var rt = record.create({type: record.Type.RETURN_AUTHORIZATION,isDynamic: true})
       rt.setValue({fieldId: 'entity',value: cid})
-      // rt.setValue({fieldId:'location',value:loc})
+      rt.setValue({fieldId: 'location',value: loc})
       rt.setValue({fieldId: 'currency',value: currency})
-      rt.setValue({fieldId: 'otherrefnum',value: merchant_order_id})
+      if (merchant_order_id) {
+        rt.setValue({fieldId: 'otherrefnum',value: merchant_order_id})
+      }else {
+        rt.setValue({fieldId: 'otherrefnum',value: order_id})
+      }
       rt.setValue({fieldId: 'department',value: dept})
       rt.setText({fieldId: 'trandate',text: endDate.date})
       rt.setValue({fieldId: 'custbody_order_locaiton',value: acc})
@@ -581,11 +594,11 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
       log.debug('skuid:' + skuid, 'merchant_order_id :' + merchant_order_id)
       rt.selectNewLine({sublistId: 'item' })
       rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'item', value: skuid})
-      // rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'location', value: loc})
+      rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'location', value: loc})
       rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'custcol_aio_amazon_msku', value: sku})
       rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'quantity', value: quantity})
-      rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'rate', value: (amount / quantity).toFixed(2) })
-      rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'amount', value: amount })
+      rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'rate', value: Math.abs(Math.round((amount / quantity) * 100) / 100)})
+      rt.setCurrentSublistValue({sublistId: 'item',fieldId: 'amount', value: Math.abs(Math.round(amount * 100) / 100) })
       rt.setCurrentSublistValue({
         sublistId: 'item',
         fieldId: 'taxcode',
@@ -607,17 +620,8 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         toType: record.Type.CREDIT_MEMO,
         fromId: Number(rs)
       })
-      // 开始生成付款/退款备注
-      acc_text = acc_text.substring(0, 2) + acc_text.substring(acc_text.length - 2, acc_text.length)
-      var Year = endDate.Year
-      var Month = endDate.Month
-      if (Year.length == 1) Year = '0' + Year
-      if (Month.length == 1) Month = '0' + Month
-      var T_memo = acc_text + Year + Month + '-0' // 付款备注
-      var R_memo = interfun.CreatePaymentRec('refunds', acc, credit_memo.getValue('entity'), T_memo, Year + Month + '', credit_memo.getValue('currency'), endDate.date, 1)
-      log.debug('R_memo :', R_memo)
+
       credit_memo.setText({fieldId: 'trandate', text: endDate.date })
-      credit_memo.setValue({fieldId: 'custbody_amazon_settlement_memo',value: R_memo})
       credit_memo.setValue({fieldId: 'custbody_order_locaiton',value: acc})
       credit_memo.setValue({fieldId: 'custbody_aio_marketplaceid',value: 1})
       // var lc = credit_memo.getLineCount({ sublistId: 'item' })

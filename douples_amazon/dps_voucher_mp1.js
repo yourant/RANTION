@@ -2,8 +2,8 @@
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript
  */
-define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', './Helper/interfunction.min'],
-  function (search, record, moment, format, runtime, interfun) {
+define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', './Helper/interfunction.min', './Helper/core.min'],
+  function (search, record, moment, format, runtime, interfun, core) {
     const MissingReportType = 5 // Missing report 财务报告  orders
     const account = 122 // 应收账款 
     const account_Tax = 1026 // 6601.30.01 销售费用 : 平台销售税 : Amazon
@@ -87,6 +87,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
     ]
     const martk_corr = { // 科目配置表的报告类型字段
       'EU': 2,
+      'NL': 2,
       'JP': 2,
       'UK': 2,
       'IT': 2,
@@ -107,7 +108,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
     const income_Refund = 471 // 主营业务收入-退款	 6001.06
 
     function getInputData () {
-      var limit = 1000,orders = [],ors = []
+      var limit = 4000,orders = [],ors = []
       var oid = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_oid' }); // 订单号
       var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_account' })
       var group_req = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_group' })
@@ -119,7 +120,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
       if (acc)
         fils.push({name: 'custrecord_fin_to_amazon_account',operator: 'anyof',values: acc})
       fils.push({name: 'custrecord_financetype',operator: 'is',values: 'orders'})
-      fils.push({name: 'custrecord_posteddate',operator: 'onorBefore',values: '2020-7-1'})
+      fils.push({name: 'custrecord_posteddate',operator: 'onorBefore',values: '2020-6-30'})
+      fils.push({ name: 'custrecord_aio_account_region',join: 'custrecord_fin_to_amazon_account', operator: 'noneof', values: ['1'] })
       var acc_arrys = []
       if (group_req) { // 根据拉单分组去履行
         core.amazon.getReportAccountList(group_req).map(function (acount) {
@@ -127,19 +129,21 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         })
         fils.push({name: 'custrecord_fin_to_amazon_account',operator: 'anyof',values: acc_arrys})
       }
-
+      log.debug('fils:', fils)
       search.create({
         type: 'customrecord_amazon_listfinancialevents',
         filters: fils,
         columns: [
           {name: 'custrecord_aio_seller_id',join: 'custrecord_fin_to_amazon_account'},
-          {name: 'custrecord_aio_enabled_sites',join: 'custrecord_fin_to_amazon_account'} // 站点
+          {name: 'custrecord_aio_enabled_sites',join: 'custrecord_fin_to_amazon_account'}, // 站点
+          {name: 'custrecord_division',join: 'custrecord_fin_to_amazon_account'} // 部门
         ]
       }).run().each(function (e) {
         orders.push({
           rec_id: e.id,
           seller_id: e.getValue(e.columns[0]),
-          enabled_sites: e.getText(e.columns[1])
+          enabled_sites: e.getText(e.columns[1]),
+          dept: e.getText(e.columns[2])
         })
         return --limit > 0
       })
@@ -153,13 +157,16 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         value: (moment(new Date().getTime()).format(dateFormat)),
         type: format.Type.DATE
       })
+      var startT = new Date().getTime()
       var obj = JSON.parse(context.value)
       var fin_id = obj.rec_id, enabled_sites = obj.enabled_sites.split(' ')[1]
-      var order_id,postdate,entity,so_id,subsidiary,pr_store,currency,orderitemid,dept
-      var ship_recid,ship_obj, fee_line,fil_channel,merchant_order_id
+      var order_id,postdate,entity,so_id,subsidiary,pr_store,currency,orderitemid,dept = obj.dept
+      var ship_recid,ship_obj, fee_line,fil_channel,merchant_order_id,ord_type
+      var isA_order = 1 // 是否属于改发单号
       try {
         var rec_finance = record.load({type: 'customrecord_amazon_listfinancialevents',id: fin_id})
         order_id = rec_finance.getValue('custrecord_l_amazon_order_id')
+        merchant_order_id = rec_finance.getValue('custrecord_seller_order_id')
         orderitemid = rec_finance.getValue('custrecord_orderitemid')
         pr_store = rec_finance.getValue('custrecord_fin_to_amazon_account')
         postdate = rec_finance.getValue('custrecord_posteddate_txt') // 去财务报告的发布日期
@@ -172,15 +179,33 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           return
         }
         var fils = [],sku = rec_finance.getValue('custrecord_sellersku'),qty = rec_finance.getValue('custrecord_quantityshipped')
+        fils.push({ name: 'custrecord_amazon_order_id', operator: 'is', values: order_id })
         if (order_id.charAt(0) == 'S') {
-          fils.push({ name: 'custrecord_merchant_order_id', operator: 'is', values: rec_finance.getValue('custrecord_seller_order_id') })
-        }else if (order_id) {
-          fils.push({ name: 'custrecord_amazon_order_id', operator: 'is', values: order_id })
-        }else {
+          if (merchant_order_id) {
+            fils.push({ name: 'custrecord_merchant_order_id', operator: 'is', values: merchant_order_id })
+            if (merchant_order_id.charAt(0) == 'A') {
+              // 如果是A开头的订单号，需要查找对应关系，找到原订单号,*****放到凭证上******
+              search.create({
+                type: 'customrecord_amazon_order_relation',
+                filters: [
+                  {name: 'custrecord_amazon_order_s',operator: 'is',values: order_id},
+                  {name: 'custrecord_amazon_order_a',operator: 'is',values: merchant_order_id}
+                ],
+                columns: [
+                  {name: 'name'}
+                ]
+              }).run().each(function (e) {
+                order_id = e.getValue('name')
+                isA_order = 2
+              })
+            }
+          }
+        }else if (!order_id) {
           rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '没有订单号'})
           rec_finance.save({ignoreMandatoryFields: true})
           return
         }
+
         fils.push({ name: 'custrecord_is_check_invoucher', operator: 'is', values: false })
         sku ? fils.push({ name: 'custrecord_sku', operator: 'is', values: sku}) : ''
         qty ? fils.push({ name: 'custrecord_quantity_shipped', operator: 'is', values: qty}) : ''
@@ -198,37 +223,32 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           ship_obj = interfun.getFormatedDate('', '', rec.getValue('custrecord_shipment_date_text'), '', true)
           log.debug('postdate：' + postdate, ',shipment_date:' + ship_obj.date)
         })
-
-        if (!ship_recid) {
-          rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '找不到发货报告'})
-          rec_finance.save({ignoreMandatoryFields: true})
-          return
+        if (ship_recid) {
+          var posum = pos_obj.Year + pos_obj.Month + ''
+          var shipsum = ship_obj.Year + ship_obj.Month + ''
+          if (shipsum != posum) {
+            rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '与发货跨月'})
+            rec_finance.save({ignoreMandatoryFields: true})
+            return
+          }
         }
-        var posum = pos_obj.Year + pos_obj.Month + ''
-        var shipsum = ship_obj.Year + ship_obj.Month + ''
-        if (shipsum != posum) {
-          rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '与发货跨月'})
-          rec_finance.save({ignoreMandatoryFields: true})
-          return
-        }
-        var acc_search = interfun.getSearchAccount(obj.seller_id)
+        var acc_search = interfun.getSearchAccount(obj.seller_id).acc_search
         log.debug('查询的店铺acc_search:', acc_search)
         // 搜索销售订单获取客户
-
         var so_obj = interfun.SearchSO(order_id, merchant_order_id, acc_search)
         log.audit('查看拿到的SO', so_obj)
         so_id = so_obj.so_id
         pr_store = so_obj.acc
         acc_text = so_obj.acc_text
         entity = so_obj.entity
-        dept = so_obj.dept
         subsidiary = so_obj.subsidiary
         currency = so_obj.currency
         fil_channel = so_obj.fulfill_channel
         orderid = so_obj.otherrefnum
+        ord_type = so_obj.ord_type
 
         log.audit('fil_channel', fil_channel)
-        // TODO 判断订单状态，如果已经全额收款或者已关闭，则不再生成日记账
+
         // 如果该财务报告生成过凭证，先删除掉
         if (so_id) {
           search.create({
@@ -259,7 +279,22 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           }).run().each(function (rec) {
             inv_id = rec.id
           })
+          if (ord_type == '2') { // 如果是FMB类型订单，查找有没有发货
+            search.create({
+              type: 'invoice',
+              filters: [
+                { name: 'createdfrom', operator: 'anyof', values: so_id}
+              ]
+            }).run().each(function (rec) {
+              inv_id = rec.id
+            })
+          }
           if (!inv_id) {
+            if (!ship_recid) {
+              rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '找不到发货报告'})
+              rec_finance.save({ignoreMandatoryFields: true})
+              return
+            }
             rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '待发货'}) // 不处理,没有对应的销售订单就不生产预估
             rec_finance.save({ignoreMandatoryFields: true})
             return
@@ -279,15 +314,14 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           jour.setValue({fieldId: 'custbody_jour_type',value: 'orders' }); // 记录凭证类型 orders / refunds
           log.debug('order_id', order_id)
           var dr = 0,cr = 0,num = 0
-
           var incomeaccount, L_memo
-
           fieldsMapping.map(function (field) {
             if (field == 'LowValueGoodsTax-Principal' || field == 'LowValueGoodsTax-Shipping') {
               // 歸為Tax科目 2268
               if (Number(rec_finance.getValue(financeMapping[field]))) {
                 jour.selectNewLine({sublistId: 'line'})
                 jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'account',value: account_Tax})
+                jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'department',value: dept})
                 jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'memo',value: '收客户销售税[Amazon]'})
                 jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'entity',value: entity})
                 dr += Number(rec_finance.getValue(financeMapping[field]))
@@ -305,6 +339,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
               jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'account',value: incomeaccount})
               jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'memo',value: L_memo})
               jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'entity',value: entity})
+              jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'department',value: dept})
               if (currency == JP_currency)  fee_line = Number(rec_finance.getValue(financeMapping[field])).toFixed(0)
               else fee_line = Number(rec_finance.getValue(financeMapping[field])).toFixed(2)
               jour.setCurrentSublistValue({ sublistId: 'line',fieldId: 'credit', value: fee_line}) // 贷
@@ -312,6 +347,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
               jour.selectNewLine({sublistId: 'line'})
               jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'account',value: income_fin})
               jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'memo',value: L_memo})
+              jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'department',value: dept})
               jour.setCurrentSublistValue({sublistId: 'line',fieldId: 'entity',value: entity})
               jour.setCurrentSublistValue({ sublistId: 'line',fieldId: 'debit', value: fee_line}) // 贷
               jour.commitLine({sublistId: 'line'})
@@ -321,20 +357,40 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           jour.setValue({fieldId: 'custbody_relative_finanace_report',value: fv})
           jour.setValue({fieldId: 'custbody_aio_marketplaceid',value: 1})
           jour.setValue({fieldId: 'custbody_relative_inoice',value: inv_id})
-          log.debug('看卡拿到的行', jour.getLineCount({sublistId: 'line'}))
           var jo = jour.save({ignoreMandatoryFields: true})
           log.debug('success', jo)
           rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: 'T'})
           rec_finance.setValue({fieldId: 'custrecord_fin_rel_demit',value: jo})
           rec_finance.save({ignoreMandatoryFields: true})
-          record.submitFields({
-            type: 'customrecord_amazon_sales_report',
-            id: ship_recid,
-            values: {
-              custrecord_is_check_invoucher: true,
-              custrecord_fin_rel: jo
-            }
+          if (ship_recid)
+            record.submitFields({
+              type: 'customrecord_amazon_sales_report',
+              id: ship_recid,
+              values: {
+                custrecord_is_check_invoucher: true,
+                custrecord_fin_rel: jo
+              }
+            })
+          // 发票关联财务报告
+          // record.submitFields({
+          //   type: 'invoice',
+          //   id: inv_id,
+          //   values: {
+          //     custbody_dps_finance_report: fin_id
+          //   },
+          //   enableSourcing: true,
+          //   ignoreMandatoryFields: true
+          // })
+          var inv = record.load({type: 'invoice',id: inv_id})
+          if (isA_order == 1)
+            inv.setValue({fieldId: 'custbody_dps_finance_report',value: fin_id}) // 1 正常单的财务报告
+          else if (isA_order == 2)
+            inv.setValue({fieldId: 'custbody_dps_finance_report1',value: fin_id}) // 2 改发单的财务报告
+          inv.save({
+            enableSourcing: true,
+            ignoreMandatoryFields: true
           })
+          log.debug('ship_recid:' + ship_recid, '发货报告设置成功')
         }else {
           log.debug('0000找不到销售订单', order_id)
           rec_finance.setValue({fieldId: 'custrecord_is_generate_voucher',value: '找不到订单'}) // 不处理,没有对应的销售订单就不生产预估

@@ -552,42 +552,6 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
           'custrecord_amazonorder_iteminfo': JSON.stringify(line_items)
         }
       })
-      var fs = []
-      search.create({
-        type: 'customrecord_amazon_item_lines',
-        filters: [
-          {name: 'custrecord_aitem_rel_cahce',operator: 'anyof',values: obj.rec_id }
-        ]
-      }).run().each(function (e) {
-        fs.push(e.id)
-        return true
-      })
-
-      if (line_items.length < 1 || !line_items) {
-        log.debug('item_obj为空,退出', line_items)
-        return
-      }
-
-      for (var i = 0;i < line_items.length;i++) {
-        var ss = record.create({type: 'customrecord_amazon_item_lines'})
-        ss.setValue({fieldId: 'custrecord_aitem_title',value: line_items[i].title})
-        ss.setValue({fieldId: 'custrecord_aitem_seller_sku',value: line_items[i].seller_sku})
-        ss.setValue({fieldId: 'custrecord_aitem_qty',value: line_items[i].qty})
-        ss.setValue({fieldId: 'custrecord_aitem_shipping_discount',value: line_items[i].shipping_discount})
-        ss.setValue({fieldId: 'custrecord_aitem_item_price',value: line_items[i].item_price})
-        ss.setValue({fieldId: 'custrecord_aitem_promotion_discount',value: line_items[i].promotion_discount})
-        ss.setValue({fieldId: 'custrecord_aitem_gift_wrap_price',value: line_items[i].gift_wrap_price})
-        ss.setValue({fieldId: 'custrecord_aitem_shipping_price',value: line_items[i].shipping_price})
-        ss.setValue({fieldId: 'custrecord_ord_itemtax',value: line_items[i].item_tax})
-        log.debug('设置sippingTax', line_items[i].shipping_tax)
-        ss.setValue({fieldId: 'custrecord_ord_shippingtax',value: line_items[i].shipping_tax})
-        ss.setValue({fieldId: 'custrecord_aitem_rel_cahce',value: obj.rec_id})
-        ss.save()
-      }
-      fs.map(function (ds) {
-        record.delete({type: 'customrecord_amazon_item_lines',id: ds})
-        log.debug('先删除')
-      })
       var itemAry = []
 
       // 计算公式
@@ -618,7 +582,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         itemAry.push(line.seller_sku)
         var skuid
         try {
-          skuid = interfun.getskuId(line.seller_sku.trim(), amazon_account_id, o.amazon_order_id)
+          skuid = interfun.getskuId(line.seller_sku.trim(), amazon_account_id, o.amazon_order_id).skuid
           if (!skuid)
             record.submitFields({
               type: 'customrecord_aio_order_import_cache',

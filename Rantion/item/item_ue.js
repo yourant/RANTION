@@ -148,8 +148,12 @@ define(['N/search', 'N/record'],
                         value: rec.getValue('custitem_product_grading')
                     })
                     customrecord_product_sku.setValue({
-                        fieldId: 'custrecordproduct_init_grading',
+                        fieldId: 'custrecord_product_init_grading',
                         value: rec.getValue('custitemf_product_grading')
+                    })
+                    customrecord_product_sku.setValue({
+                        fieldId: 'custrecord_product_sku_image_url',
+                        value: rec.getValue('custitem_dps_picture')
                     })
                     customrecord_product_sku.save();
                 } else {
@@ -175,7 +179,8 @@ define(['N/search', 'N/record'],
                             , custrecord_product_sku_warehouse_check: rec.getValue('custitem_dps_warehouse_check')
                             , custrecord_product_sku_factory_check: rec.getValue('custitem_dps_factory_inspe')
                             , custrecord_product_sku_grading: rec.getValue('custitem_product_grading')
-                            , custrecordproduct_init_grading: rec.getValue('custitemf_product_grading')
+                            , custrecord_product_init_grading: rec.getValue('custitemf_product_grading')
+                            , custrecord_product_sku_image_url: rec.getValue('custitem_dps_picture')
                         }
                     });
                 }

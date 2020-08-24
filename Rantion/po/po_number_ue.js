@@ -29,7 +29,7 @@ define(['N/record'], function(record) {
             }
             numberRecord.setValue({ fieldId: 'custrecord_ppn_po_number', value: po_last_number });
             numberRecord.save();
-            newRecord.setValue({fieldId:"tranid",value:'PO' + dateStr + new_po_number})
+            newRecord.setValue({fieldId: 'tranid', value: 'PO' + dateStr + new_po_number});
         }
     }
 
@@ -62,13 +62,10 @@ define(['N/record'], function(record) {
             }
             numberRecord.setValue({ fieldId: 'custrecord_ppn_po_number', value: po_last_number });
             numberRecord.save();
-            record.submitFields({
-                type: 'purchaseorder',
-                id: newRecord.id,
-                values: {
-                    'tranid': 'PO' + dateStr + new_po_number
-                }
-            });
+
+            var poRecord = record.load({ type: 'purchaseorder', id: newRecord.id, isDynamic: true });
+            poRecord.setValue({ fieldId: 'tranid', value: 'PO' + dateStr + new_po_number });
+            poRecord.save({ ignoreMandatoryFields: true });
         }
     }
 

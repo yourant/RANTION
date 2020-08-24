@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-08-17 14:04:11
+ * @LastEditTime   : 2020-07-31 17:06:11
  * @LastEditors    : Li
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
@@ -486,14 +486,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             //     // date: new Date('7/28/2015')
             // });
 
-            var num = 1;
             log.debug('cur_rate', cur_rate);
-            if (gross_margin) {
-                // gross_margin = 0.3;
-                num = 1 + Number(gross_margin);
+            if (!gross_margin) {
+                gross_margin = 0.3;
             }
 
-            // var num = 1 + Number(gross_margin);
+            var num = 1 + Number(gross_margin);
 
             log.debug('num', num);
 
@@ -904,191 +902,6 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
 
         return itemInfo.length > 0 ? itemInfo : false;
     }
-    /**
-     * 搜索关联的调拨单的 PO的货品信息
-     * @param {*} tranId 
-     */
-    function searchItemReceiptItem(tranId) {
-
-        var itemInfo = [],
-            transfer_head = [],
-            IRArr = [],
-            limit1 = 3999,
-            limit2 = 3999;
-
-        search.create({
-            type: 'customrecord_realted_transfer_head',
-            filters: [{
-                name: "custrecord_transfer_code",
-                join: "custrecord__realted_transfer_head",
-                operator: 'anyof',
-                values: tranId,
-            }],
-            columns: [{
-                    name: 'custrecord_transfer_quantity',
-                    join: 'custrecord__realted_transfer_head'
-                }, // 数量
-            ]
-        }).run().each(function (rec) {
-
-            log.debug('rec id', rec.id);
-
-            var qty = rec.getValue({
-                name: 'custrecord_transfer_quantity',
-                join: 'custrecord__realted_transfer_head'
-            });
-
-            var it = {
-                qty: qty,
-                toHId: rec.id
-            };
-
-            IRArr.push(it);
-
-            transfer_head.push(rec.id);
-
-            flag = true;
-            return --limit1 > 0;
-
-        });
-
-        log.debug('transfer_head  length: ' + transfer_head.length, transfer_head);
-        if (transfer_head.length > 0) {
-            search.create({
-                type: 'itemreceipt',
-                filters: [{
-                        name: 'mainline',
-                        operator: 'is',
-                        values: false
-                    },
-                    {
-                        name: 'taxline',
-                        operator: 'is',
-                        values: false
-                    },
-                    {
-                        name: 'custcol_realted_transfer_detail',
-                        operator: 'anyof',
-                        values: transfer_head
-                    }
-                ],
-                columns: [ // taxamount 总量 = 数量 X 单价 X 税率
-                    'rate', 'item', 'quantity', "taxamount", "custcol_realted_transfer_detail", 'entity',
-                    {
-                        name: 'custitem_dps_declaration_cn',
-                        join: 'item'
-                    },
-                    {
-                        name: 'custitem_dps_brand',
-                        join: 'item'
-                    },
-                    {
-                        name: 'custitem_dps_unit',
-                        join: 'item'
-                    },
-                    {
-                        name: 'custitem_dps_declare',
-                        join: 'item'
-                    },
-                    {
-                        name: 'custitem_dps_customs_code',
-                        join: 'item'
-                    },
-                    {
-                        name: 'custentity_dps_placeofsupply',
-                        join: 'vendor'
-                    }, // 供应商 货源地
-                    {
-                        name: "custentity_vendor_code",
-                        join: 'vendor'
-                    }, // 供应商编码
-                    {
-                        name: "entityid",
-                        join: 'vendor'
-                    }, // 供应商名称
-                    {
-                        name: 'custentity_dps_buyer',
-                        join: 'vendor'
-                    }, // 供应商 采购员
-                ]
-            }).run().each(function (rec) {
-
-                log.debug('货品收据 Id', rec.id);
-
-                var transfer_detail = rec.getValue('custcol_realted_transfer_detail');
-                var qty = 1;
-                for (var i = 0, len = IRArr.length; i < len; i++) {
-                    var temp = IRArr[i];
-                    if (temp.toHId == transfer_detail) {
-                        qty = temp.qty;
-                        break;
-                    }
-                }
-
-                var temp_taxAmt = rec.getValue('taxamount');
-                var tem_tax = 0;
-                if (temp_taxAmt) { // 获取到的 taxamount 为负, 取绝对值, 且为总和, 需要除以数量
-                    tem_tax = Math.abs(temp_taxAmt / rec.getValue('quantity'))
-                }
-
-                var it = {
-                    id: rec.id,
-                    name: rec.getValue({
-                        name: 'custitem_dps_declaration_cn',
-                        join: 'item'
-                    }),
-                    taxamount: tem_tax,
-                    buyer: rec.getValue({
-                        name: 'custentity_dps_buyer',
-                        join: 'vendor'
-                    }),
-                    vendorId: rec.getValue({
-                        name: "entityid",
-                        join: 'vendor'
-                    }),
-                    vendorCode: rec.getValue({
-                        name: "custentity_vendor_code",
-                        join: 'vendor'
-                    }),
-                    placeofsupply: rec.getValue({
-                        name: 'custentity_dps_placeofsupply',
-                        join: 'vendor'
-                    }),
-                    itemId: rec.getValue('item'),
-                    rate: rec.getValue('rate'),
-                    qty: qty,
-                    declaration: rec.getValue({
-                        name: 'custitem_dps_declaration_cn',
-                        join: 'item'
-                    }),
-                    brand: rec.getText({
-                        name: 'custitem_dps_brand',
-                        join: 'item'
-                    }),
-                    unit: rec.getValue({
-                        name: 'custitem_dps_unit',
-                        join: 'item'
-                    }),
-                    declare: rec.getValue({
-                        name: 'custitem_dps_declare',
-                        join: 'item'
-                    }),
-                    code: rec.getValue({
-                        name: 'custitem_dps_customs_code',
-                        join: 'item'
-                    })
-                };
-
-                itemInfo.push(it);
-
-                return --limit2 > 0;
-            });
-        }
-
-
-        log.debug('itemInfo', itemInfo);
-        return itemInfo.length > 0 ? itemInfo : false;
-    }
 
     return {
         searchItemInfo: searchItemInfo,
@@ -1099,7 +912,6 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
         CreateElementsOfDeclaration: CreateElementsOfDeclaration,
         createBillInformation: createBillInformation,
         createInformation: createInformation,
-        searchPOItem: searchPOItem,
-        searchItemReceiptItem: searchItemReceiptItem
+        searchPOItem: searchPOItem
     }
 });

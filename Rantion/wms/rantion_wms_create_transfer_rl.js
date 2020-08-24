@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-06-01 09:38:43
- * @LastEditTime   : 2020-08-19 19:25:08
+ * @LastEditTime   : 2020-08-19 19:21:07
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_rl.js
@@ -477,7 +477,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config', '../Helper/tool.li
                     num++;
                     if (ld.msku) { // 存在 msku
                         add_fils.push([
-                            ["name", "contains", ld.msku.trim()],
+                            ["name", "contains", ld.msku],
                             "and",
                             ["custrecord_ass_sku", "anyof", ld.itemId]
                         ]);

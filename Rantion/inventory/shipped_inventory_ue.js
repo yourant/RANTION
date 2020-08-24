@@ -17,6 +17,31 @@ define(['N/search', 'N/record'], function(search, record) {
             var newRecord = context.newRecord;
             var lineNum = newRecord.getLineCount({ sublistId: 'item' });
             var locations = {};
+            var location_ids = [];
+            for (var i = 0; i < lineNum; i++) {
+                var location_id = newRecord.getSublistValue({ sublistId: 'item', fieldId: 'location', line: i });
+                location_ids.push(location_id);
+            }
+            if (location_ids.length > 0) {
+                search.create({
+                    type: 'location',
+                    filters: [
+                        { name: 'internalid', operator: 'anyof', values: location_ids }
+                    ],
+                    columns: [ 'custrecord_wms_location_type', 'custrecord_dps_financia_warehous' ]
+                }).run().each(function (rec) {
+                    var flad = true;
+                    var type = rec.getValue('custrecord_wms_location_type');
+                    var ware = rec.getValue('custrecord_dps_financia_warehous');
+                    if (type == 1 && ware == 2) {
+                        flad = false;
+                    }
+                    var json = {};
+                    json.flad = flad;
+                    locations[location_id] = json;
+                    return false;
+                });
+            }
             for (var i = 0; i < lineNum; i++) {
                 var sku = newRecord.getSublistValue({ sublistId: 'item', fieldId: 'item', line: i });
                 var quantiy = Number(newRecord.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i }));

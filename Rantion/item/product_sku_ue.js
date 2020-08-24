@@ -47,8 +47,7 @@ define(['N/search', 'N/record'],
             var rec = scriptContext.newRecord;
             var oldrec = scriptContext.oldRecord;
             var custrecord_sku_product_code = rec.getValue('custrecord_sku_product_code');
-            if (scriptContext.type == 'edit'
-                && rec.getValue("custrecord_product_sku_approval_status") == 6 && custrecord_sku_product_code) {
+            if (rec.getValue("custrecord_product_sku_approval_status") == 6 && custrecord_sku_product_code) {
 
                 search.create({
                     type: 'customrecord_product',
@@ -76,7 +75,7 @@ define(['N/search', 'N/record'],
                         'custrecord_product_added_tax',
                         'custrecord_product_taxrebates',
                         'custrecord_product_declare_memo',
-                        'custrecord_product_hacode_cn',
+                        'custrecord_product_hscode_cn',
                         'custrecord_product_hscode_en',
                         'custrecord_product_use',
                         'custrecord_product_made_country',
@@ -87,7 +86,7 @@ define(['N/search', 'N/record'],
                 }).run().each(function (spuRec) {
                     var sku = {
                         custrecord_sku_product_code: custrecord_sku_product_code
-                        , custrecord_product_sku: rec.getValue('custrecord_product_sku')
+                        , name: rec.getValue('name')
                         , custrecord_product_sku_name: rec.getValue('custrecord_product_sku_name')
                         , custrecord_product_sku_name_en: rec.getValue('custrecord_product_sku_name_en')
                         , custrecord_product_sku_abbr: rec.getValue('custrecord_product_sku_abbr')
@@ -107,7 +106,9 @@ define(['N/search', 'N/record'],
                         , custrecord_product_sku_warehouse_check: rec.getValue('custrecord_product_sku_warehouse_check')
                         , custrecord_product_sku_factory_check: rec.getValue('custrecord_product_sku_factory_check')
                         , custrecord_product_sku_grading: rec.getValue('custrecord_product_sku_grading')
-                        , custrecordproduct_init_grading: rec.getValue('custrecordproduct_init_grading')
+                        , custrecord_product_init_grading: rec.getValue('custrecord_product_init_grading')
+                        , custrecord_product_sku_default_vendor: rec.getValue('custrecord_product_sku_default_vendor')
+                        , custrecord_product_sku_image_url: rec.getValue('custrecord_product_sku_image_url')
 
                         , custrecord_product_code: spuRec.getValue("name")
                         , custrecord_product_name_cn: spuRec.getValue("custrecord_product_name_cn")
@@ -130,7 +131,7 @@ define(['N/search', 'N/record'],
                         , custrecord_product_added_tax: spuRec.getValue("custrecord_product_added_tax")
                         , custrecord_product_taxrebates: spuRec.getValue("custrecord_product_taxrebates")
                         , custrecord_product_declare_memo: spuRec.getValue("custrecord_product_declare_memo")
-                        , custrecord_product_hacode_cn: spuRec.getValue("custrecord_product_hacode_cn")
+                        , custrecord_product_hscode_cn: spuRec.getValue("custrecord_product_hscode_cn")
                         , custrecord_product_hscode_en: spuRec.getValue("custrecord_product_hscode_en")
                         , custrecord_product_use: spuRec.getValue("custrecord_product_use")
                         , custrecord_product_made_country: spuRec.getValue("custrecord_product_made_country")
@@ -150,7 +151,7 @@ define(['N/search', 'N/record'],
             search.create({
                 type: 'inventoryitem',
                 filters: [
-                    { name: 'itemid', operator: 'is', values: body.custrecord_product_sku }
+                    { name: 'itemid', operator: 'is', values: body.name }
                 ],
                 columns: [
                     { name: 'internalid' }
@@ -182,7 +183,7 @@ define(['N/search', 'N/record'],
                 })
                 inventoryitem.setValue({
                     fieldId: 'itemid',
-                    value: body.custrecord_product_sku
+                    value: body.name
                 })
                 inventoryitem.setValue({
                     fieldId: 'taxschedule',
@@ -263,16 +264,59 @@ define(['N/search', 'N/record'],
                 })
                 inventoryitem.setValue({
                     fieldId: 'custitemf_product_grading',
-                    value: body.custrecordproduct_init_grading
+                    value: body.custrecord_product_init_grading
                 })
-                inventoryitem.save({ignoreMandatoryFields:true});
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_picture',
+                    value: body.custrecord_product_sku_image_url
+                })
+
+                var itemvendorCount = inventoryitem.getLineCount({
+                    sublistId: 'itemvendor'
+                })
+
+                if (body.custrecord_product_sku_default_vendor) {
+                    var vendorSet = false;
+                    for (var index = 0; index < itemvendorCount; index++) {
+                        var vendorId = inventoryitem.getSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'vendor',
+                            line: index
+                        })
+                        if (vendorId == body.custrecord_product_sku_default_vendor) {
+                            inventoryitem.setSublistValue({
+                                sublistId: 'itemvendor',
+                                fieldId: 'preferredvendor',
+                                line: index,
+                                value: true
+                            });
+                            vendorSet = true;
+                        }
+                    }
+                    if (!vendorSet) {
+                        inventoryitem.setSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'vendor',
+                            value: body.custrecord_product_sku_default_vendor,
+                            line: itemvendorCount
+                        });
+                        inventoryitem.setSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'preferredvendor',
+                            value: true,
+                            line: itemvendorCount
+                        });
+                    }
+                }
+                inventoryitem.save({ ignoreMandatoryFields: true });
             } else {
                 record.submitFields({
                     type: 'inventoryitem',
                     id: skuId,
                     ignoreMandatoryFields: true,
                     values: {
-                        customform:-200,
+                        customform: -200,
+                        includechildren: true,
                         custitem_dps_spucoding: body.custrecord_sku_product_code,
                         custitem_dps_skuchiense: body.custrecord_product_sku_name,
                         custitem_dps_spuenglishnames: body.custrecord_product_sku_name_en,
@@ -292,7 +336,8 @@ define(['N/search', 'N/record'],
                         custitem_dps_warehouse_check: body.custrecord_product_sku_warehouse_check,
                         custitem_dps_factory_inspe: body.custrecord_product_sku_factory_check,
                         custitem_product_grading: body.custrecord_product_sku_grading,
-                        custitemf_product_grading: body.custrecordproduct_init_grading,
+                        custitemf_product_grading: body.custrecord_product_init_grading,
+                        custitem_dps_picture: body.custrecord_product_sku_image_url,
                         //SPU
                         displayname: body.custrecord_product_name_cn,
                         custitem_dps_spuenglishnames: body.custrecord_product_name_en,
@@ -311,7 +356,7 @@ define(['N/search', 'N/record'],
                         custitem_dps_added_tax: body.custrecord_product_added_tax,
                         custitem_dps_taxrebates: body.custrecord_product_taxrebates,
                         custitem_dps_declare: body.custrecord_product_declare_memo,
-                        custitem_dps_hscode1: body.custrecord_product_hacode_cn,
+                        custitem_dps_hscode1: body.custrecord_product_hscode_cn,
                         custitem_dps_hscode2: body.custrecord_product_hscode_en,
                         custitem_dps_use: body.custrecord_product_use,
                         custitem_dps_quality: body.custrecord_product_expirydate,
@@ -319,6 +364,50 @@ define(['N/search', 'N/record'],
                         custitem_dps_nature: body.custrecord_product_nature
                     }
                 })
+                if (body.custrecord_product_sku_default_vendor) {
+                    var itemInfo = record.load({
+                        type: 'InventoryItem',
+                        id: skuId
+                    })
+                    var itemvendorCount = itemInfo.getLineCount({
+                        sublistId: 'itemvendor'
+                    })
+
+                    var vendorSet = false;
+                    for (var index = 0; index < itemvendorCount; index++) {
+                        var vendorId = itemInfo.getSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'vendor',
+                            line: index
+                        })
+                        if (vendorId == body.custrecord_product_sku_default_vendor) {
+                            itemInfo.setSublistValue({
+                                sublistId: 'itemvendor',
+                                fieldId: 'preferredvendor',
+                                line: index,
+                                value: true
+                            });
+                            vendorSet = true;
+                        }
+                    }
+                    if (!vendorSet) {
+                        itemInfo.setSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'vendor',
+                            value: body.custrecord_product_sku_default_vendor,
+                            line: itemvendorCount
+                        });
+                        itemInfo.setSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'preferredvendor',
+                            value: true,
+                            line: itemvendorCount
+                        });
+                    }
+                    itemInfo.save({
+                        ignoreMandatoryFields: true
+                    });
+                }
             }
 
         }
@@ -401,7 +490,7 @@ define(['N/search', 'N/record'],
             })
             inventoryitem.setValue({
                 fieldId: 'custitem_dps_hscode1',
-                value: body.custrecord_product_hacode_cn
+                value: body.custrecord_product_hscode_cn
             })
             inventoryitem.setValue({
                 fieldId: 'custitem_dps_hscode2',

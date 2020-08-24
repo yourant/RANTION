@@ -65,7 +65,7 @@ define(['N/currentRecord', 'N/https', 'N/ui/dialog', 'N/record', 'N/search', 'N/
                     , { name: 'subsidiary', join: 'custrecord_purchase_order_no' } //subsidiary
                 ]
             }).run().each(function (result) {
-
+                var subsidiaryArr = result.getText({ name: 'subsidiary', join: 'custrecord_purchase_order_no' }).split(' : ');
                 var item = [];
                 rs = {
                     deliveryNo: result.getValue('name'),
@@ -76,7 +76,7 @@ define(['N/currentRecord', 'N/https', 'N/ui/dialog', 'N/record', 'N/search', 'N/
                     deliveryRecipient: result.getValue({ name: 'custrecord_aio_sender_name', join: 'custrecord_dsp_delivery_order_location' }),
                     supplierAddress: result.getValue({ name: 'custentityaddress', join: 'custrecord_supplier' }),
                     pono: result.getValue({ name: 'tranid', join: 'custrecord_purchase_order_no' }),
-                    tradeCompany: result.getText({ name: 'subsidiary', join: 'custrecord_purchase_order_no' }),
+                    tradeCompany: subsidiaryArr[subsidiaryArr.length - 1],
                     data: item
                 }
                 search.create({

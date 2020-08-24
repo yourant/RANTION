@@ -30,41 +30,6 @@ define(['N/search', 'N/record'],
          * @Since 2015.2
          */
         function beforeSubmit(scriptContext) {
-            var oldrec = scriptContext.oldRecord;
-          var rec = scriptContext.newRecord;
-            var skuCount = rec.getLineCount({
-                sublistId: 'recmachcustrecord_sku_product_code'
-            });
-            for (var index = 0; index < skuCount; index++) {
-                rec.setSublistValue({
-                    sublistId: 'recmachcustrecord_sku_product_code',
-                    fieldId: 'custrecord_product_sku_department',
-                    line: index,
-                    value: rec.getValue("custrecord_product_department")
-                })
-                rec.setSublistValue({
-                    sublistId: 'recmachcustrecord_sku_product_code',
-                    fieldId: 'custrecord_product_sku_category',
-                    line: index,
-                    value: rec.getValue("custrecord_product_category")
-                })
-              var id = rec.getSublistValue({
-                    sublistId: 'recmachcustrecord_sku_product_code',
-                    fieldId: 'id',
-                    line: index
-                })
-                if (id) {
-                    record.submitFields({
-                        type: 'customrecord_product_sku',
-                        id: id,
-                        ignoreMandatoryFields: true,
-                        values: {
-                            custrecord_product_sku_department: rec.getValue("custrecord_product_department"),
-                            custrecord_product_sku_category: rec.getValue("custrecord_product_category")
-                        }
-                    });
-                }
-            }
         }
 
         /**
@@ -104,7 +69,7 @@ define(['N/search', 'N/record'],
                     , custrecord_product_added_tax: rec.getValue("custrecord_product_added_tax")
                     , custrecord_product_taxrebates: rec.getValue("custrecord_product_taxrebates")
                     , custrecord_product_declare_memo: rec.getValue("custrecord_product_declare_memo")
-                    , custrecord_product_hacode_cn: rec.getValue("custrecord_product_hacode_cn")
+                    , custrecord_product_hscode_cn: rec.getValue("custrecord_product_hscode_cn")
                     , custrecord_product_hscode_en: rec.getValue("custrecord_product_hscode_en")
                     , custrecord_product_use: rec.getValue("custrecord_product_use")
                     , custrecord_product_made_country: rec.getValue("custrecord_product_made_country")
@@ -123,9 +88,9 @@ define(['N/search', 'N/record'],
                             fieldId: 'custrecord_sku_product_code',
                             line: index
                         })
-                        , custrecord_product_sku: rec.getSublistValue({
+                        , name: rec.getSublistValue({
                             sublistId: 'recmachcustrecord_sku_product_code',
-                            fieldId: 'custrecord_product_sku',
+                            fieldId: 'name',
                             line: index
                         })
                         , custrecord_product_sku_name: rec.getSublistValue({
@@ -223,9 +188,19 @@ define(['N/search', 'N/record'],
                             fieldId: 'custrecord_product_sku_grading',
                             line: index
                         })
-                        , custrecordproduct_init_grading: rec.getSublistValue({
+                        , custrecord_product_init_grading: rec.getSublistValue({
                             sublistId: 'recmachcustrecord_sku_product_code',
-                            fieldId: 'custrecordproduct_init_grading',
+                            fieldId: 'custrecord_product_init_grading',
+                            line: index
+                        })
+                        , custrecord_product_sku_default_vendor: rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_sku_product_code',
+                            fieldId: 'custrecord_product_sku_default_vendor',
+                            line: index
+                        })
+                        , custrecord_product_sku_image_url: rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_sku_product_code',
+                            fieldId: 'custrecord_product_sku_image_url',
                             line: index
                         })
                         , custrecord_product_code: rec.getValue("custrecord_product_code")
@@ -249,7 +224,7 @@ define(['N/search', 'N/record'],
                         , custrecord_product_added_tax: rec.getValue("custrecord_product_added_tax")
                         , custrecord_product_taxrebates: rec.getValue("custrecord_product_taxrebates")
                         , custrecord_product_declare_memo: rec.getValue("custrecord_product_declare_memo")
-                        , custrecord_product_hacode_cn: rec.getValue("custrecord_product_hacode_cn")
+                        , custrecord_product_hscode_cn: rec.getValue("custrecord_product_hscode_cn")
                         , custrecord_product_hscode_en: rec.getValue("custrecord_product_hscode_en")
                         , custrecord_product_use: rec.getValue("custrecord_product_use")
                         , custrecord_product_made_country: rec.getValue("custrecord_product_made_country")
@@ -270,9 +245,21 @@ define(['N/search', 'N/record'],
                     //         custrecord_product_sku_category: rec.getValue("custrecord_product_category")
                     //     }
                     // });
-                    saveSku(rec.id, sku);
+                    var skuId = saveSku(rec.id, sku);
+                    if (oldrec.getValue("custrecord_product_approval_status") != 6) {
+                        record.submitFields({
+                            type: 'customrecord_product_sku',
+                            id: rec.getSublistValue({
+                                sublistId: 'recmachcustrecord_sku_product_code',
+                                fieldId: 'id',
+                                line: index
+                            }),
+                            values: {
+                                custrecord_product_sku_approval_status: 6
+                            }
+                        });
+                    }
                 }
-
             }
         }
 
@@ -354,7 +341,7 @@ define(['N/search', 'N/record'],
             })
             inventoryitem.setValue({
                 fieldId: 'custitem_dps_hscode1',
-                value: body.custrecord_product_hacode_cn
+                value: body.custrecord_product_hscode_cn
             })
             inventoryitem.setValue({
                 fieldId: 'custitem_dps_hscode2',
@@ -398,7 +385,7 @@ define(['N/search', 'N/record'],
             search.create({
                 type: 'inventoryitem',
                 filters: [
-                    { name: 'itemid', operator: 'is', values: body.custrecord_product_sku }
+                    { name: 'itemid', operator: 'is', values: body.name }
                 ],
                 columns: [
                     { name: 'internalid' }
@@ -415,6 +402,10 @@ define(['N/search', 'N/record'],
                     fieldId: 'customform',
                     value: -200
                 })
+                inventoryitem.setValue({
+                    fieldId: 'includechildren',
+                    value: true
+                })
                 setProduct(inventoryitem, body);
                 inventoryitem.setValue({
                     fieldId: 'custitem_dps_spucoding',
@@ -426,7 +417,7 @@ define(['N/search', 'N/record'],
                 })
                 inventoryitem.setValue({
                     fieldId: 'itemid',
-                    value: body.custrecord_product_sku
+                    value: body.name
                 })
                 inventoryitem.setValue({
                     fieldId: 'taxschedule',
@@ -507,16 +498,38 @@ define(['N/search', 'N/record'],
                 })
                 inventoryitem.setValue({
                     fieldId: 'custitemf_product_grading',
-                    value: body.custrecordproduct_init_grading
+                    value: body.custrecord_product_init_grading
                 })
-                inventoryitem.save();
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_picture',
+                    value: body.custrecord_product_sku_image_url
+                })
+
+                if (body.custrecord_product_sku_default_vendor) {
+                    inventoryitem.setSublistValue({
+                        sublistId: 'itemvendor',
+                        fieldId: 'vendor',
+                        value: body.custrecord_product_sku_default_vendor,
+                        line: 0
+                    });
+                    inventoryitem.setSublistValue({
+                        sublistId: 'itemvendor',
+                        fieldId: 'preferredvendor',
+                        value: true,
+                        line: 0
+                    });
+                }
+
+                skuId = inventoryitem.save();
             } else {
+                log.audit("inventoryitem edit", skuId);
                 record.submitFields({
                     type: 'inventoryitem',
                     id: skuId,
                     ignoreMandatoryFields: true,
                     values: {
-                        customform:-200,
+                        customform: -200,
+                        includechildren: true,
                         custitem_dps_skuchiense: body.custrecord_product_sku_name,
                         custitem_dps_spuenglishnames: body.custrecord_product_sku_name_en,
                         custitem_dps_skureferred: body.custrecord_product_sku_abbr,
@@ -535,7 +548,8 @@ define(['N/search', 'N/record'],
                         custitem_dps_warehouse_check: body.custrecord_product_sku_warehouse_check,
                         custitem_dps_factory_inspe: body.custrecord_product_sku_factory_check,
                         custitem_product_grading: body.custrecord_product_sku_grading,
-                        custitemf_product_grading: body.custrecordproduct_init_grading,
+                        custitemf_product_grading: body.custrecord_product_init_grading,
+                        custitem_dps_picture: body.custrecord_product_sku_image_url,
                         //SPU
                         displayname: body.custrecord_product_name_cn,
                         custitem_dps_spuenglishnames: body.custrecord_product_name_en,
@@ -554,7 +568,7 @@ define(['N/search', 'N/record'],
                         custitem_dps_added_tax: body.custrecord_product_added_tax,
                         custitem_dps_taxrebates: body.custrecord_product_taxrebates,
                         custitem_dps_declare: body.custrecord_product_declare_memo,
-                        custitem_dps_hscode1: body.custrecord_product_hacode_cn,
+                        custitem_dps_hscode1: body.custrecord_product_hscode_cn,
                         custitem_dps_hscode2: body.custrecord_product_hscode_en,
                         custitem_dps_use: body.custrecord_product_use,
                         custitem_dps_quality: body.custrecord_product_expirydate,
@@ -562,8 +576,52 @@ define(['N/search', 'N/record'],
                         custitem_dps_nature: body.custrecord_product_nature
                     }
                 })
-            }
+                if (body.custrecord_product_sku_default_vendor) {
+                    var itemInfo = record.load({
+                        type: 'InventoryItem',
+                        id: skuId
+                    })
+                    var itemvendorCount = itemInfo.getLineCount({
+                        sublistId: 'itemvendor'
+                    })
 
+                    var vendorSet = false;
+                    for (var index = 0; index < itemvendorCount; index++) {
+                        var vendorId = itemInfo.getSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'vendor',
+                            line: index
+                        })
+                        if (vendorId == body.custrecord_product_sku_default_vendor) {
+                            itemInfo.setSublistValue({
+                                sublistId: 'itemvendor',
+                                fieldId: 'preferredvendor',
+                                line: index,
+                                value: true
+                            });
+                            vendorSet = true;
+                        }
+                    }
+                    if (!vendorSet) {
+                        itemInfo.setSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'vendor',
+                            value: body.custrecord_product_sku_default_vendor,
+                            line: itemvendorCount
+                        });
+                        itemInfo.setSublistValue({
+                            sublistId: 'itemvendor',
+                            fieldId: 'preferredvendor',
+                            value: true,
+                            line: itemvendorCount
+                        });
+                    }
+                    itemInfo.save({
+                        ignoreMandatoryFields: true
+                    });
+                }
+            }
+            return skuId;
         }
 
         return {

@@ -2,6 +2,8 @@ define(['N/runtime'], function(runtime) {
 
     // 获取当前账号 用于验证 dev/sandbox/prod 环境
     var accountId = runtime.accountId;
+    // 环境URL
+    var service_url;
 
     // 管理员角色
     var managerRoleId;
@@ -20,6 +22,10 @@ define(['N/runtime'], function(runtime) {
     var panying_transfer_type;
     // 库存调整订单类型---盘亏
     var deficit_transfer_type;
+    // 公账采购订单模板
+    var po_report_public_file_id;
+    // 私账采购订单模板
+    var po_report_private_file_id;
 
     // sandbox
     if (accountId == '6188472_SB1') {
@@ -31,6 +37,9 @@ define(['N/runtime'], function(runtime) {
         panying_transfer_type = 32;
         deficit_transfer_type = 33;
         invoice_record_id = 185;
+        po_report_public_file_id = 10980;
+        po_report_private_file_id = 11584;
+        service_url = 'https://6188472-sb1.app.netsuite.com';
     }
     // 正式环境
     if (accountId == 6188472) {
@@ -42,6 +51,9 @@ define(['N/runtime'], function(runtime) {
         panying_transfer_type = 32;
         deficit_transfer_type = 33;
         invoice_record_id = 185;
+        po_report_public_file_id = 10980;
+        po_report_private_file_id = 11584;
+        service_url = 'https://6188472.app.netsuite.com';
     }
 
     return {
@@ -52,6 +64,9 @@ define(['N/runtime'], function(runtime) {
         panying_transfer_type: panying_transfer_type,
         deficit_transfer_type: deficit_transfer_type,
         invoice_record_id: invoice_record_id,
-        order_GJ_URL: order_GJ_URL
+        order_GJ_URL: order_GJ_URL,
+        po_report_public_file_id: po_report_public_file_id,
+        po_report_private_file_id: po_report_private_file_id,
+        service_url: service_url
     }
 });

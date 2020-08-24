@@ -36,6 +36,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         if (group) {
           fils.push({ name: 'custrecord_aio_getorder_group',join: 'custrecord_aio_account_2', operator: 'anyof', values: group })
         }
+        fils.push({ name: 'custrecord_aio_account_region',join: 'custrecord_aio_account_2', operator: 'noneof', values: ['1'] })
         search.create({
           type: 'customrecord_aio_amazon_settlement',
           filters: fils,

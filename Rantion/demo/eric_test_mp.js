@@ -8,19 +8,20 @@ define(['N/search', 'N/log', 'N/record', '../../douples_amazon/Helper/core.min.j
 
     function getInputData() {
 
-        var skuId = [
+        var tidArr = [
+
         ];
 
-        for (var index = 0; index < skuId.length; index++) {
-            var id = skuId[index];
+        for (var index = 0; index < tidArr.length; index++) {
+            var id = tidArr[index];
             log.audit({
                 title: 'id1',
                 details: id
             })
-             record.delete({
-                 type: 'customrecord_product_sku',
-                 id: id
-             });
+            record.delete({
+                type: 'journalentry',
+                id: id
+            });
             log.audit({
                 title: 'id2',
                 details: id

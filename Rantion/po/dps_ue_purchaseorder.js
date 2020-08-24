@@ -47,14 +47,8 @@ define(['N/search', 'N/record'], function (search, record) {
             newRec.setValue({ fieldId: 'custbody_remaining_invoiced_amount', value: allInvoiceAmount })
 
 
-
-            try {
-                //保存PO单，开始查找可以占用的TO单
-                occPobyTo(context.newRecord)
-                
-            } catch (error) {
-                
-            }
+            //保存PO单，开始查找可以占用的TO单
+            occPobyTo(context.newRecord)
         }
     }
 

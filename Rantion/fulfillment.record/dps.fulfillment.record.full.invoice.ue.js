@@ -62,7 +62,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
             if (bf_cur.id) {
                 var label = bf_cur.getValue('custrecord_record_fulfill_xh_label_addr')
                 var channel = bf_cur.getValue("custrecord_dps_ship_small_channel_dealer")
-                if (!label && logistStatus == "成功" && (channel == "1" || channel == "2")) {
+                if (!label && logistStatus == "成功" && (channel == "1" || channel == "2" || channel == "5")) {
                     form.addButton({
                         id: 'custpage_dps_li_get_label',
                         label: '获取面单',

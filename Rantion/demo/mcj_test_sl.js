@@ -2,92 +2,101 @@
  *@NApiVersion 2.x
  *@NScriptType Suitelet
  */
-define(["N/search", "N/record", "N/http", 'N/url', 'N/https', '../Helper/logistics_cost_calculation.js', '../Helper/location_preferred.js', '../../douples_amazon/Helper/Moment.min.js', 'N/format', 'N/runtime'], 
-function (search, record, http, url, https, costCal, loactionPre, moment, format, runtime) {
+define(["N/search", "N/record", "N/http", 'N/url', 'N/https', '../Helper/logistics_cost_calculation.js', '../Helper/location_preferred.js', '../../douples_amazon/Helper/Moment.min.js', 'N/format', 'N/runtime', 'N/currency'], 
+function (search, record, http, url, https, costCal, loactionPre, moment, format, runtime, currency) {
 
     function onRequest(context) {
-        // var response = context.response;
+        var response = context.response;
         // var soid = '448138';
         // var idid = '3';
         // createLogisticsStrategy(soid, idid);
 
         // log.debug('runtime', JSON.stringify(runtime));
 
-        try {
-            var id;
-            search.create({
-                type: 'customrecord_dps_juge_po',
-                filters: [
-                    { name: 'custrecord_juge_sho', operator: 'is', values: false },
-                    { name: 'custrecord_juge_wrong', operator: 'is', values: false },
-                    { name: 'isinactive', operator: 'is', values: false }
-                ],
-                columns: [ 'custrecord_juge_po', 'custrecord_juge_time', { name: 'location', join: 'custrecord_juge_po' } ]
-            }).run().each(function (rec) {
-                id = rec.id;
-                // 生成货品履行
-                var itemFulfillment = record.transform({
-                    fromType: 'transferorder',
-                    toType: record.Type.ITEM_FULFILLMENT,
-                    fromId: Number(rec.getValue('custrecord_juge_po')),
-                });
-                itemFulfillment.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: rec.getValue('custrecord_juge_time') }) });
-                itemFulfillment.setValue({ fieldId: 'shipstatus', value: 'C' });
-                var location = rec.getValue({ name: 'location', join: 'custrecord_juge_po' });
-                var flad = true;
-                search.create({
-                    type: 'location',
-                    filters: [
-                        { name: 'internalid', operator: 'is', values: location }
-                    ],
-                    columns: [ 'custrecord_wms_location_type', 'custrecord_dps_financia_warehous' ]
-                }).run().each(function (rec) {
-                    var type = rec.getValue('custrecord_wms_location_type');
-                    var ware = rec.getValue('custrecord_dps_financia_warehous');
-                    if (type == 1 && ware == 3) {
-                        flad = false;
-                    }
-                    return false;
-                });
-                if (flad) {
-                    var lineIF = itemFulfillment.getLineCount({ sublistId: 'item' });
-                    for (var i = 0; i < lineIF; i++) {
-                        itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'custcol_location_bin', value: 1, line: i });
-                    }
-                }
-                var ifId = itemFulfillment.save();
-                log.debug('if生成成功', ifId);
+        // var exchangerate = currency.exchangeRate({ source: 'USD', target: 'CNY', date: new Date() });
+        // log.debug('exchangerate', exchangerate);
+
+        
+
+        // try {
+        //     var id;
+        //     search.create({
+        //         type: 'customrecord_dps_juge_po',
+        //         filters: [
+        //             { name: 'custrecord_juge_sho', operator: 'is', values: false },
+        //             { name: 'custrecord_juge_wrong', operator: 'is', values: false },
+        //             { name: 'isinactive', operator: 'is', values: false }
+        //         ],
+        //         columns: [ 'custrecord_juge_po', 'custrecord_juge_time', { name: 'location', join: 'custrecord_juge_po' } ]
+        //     }).run().each(function (rec) {
+        //         id = rec.id;
+        //         // 生成货品履行
+        //         var itemFulfillment = record.transform({
+        //             fromType: 'transferorder',
+        //             toType: record.Type.ITEM_FULFILLMENT,
+        //             fromId: Number(rec.getValue('custrecord_juge_po')),
+        //         });
+        //         itemFulfillment.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: rec.getValue('custrecord_juge_time') }) });
+        //         itemFulfillment.setValue({ fieldId: 'shipstatus', value: 'C' });
+        //         // var location = rec.getValue({ name: 'location', join: 'custrecord_juge_po' });
+        //         // var flad = true;
+        //         // search.create({
+        //         //     type: 'location',
+        //         //     filters: [
+        //         //         { name: 'internalid', operator: 'is', values: location }
+        //         //     ],
+        //         //     columns: [ 'custrecord_wms_location_type', 'custrecord_dps_financia_warehous' ]
+        //         // }).run().each(function (rec) {
+        //         //     var type = rec.getValue('custrecord_wms_location_type');
+        //         //     var ware = rec.getValue('custrecord_dps_financia_warehous');
+        //         //     if (type == 1 && ware == 3) {
+        //         //         flad = false;
+        //         //     }
+        //         //     return false;
+        //         // });
+        //         // if (flad) {
+        //         //     var lineIF = itemFulfillment.getLineCount({ sublistId: 'item' });
+        //         //     for (var i = 0; i < lineIF; i++) {
+        //         //         itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'custcol_location_bin', value: 1, line: i });
+        //         //     }
+        //         // }
+        //         var ifId = itemFulfillment.save();
+        //         log.debug('if生成成功', ifId);
     
-                // 生成货品收据
-                var itemReceipt = record.transform({
-                    fromType: 'transferorder',
-                    toType: record.Type.ITEM_RECEIPT,
-                    fromId: Number(rec.getValue('custrecord_juge_po')),
-                });
-                itemReceipt.setValue({ fieldId: 'shipstatus', value: 'C' });
-                itemReceipt.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: rec.getValue('custrecord_juge_time') }) });
-                var irId = itemReceipt.save();
-                log.debug('货品收据生成成功', irId);
+        //         // 生成货品收据
+        //         var itemReceipt = record.transform({
+        //             fromType: 'transferorder',
+        //             toType: record.Type.ITEM_RECEIPT,
+        //             fromId: Number(rec.getValue('custrecord_juge_po')),
+        //         });
+        //         itemReceipt.setValue({ fieldId: 'shipstatus', value: 'C' });
+        //         itemReceipt.setValue({ fieldId: 'trandate', value: format.parse({ type: format.Type.DATE, value: rec.getValue('custrecord_juge_time') }) });
+        //         // var lineIFe = itemReceipt.getLineCount({ sublistId: 'item' });
+        //         // for (var i = 0; i < lineIFe; i++) {
+        //         //     itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'custcol_location_bin', value: '', line: i });
+        //         // }
+        //         var irId = itemReceipt.save();
+        //         log.debug('货品收据生成成功', irId);
     
-                record.submitFields({
-                    type: 'customrecord_dps_juge_po',
-                    id: rec.id,
-                    values: {
-                        custrecord_juge_sho: 'T'
-                    }
-                });
-                return false;
-            });
-        } catch (error) {
-            record.submitFields({
-                type: 'customrecord_dps_juge_po',
-                id: id,
-                values: {
-                    custrecord_juge_wrong: 'T'
-                }
-            });
-            log.debug('error', JSON.stringify(error));
-        }
+        //         record.submitFields({
+        //             type: 'customrecord_dps_juge_po',
+        //             id: rec.id,
+        //             values: {
+        //                 custrecord_juge_sho: 'T'
+        //             }
+        //         });
+        //         return false;
+        //     });
+        // } catch (error) {
+        //     record.submitFields({
+        //         type: 'customrecord_dps_juge_po',
+        //         id: id,
+        //         values: {
+        //             custrecord_juge_wrong: 'T'
+        //         }
+        //     });
+        //     log.debug('error', JSON.stringify(error));
+        // }
 
 
         // var poRec = record.create({ type: 'purchaseorder', isDynamic: true });
@@ -309,6 +318,49 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         // } catch (error) {
         //     log.debug('error', JSON.stringify(error));
         // }
+        var ir_ids = ['2083155', '2083156'];
+        var poNeedCount = [];
+        var poRecInfo = {};
+        poRecInfo['2083155'] = {
+            'item': '12757',
+            'line': '0'
+        };
+        poRecInfo['2083156'] = {
+            'item': '12757',
+            'line': '0'
+        };
+        search.create({
+            type: 'purchaseorder',
+            filters: [
+                { name: 'mainline', operator: 'is', values: ['F'] },
+                { name: 'taxline', operator: 'is', values: ['F'] },
+                { name: 'internalid', operator: 'anyof', values: ['2083153', '2083149'] },
+                { name: 'item', operator: 'anyof', values: ['12757'] }
+            ],
+            columns: [
+                { name: 'line', label: '行Id', type: 'integer' }, // 0
+                { name: 'item', label: '货品名称', type: 'select' }, // 1
+                { name: 'custcoltransferable_quantity', label: '可调拨数量', type: 'float' }, // 2
+            ]
+        }).run().each(function (rec) {
+            for (var index = 0; index < ir_ids.length; index++) {
+                var ir_id = ir_ids[index];
+                var rr = poRecInfo[ir_id];
+                for (var i in rr) {
+                    var poData = poRecInfo[ir_id][i];
+                    if (poData.item == rec.getValue(rec.columns[1])) {
+                        poData.line = rec.getValue(rec.columns[0]);
+                    }
+                }
+            }
+            var poid = rec.id;
+            var item = rec.getValue(rec.columns[1]);
+            var key = poid + '-' + item;
+            poNeedCount[key] = rec.getValue(rec.columns[2]);
+            return true;
+        });
+        log.debug('poRecInfo', JSON.stringify(poRecInfo));
+        log.debug('poNeedCount', JSON.stringify(poNeedCount));
     }
 
     function internalcompany() {

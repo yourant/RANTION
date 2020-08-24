@@ -356,6 +356,9 @@ search.create({
                 if (SOFlag) {
                     message = sendRequest(token, [data]);
                 }
+            }else if(sourceType == 40){
+                // 发送请求
+                message = sendRequest(token, [data]);
             } else {
                 log.debug('属于不销售订单属于其他类型', sourceType);
                 // 发送请求

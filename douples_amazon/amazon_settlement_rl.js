@@ -58,9 +58,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
       case 'setsetllementAcc_Deal': // 处理店铺信息
         var acc = context.acc
         var group = context.acc_group
+        log.debug('group', group)
+        log.debug('acc', acc)
         //  core.amazon.getReportAccountList(group).map(function(account){
         //     log.audit(account.id)
-        var ff = DealSettlment(acc)
+        var ff = DealSettlment(group, acc)
         ff = ff + ',' + acc + ', 耗时：' + (new Date().getTime() - startT)
         log.debug('rs:', ff + ', 耗时：' + (new Date().getTime() - startT))
         //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
@@ -485,9 +487,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
       case 'setsetllementAcc_Deal': // 处理店铺信息
         var acc = context.acc
         var group = context.acc_group
+        log.debug('group', group)
+        log.debug('acc', acc)
         //  core.amazon.getReportAccountList(group).map(function(account){
         //     log.audit(account.id)
-        var ff = DealSettlment(acc)
+        var ff = DealSettlment(group, acc)
         ff = ff + ',' + acc + ', 耗时：' + (new Date().getTime() - startT)
         log.debug('rs:', ff + ', 耗时：' + (new Date().getTime() - startT))
         //    ss += ",success ，group：" +group+ " 耗时：" + (new Date().getTime() - startT)
@@ -864,20 +868,14 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
   function _delete (context) {
   }
 
-  function DealSettlment (group_req) {
-    var acc_arrys = [group_req],orders = []
-    // var acc_arrys = [],orders = []
-    // core.amazon.getReportAccountList(group_req).map(function (ds) {
-    //   acc_arrys.push(ds.id)
-    // })
+  function DealSettlment (group_req, acc) {
+    // var acc_arrys = [group_req],orders = []
+    var acc_arrys = [],orders = []
     var fils = [],limit = 20
-    log.debug('DealSettlment acc_arrys', acc_arrys)
     fils = [
       ['custrecord_settlement_enddate', 'onorafter', '2020-6-1'],
       'and',
       ['custrecord_settlement_acc', 'anyof', '@NONE@'],
-      'and',
-      ['custrecord_aio_account_2', 'anyof', acc_arrys],
       'and',
       [
         ['custrecord_settlement_acc', 'anyof', '@NONE@'],
@@ -885,6 +883,19 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         ['custrecord_is_manual', 'is', 'F']
       ]
     ]
+    if (group_req) {
+      core.amazon.getReportAccountList(group_req).map(function (ds) {
+        acc_arrys.push(ds.id)
+      })
+      fils.push('and')
+      fils.push(['custrecord_aio_account_2', 'anyof', acc_arrys])
+      log.debug('DealSettlment group_req ' + group_req, acc_arrys)
+    }
+    if (acc) {
+      fils.push('and')
+      fils.push(['custrecord_aio_account_2', 'anyof', acc])
+    }
+    log.debug('DealSettlment fils', fils)
     search.create({
       type: 'customrecord_aio_amazon_settlement',
       filters: fils

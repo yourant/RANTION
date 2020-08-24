@@ -357,14 +357,14 @@
     <Cell><Data ss:Type="String">加权采购成本</Data></Cell>
     <Cell><Data ss:Type="String">Asin</Data></Cell>
    </Row>
-   {{#each sea}}
+   {{#each itemArr}}
    <Row ss:AutoFitHeight="0" ss:Height="14.25">
     <Cell ss:StyleID="s102"><Data ss:Type="String">{{boxNo}}</Data></Cell>
     <Cell><Data ss:Type="String">{{sku}}</Data></Cell>
     <Cell><Data ss:Type="String">{{productTitle}}</Data></Cell>
     <Cell><Data ss:Type="String">{{qty}}</Data></Cell>
     <Cell><Data ss:Type="String">{{boxNum}}</Data></Cell>
-    <Cell><Data ss:Type="String">{{weight}}</Data></Cell>
+    <Cell><Data ss:Type="String">{{packing_weight}}</Data></Cell>
     <Cell><Data ss:Type="String">{{length}}</Data></Cell>
     <Cell><Data ss:Type="String">{{width}}</Data></Cell>
     <Cell><Data ss:Type="String">{{height}}</Data></Cell>
@@ -895,7 +895,7 @@
     <Cell><Data ss:Type="String">PO单号</Data></Cell>
     <Cell><Data ss:Type="String">Asin</Data></Cell>
    </Row>
-   {{#each air}}
+   {{#each itemArr}}
    <Row ss:AutoFitHeight="0" ss:Height="14.25">
     <Cell ss:StyleID="s102"><Data ss:Type="String">{{boxNo}}</Data></Cell>
     <Cell><Data ss:Type="String">{{isSpellBox}}</Data></Cell>

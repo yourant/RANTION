@@ -19,13 +19,13 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                 //'processCodeList=PROC-7EB449A0-A953-4DF1-9203-D5429FEE2AFF,PROC-1092FF21-2C38-4CC3-97F4-3A5F91D0DE8E,PROC-ACB6A139-97C2-4A85-ACDB-14DF102BBED8' +//测试用
                 '&status=COMPLETED&result=agree&eventType=bpms_instance_change' +
                 '&beginCreateTime='
-                //+ beginDate.format("yyyy-MM-dd 00:00:00")
-                + beginDate.format("2020-07-09 00:00:00")
+                + beginDate.format("yyyy-MM-dd 00:00:00")
+                //+ beginDate.format("2020-07-30 00:00:00")
                 + '&endCreateTime='
-                //+ endDate.format("yyyy-MM-dd 23:59:59")
-                + endDate.format("2020-07-13 23:59:59")
+                + endDate.format("yyyy-MM-dd 23:59:59")
+                //+ endDate.format("2020-08-30 23:59:59")
 				     //+ '&processInstanceId='
-                //+ 'baae7d21-e921-4515-8700-4260a226cea8'
+                //+ 'ac7ea6f9-19bd-4f96-ade6-baf915b5742c'
           			;
             message = sendRequest(url, token);
             message = JSON.parse(JSON.parse(message.data))
@@ -100,7 +100,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                 values: business_id
             }],
         }).run().each(function (res) {
-            go = true;
+            go = false;
         });
 
         if (!go) {
@@ -280,6 +280,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                             switch (_e.label.replace(/\d/g, '')) {
                                 case "受益/管控部门":
                                     custrecord_dps_rbsm_department_name = _e.value;
+                                    try {
+                                    custrecord_dps_rbsm_department_name = JSON.parse(custrecord_dps_rbsm_department_name);
+                                } catch (error) {
+                                    custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name;
+                                }
+                                    log.debug('type of', typeof custrecord_dps_rbsm_department_name);
                                     if (Array.isArray(custrecord_dps_rbsm_department_name) && custrecord_dps_rbsm_department_name.length > 0) {
                                         custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name[0];
                                         search.create({
@@ -292,7 +298,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                         }).run().each(function (res) {
                                             custrecord_dps_rbsm_department = res.id;
                                         });
-                                        //log.debug('custrecord_dps_rbsm_department_name arr', custrecord_dps_rbsm_department_name);
+                                        //log.debug('custrecord_dps_rbsm_department_name0', custrecord_dps_rbsm_department_name);
                                     } else {
                                         search.create({
                                             type: 'department',
@@ -304,7 +310,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                         }).run().each(function (res) {
                                             custrecord_dps_rbsm_department = res.id;
                                         });
-                                        log.debug('custrecord_dps_rbsm_department_name', custrecord_dps_rbsm_department_name);
+                                        //log.debug('custrecord_dps_rbsm_department_name1', custrecord_dps_rbsm_department_name);
                                     }
                                     if (custrecord_dps_rbsm_department_name == '' || !custrecord_dps_rbsm_department_name) {
                                         go = false;
@@ -531,6 +537,12 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                         switch (name) {
                             case "受益/管控部门":
                                 custrecord_dps_rbsm_department_name = e.value;
+                                try {
+                                    custrecord_dps_rbsm_department_name = JSON.parse(custrecord_dps_rbsm_department_name);
+                                } catch (error) {
+                                    custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name;
+                                }
+                                log.debug('type of', typeof custrecord_dps_rbsm_department_name);
                                 if (Array.isArray(custrecord_dps_rbsm_department_name)) {
                                     custrecord_dps_rbsm_department_name = custrecord_dps_rbsm_department_name[0];
                                     search.create({
@@ -543,7 +555,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                     }).run().each(function (res) {
                                         custrecord_dps_rbsm_department = res.id;
                                     });
-                                    log.debug('custrecord_dps_rbsm_department_name arr', custrecord_dps_rbsm_department_name);
+                                    //log.debug('custrecord_dps_rbsm_department_name2', custrecord_dps_rbsm_department_name);
                                 } else {
                                     search.create({
                                         type: 'department',
@@ -555,6 +567,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
                                     }).run().each(function (res) {
                                         custrecord_dps_rbsm_department = res.id;
                                     });
+                                  //log.debug('custrecord_dps_rbsm_department_name3', custrecord_dps_rbsm_department_name);
                                 }
                                 if (custrecord_dps_rbsm_department_name == '' || !custrecord_dps_rbsm_department_name) {
                                     go = false;

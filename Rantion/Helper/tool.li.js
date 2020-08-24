@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-08-20 21:08:32
+ * @LastEditTime   : 2020-08-20 17:55:19
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -2574,7 +2574,32 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
     }
 
 
-
+    /**
+     * 格式化时间函数
+     *    format = ["yyyy", "MM", "dd", "yyyy-MM-dd", "yyyy/MM/dd", "yyyyMMdd", "yyyy-MM-dd hh:mm:ss",
+        "yyyy年MM月dd日 hh时mm分ss秒", "yyyy-MM-dd hh:mm:ss.S", "yyyy-M-d h:m:s.S"]
+     * @param {format} 时间显示格式
+     */
+    Date.prototype.Format = function (format) {
+        var date = {
+            "M+": this.getMonth() + 1,                 //月份
+            "d+": this.getDate(),                    //日
+            "h+": this.getHours(),                   //小时
+            "m+": this.getMinutes(),                 //分
+            "s+": this.getSeconds(),                 //秒
+            "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+            "S": this.getMilliseconds()             //毫秒
+        };
+        if (/(y+)/i.test(format)) {
+            format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+        }
+        for (var k in date) {
+            if (new RegExp("(" + k + ")").test(format)) {
+                format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
+            }
+        }
+        return format;
+    };
 
     /**
      * 通过周取日期范围   year 年   weeks 周
@@ -2630,9 +2655,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 lastcnt = 5;
             }
             if (weeks == 1) {//第1周特殊处理    // 为日期对象 date 重新设置成时间 time
-                var start = dateFormat(date, fmt);
+                var start = date.Format(fmt);
                 date.setTime(time - 24 * 3600000);
-                var end = dateFormat(date, fmt);
+                var end = date.Format(fmt);
                 return start + "-----" + end;
             } else if (weeks == 53) {//第53周特殊处理
                 //第53周开始时间
@@ -2640,17 +2665,17 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 //第53周结束时间
                 var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             } else {
                 var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
                 var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             }
         } else {//一年54周情况
@@ -2694,9 +2719,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 lastcnt = 5;
             }
             if (weeks == 1) {//第1周特殊处理
-                var start = dateFormat(date, fmt);
+                var start = date.Format(fmt);
                 date.setTime(time - 24 * 3600000);
-                var end = dateFormat(date, fmt);
+                var end = date.Format(fmt);
                 return _start + "-----" + end;
             } else if (weeks == 54) {//第54周特殊处理
                 //第54周开始时间
@@ -2704,20 +2729,32 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 //第53周结束时间
                 var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             } else {
                 var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
                 var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
                 date.setTime(start);
-                var _start = dateFormat(date, fmt);
+                var _start = date.Format(fmt);
                 date.setTime(end);
-                var _end = dateFormat(date, fmt);
+                var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             }
         }
+    }
+
+
+
+    /**
+     *格式时间, 返回当前时区的时间格式
+     * @param {*} date 日期
+     * @param {String} format 需要格式样例
+     */
+    function dateFormat(date, format) {
+        var _date = date.Format(format);
+        return _date;
     }
 
 
@@ -2939,54 +2976,6 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
         return form;
 
-    }
-
-
-    /**
-     * 显示一个弹窗,用于输入字段的值
-     */
-    function showWindownInput() {
-
-        var name = prompt("请输入你的名字:", "");
-
-        console.log(name);
-
-        console.log(typeof (name));
-
-        if ("php中文网" === name) {
-            alert("欢迎您:" + name);
-        } else {
-            alert("输入有误!");
-        }
-    }
-
-
-    /**
-     *格式时间, 返回当前时区的时间格式
-     * format = ["yyyy", "MM", "dd", "yyyy-MM-dd", "yyyy/MM/dd", "yyyyMMdd", "yyyy-MM-dd hh:mm:ss",
-       "yyyy年MM月dd日 hh时mm分ss秒", "yyyy-MM-dd hh:mm:ss.S", "yyyy-M-d h:m:s.S"]
-      * @param {Object} date 日期
-     * @param {String} fmt 需要格式样例
-     */
-    function dateFormat(date, fmt) {
-        var o = {
-            "M+": date.getMonth() + 1,
-            "d+": date.getDate(),
-            "h+": date.getHours(),
-            "m+": date.getMinutes(),
-            "s+": date.getSeconds(),
-            "q+": Math.floor((date.getMonth() + 3) / 3),
-            "S": date.getMilliseconds()
-        }
-        if (/(y+)/.test(fmt)) {
-            fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
-        }
-        for (var k in o) {
-            if (new RegExp('(' + k + ')').test(fmt)) {
-                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)))
-            }
-        }
-        return fmt
     }
 
     return {

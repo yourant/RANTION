@@ -1,13 +1,3 @@
-/*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-20 17:20:35
- * @LastEditors    : Li
- * @Description    :
- * @FilePath       : \Rantion\cux\Requirements_Planning\modified_quantity_rl.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
@@ -15,7 +5,7 @@
 define(['N/log', 'N/search', 'N/record', '../../Helper/Moment.min', 'N/runtime'], function(log, search, record, moment, runtime) {
 
     function _get(context) {
-
+        
     }
 
     function _post(context) {
@@ -36,7 +26,7 @@ define(['N/log', 'N/search', 'N/record', '../../Helper/Moment.min', 'N/runtime']
                         data_type = 3;
                         //店铺净需求量
                     }else if(line.item_type == 8){
-                        data_type = 16;
+                        data_type = 16;  
                         //确认交货数量
                     }else{
                         data_type = line.item_type;
@@ -52,7 +42,7 @@ define(['N/log', 'N/search', 'N/record', '../../Helper/Moment.min', 'N/runtime']
                     }).run().each(function (rec) {
                         bill_id = rec.id;
                     });
-
+                    
                     var r = record.load({ type: 'customrecord_demand_forecast_child',id: bill_id});
                     r.setValue({fieldId: line.item_week, value: line.item_quantity});
                     r.save();
@@ -60,19 +50,19 @@ define(['N/log', 'N/search', 'N/record', '../../Helper/Moment.min', 'N/runtime']
             }catch(e){
                 log.debug('e',e);
             }
-
+            
         }
     }
 
     function _put(context) {
-
+        
     }
 
     function _delete(context) {
-
+        
     }
-
-    /**
+     
+    /** 
      * 需求计划的修改静需求量数据更新
      */
     function StoreDemand(item_objs6,today){

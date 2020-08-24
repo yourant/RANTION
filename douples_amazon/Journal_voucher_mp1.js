@@ -583,7 +583,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             rs = GetInfo_JO1(orderid, search_acc, item_codes, order_id)
             if (!rs) {
 
-              // 如果再找不到预估凭证的情况下，再找找有没有发货报告,有没有财务报告，有没有
+              // 如果再找不到预估凭证的情况下，再找找有没有发货报告,有没有财务报告
               var shipId
               search.create({
                 type: 'customrecord_amazon_sales_report',
@@ -811,11 +811,11 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
       ]
       var fin_fils = [
         ['custrecord_fin_to_amazon_account', 'anyof', search_acc], 'and',
-        ['custrecord_l_amazon_order_id', 'is', order_id]
+        ['custrecord_l_amazon_order_id', 'is', order_id], 'and',
+        ['custrecord_financetype', 'is', 'orders']
       ]
       var fil = [],fil2 = [],fin_ids = []
       var len = item_codes.length, l = 0
-      log.debug('000000000000postdate_arry', item_codes)
       item_codes.map(function (item_code) {
         if (item_code) {
           fil.push(['custbody_relative_finanace_report.custrecord_orderitemid', 'is', item_code])
@@ -837,6 +837,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         fin_fils.push('and')
         fin_fils.push(fil2)
       }
+
+      log.audit('000000item code fin_fils', fin_fils)
       search.create({
         type: 'journalentry',
         filters: fils_fee,

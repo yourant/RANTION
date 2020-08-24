@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-20 19:41:19
+ * @LastEditTime   : 2020-08-20 11:33:34
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -196,14 +196,6 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                         id: 'custpage_dps_li_delete_box_info',
                         label: '删除装箱信息',
                         functionName: "deleteBoxInfo(" + context.newRecord.id + ")"
-                    });
-                    context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
-                }
-                if (userObj.id == 911 || userObj.role == 3) {
-                    context.form.addButton({
-                        id: 'custpage_dps_li_delete_box_info',
-                        label: '展示弹窗输入',
-                        functionName: "showWindownInput(" + context.newRecord.id + ")"
                     });
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }

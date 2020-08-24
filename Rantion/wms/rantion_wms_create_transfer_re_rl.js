@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-17 11:59:07
+ * @LastEditTime   : 2020-08-21 14:11:51
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\wms\rantion_wms_create_transfer_re_rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -298,9 +298,42 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
     }
 
 
+
+    /**
+     * 搜索调拨单的状态
+     * @param {Number} toId
+     */
+    function searchToStatus(toId) {
+        var statusref;
+        search.create({
+            type: 'transferorder',
+            filters: [
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: toId
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                }
+            ],
+            columns: [
+                "statusref"
+            ]
+        }).run().each(function (rec) {
+            statusref = rec.getValue('statusref');
+        });
+
+
+        return statusref || false;
+
+    }
+
     /**
      * 履行库存转移单
-     * @param {*} rec 
+     * @param {*} rec
      */
     function itemFulfillment(rec, link, itemList) {
 
@@ -308,30 +341,33 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
             limit2 = 3999;
 
         var toItemArr = [],
-            toItemObj = {}
+            toItemObj = {},
+            statusref;
 
         search.create({
             type: 'transferorder',
             filters: [{
-                    name: "internalid",
-                    operator: 'anyof',
-                    values: link
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: ["F"]
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: ["F"]
-                }
+                name: "internalid",
+                operator: 'anyof',
+                values: link
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: ["F"]
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: ["F"]
+            }
             ],
             columns: [
-                "item", "quantity"
+                "item", "quantity", "statusref"
             ]
         }).run().each(function (rec) {
+
+            statusref = rec.getValue('statusref');
             var qty = rec.getValue('quantity');
             if (qty > 0) {
                 toItemObj[rec.getText('item')] = rec.getValue('item');
@@ -344,6 +380,8 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
             }
             return --limit1 > 0;
         });
+
+        log.audit('调拨单状态', statusref);
 
 
         var itemObj = SummaryBinBox(itemList);
@@ -358,90 +396,99 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
 
         var itemreceipt_id;
 
+
+
         if (BoxObjKey && BoxObjKey.length > 0) {
             for (var i = 0, iLen = BoxObjKey.length; i < iLen; i++) {
                 var boxId = BoxObjKey[i];
                 var boxList = boxObj[boxId];
-                // 转换单据为 货品履行
-                var objRecord = record.transform({
-                    fromType: 'transferorder',
-                    fromId: link,
-                    toType: 'itemfulfillment',
-                });
 
-                objRecord.setValue({
-                    fieldId: 'shipstatus',
-                    value: 'C'
-                });
+                if (statusref == "pendingFulfillment" || statusref == "等待发货") {
 
-                var numLines = objRecord.getLineCount({
-                    sublistId: 'item'
-                });
-
-                for (var nu = 0; nu < numLines; nu++) { // 避免多收其他货品, 先直接全部不收货
-                    objRecord.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'itemreceive',
-                        value: false,
-                        line: nu
+                    // 转换单据为 货品履行
+                    var objRecord = record.transform({
+                        fromType: 'transferorder',
+                        fromId: link,
+                        toType: 'itemfulfillment',
                     });
-                }
 
-                for (var j = 0, jLen = boxList.length; j < jLen; j++) {
-                    var a_box_sku = boxList[j].sku,
-                        a_box_pocode = boxList[j].positionCode,
-                        a_box_qty = boxList[j].qty;
-                    for (var z = 0, zLen = toItemArr.length; z < zLen; z++) {
-                        var z_temp_name = toItemArr[z].itemName,
-                            z_temp_itemId = toItemArr[z].itemId;
+                    objRecord.setValue({
+                        fieldId: 'shipstatus',
+                        value: 'C'
+                    });
+
+                    var numLines = objRecord.getLineCount({
+                        sublistId: 'item'
+                    });
+
+                    for (var nu = 0; nu < numLines; nu++) { // 避免多收其他货品, 先直接全部不收货
+                        objRecord.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'itemreceive',
+                            value: false,
+                            line: nu
+                        });
+                    }
+
+                    for (var j = 0, jLen = boxList.length; j < jLen; j++) {
+                        var a_box_sku = boxList[j].sku,
+                            a_box_pocode = boxList[j].positionCode,
+                            a_box_qty = boxList[j].qty;
+                        for (var z = 0, zLen = toItemArr.length; z < zLen; z++) {
+                            var z_temp_name = toItemArr[z].itemName,
+                                z_temp_itemId = toItemArr[z].itemId;
 
 
-                        log.debug('z_temp_name', z_temp_name)
-                        log.debug('a_box_sku', a_box_sku)
-                        if (z_temp_name == a_box_sku) {
+                            // log.debug('z_temp_name', z_temp_name)
+                            // log.debug('a_box_sku', a_box_sku)
+                            if (z_temp_name == a_box_sku) {
 
-                            var lineNumber = objRecord.findSublistLineWithValue({
-                                sublistId: 'item',
-                                fieldId: 'item',
-                                value: z_temp_itemId
-                            });
-
-                            if (lineNumber > -1) {
-                                objRecord.setSublistValue({
+                                var lineNumber = objRecord.findSublistLineWithValue({
                                     sublistId: 'item',
-                                    fieldId: 'quantity',
-                                    value: a_box_qty,
-                                    line: lineNumber
-                                }); // 收货数量
-
-                                objRecord.setSublistText({
-                                    sublistId: 'item',
-                                    fieldId: 'custcol_location_bin',
-                                    text: a_box_pocode,
-                                    line: lineNumber
-                                }); // 仓库编号
-
-                                objRecord.setSublistText({
-                                    sublistId: 'item',
-                                    fieldId: 'custcol_case_number',
-                                    text: boxId,
-                                    line: lineNumber
-                                }); // 箱号
-
-                                objRecord.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'itemreceive',
-                                    value: true,
-                                    line: lineNumber
+                                    fieldId: 'item',
+                                    value: z_temp_itemId
                                 });
-                            }
 
+                                if (lineNumber > -1) {
+                                    objRecord.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'quantity',
+                                        value: a_box_qty,
+                                        line: lineNumber
+                                    }); // 收货数量
+
+                                    objRecord.setSublistText({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_location_bin',
+                                        text: a_box_pocode,
+                                        line: lineNumber
+                                    }); // 仓库编号
+
+                                    objRecord.setSublistText({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_case_number',
+                                        text: boxId,
+                                        line: lineNumber
+                                    }); // 箱号
+
+                                    objRecord.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: true,
+                                        line: lineNumber
+                                    });
+                                }
+
+                            }
                         }
                     }
-                }
 
-                var objRecord_id = objRecord.save();
-                if (objRecord_id) {
+                    var objRecord_id = objRecord.save();
+                    if (objRecord_id) {
+                        itemreceipt_id = itemreceipt(link);
+                    }
+                }
+                else if (statusref == "pendingReceipt" || statusref == "等待收货") {
                     itemreceipt_id = itemreceipt(link);
                 }
             }
@@ -455,105 +502,113 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
                 log.debug("库位对应的货品: " + BinObjKey[bin], binObj[binId])
 
                 log.debug('库位列表 binList', binList);
-                // 转换单据为 货品履行
-                var objRecord = record.transform({
-                    fromType: 'transferorder',
-                    fromId: link,
-                    toType: 'itemfulfillment',
-                });
 
-                objRecord.setValue({
-                    fieldId: 'shipstatus',
-                    value: 'C'
-                });
+                if (statusref == "pendingFulfillment" || statusref == "等待发货") {
 
-                var numLines = objRecord.getLineCount({
-                    sublistId: 'item'
-                });
-
-                for (var nu = 0; nu < numLines; nu++) { // 避免多收其他货品, 先直接设置不收货
-                    objRecord.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'itemreceive',
-                        value: false,
-                        line: nu
+                    // 转换单据为 货品履行
+                    var objRecord = record.transform({
+                        fromType: 'transferorder',
+                        fromId: link,
+                        toType: 'itemfulfillment',
                     });
-                }
 
-                var saveFlag = false;
+                    objRecord.setValue({
+                        fieldId: 'shipstatus',
+                        value: 'C'
+                    });
 
-                for (var j = 0, jLen = binList.length; j < jLen; j++) {
-                    var a_bin_sku = binList[j].sku,
-                        a_bin_qty = binList[j].qty,
-                        a_bin_pos = binList[j].positionCode;
+                    var numLines = objRecord.getLineCount({
+                        sublistId: 'item'
+                    });
 
-                    for (var z = 0, zLen = toItemArr.length; z < zLen; z++) {
-                        var z_temp_name = toItemArr[z].itemName,
-                            z_temp_itemId = toItemArr[z].itemId;
+                    for (var nu = 0; nu < numLines; nu++) { // 避免多收其他货品, 先直接设置不收货
+                        objRecord.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'itemreceive',
+                            value: false,
+                            line: nu
+                        });
+                    }
 
-                        log.debug('z_temp_name', z_temp_name)
-                        log.debug('a_bin_sku', a_bin_sku)
-                        if (z_temp_name == a_bin_sku) {
-                            var lineNumber = objRecord.findSublistLineWithValue({
-                                sublistId: 'item',
-                                fieldId: 'item',
-                                value: z_temp_itemId
-                            });
+                    var saveFlag = false;
 
-                            log.debug('lineNumber: z_temp_itemId', lineNumber + "  " + z_temp_itemId)
+                    for (var j = 0, jLen = binList.length; j < jLen; j++) {
+                        var a_bin_sku = binList[j].sku,
+                            a_bin_qty = binList[j].qty,
+                            a_bin_pos = binList[j].positionCode;
 
-                            if (lineNumber > -1) {
-                                objRecord.setSublistValue({
+                        for (var z = 0, zLen = toItemArr.length; z < zLen; z++) {
+                            var z_temp_name = toItemArr[z].itemName,
+                                z_temp_itemId = toItemArr[z].itemId;
+
+                            // log.debug('z_temp_name', z_temp_name)
+                            // log.debug('a_bin_sku', a_bin_sku)
+                            if (z_temp_name == a_bin_sku) {
+                                var lineNumber = objRecord.findSublistLineWithValue({
                                     sublistId: 'item',
-                                    fieldId: 'quantity',
-                                    value: a_bin_qty,
-                                    line: lineNumber
-                                }); // 收货数量
-
-                                objRecord.setSublistText({
-                                    sublistId: 'item',
-                                    fieldId: 'custcol_location_bin',
-                                    text: binId,
-                                    line: lineNumber
-                                }); // 仓库编号
-
-                                objRecord.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'itemreceive',
-                                    value: true,
-                                    line: lineNumber
+                                    fieldId: 'item',
+                                    value: z_temp_itemId
                                 });
 
-                                saveFlag = true;
+                                log.debug('lineNumber: z_temp_itemId', lineNumber + "  " + z_temp_itemId)
 
-                                objRecord.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'itemreceive',
-                                    value: true,
-                                    line: lineNumber
-                                });
+                                if (lineNumber > -1) {
+                                    objRecord.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'quantity',
+                                        value: a_bin_qty,
+                                        line: lineNumber
+                                    }); // 收货数量
+
+                                    objRecord.setSublistText({
+                                        sublistId: 'item',
+                                        fieldId: 'custcol_location_bin',
+                                        text: binId,
+                                        line: lineNumber
+                                    }); // 仓库编号
+
+                                    objRecord.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: true,
+                                        line: lineNumber
+                                    });
+
+                                    saveFlag = true;
+
+                                    objRecord.setSublistValue({
+                                        sublistId: 'item',
+                                        fieldId: 'itemreceive',
+                                        value: true,
+                                        line: lineNumber
+                                    });
+                                }
                             }
                         }
                     }
+
+                    log.debug('报错标记 saveFlag', saveFlag);
+                    var objRecord_id;
+                    objRecord_id = objRecord.save();
+
+                    log.debug('objRecord_id', objRecord_id);
+                    if (objRecord_id) {
+                        itemreceipt_id = itemreceipt(link);
+                    }
                 }
-
-                log.debug('报错标记 saveFlag', saveFlag);
-                var objRecord_id;
-                objRecord_id = objRecord.save();
-
-                log.debug('objRecord_id', objRecord_id);
-                if (objRecord_id) {
+                else if (statusref == "pendingReceipt" || statusref == "等待收货") {
                     itemreceipt_id = itemreceipt(link);
                 }
             }
         }
         return itemreceipt_id || false;
+
     }
 
 
     /**
      * 处理出库货品数组, 根据 库位 和 箱号 进行分组
-     * @param {Array} itemList 
+     * @param {Array} itemList
      * @returns {Object} itemObj{BoxObj(箱号对象), BinObj(库位对象)}  || false
      */
     function SummaryBinBox(itemList) {
@@ -617,7 +672,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
 
     /**
      * 接受库存转移单的货品
-     * @param {*} rec 
+     * @param {*} rec
      */
     function itemreceipt(link) {
         var objRecord = record.transform({
@@ -633,7 +688,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
 
     /**
      * 根据柜号搜索对应的装柜记录
-     * @param {Number} containerNo 
+     * @param {Number} containerNo
      * @returns {Number || Boolean} con_no (装柜记录ID) || false
      */
     function searchLoadingInformation(containerNo) {
@@ -653,7 +708,7 @@ define(['N/search', 'N/record', 'N/log', '../common/request_record',
 
     /**
      * 根据调拨单号, 获取对应的调拨单
-     * @param {String} aono 
+     * @param {String} aono
      */
     function searchFulRec(aono) {
         var ful_id;

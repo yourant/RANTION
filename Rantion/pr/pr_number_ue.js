@@ -40,7 +40,6 @@ define(['N/record'], function(record) {
     }
 
     function afterSubmit(context) {
-        
         if (context.type == 'create') {
             var newRecord = context.newRecord;
             var numberRecord = record.load({ type: 'customrecord_dps_po_number', id: 1, isDynamic: true });

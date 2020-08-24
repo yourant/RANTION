@@ -1,13 +1,13 @@
 //测试环境账号
-var username = "2553512"
-var password = "TheSkyeIsGreene11"
-var requesterID = "lxxx"
+//var username = "2553512"
+//var password = "TheSkyeIsGreene11"
+//var requesterID = "lxxx"
 //正式环境账号
-// var username = 1181310
-// var password = jetstar is express
-// var requesterID = LJSE
+var username = "1181310"
+var password = "jetstar is express"
+var requesterID = "LJSE"
 
-var endiciaDomain = "http://elstestserver2.endicia.com"
+var endiciaDomain = "http://labelserver.endicia.com"
 var endiciaApi = {
     http: undefined,
     xml: undefined,

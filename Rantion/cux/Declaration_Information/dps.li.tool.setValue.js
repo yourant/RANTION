@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-26 10:25:55
- * @LastEditTime   : 2020-08-17 19:52:18
+ * @LastEditTime   : 2020-08-21 16:25:09
  * @LastEditors    : Li
  * @Description    :  用于渲染表格
  * @FilePath       : \Rantion\cux\Declaration_Information\dps.li.tool.setValue.js
@@ -13,7 +13,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 ], function (file, search, record, log, Handlebars, render, format, xml, encode) {
 
 
-    function setModuleXMLValue(INV, xmlID) {
+    function setModuleXMLValue(INV, xmlID, toNO, userId) {
 
         log.debug('setModuleXMLValue INV: ' + INV, xmlID);
         var seaT1 = new Date().getTime()
@@ -42,7 +42,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         var seaT3 = new Date().getTime();
         var nowDate = new Date().toISOString();
         var fileObj = file.create({
-            name: "报关资料-" + INV + '-' + nowDate + ".xls",
+            name: "报关资料-" + toNO + ".xls",
             fileType: file.Type.EXCEL,
             contents: encode.convert({
                 string: xml_1,
@@ -114,7 +114,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
             destination = rec.getValue('custrecord_dps_cus_inv_destination');
 
             var it = {
-                name: rec.getValue({
+                itemName: rec.getValue({
                     name: 'custrecord_dps_customs_invoice_item_name',
                     join: 'custrecord_dps_c_i_item_link' // 品名
                 }),
@@ -126,14 +126,22 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
                     name: 'custrecord_dps_c_i_until',
                     join: 'custrecord_dps_c_i_item_link' // 单位
                 }),
-                price: rec.getValue({
+                price: Number(rec.getValue({
                     name: 'custrecord_dps_customs_invoice_item_pric',
                     join: 'custrecord_dps_c_i_item_link' // 单价
-                }),
+                })),
+                totalAmount: Number(rec.getValue({
+                    name: 'custrecord_dps_customs_invoice_item_pric',
+                    join: 'custrecord_dps_c_i_item_link' // 单价
+                })) * Number(rec.getValue({
+                    name: 'custrecord_dps_customs_invoice_item_qty',
+                    join: 'custrecord_dps_c_i_item_link' // 数量
+                })),
                 amount: rec.getValue({
                     name: 'custrecord_dps_customs_inv_item_amount',
                     join: 'custrecord_dps_c_i_item_link' // 金额
                 })
+                // custrecord_dps_cus_inv_total_amount
             }
             itemInfo.push(it);
 
@@ -149,6 +157,8 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
         printData["date"] = date;
         printData['port'] = shipping_port;
         printData['decstion'] = destination;
+
+        printData['invItem'] = itemInfo;
 
         for (var i = 0, len = itemInfo.length; i < len; i++) {
             var temp = itemInfo[i];
@@ -175,12 +185,13 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
     /**
      * 设置装箱单的相关值
-     * @param {*} BOX 
-     * @param {*} xmlID 
+     * @param {*} BOX
+     * @param {*} xmlID
      */
     function setBoxValue(BOX, xmlID, printData) {
 
         var itemInfo = [],
+            boxItem = [],
             limit = 3999,
             add = 1;
 
@@ -221,6 +232,29 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
             printData["InvNO"] = rec.getValue('custrecord_dps_pack_docu_inv_no');
             printData["conNO"] = rec.getValue('custrecord_dps_pack_docu_contract_number');
             printData["Date"] = rec.getValue('custrecord_dps_pack_docu_date');
+
+
+            var it = {
+                itemName1: rec.getValue({
+                    name: 'custrecord_dps_pack_docu_item_name',
+                    join: 'custrecord_dps_z_b_l_links'
+                }),
+                qty1: rec.getValue({
+                    name: 'custrecord_dps_pack_docum_item_qty',
+                    join: 'custrecord_dps_z_b_l_links'
+                }),
+                boxQty1: rec.getValue({
+                    name: 'custrecord_dps_pack_docu_item_box_qty',
+                    join: 'custrecord_dps_z_b_l_links'
+                }),
+                box1: '',
+                GW1: rec.getValue({
+                    name: 'custrecord_dps_pack_docu_item_gross_eig',
+                    join: 'custrecord_dps_z_b_l_links'
+                })
+            }
+
+            boxItem.push(it);
 
             var itemName = 'itemName' + Number(add),
                 Qty = 'Qty' + Number(add),
@@ -266,6 +300,8 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
         }
 
+        printData["boxItem"] = boxItem;
+
         return printData || false;
 
     }
@@ -273,13 +309,14 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
     /**
      * 设置报关单的值
-     * @param {*} BOX 
-     * @param {*} xmlID 
+     * @param {*} BOX
+     * @param {*} xmlID
      * TODO
      */
     function setDeclarationValue(inv, xmlID, printData) {
 
         var itemInfo = [],
+            cusItem = [],
             limit = 3999;
 
         var inv_no, contract_number, docu_date;
@@ -383,6 +420,39 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
                 f_cou = 'f_cou' + Number(add),
                 Taxes = 'Taxes1' + Number(add);
 
+            var it = {
+                No1: add,
+                itemNO1: rec.getValue({
+                    name: 'custrecord_dps_customs_declara_item_num',
+                    join: 'custrecord_dps_customs_decla_item_link'
+                }),
+                itemName1: rec.getValue({
+                    name: 'custrecord_dps_customs_decl_item_name',
+                    join: 'custrecord_dps_customs_decla_item_link'
+                }),
+                qty1: rec.getValue({
+                    name: 'custrecord_dps_customs_decl_item_qty',
+                    join: 'custrecord_dps_customs_decla_item_link'
+                }),
+                price1: Number(rec.getValue({
+                    name: 'custrecord_dps_custom_decl_item_un_price',
+                    join: 'custrecord_dps_customs_decla_item_link'
+                })),
+                total1: Number(rec.getValue({
+                    name: 'custrecord_dps_custo_decl_total_amount',
+                    join: 'custrecord_dps_customs_decla_item_link'
+                })),
+                USD1: "美元",
+                china1: "中国",
+                f_cou1: rec.getValue('custrecord_dps_cu_decl_trading_country'),
+                sourecAdd1: rec.getValue({
+                    name: 'custrecord_dps_cust_decl_item_dom_source',
+                    join: 'custrecord_dps_customs_decla_item_link'
+                }),
+                Taxes1: "照章征税"
+            }
+
+            cusItem.push(it);
 
             printData[USD] = "美元"; // 项号
             printData[china] = "中国"; // 项号
@@ -418,9 +488,10 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
             ++add;
 
-
             return --limit > 0;
         });
+
+        printData["cusItem"] = cusItem;
 
         return printData || false;
 
@@ -429,12 +500,13 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
     /**
      * 设置合同的值
-     * @param {*} con 
-     * @param {*} xmlID 
+     * @param {*} con
+     * @param {*} xmlID
      */
     function setContractValue(con, xmlID, printData) {
 
         var itemInfo = [],
+            conItem = [],
             limit = 3999,
             add = 1;
 
@@ -492,6 +564,28 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
                 price = 'price' + Number(add),
                 amount = 'amount' + Number(add);
 
+            var it = {
+                itemName1: rec.getValue({
+                    name: 'custrecord_dps_c_c_i_item_name',
+                    join: 'custrecord_dps_c_c_li_links'
+                }),
+                qty1: rec.getValue({
+                    name: 'custrecord_dps_c_c_item_qty',
+                    join: 'custrecord_dps_c_c_li_links'
+                }),
+                price1: Number(rec.getValue({
+                    name: 'custrecord_dps_c_c_item_util_price',
+                    join: 'custrecord_dps_c_c_li_links'
+                })),
+                amount1: Number(rec.getValue({
+                    name: 'custrecord_dps_c_c_item_amount',
+                    join: 'custrecord_dps_c_c_li_links'
+                }))
+            };
+
+
+            conItem.push(it);
+
             printData[name] = rec.getValue({
                 name: 'custrecord_dps_c_c_i_item_name',
                 join: 'custrecord_dps_c_c_li_links'
@@ -509,10 +603,11 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
                 join: 'custrecord_dps_c_c_li_links'
             });
 
-            return -limit > 0;
+            return --limit > 0;
 
         });
 
+        printData["conItem"] = conItem;
         return printData || false;
 
     }
@@ -520,11 +615,12 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
     /**
      * 设置申报要素的值
-     * @param {*} inv 
-     * @param {*} xmlID 
+     * @param {*} inv
+     * @param {*} xmlID
      */
     function setElemValue(inv, xmlID, printData) {
         var itemInfo = [],
+            eleItem = [],
             limit = 3999,
             add = 1;
 
@@ -569,6 +665,20 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
                 nothing = 'nothing' + Number(add);
 
 
+            var it = {
+                NO1: add,
+                itemName1: rec.getValue('custrecord_dps_elem_dedecl_name'),
+                conHS1: rec.getValue('custrecord_dps_elem_dedecl_cust_hs_code'),
+                totalQty1: rec.getValue('custrecord_dps_elem_dedecl_total_number'),
+                brand1: rec.getValue('custrecord_dps_elem_dedecl_brand'),
+                nothing1: "无",
+                OEM1: "境外贴牌",
+                NotE1: "不享惠",
+                otherEle1: rec.getValue('custrecord_dps_elem_dedecl_other_reporti')
+            }
+
+            eleItem.push(it);
+
 
             printData[NO] = add;
             printData[itemName] = rec.getValue('custrecord_dps_elem_dedecl_name');
@@ -584,6 +694,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
             return --limit > 0;
         });
 
+        printData["eleItem"] = eleItem;
         return printData || false;
 
     }
@@ -592,13 +703,14 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
 
     /**
      * 设置US开票资料的相关值
-     * @param {*} BOX 
-     * @param {*} xmlID 
+     * @param {*} BOX
+     * @param {*} xmlID
      * TODO
      */
     function setUSValue(inv, xmlID, printData) {
 
         var limit = 3999,
+            infoItem = [],
             add = 1;
 
         search.create({
@@ -670,6 +782,34 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
                 vendorName = 'vendorName' + Number(add);
 
 
+            var it = {
+                vendor1: rec.getValue('custrecord_dps_us_b_i_vendor'),
+                itemName1: rec.getValue('custrecord_dps_us_b_i_item_name'),
+                sku1: rec.getValue('custrecord_dps_us_b_i_sku'),
+                util1: rec.getValue('custrecord_dps_us_b_i_unit'),
+                qty1: rec.getValue('custrecord_dps_us_b_i_qty'),
+                uprice1: Number(rec.getValue('custrecord_dps_us_b_i_unit_price')),
+                amount1: Number(rec.getValue('custrecord_dps_us_b_i_amount')),
+                tax1: Number(rec.getValue('custrecord_dps_us_b_i_tax_rate')),
+                taxamount1: Number(rec.getValue('custrecord_dps_us_b_i_tax')),
+                taxprice1: Number(rec.getValue('custrecord_dps_us_b_i_unit_price_includ')),
+                taxTotal1: Number(rec.getValue('custrecord_dps_us_b_i_tax_included_amoun')),
+                USD1: rec.getValue('custrecord_dps_us_b_i_usd_unit_price'),
+                total1: rec.getValue('custrecord_dps_us_b_i_total_qty'),
+                CustomsCode1: rec.getValue('custrecord_dps_us_b_i_customs_code'),
+                pordu1: rec.getValue('custrecord_dps_us_b_i_place_supply'),
+                boxQty1: rec.getValue('custrecord_dps_us_b_i_box_quantity'),
+                gros1: rec.getValue('custrecord_dps_us_b_i_gross_weight'),
+                net1: rec.getValue('custrecord_dps_us_b_i_net_weight'),
+                elem1: rec.getValue('custrecord_dps_us_b_i_elements_declarati'),
+                empl1: rec.getText('custrecord_dps_us_b_i_buyer'),
+                brand1: rec.getValue('custrecord_dps_us_b_i_brand_name'),
+                mark1: rec.getValue('custrecord_dps_us_b_i_remarks'),
+                vendorName1: rec.getText('custrecord_dps_us_b_i_supplier_name')
+            };
+            infoItem.push(it);
+
+
             printData[vendor] = rec.getValue('custrecord_dps_us_b_i_vendor');
             printData[itemname] = rec.getValue('custrecord_dps_us_b_i_item_name');
             printData[sku] = rec.getValue('custrecord_dps_us_b_i_sku');
@@ -705,6 +845,7 @@ define(['N/file', 'N/search', 'N/record', 'N/log', './handlebars-v4.1.1',
             return --limit > 0;
         });
 
+        printData["infoItem"] = infoItem;
 
         return printData;
 

@@ -7,9 +7,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
     function beforeLoad(context) {
         var form = context.form;
         var curr = context.newRecord
-        log.error("context:", JSON.stringify(context))
         if (curr.id && context.type == 'view') {
-            log.error("curr.id:", curr.id)
             search.create({
                 type: 'returnauthorization',
                 filters: [{
@@ -19,7 +17,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 }],
                 columns: ['tranid']
             }).run().each(function (rec) {
-                log.error("rec:", JSON.stringify(rec))
                 form.addButton({
                     id: 'custpage_dps_li_sales_button',
                     label: '生成补货订单',
@@ -28,7 +25,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 return false;
             });
         }
-
         form.clientScriptModulePath = './dps.li.sales.replenishment.cs.js';
     }
 
@@ -84,8 +80,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location_IF, line: i });
                     itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity, line: i });
                 }
-                var ifId = itemFulfillment.save();
-                log.debug('if生成成功', ifId);
+                itemFulfillment.save();
 
                 // 生成发票
                 var Invoice = record.transform({
@@ -93,8 +88,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     toType: record.Type.INVOICE,
                     fromId: Number(newSorec.id),
                 })
-                var InvoiceId = Invoice.save();
-                log.debug('Invoice生成成功', InvoiceId);
+                Invoice.save();
 
                 // 生成货品收据
                 var itemReceipt = record.transform({
@@ -112,8 +106,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location_IR, line: i });
                     itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity, line: i });
                 }
-                var irId = itemReceipt.save();
-                log.debug('货品收据生成成功', irId);
+                itemReceipt.save();
 
                 // 生成应付账单
                 var venderBill = record.transform({
@@ -121,8 +114,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     toType: record.Type.VENDOR_BILL,
                     fromId: Number(purchaseOrderRecordId),
                 });
-                var venderBillId = venderBill.save();
-                log.debug('应付账单生成成功', venderBillId);
+                venderBill.save();
 
                 // 生成NO.3 transferorder
                 var shipping_id, subsidiary, to_loaction, informa_id;
@@ -221,8 +213,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location_IF, line: i });
                         itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity, line: i });
                     }
-                    var ifId = itemFulfillment.save();
-                    log.debug('库存转移订单if生成成功', ifId);
+                    itemFulfillment.save();
                 }
             }
         }

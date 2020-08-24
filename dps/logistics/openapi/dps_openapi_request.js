@@ -1,5 +1,9 @@
-var openapi_domain = 'http://openapi.ck1info.com'
-var clientId = "ZTBlNjFhYWEtMWIxMi00OTc5LWJlMjctMzY4NmQwMGE4NWEx"
+// 测试环境
+// var openapi_domain = 'http://openapi.ck1info.com'
+// var clientId = "ZTBlNjFhYWEtMWIxMi00OTc5LWJlMjctMzY4NmQwMGE4NWEx"
+// 正是环境
+var openapi_domain = 'https://openapi.chukou1.cn'
+var clientId = "NTk4NjQ0MzAtOTM0NC00NTgxLWE2ODItYjY2NmJjYjNhMmEz"
 //出口易物流接口对接
 var openApi = {
     http: undefined,

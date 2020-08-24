@@ -1,12 +1,12 @@
 // 测试环境
-var yanwen_domain = 'http://47.96.220.163:802'
-var yanwen_token = "D6140AA383FD8515B09028C586493DDB"
-var yanwen_userid = "100000"
+// var yanwen_domain = 'http://47.96.220.163:802'
+// var yanwen_token = "D6140AA383FD8515B09028C586493DDB"
+// var yanwen_userid = "100000"
 // 正式环境
-// var yanwen_domain = 'HTTP://ONLINE.YW56.COM.CN/SERVICE'
-// var yanwen_token = ""
-// var yanwen_userid = ""
-var changeSever = 'http://47.75.154.81/getLabels'
+var yanwen_domain = 'http://online.yw56.com.cn'
+var yanwen_token = "50ED8591405439AB60C48D99FD81B739"
+var yanwen_userid = "40010919"
+var changeSever = 'http://47.107.254.110:8066/common/getLabel'
 //出口易物流接口对接
 var yanwenApi = {
     http: undefined,
@@ -235,9 +235,16 @@ var yanwenApi = {
         var url = yanwenApi.url.singlelabel
         url = url.replace("{EPCODE}", EpcCode)
         url = url.replace("{LabelSize}", LabelSize)
-        var response = this.GET(changeSever + "?url=" + url + "&token=" + yanwen_token)
+      log.debug('url',changeSever + "?url=" + url + "&token=" + yanwen_token);
+        var response = this.GETS(changeSever + "?url=" + url + "&token=" + yanwen_token)
+        log.debug('response',response);
         if (response.code == 200) {
-            return Result.success(response.body)
+            var data = JSON.parse(response.body);
+            if(data.code == 0){
+                return Result.success(data.data)
+            } else {
+                return Result.error("请求失败，未知异常")
+            }
         } else {
             return Result.error("请求失败，未知异常")
         }
@@ -251,10 +258,15 @@ var yanwenApi = {
     CreateMultiLabel: function (EpcCodes, LabelSize) {
         var url = yanwenApi.url.multilabel
         url = url.replace("{LabelSize}", LabelSize)
-        var response = this.GET(changeSever + "?url=" + url + "&token=" + yanwen_token + "&param=<string>" + EpcCodes + "</string>")
+        var response = this.GETS(changeSever + "?url=" + url + "&token=" + yanwen_token + "&param=<string>" + EpcCodes + "</string>")
         log.audit('response', response);
         if (response.code == 200) {
-            return Result.success(response.body)
+            var data = JSON.parse(response.body);
+            if(data.code == 0){
+                return Result.success(data.data)
+            } else {
+                return Result.error("请求失败，未知异常")
+            }
         } else {
             return Result.error("请求失败，未知异常")
         }
@@ -727,6 +739,16 @@ var yanwenApi = {
             headers: {
                 'Content-Type': 'text/xml; charset=utf-8',
                 'Accept': 'application/xml',
+                "Authorization": 'basic ' + yanwen_token
+            }
+        })
+    },
+  GETS: function (url) {
+        return this.http.get({
+            url: url,
+            headers: {
+                'Content-Type': 'application/json;charset=UTF-8',
+                'Accept': 'application/json',
                 "Authorization": 'basic ' + yanwen_token
             }
         })

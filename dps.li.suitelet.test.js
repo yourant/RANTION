@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-08-20 21:10:45
+ * @LastEditTime   : 2020-08-21 16:32:29
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \dps.li.suitelet.test.js
@@ -17,8 +17,10 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
     './douples_amazon/Helper/Moment.min', 'N/format', './douples_amazon/Helper/fields.min',
     "./Rantion/Helper/config", 'N/http', 'N/encode', 'N/redirect',
     './Rantion/cux/Declaration_Information/handlebars-v4.1.1', "./Rantion/fulfillment.record/dps.information.values.js",
+
+    "./Rantion/cux/Declaration_Information/dps.li.tool.setValue.js", "N/render"
 ], function (search, record, log, core, file, xml, tool, runtime, file, serverWidget,
-    moment, format, fields, config, http, encode, redirect, Handlebars, information) {
+    moment, format, fields, config, http, encode, redirect, Handlebars, information, toolValue, render) {
 
     function onRequest(context) {
         try {
@@ -36,6 +38,19 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
             } else if (userObj.id == 911 /* || userObj.id == 13440 */) {
 
+
+
+
+                var toId = 2660752;
+                var get = searchToStatus(toId);
+
+
+                log.debug('get', get);
+
+                context.response.writeLine('get: ' + get)
+
+
+                return;
                 var nowDate = new Date();
                 var format = "yyyy年MM月dd日"
 
@@ -60,6 +75,39 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         }
     }
 
+
+    /**
+ * 搜索调拨单的状态
+ * @param {Number} toId
+ */
+    function searchToStatus(toId) {
+        var statusref;
+        search.create({
+            type: 'transaction',
+            // type: 'transferorder',
+            filters: [
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: toId
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                }
+            ],
+            columns: [
+                "statusref"
+            ]
+        }).run().each(function (rec) {
+            statusref = rec.getValue('statusref');
+        });
+
+
+        return statusref || false;
+
+    }
 
     function getWeekObj(day, func_type) {
 
@@ -3449,3 +3497,4 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
 
 });
+

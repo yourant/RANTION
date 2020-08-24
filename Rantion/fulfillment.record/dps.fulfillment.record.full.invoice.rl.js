@@ -88,16 +88,16 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     }
                     break
                 case "2":
-                    openApi.init(http, search, record)
+                    openApi.init(https, search, record)
                     var result = openApi.CreateOrders(rec, "small")
                     if (result.code == 200) {
-                        var orderId = rec.getValue("custrecord_dps_ship_order_number")
-                        submitIdAndTackingNumber(rec.id, orderId)
-                        result = openApi.GetInfo(orderId)
+                        var orderId = rec.getValue("custrecord_dps_ship_order_number");
+                        result = openApi.GetInfo(orderId);
                         log.audit('infoResult', result);
-                        if (result.code == 200) {
+                        if (result.code == 200 && !result.data.CreateFailedReason) {
                             var data = result.data;
-                            var Status = data.Status
+                            var Status = data.Status;
+                            submitIdAndTackingNumber(rec.id, data.Ck1PackageId);
                             if (Status == 'Creating') {
                                 result = { code: 500, msg: "订单正在生成，请稍后再试。" }
                             } else if (Status == 'Created') {
@@ -117,6 +117,22 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                                 result = { code: 500, msg: "订单生成失败：" + CreateFailedReason }
                             }
 
+                        } else {
+                            var result_data = openApi.Cancel(orderId,'PackageId');
+                            if(result_data.code == 200){
+                                var data = result.data;
+                                var CreateFailedReason = data.CreateFailedReason.ExtendMessage;
+                                record.submitFields({
+                                    type: 'customrecord_dps_shipping_small_record',
+                                    id: rec.id,
+                                    values: {
+                                        custrecord_dps_ship_small_status: 4,
+                                        custrecord_dps_push_state_xh: "失败",
+                                        custrecord_dps_push_result_xh: CreateFailedReason
+                                    }
+                                });
+                                result = { code: 500, msg: "订单生成失败：" + CreateFailedReason }
+                            }
                         }
                     } else {
                         record.submitFields({
@@ -219,20 +235,21 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     }
                     break
                 case "2":
-                    openApi.init(http, search, record)
+                    openApi.init(https, search, record)
                     var orderId = rec.getValue("custrecord_dps_ship_order_number")
                     result = openApi.GetInfo(orderId)
                     log.audit('infoResult', result);
-                    if (result.code == 200) {
+                    if (result.code == 200 && !result.data.CreateFailedReason) {
                         var data = result.data;
-                        var Status = data.Status
+                        var Status = data.Status;
+                      submitIdAndTackingNumber(rec.id, data.Ck1PackageId);
                         if (Status == 'Creating') {
                             result = { code: 500, msg: "订单正在生成，请稍后再试。" }
                         } else if (Status == 'Created') {
                             var trackingNumber = data.TrackingNumber
                             updateTrackingNumber(rec_id, trackingNumber)
                         } else if (Status == 'CreateFailed') {
-                            var CreateFailedReason = data.CreateFailedReason.ExtendMessage
+                            var CreateFailedReason = data.CreateFailedReason.ExtendMessage;
                             record.submitFields({
                                 type: 'customrecord_dps_shipping_small_record',
                                 id: rec.id,
@@ -245,6 +262,22 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             result = { code: 500, msg: "订单生成失败：" + CreateFailedReason }
                         }
 
+                    } else {
+                        var result_data = openApi.Cancel(orderId,'PackageId');
+                        if(result_data.code == 200){
+                            var data = result.data;
+                            var CreateFailedReason = data.CreateFailedReason.ExtendMessage;
+                            record.submitFields({
+                                type: 'customrecord_dps_shipping_small_record',
+                                id: rec.id,
+                                values: {
+                                    custrecord_dps_ship_small_status: 4,
+                                    custrecord_dps_push_state_xh: "失败",
+                                    custrecord_dps_push_result_xh: CreateFailedReason
+                                }
+                            });
+                            result = { code: 500, msg: "订单生成失败：" + CreateFailedReason }
+                        }
                     }
                     break
                 // case "燕文物流":
@@ -322,7 +355,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     }
                     break
                 case "2":
-                    openApi.init(http, search, record)
+                    openApi.init(https, search, record)
                     var orderId = rec.getValue("custrecord_dps_ship_order_number")
                     var reqParam = openApi.GetLabels(orderId, 'ClassicLabel', "Address", "", 'PackageId')
                     if (reqParam.code == "200") {
@@ -354,7 +387,8 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 case "5":
                     yanwenApi.init(http, xml, file)
                     var orderId = rec.getValue("custrecord_dps_ship_small_logistics_orde")
-                    var reqParam = yanwenApi.CreateSingleLabel(orderId, 'A4L')
+                    var reqParam = yanwenApi.CreateSingleLabel(orderId, 'A10x10L')
+                    log.audit('reqParam', reqParam);
                     if (reqParam.code == "200") {
                         //切到页面上显示标签
                         var fileObj = file.create({

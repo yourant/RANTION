@@ -151,10 +151,41 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                     fieldId: 'taxcode',
                     value: curTaxCode
                 });
+              if (rec.type == 'purchaseorder') {
+                    var taxrate1 = rec.getCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'taxrate1'
+                    })
+                    var taxPrice = rec.getCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'custcol_purchase_tax_price'
+                    })
+                    var rate = curUnitPrice;
+                    rec.setCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'custcol_purchase_tax_price',
+                        value: (taxrate1 + 100) * rate / 100
+                    });
+
+                }
 
             }
         }
-
+		if (rec.type == 'purchaseorder' && context.fieldId == 'custcol_purchase_tax_price') {
+            var taxrate1 = rec.getCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'taxrate1'
+            })
+            var taxPrice = rec.getCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcol_purchase_tax_price'
+            })
+            rec.setCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'rate',
+                value: taxPrice / (taxrate1 + 100) * 100
+            });
+        }
         return true;
     }
 

@@ -33,7 +33,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
 
     const fba_return_location = 2502 // 不良品仓
     exports.getInputData = function () {
-      var returns = [], payments = [], limit = 1000, limit_payments = 0
+      var returns = [], payments = [], limit = 4000, limit_payments = 0
       var count = 0
       var idCount = 0
 
@@ -55,6 +55,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
       if (group) {
         fils.push({ name: 'custrecord_aio_getorder_group',join: 'custrecord_aio_b2c_return_aio_account', operator: 'anyof', values: group })
       }
+      fils.push({ name: 'custrecord_aio_account_region',join: 'custrecord_aio_b2c_return_aio_account', operator: 'noneof', values: ['1'] })
       search.create({
         type: 'customrecord_aio_amazon_customer_return',
         filters: fils,

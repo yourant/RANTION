@@ -143,7 +143,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           rec_id: e.id,
           seller_id: e.getValue(e.columns[0]),
           enabled_sites: e.getText(e.columns[1]),
-          dept: e.getText(e.columns[2])
+          dept: e.getValue(e.columns[2])
         })
         return --limit > 0
       })
@@ -223,6 +223,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
           ship_obj = interfun.getFormatedDate('', '', rec.getValue('custrecord_shipment_date_text'), '', true)
           log.debug('postdate：' + postdate, ',shipment_date:' + ship_obj.date)
         })
+        var inv_id
         if (ship_recid) {
           var posum = pos_obj.Year + pos_obj.Month + ''
           var shipsum = ship_obj.Year + ship_obj.Month + ''
@@ -231,6 +232,15 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             rec_finance.save({ignoreMandatoryFields: true})
             return
           }
+
+          search.create({
+            type: 'invoice',
+            filters: [
+              { name: 'custbody_shipment_report_rel', operator: 'anyof', values: ship_recid}
+            ]
+          }).run().each(function (rec) {
+            inv_id = rec.id
+          })
         }
         var acc_search = interfun.getSearchAccount(obj.seller_id).acc_search
         log.debug('查询的店铺acc_search:', acc_search)
@@ -270,15 +280,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             return true
           })
           // 开始生成日记账凭证
-          var inv_id
-          search.create({
-            type: 'invoice',
-            filters: [
-              { name: 'custbody_shipment_report_rel', operator: 'anyof', values: ship_recid}
-            ]
-          }).run().each(function (rec) {
-            inv_id = rec.id
-          })
+
           if (ord_type == '2') { // 如果是FMB类型订单，查找有没有发货
             search.create({
               type: 'invoice',

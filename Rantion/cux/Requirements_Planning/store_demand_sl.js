@@ -2,7 +2,7 @@
  * @version: 1.0
  * @Author: ZJG
  * @Date: 2020-05-06 17:27:17
- * @LastEditTime   : 2020-08-20 10:52:46
+ * @LastEditTime   : 2020-08-19 21:27:13
  * @FilePath       : \Rantion\cux\Requirements_Planning\store_demand_sl.js
  */
 /**
@@ -1273,14 +1273,12 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                 year = new Date(date_to).getFullYear();
             }
 
-            var format = "MM/dd" + '';
-            var str_date = weekGetDate(year, ff, format)
+            var str_date = weekGetDate(year, ff)
             var Label = 'W' + ff + '(' + str_date + ')';
 
             log.error('str_date', str_date);
             // Label = Label.replace("-----", ',').replace(year, '')
-            Label = Label.replace(/[-]{5}/g, ',')
-            // Label = Label.replace(/[-]{5}/g, ',').replace(/[0-9]{4}-/g, '')
+            Label = Label.replace(/[-]{5}/g, ',').replace(/[0-9]{4}-/g, '')
             week_ = sublist.addField({
                 id: sub_filed,
                 label: Label,
@@ -2056,10 +2054,6 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
 
 
 
-    /**
-     * 格式化时间函数
-     * @param {format} 时间显示格式
-     */
     Date.prototype.Format = function (fmt) { //需要JS格式化时间，后期做的时候方便使用
         var o = {
             "M+": this.getMonth() + 1,                 //月份
@@ -2079,9 +2073,8 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
     };
 
     //通过周取日期范围   year 年   weeks 周
-    function weekGetDate(year, weeks, format) {
+    function weekGetDate(year, weeks) {
         var date = new Date(year, "0", "1");
-
         // 获取当前星期几,0:星期一
         var time = date.getTime();
         //当这一年的1月1日为周日时则本年有54周,否则没有54周,没有则去除第54周的提示
@@ -2128,9 +2121,9 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                 lastcnt = 5;
             }
             if (weeks == 1) {//第1周特殊处理    // 为日期对象 date 重新设置成时间 time
-                var start = date.Format(format);
+                var start = date.Format("yyyy-MM-dd");
                 date.setTime(time - 24 * 3600000);
-                var end = date.Format(format);
+                var end = date.Format("yyyy-MM-dd");
                 return start + "-----" + end;
             } else if (weeks == 53) {//第53周特殊处理
                 //第53周开始时间
@@ -2138,17 +2131,17 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                 //第53周结束时间
                 var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
                 date.setTime(start);
-                var _start = date.Format(format);
+                var _start = date.Format("yyyy-MM-dd");
                 date.setTime(end);
-                var _end = date.Format(format);
+                var _end = date.Format("yyyy-MM-dd");
                 return _start + "-----" + _end;
             } else {
                 var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
                 var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
                 date.setTime(start);
-                var _start = date.Format(format);
+                var _start = date.Format("yyyy-MM-dd");
                 date.setTime(end);
-                var _end = date.Format(format);
+                var _end = date.Format("yyyy-MM-dd");
                 return _start + "-----" + _end;
             }
         } else {//一年54周情况
@@ -2192,9 +2185,9 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                 lastcnt = 5;
             }
             if (weeks == 1) {//第1周特殊处理
-                var start = date.Format(format);
+                var start = date.Format("yyyy-MM-dd");
                 date.setTime(time - 24 * 3600000);
-                var end = date.Format(format);
+                var end = date.Format("yyyy-MM-dd");
                 return _start + "-----" + end;
             } else if (weeks == 54) {//第54周特殊处理
                 //第54周开始时间
@@ -2202,17 +2195,17 @@ define(['N/search', 'N/ui/serverWidget', '../../Helper/Moment.min', 'N/format', 
                 //第53周结束时间
                 var end = time + (weeks - 2) * 7 * 24 * 3600000 + lastcnt * 24 * 3600000 - 24 * 3600000;
                 date.setTime(start);
-                var _start = date.Format(format);
+                var _start = date.Format("yyyy-MM-dd");
                 date.setTime(end);
-                var _end = date.Format(format);
+                var _end = date.Format("yyyy-MM-dd");
                 return _start + "-----" + _end;
             } else {
                 var start = time + (weeks - 2) * 7 * 24 * 3600000; //第n周开始时间
                 var end = time + (weeks - 1) * 7 * 24 * 3600000 - 24 * 3600000; //第n周结束时间
                 date.setTime(start);
-                var _start = date.Format(format);
+                var _start = date.Format("yyyy-MM-dd");
                 date.setTime(end);
-                var _end = date.Format(format);
+                var _end = date.Format("yyyy-MM-dd");
                 return _start + "-----" + _end;
             }
         }

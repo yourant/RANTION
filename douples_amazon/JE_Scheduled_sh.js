@@ -36,13 +36,16 @@ define(['N/search', 'N/record'],
           log.debug('冲销日记账', jo2)
           jo2_rec = record.load({ type: 'journalentry', id: jo2 })
           jo1_arrys = jo2_rec.getValue('custbody_estimate_s')
-          inv_objs = JSON.parse(jo2_rec.getValue('custbody_settlement_inv_ids'))
+          inv_objs =   jo2_rec.getValue('custbody_settlement_inv_ids')  
           log.debug('inv_objs', inv_objs)
           var invs1 = [],invs2 = []
-          if (inv_objs)
+          if (inv_objs){
+            inv_objs = JSON.parse(inv_objs)
             inv_objs.map(function (inv_ojbs) {
               invs1.push(inv_ojbs.inv_id)
             })
+          }
+          
           if (invs1.length > 0) {
             search.create({
               type: 'invoice',

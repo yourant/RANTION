@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+	xmlns:o="urn:schemas-microsoft-com:office:office"
+	xmlns:x="urn:schemas-microsoft-com:office:excel"
+	xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+	xmlns:html="http://www.w3.org/TR/REC-html40"
+	xmlns:dt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882"> <Worksheet
+	ss:Name="Sheet1">
+<Table ss:ExpandedColumnCount="5" ss:ExpandedRowCount="2"
+	x:FullColumns="1" x:FullRows="1" ss:DefaultColumnWidth="48"
+	ss:DefaultRowHeight="14">
+	<Column ss:Index="4" ss:StyleID="Default" ss:AutoFitWidth="0"
+		ss:Width="120.5" />
+	<Row> <Cell>
+	<Data ss:Type="String">组件名称</Data></Cell> <Cell ss:StyleID="s50">
+	<Data ss:Type="String">等级</Data></Cell> <Cell ss:StyleID="s51">
+	<Data ss:Type="String">组件产出</Data></Cell> <Cell ss:StyleID="s50">
+	<Data ss:Type="String">每组装品的 BOM 数量</Data></Cell> <Cell ss:StyleID="s51">
+	<Data ss:Type="String">说明</Data></Cell> </Row>
+	<#list excelData.line as lineAry>
+	<Row> <Cell>
+	<Data ss:Type="String">${lineAry.name}</Data></Cell> <Cell>
+	<Data ss:Type="String">${lineAry.level}</Data></Cell> <Cell>
+	<Data ss:Type="Number">${lineAry.componentOut}</Data></Cell> <Cell ss:StyleID="s51">
+	<Data ss:Type="String">${lineAry.num}</Data></Cell> <Cell ss:StyleID="s50">
+	<Data ss:Type="String">${lineAry.instructions}</Data></Cell> </Row>
+	</#list>
+</Table>
+
+</Worksheet> </Workbook>

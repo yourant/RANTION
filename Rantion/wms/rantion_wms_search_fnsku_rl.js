@@ -2,10 +2,10 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
+define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
     function _get(context) {
-        
+
     }
 
     function _post(context) {
@@ -18,22 +18,57 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
         var fnsku = context.fnsku;
         var asin = context.asin;
         var site = context.site;
+        var account = context.account;
         var filters = [];
-        filters.push({ name: 'custrecord_ass_sku', operator: 'noneof', values: ['@NONE@'] });
+        filters.push({
+            name: 'custrecord_ass_sku',
+            operator: 'noneof',
+            values: ['@NONE@']
+        });
         if (seller_sku) {
-            filters.push({ name: 'name', operator: 'is', values: seller_sku });
+            filters.push({
+                name: 'name',
+                operator: 'is',
+                values: seller_sku
+            });
         }
         if (sku) {
-            filters.push({ name: 'itemid', join: 'custrecord_ass_sku', operator: 'is', values: sku });
+            filters.push({
+                name: 'itemid',
+                join: 'custrecord_ass_sku',
+                operator: 'is',
+                values: sku
+            });
         }
         if (fnsku) {
-            filters.push({ name: 'custrecord_ass_fnsku', operator: 'is', values: fnsku });
+            filters.push({
+                name: 'custrecord_ass_fnsku',
+                operator: 'is',
+                values: fnsku
+            });
         }
         if (asin) {
-            filters.push({ name: 'custrecord_ass_asin', operator: 'is', values: asin });
+            filters.push({
+                name: 'custrecord_ass_asin',
+                operator: 'is',
+                values: asin
+            });
         }
         if (site) {
-            filters.push({ name: 'custrecord_aio_amazon_marketplace', join: 'custrecord_ass_sellersku_site', operator: 'is', values: site });
+            filters.push({
+                name: 'custrecord_aio_amazon_marketplace',
+                join: 'custrecord_ass_sellersku_site',
+                operator: 'is',
+                values: site
+            });
+        }
+        if (account) {
+            filters.push({
+                join: 'custrecord_ass_account',
+                name: 'name',
+                operator: 'is',
+                values: account
+            })
         }
         var mySearch = search.create({
             type: 'customrecord_aio_amazon_seller_sku',
@@ -41,7 +76,14 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             columns: [
                 'custrecord_ass_account', 'custrecord_ass_fnsku', 'custrecord_ass_asin',
                 'custrecord_ass_sku', 'name',
-                { name: 'custrecord_aio_amazon_marketplace', join: 'custrecord_ass_sellersku_site' }
+                {
+                    name: 'custrecord_aio_amazon_marketplace',
+                    join: 'custrecord_ass_sellersku_site'
+                },
+                {
+                    join: 'custrecord_ass_sku',
+                    name: 'custitem_dps_skuchiense'
+                }
             ]
         });
         var pageData = mySearch.runPaged({
@@ -59,7 +101,14 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                     'fnsku': result.getValue('custrecord_ass_fnsku'),
                     'asin': result.getValue('custrecord_ass_asin'),
                     'account': result.getText('custrecord_ass_account'),
-                    'site': result.getText('custrecord_ass_sellersku_site')
+                    'site': result.getValue({
+                        join: 'custrecord_ass_sellersku_site',
+                        name: 'custrecord_aio_amazon_marketplace'
+                    }),
+                    'skuName': result.getValue({
+                        join: 'custrecord_ass_sku',
+                        name: 'custitem_dps_skuchiense'
+                    })
                 });
             });
         }
@@ -70,15 +119,16 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
         retjson.pageCount = pageCount;
         retjson.nowPage = nowPage;
         retjson.pageSize = pageSize;
+        log.debug("retjson", retjson);
         return JSON.stringify(retjson);
     }
 
     function _put(context) {
-        
+
     }
 
     function _delete(context) {
-        
+
     }
 
     return {

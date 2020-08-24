@@ -56,8 +56,9 @@ define(['N/search', 'N/record'], function (search, record) {
                 if (itemArray.length > 0) {
                     //拿出符合条件的所有采购收货单的行明细，然后再一一拿出来再做占用处理
                     var poRecInfo = {};
+                    var ir_ids = [];
                     var po_ids = [];
-                    var sku_qty = {};
+                    var poNeedCount = {};
                     search.create({
                         type: 'itemreceipt',
                         filters: [
@@ -71,22 +72,28 @@ define(['N/search', 'N/record'], function (search, record) {
                         ],
                         columns: [
                             { name: 'trandate', label: '日期', type: 'date', sort: 'ASC' }, // 0
-                            { name: 'item', label: '货品名称', type: 'select' }, // 1
-                            { name: 'quantity', label: '采购数量', type: 'float' }, // 2
-                            { name: 'createdfrom', label: '采购订单id', type: 'select' } // 3
+                            { name: 'datecreated', label: '创建日期', type: 'datetime', sortdir: 'ASC' }, // 1
+                            { name: 'subsidiary', label: '子公司', type: 'select' }, // 2
+                            { name: 'custbody_dps_type', join: 'createdfrom', label: '采购订单类型', type: 'select' }, // 3
+                            { name: 'item', label: '货品名称', type: 'select' }, // 4
+                            { name: 'quantity', label: '采购数量', type: 'float' }, // 5
+                            { name: 'createdfrom', label: '采购订单id', type: 'select' } // 6
                         ]
                     }).run().each(function (rec) {
-                        var item_id = rec.getValue(rec.columns[1]);
-                        var po_id = rec.getValue(rec.columns[3]);
-                        var key = po_id + '_' + item_id;
-                        sku_qty[key] = rec.getValue(rec.columns[2]);
-                        po_ids.push(po_id);
+                        var value = {
+                            item: rec.getValue(rec.columns[4]),
+                            quantity: rec.getValue(rec.columns[5]),
+                            line: 0,
+                            poid: rec.getValue(rec.columns[6])
+                        }
+                        ir_ids.push(rec.id);
+                        po_ids.push(rec.getValue(rec.columns[6]));
+                        poRecInfo[rec.id] = [value];
                         return true;
                     });
-                    log.debug('sku_qty', JSON.stringify(sku_qty));
 
-
-                    if (po_ids && po_ids.length > 0) { // 存在对应的采购订单
+                    // 存在对应的采购订单
+                    if (po_ids && po_ids.length > 0) {
                         search.create({
                             type: 'purchaseorder',
                             filters: [
@@ -96,38 +103,30 @@ define(['N/search', 'N/record'], function (search, record) {
                                 { name: 'item', operator: 'anyof', values: itemArray }
                             ],
                             columns: [
-                                { name: 'trandate', label: '日期', type: 'date', sort: 'ASC' }, //0
-                                { name: 'subsidiary', label: '子公司', type: 'select' }, //1
-                                { name: 'custbody_dps_type', label: '采购订单类型', type: 'select' }, //2
-                                { name: 'line', label: '行Id', type: 'integer' }, //3
-                                { name: 'item', label: '货品名称', type: 'select' }, //4
-                                { name: 'quantity', label: '采购数量', type: 'float' }, //5
-                                { name: 'custcoltransferable_quantity', label: '可调拨数量', type: 'float' }, //6
-                                { name: 'custcol_transferred_quantity', label: '已调拨数量', type: 'float' }, //7
-                                { name: 'custcol_realted_transfer_detail', label: '关联调拨单号', type: 'select' }, //8
+                                { name: 'line', label: '行Id', type: 'integer' }, // 0
+                                { name: 'item', label: '货品名称', type: 'select' }, // 1
+                                { name: 'custcoltransferable_quantity', label: '可调拨数量', type: 'float' }, // 2
                             ]
                         }).run().each(function (rec) {
-                            var item_id = rec.getValue(rec.columns[4]);
-                            var po_id = rec.id;
-                            var key = po_id + '_' + item_id;
-                            var value = {
-                                item: rec.getValue(rec.columns[4]),
-                                quantity: sku_qty[key],
-                                needCount: rec.getValue(rec.columns[6]),
-                                alreadyCount: rec.getValue(rec.columns[7]),
-                                line: rec.getValue(rec.columns[3]),
-                                link: rec.getValue(rec.columns[8])
+                            for (var index = 0; index < ir_ids.length; index++) {
+                                var ir_id = ir_ids[index];
+                                var rr = poRecInfo[ir_id];
+                                for (var i in rr) {
+                                    var poData = poRecInfo[ir_id][i];
+                                    if (poData.item == rec.getValue(rec.columns[1])) {
+                                        poData.line = rec.getValue(rec.columns[0]);
+                                    }
+                                }
                             }
-                            if (poRecInfo[rec.id]) {
-                                poRecInfo[rec.id].push(value);
-                            } else {
-                                poRecInfo[rec.id] = [value];
-                            }
+                            var poid = rec.id;
+                            var item = rec.getValue(rec.columns[1]);
+                            var key = poid + '-' + item;
+                            poNeedCount[key] = rec.getValue(rec.columns[2]);
                             return true;
                         });
                         log.debug('poRecInfo', JSON.stringify(poRecInfo));
-                        linkToData2Po(poRecInfo, itemJson, to_id);
-
+                        log.debug('poNeedCount', JSON.stringify(poNeedCount));
+                        linkToData2Po(poRecInfo, poNeedCount, itemJson, to_id);
                     }
                 }
             }
@@ -139,28 +138,31 @@ define(['N/search', 'N/record'], function (search, record) {
      * @param {*} poRecInfo
      * @param {*} itemJson
      */
-    function linkToData2Po(poRecInfo, itemJson, ToId) {
+    function linkToData2Po(poRecInfo, poNeedCount, itemJson, ToId) {
         var poNeedSaveJson = {};
         for (var key in poRecInfo) {
             log.debug('key', key);
             for (var i in poRecInfo[key]) {
                 var poData = poRecInfo[key][i];
                 log.debug('poData', JSON.stringify(poData));
-                var needCount = getRemainCount(poData.needCount, poData.quantity);
+                var item_id = poData.item;
+                var po_id = poData.poid;
+                var needCountkey = po_id + '-' + item_id;
+                var needCount = poNeedCount[needCountkey] ? poNeedCount[needCountkey] : 0;
                 if (needCount) {
                     //拿出TO单上符合该条件的货品和数量
                     var itemKey = poData.item;
                     var ToCount = itemJson[itemKey];
                     if (ToCount && ToCount > 0) {
                         var poRec;
-                        if (poNeedSaveJson[key]) {
-                            poRec = poNeedSaveJson[key];
+                        if (poNeedSaveJson[po_id]) {
+                            poRec = poNeedSaveJson[po_id];
                         } else {
                             poRec = record.load({
                                 type: 'purchaseorder',
-                                id: key
+                                id: po_id
                             });
-                            poNeedSaveJson[key] = poRec;
+                            poNeedSaveJson[po_id] = poRec;
                         }
                         var actuallyCount;
                         //当库存转移比实际的采购的数量要多的情况
@@ -174,13 +176,13 @@ define(['N/search', 'N/record'], function (search, record) {
                             itemJson[itemKey] = 0;
                         }
                         log.debug('createToLinkRecord', poRec.getValue('tranid') + '==' + poData.line + '==' + actuallyCount + '==' + poData.link + '==' + ToId);
-                        poNeedSaveJson[key] = createToLinkRecord(poRec, poData.line, actuallyCount, poData.link, ToId);
+                        poNeedSaveJson[po_id] = createToLinkRecord(poRec, poData.line, actuallyCount, poData.link, ToId, poNeedCount, needCountkey);
                     }
                 }
             }
         }
-        for (var key in poNeedSaveJson) {
-            var poRec = poNeedSaveJson[key];
+        for (var po_id in poNeedSaveJson) {
+            var poRec = poNeedSaveJson[po_id];
             try {
                 poRec.save();
             } catch (error) {
@@ -199,7 +201,7 @@ define(['N/search', 'N/record'], function (search, record) {
      * @param {*} linkId
      * @param {*} ToId
      */
-    function createToLinkRecord(poRec, itemReceiptLine, count, linkId, ToId) {
+    function createToLinkRecord(poRec, itemReceiptLine, count, linkId, ToId, poNeedCount, needCountkey) {
         itemReceiptLine = itemReceiptLine - 1;
         //之前有未占完的情况
         if (linkId) {
@@ -253,6 +255,7 @@ define(['N/search', 'N/record'], function (search, record) {
         needL = Number(needL) - count;
         poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_transferred_quantity', value: alreadyL > 0 ? alreadyL : 0, line: itemReceiptLine });
         poRec.setSublistValue({ sublistId: 'item', fieldId: 'custcoltransferable_quantity', value: needL, line: itemReceiptLine });
+        poNeedCount[needCountkey] = needL;
         //更新头部汇总
         var already = poRec.getValue('custbody_transferred_quantity');
         var need = poRec.getValue('custbody_available_transferred_quantit');
@@ -343,18 +346,6 @@ define(['N/search', 'N/record'], function (search, record) {
         if (hasChange) {
             toRec.save();
         }
-    }
-
-    /**
-     * 计算采购单某行还剩多少未调拨数量
-     * @param {*} needCount 还可以调整的数量
-     * @param {*} quantity 总数量
-     */
-    function getRemainCount(needCount, quantity) {
-        if (needCount != undefined && needCount != '') {
-            return Number(needCount);
-        }
-        return Number(quantity);
     }
 
     return {

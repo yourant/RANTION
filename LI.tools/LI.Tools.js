@@ -2,14 +2,14 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-16 16:01:14
- * @LastEditTime   : 2020-07-11 14:34:46
+ * @LastEditTime   : 2020-08-28 20:58:22
  * @LastEditors    : Li
  * @Description    : 练习
  * @FilePath       : \LI.tools\LI.Tools.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
-define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log, url) {
+define(['N/record', 'N/search', 'N/log', 'N/url'], function(record, search, log, url) {
 
 
 
@@ -17,8 +17,8 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
     {
         /**
          * 搜索单据的货品、地点、子公司
-         * @param {String} recType 
-         * @param {number} recId 
+         * @param {String} recType
+         * @param {number} recId
          * @returns {Object} {subsidiary: subs,itemArr: itemArr,location: loca,totalQty: totalQty};
          */
         function searchToLocationItem(recType, recId) {
@@ -50,7 +50,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
                     "item",
                     "quantity"
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 var it = rec.getValue('item')
                 if (itemArr.indexOf(it) == -1) {
                     itemArr.push(rec.getValue('item'));
@@ -76,7 +76,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
                 columns: [
                     "location", "subsidiary"
                 ]
-            }).run().each(function (r) {
+            }).run().each(function(r) {
                 subs = r.getValue('subsidiary');
                 loca = r.getValue('location');
             })
@@ -104,7 +104,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
             var loArr = [],
                 limit = 3999
 
-            log.debug('sub: ' + sub + " loca: " + loca, "locaArr  typeof  " + typeof (locaArr) + "    " + locaArr)
+            log.debug('sub: ' + sub + " loca: " + loca, "locaArr  typeof  " + typeof(locaArr) + "    " + locaArr)
             search.create({
                 type: "location",
                 filters: [{
@@ -123,7 +123,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
                         values: locaArr
                     }, // 地点
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 // log.debug('locaArr.indexOf(rec.id) ', locaArr.indexOf(rec.id))
                 if (locaArr.indexOf(rec.id) > -1) {
@@ -155,7 +155,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
                     operator: 'anyof',
                     values: secArr
                 }]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 thrArr.push(rec.id);
                 return --limit > 0;
             });
@@ -198,7 +198,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
                     "inventorylocation", // 库存地点    Inventory Location
                     "locationquantitybackordered", // 延交订单 LOCATION BACK ORDERED
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 log.debug('locationquantityonhand: ' + rec.getValue('locationquantityonhand'), "loca: " + rec.getValue('inventorylocation'))
                 totalQty += Number(rec.getValue('locationquantityonhand'));
@@ -243,7 +243,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
                 columns: [
                     "inventorylocation"
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 locaArr.push(rec.getValue('inventorylocation'));
                 return --limit > 0;
             });
@@ -256,8 +256,8 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
 
         /**
          * 判断库存是否充足
-         * @param {String} recType 
-         * @param {Number} recId 
+         * @param {String} recType
+         * @param {Number} recId
          * @returns{Boolean} flag
          */
         function judgmentItemInventory(recType, recId) {
@@ -303,7 +303,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
 
     /**
      * 获取记录的url, 处理变成新建记录的URL
-     * @param {*} recType 
+     * @param {*} recType
      */
     function toRecord(recType) {
         var output = url.resolveRecord({
@@ -332,7 +332,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
             columns: [
                 "exchangerate"
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             exchangerate = rec.getValue('exchangerate')
         });
 
@@ -346,8 +346,8 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
 
         /**
          * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
-         * @param {String} recType 
-         * @param {String} recId 
+         * @param {String} recType
+         * @param {String} recId
          * @returns {Boolean} true || false
          */
         qtyBackOrdered: function qtyBackOrdered(recType, recId) {
@@ -384,8 +384,8 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
 
         /**
          * 返回一个加载的记录对象
-         * @param {string} recType 
-         * @param {string} recId 
+         * @param {string} recType
+         * @param {string} recId
          */
         loadRecord: function loadRecord(recType, recId) {
             return record.load({
@@ -396,8 +396,8 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
 
         /**
          * 返回对应子列表的行数
-         * @param {Object} recObj 
-         * @param {String} recSubId 
+         * @param {Object} recObj
+         * @param {String} recSubId
          */
         getLineCount: function getLineCount(recObj, recSubId) {
             return recObj.getLineCount({
@@ -406,12 +406,12 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
         },
 
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recSubId 
-         * @param {String} recField 
-         * @param {String} recValue 
-         * @param {String} recLine 
+         *
+         * @param {Object} recObj
+         * @param {String} recSubId
+         * @param {String} recField
+         * @param {String} recValue
+         * @param {String} recLine
          */
         setSublistValue: function setSublistValue(recObj, recSubId, recField, recValue, recLine) {
             recObj.setSublistValue({
@@ -423,12 +423,12 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
         },
 
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recSubId 
-         * @param {String} recField 
-         * @param {String} recText 
-         * @param {String} recLine 
+         *
+         * @param {Object} recObj
+         * @param {String} recSubId
+         * @param {String} recField
+         * @param {String} recText
+         * @param {String} recLine
          */
         setSublistText: function setSublistText(recObj, recSubId, recField, recText, recLine) {
             recObj.setSublistText({
@@ -439,10 +439,10 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
             });
         },
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recSubId 
-         * @param {String} recField 
+         *
+         * @param {Object} recObj
+         * @param {String} recSubId
+         * @param {String} recField
          */
         getSublistValue: function getSublistValue(recObj, recSubId, recField, recLine) {
             return recObj.getSublistValue({
@@ -453,11 +453,11 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
         },
 
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recSubId 
-         * @param {String} recField 
-         * @param {String} recLine 
+         *
+         * @param {Object} recObj
+         * @param {String} recSubId
+         * @param {String} recField
+         * @param {String} recLine
          */
         getSublistText: function getSublistText(recObj, recSubId, recField, recLine) {
             return recObj.getSublistText({
@@ -468,9 +468,9 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
         },
 
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recField 
+         *
+         * @param {Object} recObj
+         * @param {String} recField
          */
         getValue: function getValue(recObj, recField) {
             return recObj.getValue({
@@ -479,9 +479,9 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
         },
 
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recField 
+         *
+         * @param {Object} recObj
+         * @param {String} recField
          */
         getText: function getText(recObj, recField) {
             return recObj.getText({
@@ -489,9 +489,9 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
             });
         },
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recField 
+         *
+         * @param {Object} recObj
+         * @param {String} recField
          */
         setValue: function getValue(recObj, recField, recValue, recLine) {
             recObj.setValue({
@@ -502,9 +502,9 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
         },
 
         /**
-         * 
-         * @param {Object} recObj 
-         * @param {String} recField 
+         *
+         * @param {Object} recObj
+         * @param {String} recField
          */
         setText: function setText(recObj, recField, recValue, recLine) {
             recObj.setText({
@@ -524,7 +524,7 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
                 type: recType,
                 filters: recFilter,
                 columns: recColumn
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
 
                 return --recLimit > 0;
@@ -541,3 +541,32 @@ define(['N/record', 'N/search', 'N/log', 'N/url'], function (record, search, log
         Search: Search
     }
 });
+
+
+
+const date1 = new Date('2020-08-01');
+const date2 = new Date(new Date());
+const diffTime = Math.abs(date2 - date1);
+const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+console.log(diffTime + " milliseconds");
+console.log(diffDays + " days");
+
+
+
+const _MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// a and b are javascript Date objects
+function dateDiffInDays(a, b) {
+    // Discard the time and time-zone information.
+    const utc1 = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utc2 = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+
+    return Math.floor((utc2 - utc1) / _MS_PER_DAY);
+}
+
+// test it
+const a = new Date('2020-08-01'),
+    b = new Date(new Date()),
+    difference = dateDiffInDays(a, b);
+
+console.log(difference)

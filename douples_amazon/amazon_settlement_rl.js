@@ -903,7 +903,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
       orders.push(e.id)
       return --limit > 0
     })
-    if (orders.length == 0) return '处理完成'
+    if (orders.length == 0) return '处理完成:' + group_req
     orders.map(function (dfs) {
       var setlle = record.load({type: 'customrecord_aio_amazon_settlement',id: dfs})
       var markt = setlle.getValue('custrecord_aio_sett_marketplace_name')

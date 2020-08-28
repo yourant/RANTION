@@ -1,9 +1,9 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-18 19:37:38
- * @LastEditTime   : 2020-08-19 15:18:33
+ * @LastEditTime   : 2020-08-24 15:50:21
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.cs.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -178,7 +178,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新WMS发运
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function WMSShipping(rec_id) {
 
@@ -234,7 +234,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
         }
         /**
          * 重新推送标签面单文件
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function LabelDocument(rec_id) {
 
@@ -289,7 +289,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新申请shipment
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function amazonShipment(rec_id) {
             console.log('获取shipment', rec_id);
@@ -343,7 +343,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新获取物流渠道
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function reacquireLogistics(rec_id) {
 
@@ -397,7 +397,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新获取物流跟踪号
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function getTrackingNumber(rec_id) {
 
@@ -451,7 +451,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新获取物流面单
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function getLabel(rec_id) {
 
@@ -504,7 +504,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 确认出库
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function confirmOut(rec_id) {
             var url1 = url.resolveScript({
@@ -534,7 +534,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
                 commonTool.endMask();
                 var msg;
                 if (rebody.code == 500) {
-                    msg = '完成出库履行失败：' + rebody.msg;
+                    msg = '完成出库履行失败：' + JSON.stringify(rebody);
                 } else {
                     msg = '完成出库履行成功';
                 }
@@ -596,7 +596,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 完成录入装箱信息
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function finishPackage(rec_id) {
             var url1 = url.resolveScript({
@@ -623,7 +623,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
                 commonTool.endMask();
                 var msg;
                 if (rebody.code == 500) {
-                    msg = '完成录入装箱信息失败：' + rebody.msg;
+                    msg = '完成录入装箱信息失败：' + JSON.stringify(rebody);
                 } else {
                     msg = '完成录入装箱信息成功';
                 }
@@ -686,7 +686,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 生成报关资料
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function createInformation(rec_id) {
             console.log('生成报关资料', rec_id);
@@ -742,7 +742,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 获取装箱信息处理情况
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function amazonFeedStatus(rec_id) {
 
@@ -793,7 +793,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新上传装箱信息
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function amazonBoxInfo(rec_id) {
 
@@ -835,7 +835,7 @@ define(['../Helper/commonTool.js', 'N/url', 'N/https', 'N/currentRecord', 'N/ui/
 
         /**
          * 重新上传装箱信息
-         * @param {Number} rec_id 
+         * @param {Number} rec_id
          */
         function toWMSReferenceId(rec_id) {
 

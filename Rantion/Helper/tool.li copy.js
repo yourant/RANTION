@@ -3,7 +3,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-08-20 15:44:46
+ * @LastEditTime   : 2020-08-24 14:36:39
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\Helper\tool.li copy.js
@@ -2759,9 +2759,25 @@ define(['require', 'exports', 'N/search', 'N/record', 'N/log', "N/http", 'N/runt
      * @param {*} date 日期
      * @param {String} format 需要格式样例
      */
-    exports.dateFormat = function (date, format) {
-        var _date = date.Format(format);
-        return _date;
+    exports.dateFormat = function (_date, format) {
+        var date = {
+            "M+": _date.getMonth() + 1,                 //月份
+            "d+": _date.getDate(),                    //日
+            "h+": _date.getHours(),                   //小时
+            "m+": _date.getMinutes(),                 //分
+            "s+": _date.getSeconds(),                 //秒
+            "q+": Math.floor((_date.getMonth() + 3) / 3), //季度
+            "S": _date.getMilliseconds()             //毫秒
+        };
+        if (/(y+)/i.test(format)) {
+            format = format.replace(RegExp.$1, (_date.getFullYear() + '').substr(4 - RegExp.$1.length));
+        }
+        for (var k in date) {
+            if (new RegExp("(" + k + ")").test(format)) {
+                format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
+            }
+        }
+        return format;
     }
 
 });

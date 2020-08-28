@@ -55,7 +55,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
       if (group) {
         fils.push({ name: 'custrecord_aio_getorder_group',join: 'custrecord_aio_b2c_return_aio_account', operator: 'anyof', values: group })
       }
-      fils.push({ name: 'custrecord_aio_account_region',join: 'custrecord_aio_b2c_return_aio_account', operator: 'noneof', values: ['1'] })
+      // fils.push({ name: 'custrecord_aio_account_region',join: 'custrecord_aio_b2c_return_aio_account', operator: 'noneof', values: ['1'] })
       search.create({
         type: 'customrecord_aio_amazon_customer_return',
         filters: fils,
@@ -87,14 +87,13 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
           dept: rec.getValue(rec.columns[10]),
           detial_desc: rec.getValue('custrecord_aio_b2c_return_detailed_disp') // �������ֶ��ж��Ƿ����
         })
-        return --limit
+        return --limit > 0
       })
       log.audit('\u83b7\u53d6\u0072\u0065\u0074\u0075\u0072\u006e\u0073\u8ba2\u5355\u603b\u6570', returns.length)
 
       return returns
     }
     exports.map = function (ctx) {
-      var scriptObj = runtime.getCurrentScript()
       var ST = new Date().getTime()
       var obj = JSON.parse(ctx.value)
       var oid = obj.order_id,
@@ -129,7 +128,6 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         log.debug('skuid:' + skuid, res)
         if (!res) {
           var so_id = 0, ordstatus
-
           search.create({
             type: record.Type.SALES_ORDER,
             filters: [
@@ -250,7 +248,8 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
               del++
             })
             return_author = r.save()
-          }else if (!so_id || (so_id && !ship_id)) {
+          // }else if (!so_id || (so_id && !ship_id)) {
+          }else {
             var cre_rs = createAuthoration(rtn_id, re_lcn, p_store, skuid, return_date, return_date_txt, oid, re_qty, status, dept, re_sku)
             return_author = cre_rs.Art_id
             fba_location = cre_rs.fba_location
@@ -788,92 +787,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
       })
       return accounts
     }
-    /**
-     * ����sku��Ӧ����Ʒ
-     * @param {*} retsku 
-     * @param {*} retacc 
-     */
-    function Getskuid (retsku, retacc) {
-      try {
-        var skuid
-        log.debug('amazon msku:', retsku.trim())
-        search.create({
-          type: 'item',
-          filters: [{name: 'custitem_seller_sku',operator: search.Operator.IS,values: retsku.trim()}],
-          columns: [
-            { name: 'internalId'}
-          ]
-        }).run().each(function (rec) {
-          log.debug('amazon msku:', rec.id)
-          skuid = Number(rec.id)
-        })
-        if (!skuid) {
-          log.debug('��itemid msku:', retsku.trim())
-          search.create({
-            type: 'item',
-            filters: [{name: 'itemid',operator: search.Operator.IS,values: retsku.trim()}],
-            columns: [
-              { name: 'internalId'}
-            ]
-          }).run().each(function (rec) {
-            skuid = Number(rec.id)
-          })
-        }
-        if (!skuid) {
-          log.debug('itemIdΪ�գ���ɵ�SKU', skuid)
-          search.create({
-            type: 'item',
-            filters: [{name: 'custitem_old_code',operator: search.Operator.IS,values: retsku.trim()}],
-            columns: [
-              { name: 'internalId'}
-            ]
-          }).run().each(function (rec) {
-            skuid = Number(rec.id)
-          })
-        }
-        if (!skuid) {
-          log.debug('itemIdΪ�գ����Ӧ��', skuid)
-          search.create({
-            type: 'customrecord_sku_correspondence',
-            filters: [
-              {name: 'custrecord_sku_c_product_id',operator: search.Operator.IS,values: retsku.trim()}
-            ],
-            columns: [
-              { name: 'custrecord_sku_c_sku'}
-            ]
-          }).run().each(function (rec) {
-            skuid = Number(rec.getValue('custrecord_sku_c_sku'))
-          })
-        }
-        if (!skuid) {
-          log.debug('�Ҳ���sku���Ѽ�¼���� ' + retsku, retacc)
-          var sku_notes,counts = 0
-          search.create({
-            type: 'customrecord_no_sku_record',
-            filters: [
-              {name: 'custrecord_not_on_sku',operator: 'is',values: retsku.trim()},
-              {name: 'custrecord_account',operator: 'anyof',values: [retacc]}
-            ],columns: [
-              {name: 'custrecord_total_orders'}
-            ]
-          }).run().each(function (e) {
-            counts = e.getValue('custrecord_total_orders')
-            sku_notes = record.load({type: 'customrecord_no_sku_record',id: e.id})
-          })
-          if (!sku_notes) {
-            sku_notes = record.create({type: 'customrecord_no_sku_record'})
-          }
-          sku_notes.setValue({fieldId: 'custrecord_not_on_sku',value: retsku.trim()})
-          sku_notes.setValue({fieldId: 'custrecord_orderno',value: 'Amazon'})
-          sku_notes.setValue({fieldId: 'custrecord_account',value: retacc})
-          sku_notes.setValue({fieldId: 'custrecord_total_orders',value: Number(counts) + 1})
-          sku_notes.save()
-        }
-      } catch(er) {
-        log.error('search skuid error :::', er)
-      }
-      return skuid
-    }
+
     exports.summarize = function (ctx) {
       log.audit('处理完成', ctx)
     }

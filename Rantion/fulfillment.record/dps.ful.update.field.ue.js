@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-20 11:33:34
+ * @LastEditTime   : 2020-08-25 11:14:22
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -37,12 +37,12 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                         values: context.newRecord.id
                     }],
                     columns: [{
-                        name: "tranid",
-                        join: "custrecord_dps_shipping_rec_order_num"
-                    }, // 调拨单号
-                    {
-                        name: 'custrecord_dps_shipping_rec_status', // 状态
-                    }
+                            name: "tranid",
+                            join: "custrecord_dps_shipping_rec_order_num"
+                        }, // 调拨单号
+                        {
+                            name: 'custrecord_dps_shipping_rec_status', // 状态
+                        }
                     ]
                 }).run().each(function (r) {
                     aono = r.getValue({
@@ -134,12 +134,12 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                         values: context.newRecord.id
                     }],
                     columns: [{
-                        name: "tranid",
-                        join: "custrecord_dps_shipping_rec_order_num"
-                    }, // 调拨单号
-                    {
-                        name: 'custrecord_dps_shipping_rec_status', // 状态
-                    },
+                            name: "tranid",
+                            join: "custrecord_dps_shipping_rec_order_num"
+                        }, // 调拨单号
+                        {
+                            name: 'custrecord_dps_shipping_rec_status', // 状态
+                        },
                         "custrecord_dps_box_return_flag", // 已装箱
                     ]
                 }).run().each(function (r) {
@@ -183,7 +183,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     context.form.clientScriptModulePath = './dps.to.control.field.cs.js';
                 }
 
-                if (box_flag /* && userObj.id == 911 */) {
+                if (box_flag /* && userObj.id == 911 */ ) {
                     context.form.addButton({
                         id: 'custpage_dps_li_print_amazon_box_info',
                         label: 'Amazon 格式装箱信息导出',
@@ -243,16 +243,16 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                         values: newRecord.id
                     }],
                     columns: [{
-                        name: 'transferlocation',
-                        join: "custrecord_dps_shipping_rec_order_num"
-                    },
-                    {
-                        name: 'custrecord_dps_shipping_rec_status', // 状态
-                    },
-                    {
-                        name: "tranid",
-                        join: "custrecord_dps_shipping_rec_order_num"
-                    }, // 调拨单
+                            name: 'transferlocation',
+                            join: "custrecord_dps_shipping_rec_order_num"
+                        },
+                        {
+                            name: 'custrecord_dps_shipping_rec_status', // 状态
+                        },
+                        {
+                            name: "tranid",
+                            join: "custrecord_dps_shipping_rec_order_num"
+                        }, // 调拨单
                     ]
                 }).run().each(function (rec) {
                     tranLoca = rec.getValue({
@@ -587,100 +587,100 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 values: recId
             }],
             columns: [{
-                join: 'custrecord_dps_shipping_record_item',
-                name: 'custitem_dps_msku'
-            },
-            {
-                name: 'custrecord_dps_f_b_purpose',
-                join: 'custrecord_dps_shipping_record_parentrec'
-            },
-            {
-                name: 'custrecord_dps_ship_record_tranor_type',
-                join: 'custrecord_dps_shipping_record_parentrec'
-            },
-            {
-                name: "custrecord_dps_shipping_rec_order_num",
-                join: 'custrecord_dps_shipping_record_parentrec'
-            },
-            {
-                join: 'custrecord_dps_shipping_record_item',
-                name: 'custitem_dps_fnsku'
-            },
-            {
-                name: 'custitem_aio_asin',
-                join: 'custrecord_dps_shipping_record_item'
-            },
-            {
-                name: 'custitem_dps_skuchiense',
-                join: 'custrecord_dps_shipping_record_item'
-            },
-            {
-                name: 'custitem_dps_picture',
-                join: 'custrecord_dps_shipping_record_item'
-            },
-            {
-                name: 'itemid',
-                join: 'custrecord_dps_shipping_record_item'
-            },
-            {
-                name: 'custrecord_dps_ship_record_sku_item'
-            },
-            {
-                name: 'custrecord_dps_ship_record_item_quantity'
-            },
+                    join: 'custrecord_dps_shipping_record_item',
+                    name: 'custitem_dps_msku'
+                },
+                {
+                    name: 'custrecord_dps_f_b_purpose',
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                },
+                {
+                    name: 'custrecord_dps_ship_record_tranor_type',
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                },
+                {
+                    name: "custrecord_dps_shipping_rec_order_num",
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                },
+                {
+                    join: 'custrecord_dps_shipping_record_item',
+                    name: 'custitem_dps_fnsku'
+                },
+                {
+                    name: 'custitem_aio_asin',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'custitem_dps_skuchiense',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'custitem_dps_picture',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'itemid',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
+                {
+                    name: 'custrecord_dps_ship_record_sku_item'
+                },
+                {
+                    name: 'custrecord_dps_ship_record_item_quantity'
+                },
 
-            {
-                name: 'custitem_dps_heavy2',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 产品重量(cm),
-            {
-                name: 'custitem_dps_high',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 产品高(cm),
-            {
-                name: 'custitem_dps_long',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 产品长(cm),
-            {
-                name: 'custitem_dps_wide',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 产品宽(cm),
-            {
-                name: 'custitem_dps_brand',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 品牌名称,
-            {
-                name: 'custitem_dps_declaration_us',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 产品英文标题,
+                {
+                    name: 'custitem_dps_heavy2',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品重量(cm),
+                {
+                    name: 'custitem_dps_high',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品高(cm),
+                {
+                    name: 'custitem_dps_long',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品长(cm),
+                {
+                    name: 'custitem_dps_wide',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品宽(cm),
+                {
+                    name: 'custitem_dps_brand',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 品牌名称,
+                {
+                    name: 'custitem_dps_declaration_us',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品英文标题,
 
-            {
-                name: 'custitem_dps_use',
-                join: 'custrecord_dps_shipping_record_item'
-            },
+                {
+                    name: 'custitem_dps_use',
+                    join: 'custrecord_dps_shipping_record_item'
+                },
                 'custrecord_dps_shipping_record_item', // 货品
                 'custrecord_dps_ship_record_sku_item', //seller sku
-            {
-                name: "custitem_dps_nature",
-                join: "custrecord_dps_shipping_record_item"
-            }, // 材质  material
-            {
-                name: "custitem_dps_group",
-                join: "custrecord_dps_shipping_record_item"
-            }, // 物流分组 logisticsGroup
-            {
-                name: "cost",
-                join: "custrecord_dps_shipping_record_item"
-            }, // 采购成本  purchaseCost
-            {
-                name: "custitem_dps_skuenglish",
-                join: "custrecord_dps_shipping_record_item"
-            }, // 英文标题/描述 englishTitle
+                {
+                    name: "custitem_dps_nature",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 材质  material
+                {
+                    name: "custitem_dps_group",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 物流分组 logisticsGroup
+                {
+                    name: "cost",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 采购成本  purchaseCost
+                {
+                    name: "custitem_dps_skuenglish",
+                    join: "custrecord_dps_shipping_record_item"
+                }, // 英文标题/描述 englishTitle
 
-            {
-                name: 'custrecord_dps_shipping_rec_account',
-                join: 'custrecord_dps_shipping_record_parentrec'
-            }, // 店铺
+                {
+                    name: 'custrecord_dps_shipping_rec_account',
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                }, // 店铺
             ]
         }).run().each(function (rec) {
 
@@ -805,9 +805,11 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 add_fils.push("or");
         });
         fils.push(add_fils);
-        fils.push("and",
-            ["custrecord_ass_account", "anyof", fbaAccount]
-        );
+        if (fbaAccount) {
+            fils.push("and",
+                ["custrecord_ass_account", "anyof", fbaAccount]
+            );
+        }
         fils.push("and",
             ["isinactive", "is", false]
         );
@@ -846,15 +848,15 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
             if (newItemInfo && newItemInfo.length == 0) {
 
                 message.code = 3;
-                message.data = 'Amazon Seller SKU 中找不到对应的映射关系';
-                var id = record.submitFields({
-                    type: 'customrecord_dps_shipping_record',
-                    id: af_rec.id,
-                    values: {
-                        custrecord_dps_shipping_rec_status: 8,
-                        custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
-                    }
-                });
+                message.data = "推送WMS更新： " + 'Amazon Seller SKU 中找不到对应的映射关系';
+                // var id = record.submitFields({
+                //     type: 'customrecord_dps_shipping_record',
+                //     id: recId,
+                //     values: {
+                //         // custrecord_dps_shipping_rec_status: 8,
+                //         custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.data)
+                //     }
+                // });
 
                 return message;
             }
@@ -900,10 +902,10 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 // 调用失败
             }
             message.code = code;
-            message.data = retdata;
+            message.data = "推送WMS更新： " + JSON.stringify(retdata);
         } else {
             message.code = 5;
-            message.data = "不存在秘钥";
+            message.data = "推送WMS更新： " + "不存在秘钥";
         }
 
         return message;

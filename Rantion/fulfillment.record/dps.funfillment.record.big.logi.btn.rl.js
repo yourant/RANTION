@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-08-20 18:08:58
+ * @LastEditTime   : 2020-08-26 19:00:27
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
@@ -69,7 +69,8 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
     function confirmOut(rec_id) {
         var result
         try {
-            var to_id, to_2_id_rec, to_2_status_rec, wms_info = '', financia_warehous;
+            var to_id, to_2_id_rec, to_2_status_rec, wms_info = '',
+                financia_warehous, to_fina_location;
             search.create({
                 type: 'customrecord_dps_shipping_record',
                 filters: [{
@@ -87,6 +88,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         name: "custrecord_dps_financia_warehous",
                         join: 'custrecord_dps_shipping_rec_location'
                     }, // 财务分仓
+                    {
+                        name: 'custrecord_dps_financia_warehous',
+                        join: "custrecord_dps_shipping_rec_to_location"
+                    }, // 目标仓库 财务分仓
                 ]
             }).run().each(function (rec) {
                 to_id = rec.getValue('custrecord_dps_shipping_rec_order_num');
@@ -95,10 +100,15 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     name: 'statusref',
                     join: 'custrecord_transfer_order3'
                 });
-                wms_info = rec.getValue('custrecord_dps_shipping_rec_wms_info');
+                wms_info = rec.getValue('custrecord_dps_shipping_rec_wms_info') ? rec.getValue('custrecord_dps_shipping_rec_wms_info') : '';
                 financia_warehous = rec.getValue({
                     name: "custrecord_dps_financia_warehous",
                     join: 'custrecord_dps_shipping_rec_location'
+                });
+
+                to_fina_location = rec.getValue({
+                    name: 'custrecord_dps_financia_warehous',
+                    join: "custrecord_dps_shipping_rec_to_location"
                 });
                 return false;
             });
@@ -108,15 +118,15 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                 search.create({
                     type: 'transferorder',
                     filters: [{
-                        name: 'internalid',
-                        operator: 'anyof',
-                        values: to_id
-                    },
-                    {
-                        name: 'mainline',
-                        operator: 'is',
-                        values: true
-                    }
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: to_id
+                        },
+                        {
+                            name: 'mainline',
+                            operator: 'is',
+                            values: true
+                        }
                     ],
                     columns: [
                         "statusref", // 单据状态
@@ -267,7 +277,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
 
 
                     var to_2_id;
-                    if (!to_2_id_rec) {
+                    if (!to_2_id_rec && (to_fina_location != 1)) { // 工厂直发, 目标仓库为 FBA 仓时, 不创建第二段 调拨单
 
                         var get = tool.copyRecordType("transferorder", to_id, {}, false, false);
 
@@ -305,7 +315,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         var objRecord_id = objRecord.save();
 
                         log.debug('to 2 货品履行', objRecord_id);
-                    } else if (to_2_status_rec == "pendingFulfillment" || to_2_status_rec == "等待发货") {
+                    } else if (to_2_id_rec && (to_2_status_rec == "pendingFulfillment" || to_2_status_rec == "等待发货")) {
 
                         to_2_id = to_2_id_rec;
                         var objRecord = record.transform({ // 履行 to 2
@@ -320,6 +330,8 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         var objRecord_id = objRecord.save();
 
                         log.debug('to 2 货品履行', objRecord_id);
+                        // } else {
+                        //     wms_info = wms_info + '\n 工厂直发 FBA仓'
                     }
 
                     if (!to_2_id) {
@@ -327,44 +339,63 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                     }
 
                     var url = config.WMS_Debugging_URL + '/inMaster';
-                    var to_wms_message = tool.tranferOrderToWMS(to_2_id, url);
 
-                    log.debug('推送WMS 调拨入库', to_wms_message);
+                    var to_wms_message = '';
+                    if (to_fina_location != 1) {
+                        to_wms_message = tool.tranferOrderToWMS(to_2_id, url);
 
-                    if (to_wms_message.code == 0) {
+                        log.debug('推送WMS 调拨入库', to_wms_message);
 
-                        var new_str = to_wms_message.data.msg ? to_wms_message.data.msg : to_wms_message.data
+                        if (to_wms_message.code == 0) {
 
+                            var new_str = to_wms_message.data.msg ? to_wms_message.data.msg : to_wms_message.data
+
+                            record.submitFields({
+                                type: 'customrecord_dps_shipping_record',
+                                id: rec_id,
+                                values: {
+                                    custrecord_transfer_order3: to_2_id,
+                                    custrecord_dps_shipping_rec_status: 30,
+                                    custrecord_dps_shipping_rec_wms_info: wms_info + '\n' + JSON.stringify(new_str)
+                                }
+                            });
+
+                            result = {
+                                code: 200,
+                                msg: '处理成功'
+                            }
+                        } else {
+
+                            var new_str = to_wms_message.data.msg ? to_wms_message.data.msg : to_wms_message.data
+                            record.submitFields({
+                                type: 'customrecord_dps_shipping_record',
+                                id: rec_id,
+                                values: {
+                                    custrecord_transfer_order3: to_2_id,
+                                    // custrecord_dps_shipping_rec_status: 30,
+                                    custrecord_dps_shipping_rec_wms_info: wms_info + '\n' + JSON.stringify(new_str)
+                                }
+                            });
+
+                            result = {
+                                code: 500,
+                                msg: '推送WMS 调拨入库 失败'
+                            }
+                        }
+                    } else {
                         record.submitFields({
                             type: 'customrecord_dps_shipping_record',
                             id: rec_id,
                             values: {
-                                custrecord_transfer_order3: to_2_id,
+                                // custrecord_transfer_order3: to_2_id,
                                 custrecord_dps_shipping_rec_status: 30,
-                                custrecord_dps_shipping_rec_wms_info: wms_info + '\n' + JSON.stringify(new_str)
+                                custrecord_dps_shipping_rec_wms_info: wms_info + '\n  工厂直发 FBA仓'
                             }
                         });
 
                         result = {
                             code: 200,
                             msg: '处理成功'
-                        }
-                    } else {
-
-                        var new_str = to_wms_message.data.msg ? to_wms_message.data.msg : to_wms_message.data
-                        record.submitFields({
-                            type: 'customrecord_dps_shipping_record',
-                            id: rec_id,
-                            values: {
-                                custrecord_transfer_order3: to_2_id,
-                                // custrecord_dps_shipping_rec_status: 30,
-                                custrecord_dps_shipping_rec_wms_info: wms_info + '\n' + JSON.stringify(new_str)
-                            }
-                        });
-
-                        result = {
-                            code: 500,
-                            msg: '推送WMS 调拨入库 失败'
                         }
                     }
                 }

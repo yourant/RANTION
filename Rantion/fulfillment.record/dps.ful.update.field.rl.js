@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-18 11:12:06
+ * @LastEditTime   : 2020-08-28 15:55:55
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -15,7 +15,7 @@
  */
 define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.li',
     '../Helper/config'
-], function (http, search, record, log, runtime, tool, config) {
+], function(http, search, record, log, runtime, tool, config) {
 
 
     function _post(context) {
@@ -32,7 +32,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 var token = getToken();
                 if (token) {
 
-                    var aono;
+                    var aono, toId;
                     search.create({
                         type: "customrecord_dps_shipping_record",
                         filters: [{
@@ -43,13 +43,15 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                         columns: [{
                                 name: "tranid",
                                 join: "custrecord_dps_shipping_rec_order_num"
-                            }, // 调拨单
+                            }, // 调拨单单号
+                            "custrecord_dps_shipping_rec_order_num", // 关联的调拨单
                         ]
-                    }).run().each(function (rec) {
+                    }).run().each(function(rec) {
                         aono = rec.getValue({
                             name: "tranid",
                             join: "custrecord_dps_shipping_rec_order_num"
-                        })
+                        });
+                        toId = rec.getValue("custrecord_dps_shipping_rec_order_num");
                     })
 
                     log.debug('授权秘钥存在', '授权秘钥存在');
@@ -67,8 +69,8 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                     log.debug('获取调拨单状态', response);
                     if (response.code == 200) {
                         var body = JSON.parse(response.body);
-                        log.debug('请求 WMS, 返回的参数' + typeof (body), body);
-                        if (body.code == 0) { // 
+                        log.debug('请求 WMS, 返回的参数' + typeof(body), body);
+                        if (body.code == 0) { //
 
                             var status = body.data.status;
                             log.audit('WMS 调拨单状态', status)
@@ -79,7 +81,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
                                 var name = userObj.name; // 当前用户
 
-                                var retObj = updateToWMS(recId, name, aono);
+                                var retObj = updateToWMS(recId, name, aono, toId);
 
                                 record.submitFields({
                                     type: "customrecord_dps_shipping_record",
@@ -141,7 +143,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             if (action == "inputPackingInfo") {
                 var getArr = tool.getInfo(recId);
                 var boxNo = 0;
-                getArr.map(function (get) {
+                getArr.map(function(get) {
 
                     var qty = get.qty;
                     var mpq = get.mpq;
@@ -170,9 +172,9 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 var sublistId = "recmachcustrecord_dps_ship_box_fa_record_link"
 
                 var box_no = 1;
-                getArr.map(function (arr) {
+                getArr.map(function(arr) {
                     var boxArr = arr.boxArr;
-                    boxArr.map(function (b) {
+                    boxArr.map(function(b) {
 
                         loadRec.selectNewLine({
                             sublistId: sublistId
@@ -288,28 +290,27 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 return retObj;
             }
 
-            if(action == 'deleteBoxInfo'){
+            if (action == 'deleteBoxInfo') {
 
 
                 var retObj = {};
                 var userObj = runtime.getCurrentUser();
 
-                if(userObj.role == 3){
-                  var boxLine=  tool.deleteBoxInfo(recId);
+                if (userObj.role == 3) {
+                    var boxLine = tool.deleteBoxInfo(recId);
 
 
-                  if(boxLine == 0){
-                      retObj.code = 0;
-                    }
-                    else{
+                    if (boxLine == 0) {
+                        retObj.code = 0;
+                    } else {
                         retObj.code = 3;
-                  }
-                  retObj.data = null;
-                  retObj.msg = "装箱信息 剩余数量 "+boxLine;
-                  log.audit('删除装箱信息 剩余数量, 返回参数 retObj', retObj);
+                    }
+                    retObj.data = null;
+                    retObj.msg = "装箱信息 剩余数量 " + boxLine;
+                    log.audit('删除装箱信息 剩余数量, 返回参数 retObj', retObj);
 
-                  return retObj;
-                }else{
+                    return retObj;
+                } else {
 
                     retObj.code = 5;
                     retObj.data = null;
@@ -326,8 +327,8 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             log.error('处理数据出错了', error);
             retObj.code = 5;
             retObj.data = null;
-            retObj.msg = "系统错误, 请稍后重试";
-            log.audit('不存在 token, 返回参数 retObj', retObj);
+            retObj.msg = "系统错误, 请稍后重试。"+error.message;
+            log.audit('处理数据出错了, 返回参数 retObj', retObj);
             return retObj;
         }
     }
@@ -344,14 +345,14 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 values: 1
             }],
             columns: ['custrecord_wtr_token']
-        }).run().each(function (result) {
+        }).run().each(function(result) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;
     }
 
 
-    function updateToWMS(recId, updateName, aono) {
+    function updateToWMS(recId, updateName, aono, toId) {
         var itemArr = [];
         var ful_limit = 3999;
         var tranType, data = {};
@@ -361,7 +362,20 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
         var fbaAccount;
 
-        log.debug('updateToWMS aono', aono)
+        log.debug('updateToWMS aono', aono);
+
+        // var to_qty = qtyBackOrdered(toId);
+        var to_qty = arrBackOrder(toId);
+
+        if (to_qty && to_qty.length  > 0) {
+            message.code = 3;
+            message.msg = "库存不足: "+JSON.stringify(to_qty);
+            message.data = null;
+
+            return message;
+        }
+
+
 
         var ful_to_link;
         data["aono"] = aono;
@@ -469,7 +483,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                     join: 'custrecord_dps_shipping_record_parentrec'
                 }, // 店铺
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             ful_to_link = rec.getValue({
                 name: "custrecord_dps_shipping_rec_order_num",
@@ -583,12 +597,12 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 return message;
             }
             log.debug('itemArr', itemArr);
-            // 2020/7/18 13：44 改动 
+            // 2020/7/18 13：44 改动
             var fils = [],
                 add_fils = []; //过滤
             var len = item_info.length,
                 num = 0;
-            item_info.map(function (ld) {
+            item_info.map(function(ld) {
                 num++;
                 add_fils.push([
                     ["name", "is", ld.msku],
@@ -615,10 +629,10 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 columns: [
                     "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 var it = rec.getValue('custrecord_ass_sku');
-                item_info.forEach(function (item, key) {
+                item_info.forEach(function(item, key) {
                     if (item.itemId == it && fls_skus.indexOf(it) == -1) {
                         item.asin = rec.getValue("custrecord_ass_asin");
                         item.fnsku = rec.getValue("custrecord_ass_fnsku")
@@ -634,16 +648,16 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             if (newItemInfo && newItemInfo.length == 0) {
 
                 message.code = 3;
-                message.msg = 'Amazon Seller SKU 中找不到对应的映射关系';
+                message.msg = "推送WMS更新： " + 'Amazon Seller SKU 中找不到对应的映射关系';
                 message.data = null;
-                var id = record.submitFields({
-                    type: 'customrecord_dps_shipping_record',
-                    id: af_rec.id,
-                    values: {
-                        custrecord_dps_shipping_rec_status: 8,
-                        custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.msg)
-                    }
-                });
+                // var id = record.submitFields({
+                //     type: 'customrecord_dps_shipping_record',
+                //     id: af_rec.id,
+                //     values: {
+                //         custrecord_dps_shipping_rec_status: 8,
+                //         custrecord_dps_shipping_rec_wms_info: JSON.stringify(message.msg)
+                //     }
+                // });
 
                 return message;
             }
@@ -651,7 +665,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
             var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link)
 
-            newItemInfo.map(function (newItem) {
+            newItemInfo.map(function(newItem) {
                 var itemId = newItem.itemId;
                 newItem.pono = getPoObj[itemId]
             });
@@ -690,15 +704,92 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             }
             message.code = code;
             message.data = null;
-            message.msg = retdata.msg;
+            message.msg = "推送WMS更新： " + JSON.stringify(retdata.msg);
         } else {
             message.code = 5;
             message.data = null;
-            message.msg = "不存在秘钥";
+            message.msg = "推送WMS更新： " + "不存在秘钥";
         }
 
         return message;
 
+    }
+
+    function qtyBackOrdered(toId) {
+        var flag = true;
+        var backOrder = 0;
+
+        var toObj = record.load({
+            type: 'transferorder',
+            id: toId
+        });
+        var numLines = toObj.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            var backQty = toObj.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantitybackordered',
+                line: i
+            });
+            backOrder += Number(backQty);
+            // backOrder += Math.abs(Number(backQty));
+        }
+        log.debug('backOrder', backOrder);
+
+        if (backOrder != 0) {
+            flag = false;
+        }
+
+        return flag;
+    }
+
+    function arrBackOrder(toId) {
+        var backOrder = 0;
+        var bacOrdArr = [];
+
+        var toObj = record.load({
+            type: 'transferorder',
+            id: toId
+        });
+        var numLines = toObj.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            var backQty = toObj.getSublistValue({
+                sublistId: 'item',
+                fieldId: 'quantitybackordered',
+                line: i
+            });
+            if (backQty != 0) {
+                var it = {
+                    itemName: toObj.getSublistText({
+                        sublistId: 'item',
+                        fieldId: 'item',
+                        line: i
+                    }),
+                    qty: backQty
+                }
+                bacOrdArr.push(toObj.getSublistText({
+                    sublistId: 'item',
+                    fieldId: 'item',
+                    line: i
+                }));
+            }
+            backOrder += Number(backQty);
+        }
+        log.debug('backOrder', backOrder);
+
+        if (backOrder != 0) {
+            flag = false;
+        }
+        log.audit('bacOrdArr length： ' + bacOrdArr.length, bacOrdArr);
+
+        return bacOrdArr;
     }
 
     return {

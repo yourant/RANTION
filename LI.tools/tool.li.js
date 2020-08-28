@@ -2,10 +2,10 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-08-24 20:31:36
+ * @LastEditTime   : 2020-08-28 14:04:56
  * @LastEditors    : Li
  * @Description    :
- * @FilePath       : \Rantion\Helper\tool.li.js
+ * @FilePath       : \LI.tools\tool.li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
@@ -2756,22 +2756,22 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
     function dateFormat(date, fmt) {
         var o = {
             "M+": date.getMonth() + 1,
-            "D+": date.getDate(),
+            "d+": date.getDate(),
             "h+": date.getHours(),
             "m+": date.getMinutes(),
             "s+": date.getSeconds(),
             "q+": Math.floor((date.getMonth() + 3) / 3),
             "S": date.getMilliseconds()
         }
-        if (/(Y+)/.test(fmt)) {
-            fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
+        if (/(y+)/.test(fmt)) {
+            fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length));
         }
         for (var k in o) {
             if (new RegExp('(' + k + ')').test(fmt)) {
-                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)))
+                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)));
             }
         }
-        return fmt
+        return fmt;
     }
 
 

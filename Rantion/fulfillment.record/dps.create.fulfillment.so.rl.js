@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-12 19:57:07
- * @LastEditTime   : 2020-08-17 20:20:29
+ * @LastEditTime   : 2020-08-24 16:07:12
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -77,8 +77,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
     // 获取订单对应的库存
     /**
      * 搜索单据的货品、地点、子公司
-     * @param {String} recType 
-     * @param {number} recId 
+     * @param {String} recType
+     * @param {number} recId
      * @returns {Object} {subsidiary: subs,itemArr: itemArr,location: loca,totalQty: totalQty};
      */
     function searchToLocationItem(recType, recId) {
@@ -91,20 +91,20 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: recType,
             filters: [{
-                    name: "internalid",
-                    operator: 'anyof',
-                    values: [recId]
-                },
-                {
-                    name: "mainline",
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: "taxline",
-                    operator: 'is',
-                    values: false
-                }
+                name: "internalid",
+                operator: 'anyof',
+                values: [recId]
+            },
+            {
+                name: "mainline",
+                operator: 'is',
+                values: false
+            },
+            {
+                name: "taxline",
+                operator: 'is',
+                values: false
+            }
             ],
             columns: [
                 "item",
@@ -123,15 +123,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: recType,
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: recId
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: true
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: recId
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: true
+            }
             ],
             columns: [
                 "location", "subsidiary"
@@ -168,20 +168,20 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: "location",
             filters: [{
-                    name: 'custrecord_dps_parent_location',
-                    operator: 'anyof',
-                    values: [loca]
-                }, // 父级地点
-                {
-                    name: "subsidiary",
-                    operator: 'anyof',
-                    values: [sub]
-                }, // 子公司
-                {
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: locaArr
-                }, // 地点
+                name: 'custrecord_dps_parent_location',
+                operator: 'anyof',
+                values: [loca]
+            }, // 父级地点
+            {
+                name: "subsidiary",
+                operator: 'anyof',
+                values: [sub]
+            }, // 子公司
+            {
+                name: 'internalid',
+                operator: 'anyof',
+                values: locaArr
+            }, // 地点
             ]
         }).run().each(function (rec) {
 
@@ -243,15 +243,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'item',
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: itemArr
-                },
-                {
-                    name: 'inventorylocation',
-                    operator: 'anyof',
-                    values: LocaArr
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: itemArr
+            },
+            {
+                name: 'inventorylocation',
+                operator: 'anyof',
+                values: LocaArr
+            }
             ],
             columns: [
                 "locationquantityonhand", // 库存量 Location On Hand
@@ -289,16 +289,16 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'item',
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: itemArr
-                },
-                {
-                    name: 'subsidiary',
-                    join: 'inventorylocation',
-                    operator: 'anyof',
-                    values: sub
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: itemArr
+            },
+            {
+                name: 'subsidiary',
+                join: 'inventorylocation',
+                operator: 'anyof',
+                values: sub
+            }
             ],
             columns: [
                 "inventorylocation"
@@ -316,8 +316,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 判断库存是否充足
-     * @param {String} recType 
-     * @param {Number} recId 
+     * @param {String} recType
+     * @param {Number} recId
      * @returns{Boolean} flag
      */
     function judgmentItemInventory(recType, recId) {
@@ -362,7 +362,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
-     * @param {*} soId 
+     * @param {*} soId
      * @returns {Boolean} true || false
      */
     function qtyBackOrdered(soId) {
@@ -398,7 +398,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 搜索订单的货品信息
-     * @param {*} soid 
+     * @param {*} soid
      */
     function searchItemSO(soid) {
 
@@ -410,26 +410,26 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'salesorder',
             filters: [{
-                    name: 'internalid',
-                    operator: 'is',
-                    values: soid
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'type',
-                    join: 'item',
-                    operator: 'noneof',
-                    values: 'OthCharge'
-                }
+                name: 'internalid',
+                operator: 'is',
+                values: soid
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'type',
+                join: 'item',
+                operator: 'noneof',
+                values: 'OthCharge'
+            }
             ],
             columns: [
                 'location', 'item', 'quantity',
@@ -454,7 +454,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 判断货品是否有库存
-     * @param {*} itemJson 
+     * @param {*} itemJson
      */
     function searchLocation(itemJson) {
         var itemArr = itemJson.itemarr,
@@ -470,15 +470,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'item',
             filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: itemArr
-                },
-                {
-                    name: "inventorylocation",
-                    operator: 'anyof',
-                    values: location
-                }
+                name: 'internalid',
+                operator: 'anyof',
+                values: itemArr
+            },
+            {
+                name: "inventorylocation",
+                operator: 'anyof',
+                values: location
+            }
             ],
             columns: [
                 'inventorylocation'
@@ -510,8 +510,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 生成发运记录, 关联销售订单
-     * @param {*} soid 
-     * @param {*} sku 
+     * @param {*} soid
+     * @param {*} sku
      * @returns {*} 返回生成的发运记录的ID, 或者 false;
      */
     function createFulfillmentRecord(soid, sku) {
@@ -525,26 +525,26 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'salesorder',
             filters: [{
-                    name: 'internalid',
-                    operator: 'is',
-                    values: soid
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'type',
-                    join: 'item',
-                    operator: 'noneof',
-                    values: 'OthCharge'
-                }
+                name: 'internalid',
+                operator: 'is',
+                values: soid
+            },
+            {
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'type',
+                join: 'item',
+                operator: 'noneof',
+                values: 'OthCharge'
+            }
             ],
             columns: [
                 'location', 'item', 'quantity', 'custbody_aio_api_content', 'tranid', 'amount',
@@ -675,17 +675,17 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             fieldId: 'custrecord_dps_ship_small_channelservice',
             value: custbody_dps_service_channels
         });
-        // 订单号 
+        // 订单号
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_order_number',
             value: tranid
         });
-        // 平台订单号 
+        // 平台订单号
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_platform_order_numbe',
             value: otherrefnum
         });
-        // 状态 
+        // 状态
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_status',
             value: 1
@@ -746,6 +746,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             value: cc_state ? cc_state : ''
         });
         var c_country;
+
+        log.audit('cc_country', cc_country);
         if (cc_country) {
             c_country = searchCountryByCode(cc_country);
         }
@@ -796,12 +798,12 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         //     fieldId: 'custrecord_dps_addressee_address',
         //     value: strName + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
         // });
-        // 收件人 
+        // 收件人
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_recipient',
             value: strName1
         });
-        // 联系电话 
+        // 联系电话
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_phone',
             value: cc_phone_number ? cc_phone_number : ''
@@ -876,7 +878,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 获取地点的国家
-     * @param {*} locationid 
+     * @param {*} locationid
      */
     function getLocationCode(locationid) {
         var country_id;
@@ -898,7 +900,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 根据国家简码, 搜索对应的国家记录
-     * @param {*} code 
+     * @param {*} code
      */
     function searchCountryByCode(code) {
         var country_id;
@@ -918,7 +920,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 获取关税起征点的值
-     * @param {*} code 
+     * @param {*} code
      */
     function getDeclaredValue(code) {
         var target_country_id = searchCountryByCode(code);
@@ -930,15 +932,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             search.create({
                 type: 'customrecord_dps_tariff_threshold',
                 filters: [{
-                        name: 'custrecord_dps_tar_the_country_origin',
-                        operator: 'anyof',
-                        values: origin_country_id
-                    },
-                    {
-                        name: 'custrecord_dps_tar_the_target_country',
-                        operator: 'anyof',
-                        values: target_country_id
-                    }
+                    name: 'custrecord_dps_tar_the_country_origin',
+                    operator: 'anyof',
+                    values: origin_country_id
+                },
+                {
+                    name: 'custrecord_dps_tar_the_target_country',
+                    operator: 'anyof',
+                    values: target_country_id
+                }
                 ],
                 columns: ['custrecord_dps_tar_thre_tariff_threshold', 'custrecord_dps_tar_thre_currency']
             }).run().each(function (rec) {
@@ -954,8 +956,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 物流匹配
-     * @param {*} soid 
-     * @param {*} fulid 
+     * @param {*} soid
+     * @param {*} fulid
      */
     function createLogisticsStrategy(soid, fulid) {
         var startTime = new Date().getTime();
@@ -969,31 +971,31 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'salesorder',
             filters: [{
-                    name: 'mainline',
-                    operator: 'is',
-                    values: ['F']
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: ['F']
-                },
-                {
-                    name: 'type',
-                    operator: 'anyof',
-                    values: ['SalesOrd']
-                },
-                {
-                    name: 'type',
-                    join: 'item',
-                    operator: 'anyof',
-                    values: ['InvtPart']
-                },
-                {
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: soid
-                }
+                name: 'mainline',
+                operator: 'is',
+                values: ['F']
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: ['F']
+            },
+            {
+                name: 'type',
+                operator: 'anyof',
+                values: ['SalesOrd']
+            },
+            {
+                name: 'type',
+                join: 'item',
+                operator: 'anyof',
+                values: ['InvtPart']
+            },
+            {
+                name: 'internalid',
+                operator: 'anyof',
+                values: soid
+            }
             ],
             columns: [
                 "custbody_dps_distributors", // 渠道商

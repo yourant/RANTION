@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-27 10:39:05
- * @LastEditTime   : 2020-08-28 19:03:40
+ * @LastEditTime   : 2020-08-29 06:57:47
  * @LastEditors    : Li
  * @Description    : 定时查询处理状态, 自动切换执行的脚本
  * @FilePath       : \dps.li.auto.execute.map.js
@@ -100,15 +100,56 @@ define(['N/search', 'N/task', 'N/log', 'N/record', 'N/email'], function(search, 
             if (recId) { // 若存在对应的记录
                 if (!submit_id) { // 不存在提交Id ,为新数据, 先执行 预估凭证
 
-                    var param = {
-                        custscript_fin_account: execute_account,
-                        custscript_dps_li_fin_record_id: recId
+                    if (!execute_estimated && !settlement_voucher && !credit_memo && !refund_settlement_cert) {
+                        var param = {
+                            custscript_fin_account: execute_account,
+                            custscript_dps_li_fin_record_id: recId
+                        }
+
+                        mapReduceScriptId = "customscript_order_fin_mp";
+                        mapReduceDeploymentId = "customdeploy_dps_li_map_starts";
+                        // 启用执行预估凭证脚本
+                        submitMapReduceDeployment(mapReduceScriptId, mapReduceDeploymentId, recId, param)
                     }
 
-                    mapReduceScriptId = "customscript_order_fin_mp";
-                    mapReduceDeploymentId = "customdeploy_dps_li_map_starts";
-                    // 启用执行预估凭证脚本
-                    submitMapReduceDeployment(mapReduceScriptId, mapReduceDeploymentId, recId, param)
+
+                    // 直接启用下一程序
+                    if (execute_estimated && !settlement_voucher && !credit_memo && !refund_settlement_cert) { // 预估凭证已经完成, 启用 结算程序
+
+                        var param = {
+                            custscript_dianpu: execute_account,
+                            custscript_dps_li_settlement_record_id: recId
+                        };
+
+                        mapReduceScriptId = "customscript_so_finance_je_mp";
+                        mapReduceDeploymentId = "customdeploy_dps_li_map_settlemen_starts";
+                        // 启用执行预估凭证脚本
+                        submitMapReduceDeployment(mapReduceScriptId, mapReduceDeploymentId, recId, param)
+
+                    }
+
+                    if (execute_estimated && settlement_voucher && !credit_memo && !refund_settlement_cert) { // 结算凭证已经完成, 启用 贷项程序
+                        var param = {
+                            custscript_refund_acc: execute_account,
+                            custscript_dps_li_account_id_text: recId
+                        };
+
+                        mapReduceScriptId = "customscript_amazon_order_refund_mp";
+                        mapReduceDeploymentId = "customdeploy_dps_li_map_return_starts";
+                        // 启用执行预估凭证脚本
+                        submitMapReduceDeployment(mapReduceScriptId, mapReduceDeploymentId, recId, param)
+                    }
+                    if (execute_estimated && settlement_voucher && credit_memo && !refund_settlement_cert) { // 贷项已经完成, 启用 退款结算程序
+                        var param = {
+                            custscript_sotre: execute_account,
+                            custscript_dps_li_record_internal_id: recId
+                        };
+
+                        mapReduceScriptId = "customscript_dps_return_joursettle_mp";
+                        mapReduceDeploymentId = "customdeploy_dps_li_map_return_se_starts";
+                        // 启用执行预估凭证脚本
+                        submitMapReduceDeployment(mapReduceScriptId, mapReduceDeploymentId, recId, param)
+                    }
 
                 } else {
                     var taskStatus = task.checkStatus(submit_id);
@@ -164,7 +205,7 @@ define(['N/search', 'N/task', 'N/log', 'N/record', 'N/email'], function(search, 
                 }
 
             } else {
-                log.audit('没有可执行的数据',"没有可执行的数据")
+                log.audit('没有可执行的数据', "没有可执行的数据")
             }
 
         } catch (error) {

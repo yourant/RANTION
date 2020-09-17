@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-15 15:56:17
+ * @LastEditTime   : 2020-09-11 09:47:28
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \douples_amazon\Journal_voucher_mp1.js
@@ -47,11 +47,19 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
             orders = [],
             settl_id = []
-        var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_dianpu' })
-        var group = runtime.getCurrentScript().getParameter({ name: 'custscript_group' })
-        var runPaged = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_li_settlement_runpaged' })
+        var acc = runtime.getCurrentScript().getParameter({
+            name: 'custscript_dianpu'
+        })
+        var group = runtime.getCurrentScript().getParameter({
+            name: 'custscript_group'
+        })
+        var runPaged = runtime.getCurrentScript().getParameter({
+            name: 'custscript_dps_li_settlement_runpaged'
+        })
         // var par_orid =runtime.getCurrentScript().getParameter({ name: 'custscript_amaozn_orderid' })
-        var par_orid = runtime.getCurrentScript().getParameter({ name: 'custscript_amaozn_orderid' }); // 订单号
+        var par_orid = runtime.getCurrentScript().getParameter({
+            name: 'custscript_amaozn_orderid'
+        }); // 订单号
         // par_orid = par_orid.split('-')
         log.audit('选择的店铺:' + acc, 'par_orid:' + par_orid)
         // var acc_sort = ['115', '67', '17', '111', '184', '14', '33', '1', '187']
@@ -84,13 +92,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             // "and",
             // ["custrecord_missingorder_settlement", "isnot", "F"],    //如果订单号不是正常的亚马逊单号   3-7-7
         ]
-        // if (acc) {
-        //     fils.push('and')
-        //     fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [acc]])
-        // }
         if (acc) {
             fils.push('and')
-            fils.push(['custrecord_aio_account_2', 'anyof', [acc]])
+            fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [acc]])
         }
         if (group) {
             fils.push('and')
@@ -103,12 +107,26 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         var mySearch = search.create({
             type: 'customrecord_aio_amazon_settlement',
             filters: fils,
-            columns: [{ name: 'custrecord_aio_sett_id', summary: 'GROUP' }, // 按 settlement id和单号分组
-                { name: 'custrecord_aio_sett_order_id', summary: 'GROUP' },
-                { name: 'custrecord_aio_sett_report_id', summary: 'GROUP' },
-                { name: 'custrecord_aio_sett_merchant_order_id', summary: 'GROUP' },
-                { name: 'custrecord_settlement_acc', summary: 'GROUP' }, // 实际店铺
-                { name: 'custrecord_aio_sett_tran_type', summary: 'GROUP' }, // TRANSACTION TYPE
+            columns: [{
+                    name: 'custrecord_aio_sett_id',
+                    summary: 'GROUP'
+                }, // 按 settlement id和单号分组
+                {
+                    name: 'custrecord_aio_sett_order_id',
+                    summary: 'GROUP'
+                },
+                {
+                    name: 'custrecord_aio_sett_report_id',
+                    summary: 'GROUP'
+                },
+                {
+                    name: 'custrecord_aio_sett_merchant_order_id',
+                    summary: 'GROUP'
+                },
+                {
+                    name: 'custrecord_settlement_acc',
+                    summary: 'GROUP'
+                }, // 实际店铺
             ]
         })
 
@@ -137,8 +155,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                             'reportId': e.getValue(e.columns[2]),
                             'orderid': e.getValue(e.columns[1]),
                             'merchant_order_id': e.getValue(e.columns[3]),
-                            'settlement_acc': e.getValue(e.columns[4]),
-                            "transaction_type": e.getValue(e.columns[5])
+                            'settlement_acc': e.getValue(e.columns[4])
                         })
                     })
                 }
@@ -185,8 +202,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         var settlement_acc = obj.settlement_acc
         var settle_id = obj.settle_id
         var reportId = obj.reportId
-        var merchant_order_id = obj.merchant_order_id,
-            transaction_type = obj.transaction_type
+        var merchant_order_id = obj.merchant_order_id
         var err = []
         var so_id
         var settlement_ids = []
@@ -202,7 +218,6 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         var currency_txt, currency
         var CK_fin // 确认是否需要预估凭证
 
-        log.audit('merchant_order_id', merchant_order_id)
         try {
             var end_date, postdate_arry = [],
                 PT_Arrys = [],
@@ -282,10 +297,20 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     if (!rec.getValue('custrecord_aio_sett_marketplace_name') || JSON.stringify(rec.getValue('custrecord_aio_sett_marketplace_name')).indexOf('Amazon.') == -1) {
                         search.create({
                             type: 'customrecord_aio_amazon_settlement',
-                            filters: [{ name: 'custrecord_aio_sett_id', operator: 'is', values: rec.getValue('custrecord_aio_sett_id') + '' },
-                                { name: 'custrecord_aio_sett_marketplace_name', operator: 'contains', values: 'Amazon.' }
+                            filters: [{
+                                    name: 'custrecord_aio_sett_id',
+                                    operator: 'is',
+                                    values: rec.getValue('custrecord_aio_sett_id') + ''
+                                },
+                                {
+                                    name: 'custrecord_aio_sett_marketplace_name',
+                                    operator: 'contains',
+                                    values: 'Amazon.'
+                                }
                             ],
-                            columns: [{ name: 'custrecord_aio_sett_marketplace_name' }]
+                            columns: [{
+                                name: 'custrecord_aio_sett_marketplace_name'
+                            }]
                         }).run().each(function(e) {
                             markt = e.getValue('custrecord_aio_sett_marketplace_name')
                         })
@@ -348,7 +373,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                             postdate_arry = []
                             postdate_arry.push(pos)
                             m_postdate_obj[month] = postdate_arry
-                            settlement_ids = [];
+                            settlement_ids = []
                             settlement_ids.push(rec.id)
                             settlement_idObj[settle_id + '-' + month] = settlement_ids // 存储的ID也要根据settlmentid+"-"+month 来分组
                         }
@@ -619,23 +644,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             }
             log.audit('查看settlmentID', settlmentID)
 
-            // Chargeback Refund
-            // Commingling VAT
-            // CouponRedemptionFee
-            // Fee Adjustment
-            // Lightning Deal Fee
-            // Order
-            // Order_Retrocharge
-            // other - transaction
-            // Refund
-            // Refund_Retrocharge
-            // SellerReviewEnrollmentPayment
-            // ServiceFee
-
             log.audit('entity :' + entity + ',currency: ' + currency, 'orderid:' + orderid + '，店铺：' + pr_store)
             for (var key in settlmentID) {
-                if (interfun.CheckJO(orderid, key, settlement_idObj[key], '结算', search_accObj.acc_search, merchant_order_id)
-                || transaction_type != "Refund" || transaction_type != "Order") {
+                if (interfun.CheckJO(orderid, key, settlement_idObj[key], '结算', search_accObj.acc_search, merchant_order_id)) {
                     context.write({
                         key: key.split('-')[0] + '.' + orderid + '.' + key.split('-')[1], // 按settlment ID +orderid + post date 的月份分组
                         value: {
@@ -1033,8 +1044,6 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
                 // log.audit('脚本使用量', runtime.getCurrentScript().getRemainingUsage())
 
-                jour.setValue({ fieldId: 'custbody_dps_jiesuan', value: settlement_ids }) // 设置关联的结算报告
-
                 jo_2 = jour.save();
                 log.debug('000冲销凭证耗时：', 'startT: ' + startT + ' - new date: ' + new Date().getTime() + ' = ' + (new Date().getTime() - startT))
                 log.debug('000000000第二步 success:' + jo_2, cl_date.date)
@@ -1054,8 +1063,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 var orders = []
                 if (orderid) {
                     var fils_inv = [
-                            ['mainline', 'is', false], 'and',
-                            ['taxline', 'is', false], 'and',
+                            ['mainline', 'is', false],
+                            'and',
+                            ['taxline', 'is', false],
+                            'and',
                             ['custbody_aio_account', 'anyof', search_acc]
                         ],
                         fls = []
@@ -1094,9 +1105,19 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     search.create({
                         type: 'invoice',
                         filters: fils_inv,
-                        columns: [{ name: 'internalid', summary: 'group' },
-                            { name: 'custrecord_amazon_order_item_id', join: 'custbody_shipment_report_rel', summary: 'group' },
-                            { name: 'quantity', summary: 'SUM' }
+                        columns: [{
+                                name: 'internalid',
+                                summary: 'group'
+                            },
+                            {
+                                name: 'custrecord_amazon_order_item_id',
+                                join: 'custbody_shipment_report_rel',
+                                summary: 'group'
+                            },
+                            {
+                                name: 'quantity',
+                                summary: 'SUM'
+                            }
                         ]
                     }).run().each(function(e) {
                         ck = true

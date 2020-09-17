@@ -2,10 +2,10 @@
 Author         : Li
 Version        : 1.0
 Date           : 2020-07-07 21:43:50
-LastEditTime   : 2020-08-31 20:10:57
+LastEditTime   : 2020-08-31 19:56:22
 LastEditors    : Li
 Description    :
-FilePath       : \test.li.py
+FilePath       : \test.li copy 2.py
 可以输入预定的版权声明、个性签名、空行等
 '''
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -85,10 +85,10 @@ if __name__ == "__main__":
     #     print("执行第"+str(num) + "次")
     #     GetAcc("")
     #     time.sleep(8010)
-    GetAcc(19)
+    GetAcc(102)
 
 
-# 19          GONEX.US      14741 条                发货未完成          跑第 1 次
+# 19          GONEX.US      14741 条
 # 102        MAGICFLY.US   28091 条
 # 31       KEEDOX.US                 12871   条
 # 21       DONNERDIRECT.US           39252  条

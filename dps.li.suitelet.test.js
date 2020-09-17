@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-08 15:08:31
- * @LastEditTime   : 2020-08-27 11:13:01
+ * @LastEditTime   : 2020-09-14 21:13:33
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \dps.li.suitelet.test.js
@@ -18,9 +18,9 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
     "./Rantion/Helper/config", 'N/http', 'N/encode', 'N/redirect',
     './Rantion/cux/Declaration_Information/handlebars-v4.1.1', "./Rantion/fulfillment.record/dps.information.values.js",
 
-    "./Rantion/cux/Declaration_Information/dps.li.tool.setValue.js", "N/render"
-], function (search, record, log, core, file, xml, tool, runtime, file, serverWidget,
-    moment, format, fields, config, http, encode, redirect, Handlebars, information, toolValue, render) {
+    "./Rantion/cux/Declaration_Information/dps.li.tool.setValue.js", "N/render", "N/task"
+], function(search, record, log, core, file, xml, tool, runtime, file, serverWidget,
+    moment, format, fields, config, http, encode, redirect, Handlebars, information, toolValue, render, task) {
 
     function onRequest(context) {
         try {
@@ -38,72 +38,163 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
             } else if (userObj.id == 911 /* || userObj.id == 13440 */ ) {
 
-                function getInputData() {
-
-                    var submit_id, execute_estimated, execute_estimat_data, settlement_voucher, settlement_voucher_dat,
-                        returned_purchase, returned_purchase_data, credit_memo, credit_memo_data, refund_settlement_cert, refund_settlement_data;
-
-                    var executeObj = {};
-
-                    search.create({
-                        type: "customrecord_dps_li_automatically_execut",
-                        filters: [{
-                            name: 'custrecord_dps_li_all_processed',
-                            operator: 'is',
-                            values: false
-                        }],
-                        columns: [
-                            "custrecord_dps_li_submit_id", // 提交ID
-                            "custrecord_dps_auto_execute_estimated", // 预估凭证 标志
-                            "custrecord_dps_auto_execute_estimat_data", // 剩余预估数据
-                            "custrecord_dps_li_settlement_voucher", // 结算凭证
-                            "custrecord_dps_li_settlement_voucher_dat", // 结算数据量
-                            "custrecord_dps_li_returned_purchase", // 退货
-                            "custrecord_dps_li_returned_purchase_data", // 退货数据
-                            "custrecord_dps_li_credit_memo", // 贷项单
-                            "custrecord_dps_li_credit_memo_data", // 贷项单数据
-                            "custrecord_dps_li_refund_settlement_cert", // 退款结算凭证
-                            "custrecord_dps_li_refund_settlement_data", // 退款结算凭证数据
-                        ]
-                    }).run().each(function (rec) {
-                        submit_id = rec.getValue('custrecord_dps_li_submit_id');
-
-                        execute_estimated = rec.getValue('custrecord_dps_auto_execute_estimated');
-                        execute_estimat_data = rec.getValue('custrecord_dps_auto_execute_estimat_data');
-
-                        settlement_voucher = rec.getValue('custrecord_dps_li_settlement_voucher');
-                        settlement_voucher_dat = rec.getValue('custrecord_dps_li_settlement_voucher_dat');
-
-                        returned_purchase = rec.getValue('custrecord_dps_li_returned_purchase');
-                        returned_purchase_data = rec.getValue('custrecord_dps_li_returned_purchase_data');
-
-                        credit_memo = rec.getValue('custrecord_dps_li_credit_memo');
-                        credit_memo_data = rec.getValue('custrecord_dps_li_credit_memo_data');
-
-                        refund_settlement_cert = rec.getValue('custrecord_dps_li_refund_settlement_cert');
-                        refund_settlement_data = rec.getValue('custrecord_dps_li_refund_settlement_data');
+                try {
 
 
-                        executeObj = {
-                            submit_id: submit_id,
-                            execute_estimated: execute_estimated,
-                            execute_estimat_data: execute_estimat_data,
-                            settlement_voucher: settlement_voucher,
-                            settlement_voucher_dat: settlement_voucher_dat,
-                            returned_purchase: returned_purchase,
-                            returned_purchase_data: returned_purchase_data,
-                            credit_memo: credit_memo,
-                            credit_memo_data: credit_memo_data,
-                            refund_settlement_cert: refund_settlement_cert,
-                            refund_settlement_data: refund_settlement_data
-                        }
-                    });
+                    var temp = GetstoreInEU(acc, marketplace_name, acc_text);
 
-                    log.audit("executeObj", JSON.stringify(executeObj));
+                    context.response.writeLine("temp \n"+JSON.stringify(temp))
 
+
+                    // var mrTask = task.create({
+                    //     taskType: task.TaskType.MAP_REDUCE,
+                    //     scriptId: 'customscript_dps_am_report_financial',
+                    //     // deploymentId: "customdeploy_dps_am_report_financial_ord",
+                    //     deploymentId: "customdeploy_dps_am_report_financial_ref",
+                    // });
+                    // context.response.writeLine('mrTask=' + mrTask);
+                    // var taskId = mrTask.submit();
+                    // context.response.writeLine('taskId=' + taskId);
+
+                    // var mrTask = task.create({
+                    //     taskType: task.TaskType.MAP_REDUCE,
+                    //     scriptId: 'customscript_dps_am_report_financial',
+                    //     deploymentId: "customdeploy_dps_am_report_financial_ord",
+                    //     // deploymentId: "customdeploy_dps_am_report_financial_ref",
+                    // });
+                    // context.response.writeLine('mrTask=' + mrTask);
+                    // var taskId = mrTask.submit();
+                    // context.response.writeLine('taskId=' + taskId);
+                } catch (e) {
+                    log.error("e", e);
                 }
 
-                getInputData();
+
+
+                function GetstoreInEU(acc, marketplace_name, acc_text) {
+                    var sellerid, account = {},
+                        feck = false,
+                        entity, subsidiary
+                    search.create({
+                        type: 'customrecord_aio_account',
+                        filters: [
+                            { name: 'internalidnumber', operator: 'equalto', values: Number(acc) }
+                        ],
+                        columns: [
+                            { name: 'custrecord_aio_seller_id' },
+                            { name: 'custrecord_aio_customer' },
+                            { name: 'custrecord_aio_subsidiary' }
+                        ]
+                    }).run().each(function(e) {
+                        sellerid = e.getValue('custrecord_aio_seller_id')
+                        entity = e.getValue('custrecord_aio_customer')
+                        subsidiary = e.getValue('custrecord_aio_subsidiary')
+                    })
+                    marketplace_name = marketplace_name.substring(marketplace_name.length - 2, marketplace_name.length)
+                    search.create({
+                        type: 'customrecord_aio_account',
+                        filters: [
+                            { name: 'custrecord_aio_seller_id', operator: 'is', values: sellerid },
+                            { name: 'isinactive', operator: 'is', values: false }
+                        ],
+                        columns: [
+                            { name: 'custrecord_aio_seller_id' },
+                            { name: 'custrecord_aio_amazon_marketplace', join: 'custrecord_aio_enabled_sites' },
+                            { name: 'name' },
+                            { name: 'custrecord_aio_customer' },
+                            { name: 'custrecord_aio_subsidiary' }
+                        ]
+                    }).run().each(function(e) {
+                        var enbelsite = e.getValue(e.columns[1])
+                        entity = e.getValue('custrecord_aio_customer')
+                        subsidiary = e.getValue('custrecord_aio_subsidiary')
+                        if (marketplace_name.toUpperCase() == enbelsite.trim()) {
+                            account = {
+                                'acc': e.id,
+                                'acc_text': e.getValue('name'),
+                                'entity': entity,
+                                'subsidiary': subsidiary
+                            }
+                            feck = true
+                        }
+                        return true
+                    })
+                    if (!feck) {
+                        account = {
+                            'acc': acc,
+                            'acc_text': acc_text,
+                            'entity': entity,
+                            'subsidiary': subsidiary
+                        }
+                    }
+                    log.debug('拿到的account', account)
+                    return account
+                }
+
+                return;
+                var fils = []
+                fils = [
+                    ['custrecord_settlement_enddate', 'within', ['2020-6-1', '2020-6-30']], // end date在2月2号之后，所有的
+                    //   'and',
+                    //   ['custrecord_settlement_acc', 'noneof', '@NONE@'],
+                    'and',
+                    ['custrecord_aio_sett_tran_type', 'doesnotcontain', 'Refund'],
+                    'and',
+                    ['custrecord_settle_is_generate_voucher', 'is', false], // 未生成凭证
+                    'and',
+                    ['custrecord_payment_itemprice_pt', 'is', false], // 不属于货价和税
+                    'and',
+                    ['custrecord_february_undeal', 'isnot', 'F'], // 不处理
+                    // 'and',
+                    // ['custrecord_aio_account_2.custrecord_aio_account_region', 'noneof', ['1']],
+                    // "and",
+                    // ["custrecord_missingorder_settlement", "isnot", "F"],    //如果订单号不是正常的亚马逊单号   3-7-7
+                ]
+
+
+                fils.push('and')
+                // fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [17]]);// KOHREE.US
+                fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [49]]); // MOUKEY.UK
+                // fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [179]]); // JINLAN.UK
+                // fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [21]]); // DONNERDIRECT.US
+                // fils.push(['custrecord_aio_sett_report_id.custrecord_aio_origin_account', 'anyof', [24]]); // PLAMBAG.US
+
+                var mySearch = search.create({
+                    type: 'customrecord_aio_amazon_settlement',
+                    filters: fils,
+                    columns: [{
+                            name: 'custrecord_aio_sett_id',
+                            summary: 'GROUP'
+                        }, // 按 settlement id和单号分组
+                        {
+                            name: 'custrecord_aio_sett_order_id',
+                            summary: 'GROUP'
+                        },
+                        {
+                            name: 'custrecord_aio_sett_report_id',
+                            summary: 'GROUP'
+                        },
+                        {
+                            name: 'custrecord_aio_sett_merchant_order_id',
+                            summary: 'GROUP'
+                        },
+                        {
+                            name: 'custrecord_settlement_acc',
+                            summary: 'GROUP'
+                        }, // 实际店铺
+                    ]
+                });
+
+                var pageSize = 1000; // 每页条数
+                var pageData = mySearch.runPaged({
+                    pageSize: pageSize
+                })
+
+                var totalCount = pageData.count; // 总数
+
+                log.error('总共的数据量', totalCount)
+
+                context.response.writeLine("总共的数据量\n\n" + JSON.stringify(totalCount));
 
                 return;
 
@@ -112,7 +203,6 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     id: 523
                 });
 
-                context.response.writeLine("尝试加载报表\n\n" + JSON.stringify(loadSearch.filters));
 
 
                 // return;
@@ -137,7 +227,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     filters: [
                         ["custrecord_ass_account.custrecord_aio_seller_id", "contains", "A3VHP1JMM4SW7V"] // join
                     ]
-                }).run().each(function (re) {
+                }).run().each(function(re) {
                     log.debug('re.id', re.id);
 
                     return --limit > 0;
@@ -216,7 +306,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             columns: [
                 "statusref"
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             statusref = rec.getValue('statusref');
         });
 
@@ -305,7 +395,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             columns: [{
                 name: 'internalId'
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             result = rec.id
             return false;
         });
@@ -335,7 +425,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             columns: [{
                 name: 'internalId'
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             result = rec.id
             return false;
         });
@@ -361,7 +451,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             columns: [{
                 name: 'locationquantityonhand'
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             var nowCount = rec.getValue('locationquantityonhand')
             count = nowCount ? Number(nowCount) : 0
             return true;
@@ -775,7 +865,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 "locationquantitybackordered", // 延交订单
                 "locationquantityavailable", // 可用数量
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             var itemId = rec.id;
             var temp_item_info = [];
             var temp_str = '正常';
@@ -835,7 +925,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 "custrecord_ass_fnsku", // FNSKU
                 "custrecord_ass_asin", // ASIN
             ]
-        }).run().each(function (r) {
+        }).run().each(function(r) {
 
             var temp_msku_arr = [];
 
@@ -851,7 +941,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             if (itemInfoObj[itemId]) {
                 var temp_item = itemInfoObj[itemId];
 
-                temp_item.map(function (item) {
+                temp_item.map(function(item) {
                     var it = {
                         itemId: itemId,
                         msku: msku,
@@ -895,11 +985,11 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
     function setSublistValue(subli, valueObj) {
 
         var line_no = 0;
-        Object.keys(valueObj).map(function (value, key) {
+        Object.keys(valueObj).map(function(value, key) {
 
             var temp_arr = valueObj[value];
 
-            temp_arr.map(function (tem) {
+            temp_arr.map(function(tem) {
 
                 log.debug('tem', tem);
                 if (tem.inventorylocation) {
@@ -1456,7 +1546,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     join: 'item'
                 }, // 每箱数量
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             data.tradeCompanyCode = rec.getValue('subsidiary');
             data.tradeCompanyName = rec.getText('subsidiary').split(":").slice(-1)[0].trim();
@@ -1598,7 +1688,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 "custrecord_invful_sku", // SKU
                 "custrecord_invful_snapshot_date", // SNAPSHOT-DATE
             ]
-        }).run().each(function (r) {
+        }).run().each(function(r) {
             info = {
                 snapshot_date: r.getValue('custrecord_invful_snapshot_date'),
                 sellerId: r.getValue({
@@ -1643,7 +1733,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
             columns: [
                 "custrecord_ass_sku", // NS 货品
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             info.itemId = rec.getValue('custrecord_ass_sku')
         });
 
@@ -1721,7 +1811,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     join: 'custrecord_dsp_delivery_order_location'
                 }, // WMS仓库编码
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             ret_id = rec.id;
             wmsLocCode = rec.getValue({
                 name: 'custrecord_dps_wms_location',
@@ -1758,7 +1848,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                         "custrecord_dsp_delivery_order_location", // 地点
                         "custrecord_purchase_order_no", // 采购订单
                     ]
-                }).run().each(function (r) {
+                }).run().each(function(r) {
                     poNo = r.getValue('custrecord_purchase_order_no');
                     Loca = r.getValue('custrecord_dsp_delivery_order_location');
 
@@ -1915,7 +2005,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 });
                 log.debug('开始修改交货单', '货品行上的值');
                 if (context.detailList.length > 0) {
-                    context.detailList.map(function (line) {
+                    context.detailList.map(function(line) {
                         for (var i = 0; i < count; i++) {
                             var item_sku = objRecord.getSublistText({
                                 sublistId: 'recmachcustrecord_dps_delivery_order_id',
@@ -1999,7 +2089,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 "item",
                 "quantity"
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             var it = {
                 itemId: rec.getValue('item'),
                 itemName: rec.getText('item')
@@ -2268,7 +2358,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 "custrecord_dps_to_shipment_name", // shipment name
                 "custrecord_dps_to_reference_id", // reference id
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             tranOrder = rec.getValue('custrecord_dps_shipping_rec_order_num')
 
@@ -2409,7 +2499,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 //     join: "custrecord_dps_shipping_rec_order_num"
                 // }, // 调拨单号
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             createdBy = rec.getText('createdby');
             // to_aono = rec.getValue({
             //     name: "tranid",
@@ -2526,7 +2616,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     join: "custrecord_dps_shipping_record_item"
                 }, // 英文标题/描述 englishTitle
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             // AllocationDetailCreateRequestDto{
             //     asin(string): ASIN,
@@ -2639,7 +2729,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
         var len = item_info.length,
             num = 0;
         var checkArr = [];
-        item_info.map(function (ld) {
+        item_info.map(function(ld) {
             num++;
             if (ld.msku) { // 存在 msku
                 add_fils.push([
@@ -2675,10 +2765,10 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 columns: [
                     "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 // log.debug("rec.id ::::::: ", rec.id)
                 var it = rec.getValue('custrecord_ass_sku');
-                item_info.forEach(function (item, key) {
+                item_info.forEach(function(item, key) {
 
                     // log.debug('item.itemId: ' + item.itemId, "it: " + it);
 
@@ -2765,7 +2855,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 values: 1
             }],
             columns: ['custrecord_wtr_token']
-        }).run().each(function (result) {
+        }).run().each(function(result) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;
@@ -2802,7 +2892,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     join: 'custrecord_dps_shipping_rec_location'
                 }, // 财务分仓 类型
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             flagLocation = rec.getValue({
                 name: 'custrecord_dps_financia_warehous',
                 join: 'custrecord_dps_shipping_rec_location'
@@ -2917,7 +3007,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     "custrecord_dps_to_shipment_name", // shipment name
                     "custrecord_dps_to_reference_id", // reference id
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
@@ -3040,7 +3130,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 columns: [
                     "createdby"
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 createdBy = rec.getText('createdby');
             });
 
@@ -3151,7 +3241,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                         join: "custrecord_dps_shipping_record_item"
                     }, // 英文标题/描述 englishTitle
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 itemArr.push(rec.getValue('custrecord_dps_shipping_record_item'));
 
@@ -3245,7 +3335,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                 add_fils = []; //过滤
             var len = item_info.length,
                 num = 0;
-            item_info.map(function (ld) {
+            item_info.map(function(ld) {
                 num++;
                 add_fils.push([
                     ["name", "contains", ld.msku],
@@ -3286,14 +3376,14 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
                     columns: [
                         "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
-                }).run().each(function (rec) {
+                }).run().each(function(rec) {
                     var temp_name = rec.getValue('name');
                     var it = rec.getValue('custrecord_ass_sku');
                     search_item.push(it)
 
                     log.error('temp_name: ' + temp_name, "it: " + it);
 
-                    item_info.map(function (item, key) {
+                    item_info.map(function(item, key) {
 
                         if (item.itemId == it && item.msku.trim() == temp_name.trim() && fls_skus.indexOf(temp_name) == -1) {
                             item.asin = rec.getValue("custrecord_ass_asin");
@@ -3325,7 +3415,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
                 var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link);
 
-                newItemInfo.map(function (newItem) {
+                newItemInfo.map(function(newItem) {
                     var itemId = newItem.itemId;
                     newItem.pono = getPoObj[itemId]
                 });
@@ -3450,7 +3540,7 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
      * 格式化时间函数
      * @param {format} 时间显示格式
      */
-    Date.prototype.format = function (format) {
+    Date.prototype.format = function(format) {
         var date = {
             "M+": this.getMonth() + 1, //月份
             "d+": this.getDate(), //日
@@ -3613,3 +3703,26 @@ define(['N/search', 'N/record', 'N/log', './douples_amazon/Helper/core.min', 'N/
 
 
 });
+
+
+account_arr = [95, 216, 215, 35, 80, 87, 60, 135,
+    31, 217, 47, 46, 200, 412, 194, 13, 153, 152,
+    104, 24, 137, 3, 334, 101, 231, 173, 177, 159,
+    207, 124, 130, 102, 201, 148, 21, 335, 326, 220,
+    58, 69, 212, 54, 48, 205, 61, 327, 77, 37, 38,
+    36, 185, 182, 43, 413, 202, 165, 181, 322,
+    522, 50, 9, 116, 110, 106, 143, 105, 521, 330,
+    331, 98, 523, 155, 223, 160, 154, 228, 163, 206,
+    157, 518, 19, 120, 89, 12, 85, 199, 147, 138,
+    25, 84, 213, 109, 81, 519
+];
+
+
+accArr = [134, 122, 79, 14, 87, 31, 13, 104, 24, 3,
+    207, 130, 21, 220, 54, 48, 165, 9, 110, 106, 143,
+    98, 206, 157, 19, 120, 89, 12, 25, 109
+]
+
+
+
+accArr = [134, 13, 104, 24, 130, 21, 220, 54, 48, 9, 106, 19, 120, 12]

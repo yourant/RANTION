@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-07-18 12:22:02
+ * @LastEditTime   : 2020-09-08 16:07:23
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -99,7 +99,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
 
                         'custrecord_record_fulfill_xh_label_addr', // 面单路径URL
 
-                        'custrecord_dps_ship_samll_location', // 发运仓库	
+                        'custrecord_dps_ship_samll_location', // 发运仓库
                         {
                             name: 'custrecord_dps_wms_location',
                             join: 'custrecord_dps_ship_samll_location'
@@ -109,7 +109,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
                             join: 'custrecord_dps_ship_samll_location'
                         },
 
-                        'custrecord_dps_ship_order_number', //订单号	
+                        'custrecord_dps_ship_order_number', //订单号
                         'custrecord_dps_ship_platform_order_numbe', //平台订单号
                         'custrecord_dps_ship_small_logistics_orde', //物流运单号
                         'custrecord_dps_ship_small_trackingnumber', // 物流跟踪单号
@@ -141,7 +141,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
                         'custrecord_dps_carton_no', //箱号
                         'custrecord_dps_s_state', //收货人 - 州
                         'custrecord_dps_street1', //街道1
-                        'custrecord_dps_street2', //街道2 
+                        'custrecord_dps_street2', //街道2
                         'custrecord_dps_declared_value', //申报价值
                         'custrecord_dps_declare_currency', //申报币种
                         {
@@ -286,19 +286,27 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
             }
             // 移库单 (库存领用)
             else if (sourceType == 40) {
-search.create({
+                search.create({
                     type: 'customrecord_sample_use_return',
-                    filters: [
-                        {name: 'internalid', operator: 'anyof', values: context.id}
-                    ],
+                    filters: [{
+                        name: 'internalid',
+                        operator: 'anyof',
+                        values: context.id
+                    }],
                     columns: [
                         'custrecord_logistics_channel_ser_num',
                         'custrecord_logistics_channel_server',
                         'custrecord_logistics_channel_pro_num',
                         'custrecord_logistics_channel_provider',
                         'name',
-                        {name: 'custrecord_dps_wms_location', join: 'custrecord_location_use_back'},
-                        {name: 'custrecord_dps_wms_location_name', join: 'custrecord_location_use_back'}
+                        {
+                            name: 'custrecord_dps_wms_location',
+                            join: 'custrecord_location_use_back'
+                        },
+                        {
+                            name: 'custrecord_dps_wms_location_name',
+                            join: 'custrecord_location_use_back'
+                        }
                     ]
                 }).run().each(function (rec) {
                     data["logisticsChannelCode"] = rec.getValue('custrecord_logistics_channel_ser_num'); //  '物流渠道服务编号';
@@ -321,26 +329,40 @@ search.create({
                 var item_info = [];
                 search.create({
                     type: 'customrecord_sample_useret_transfer_item',
-                    filters: [
-                        {name: 'custrecord_suti_link', operator: 'anyof', values: context.id}
-                    ],
+                    filters: [{
+                        name: 'custrecord_suti_link',
+                        operator: 'anyof',
+                        values: context.id
+                    }],
                     columns: [
                         'custrecord_suti_item',
                         'custrecord_suti_quantiy',
-                        {name: 'custitem_dps_picture', join: 'custrecord_suti_item'},
-                        {name: 'custitem_dps_skuchiense', join: 'custrecord_suti_item'}
+                        {
+                            name: 'custitem_dps_picture',
+                            join: 'custrecord_suti_item'
+                        },
+                        {
+                            name: 'custitem_dps_skuchiense',
+                            join: 'custrecord_suti_item'
+                        }
                     ]
                 }).run().each(function (rec) {
                     item_info.push({
-                        productImageUrl: rec.getValue({name: 'custitem_dps_picture', join: 'custrecord_suti_item'}),
-                        productTitle: rec.getValue({name: 'custitem_dps_skuchiense', join: 'custrecord_suti_item'}),
+                        productImageUrl: rec.getValue({
+                            name: 'custitem_dps_picture',
+                            join: 'custrecord_suti_item'
+                        }),
+                        productTitle: rec.getValue({
+                            name: 'custitem_dps_skuchiense',
+                            join: 'custrecord_suti_item'
+                        }),
                         qty: rec.getValue('custrecord_suti_quantiy'),
                         sku: rec.getText('custrecord_suti_item'),
                     });
                     return true;
                 });
                 data['detailCreateRequestDtos'] = item_info;
-                log.debug('data',data);
+                log.debug('data', data);
             }
             // 库存调整
             else if (sourceType == 50) {
@@ -356,7 +378,7 @@ search.create({
                 if (SOFlag) {
                     message = sendRequest(token, [data]);
                 }
-            }else if(sourceType == 40){
+            } else if (sourceType == 40) {
                 // 发送请求
                 message = sendRequest(token, [data]);
             } else {
@@ -369,10 +391,10 @@ search.create({
             message.code = 1;
             message.retdata = '{\'msg\' : \'WMS token失效，请稍后再试\'}';
         }
-      
-      if(sourceType == 40){
+
+        if (sourceType == 40) {
             log.debug('message', message);
-            if(message.code != 0){
+            if (message.code != 0) {
                 record.submitFields({
                     type: 'customrecord_sample_use_return',
                     id: context.id,
@@ -381,7 +403,7 @@ search.create({
                         custrecord_wms_info_t: message.data.msg
                     }
                 });
-            }else{
+            } else {
                 record.submitFields({
                     type: 'customrecord_sample_use_return',
                     id: context.id,
@@ -595,7 +617,7 @@ search.create({
 
 
         //获取备注信息
-        var sourceNo = v_record.id;
+        var sourceNo = v_record.getValue('tranid');
         var remark = v_record.getValue('memo');
 
         var customrecord_logistics_service_id;
@@ -637,7 +659,7 @@ search.create({
                 logisticsProviderCode: customrecord_logistics_company_id, //'物流渠道商编号', //(string)
                 logisticsProviderName: '货拉拉', //'物流渠道商名称', //(string)
 
-                sourceNo: sourceNo + '-' + location, //'来源单号', //(string)
+                sourceNo: sourceNo, //'来源单号', //(string)
                 remark: remark, //'备注', //(string, optional)
 
                 warehouseCode: location, //'仓库编号', //(string)
@@ -685,7 +707,7 @@ search.create({
 
     /**
      * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
-     * @param {*} soId 
+     * @param {*} soId
      * @returns {Boolean} true || false
      */
     function qtyBackOrdered(soId) {
@@ -741,8 +763,8 @@ search.create({
 
     /**
      * 发送请求
-     * @param {*} token 
-     * @param {*} data 
+     * @param {*} token
+     * @param {*} data
      */
     function sendRequest(token, data) {
         var message = {};

@@ -1,9 +1,19 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-07-10 11:37:16
+ * @LastEditTime   : 2020-09-14 20:14:38
+ * @LastEditors    : Li
+ * @Description    :
+ * @FilePath       : \douples_amazon\dps_voucher_mp1.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript
  */
-define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', './Helper/interfunction.min', './Helper/core.min'],
-    function (search, record, moment, format, runtime, interfun, core) {
+define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', './Helper/interfunction.min', './Helper/core.min', 'N/task', 'N/email'],
+    function(search, record, moment, format, runtime, interfun, core, task, email) {
         const MissingReportType = 5 // Missing report 财务报告  orders
         const account = 122 // 应收账款
         const account_Tax = 1026 // 6601.30.01 销售费用 : 平台销售税 : Amazon
@@ -107,8 +117,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         const Fincome_Plat = 412 // 预收账款-平台	 2203.03
         const income_Refund = 471 // 主营业务收入-退款	 6001.06
 
+
+
+        const fmt = "yyyy-M-d"
+
         function getInputData() {
-            var limit = 4000,
+            var limit = 400,
                 orders = [],
                 ors = []
             // var acc_sort = 115-67-17-111-184-14-33-1-187
@@ -125,11 +139,22 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             var group_req = runtime.getCurrentScript().getParameter({
                 name: 'custscript_fin_group'
             })
+            var _start_date = runtime.getCurrentScript().getParameter({
+                name: 'custscript_dps_li_order_fin_start_date'
+            })
+            var _end_date = runtime.getCurrentScript().getParameter({
+                name: 'custscript_dps_li_order_fin_end_date'
+            })
+
+
             var full_bj = runtime.getCurrentScript().getParameter({
                 name: 'custscript_fin_bj'
             }) ? runtime.getCurrentScript().getParameter({
                 name: 'custscript_fin_bj'
             }) : 'F'; // 搜索对应的标记
+
+
+
             // var num = 0
             // oid.map(function (acc) {
             // if (orders.length > 0 && limit > 0) {
@@ -148,7 +173,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             // if (oid)
             //   fils.push({name: 'custrecord_l_amazon_order_id',operator: 'is',values: oid})
             if (group_req) { // 根据拉单分组去履行
-                core.amazon.getReportAccountList(group_req).map(function (acount) {
+                core.amazon.getReportAccountList(group_req).map(function(acount) {
                     acc_arrys.push(acount.id)
                 })
                 fils.push({
@@ -163,16 +188,47 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                     operator: 'anyof',
                     values: acc
                 })
+
+
+
+            if (_start_date && _end_date) {
+
+                _d_start_date = interfun.li_dateFormat(_start_date, fmt)
+                _d_end_date = interfun.li_dateFormat(_end_date, fmt)
+                fils.push({
+                    name: 'custrecord_posteddate',
+                    operator: 'within',
+                    values: [_d_start_date, _d_end_date]
+                })
+            }
+            if (_start_date && !_end_date) {
+
+                _d_start_date = interfun.li_dateFormat(_start_date, fmt)
+                fils.push({
+                    name: 'custrecord_posteddate',
+                    operator: 'onorafter',
+                    values: [_d_start_date]
+                })
+            }
+            if (!_start_date && _end_date) {
+
+                _d_start_date = interfun.li_dateFormat(_end_date, fmt)
+                fils.push({
+                    name: 'custrecord_posteddate',
+                    operator: 'onorbefore',
+                    values: [_d_end_date]
+                })
+            }
             fils.push({
                 name: 'custrecord_financetype',
                 operator: 'is',
                 values: 'orders'
             })
-            fils.push({
-                name: 'custrecord_posteddate',
-                operator: 'onorBefore',
-                values: '2020-6-30'
-            })
+            // fils.push({
+            //     name: 'custrecord_posteddate',
+            //     operator: 'onorBefore',
+            //     values: '2020-6-30'
+            // })
             log.debug('fils:', fils)
             var mySearch = search.create({
                 type: 'customrecord_amazon_listfinancialevents',
@@ -204,25 +260,32 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                 var pageCount = pageData.pageRanges.length; //页数
                 log.error('总共的页数', pageCount);
 
-                for (var i = 0; i < pageCount; i++) {
-                    pageData.fetch({
-                        index: i
-                    }).data.forEach(function (e) {
-                        get_result.push({
-                            rec_id: e.id,
-                            seller_id: e.getValue(e.columns[0]),
-                            enabled_sites: e.getText(e.columns[1]),
-                            dept: e.getValue(e.columns[2])
-                        })
-                    });
+
+                // return;
+
+                if (totalCount > 0) {
+
+                    for (var i = 0; i < pageCount; i++) {
+                        pageData.fetch({ // 只跑一页
+                            index: i
+                        }).data.forEach(function(e) {
+                            get_result.push({
+                                rec_id: e.id,
+                                seller_id: e.getValue(e.columns[0]),
+                                enabled_sites: e.getText(e.columns[1]),
+                                dept: e.getValue(e.columns[2])
+                            })
+                        });
+                    }
+
                 }
 
-                log.error('获取数据的长度 get_result', get_result.length )
+                log.error('获取数据的长度 get_result', get_result.length)
 
                 return get_result;
 
             }
-            mySearch.run().each(function (e) {
+            mySearch.run().each(function(e) {
                 orders.push({
                     rec_id: e.id,
                     seller_id: e.getValue(e.columns[0]),
@@ -306,7 +369,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                                 columns: [{
                                     name: 'name'
                                 }]
-                            }).run().each(function (e) {
+                            }).run().each(function(e) {
                                 order_id = e.getValue('name')
                                 isA_order = 2
                             })
@@ -355,7 +418,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                             name: 'custrecord_shipment_date_text'
                         }
                     ]
-                }).run().each(function (rec) {
+                }).run().each(function(rec) {
                     ship_recid = rec.id
                     ship_obj = interfun.getFormatedDate('', '', rec.getValue('custrecord_shipment_date_text'), '', true)
                     log.debug('postdate：' + postdate, ',shipment_date:' + ship_obj.date)
@@ -382,7 +445,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                             operator: 'anyof',
                             values: ship_recid
                         }]
-                    }).run().each(function (rec) {
+                    }).run().each(function(rec) {
                         inv_id = rec.id
                     })
                 }
@@ -422,7 +485,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                         columns: [{
                             name: 'memomain'
                         }]
-                    }).run().each(function (e) {
+                    }).run().each(function(e) {
                         try {
                             if (e.getValue('memomain') == '预估') {
                                 ck_jo = e.id
@@ -459,7 +522,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                                 operator: 'anyof',
                                 values: so_id
                             }]
-                        }).run().each(function (rec) {
+                        }).run().each(function(rec) {
                             inv_id = rec.id
                         })
                     }
@@ -534,7 +597,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                         cr = 0,
                         num = 0
                     var incomeaccount, L_memo
-                    fieldsMapping.map(function (field) {
+                    fieldsMapping.map(function(field) {
                         if (field == 'LowValueGoodsTax-Principal' || field == 'LowValueGoodsTax-Shipping') {
                             // 歸為Tax科目 2268
                             if (Number(rec_finance.getValue(financeMapping[field]))) {
@@ -671,6 +734,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                             ignoreMandatoryFields: true
                         })
                     } else {
+                        // log.audit('脚本使用量', runtime.getCurrentScript().getRemainingUsage());
                         jo = jour.save({
                             ignoreMandatoryFields: true
                         })
@@ -748,17 +812,39 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
             log.error('summary recId', recId);
 
 
-            if (runPaged) {
-                record.submitFields({
-                    type: 'customrecord_dps_li_automatically_execut',
-                    id: recId,
-                    values: {
-                        custrecord_dps_auto_execute_estimated: true
-                    }
-                });
 
-                submitMapReduceDeployment("customscript_dps_li_timed_switch_script", "customdeploy_dps_li_timed_switch_script", "recId", "param");
+            var acc = runtime.getCurrentScript().getParameter({
+                name: 'custscript_fin_account'
+            });
+
+            if (runPaged) {
+
+
+
+                // return;
+
+
+                // record.submitFields({
+                //     type: 'customrecord_dps_li_automatically_execut',
+                //     id: recId,
+                //     values: {
+                //         custrecord_dps_auto_execute_estimated: true
+                //     }
+                // });
+
+                // submitMapReduceDeployment("customscript_dps_li_timed_switch_script", "customdeploy_dps_li_timed_switch_script", "recId", "param");
             }
+
+            var authorId = 911;
+            var recipientEmail = 'licanlin@douples.com';
+
+
+            // email.send({
+            //     author: authorId,
+            //     recipients: recipientEmail,
+            //     subject: '预估凭证已经处理完成!',
+            //     body: "预估凭证,已经处理完成了。\n 店铺 ID" + acc
+            // });
 
             // custscript_dps_li_fin_record_id
             log.debug('处理完成')
@@ -781,7 +867,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                 taskType: task.TaskType.MAP_REDUCE,
                 scriptId: mapReduceScriptId,
                 deploymentId: mapReduceDeploymentId,
-                params: param
+                // params: param
             });
 
             // Submit the map/reduce task.
@@ -811,21 +897,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
 
             var authorId = 911;
             var recipientEmail = 'licanlin@douples.com';
-            if (taskStatus.status === 'FAILED') {
-                email.send({
-                    author: authorId,
-                    recipients: recipientEmail,
-                    subject: 'Failure executing map/reduce job!',
-                    body: 'Map reduce task: ' + mapReduceScriptId + ' has failed. \n 记录ID ' + recId + "\n 参数为\n" + JSON.stringify(param)
-                });
-            } else {
-                email.send({
-                    author: authorId,
-                    recipients: recipientEmail,
-                    subject: 'Executing map/reduce job!',
-                    body: 'Map reduce task: ' + mapReduceScriptId + ' has activated. \n 记录ID ' + recId + "\n 参数为\n" + JSON.stringify(param)
-                });
-            }
+            // email.send({
+            //     author: authorId,
+            //     recipients: recipientEmail,
+            //     subject: '结算报告处理完成了, ' + taskStatus.status ,
+            //     body: 'Map reduce task: ' + mapReduceScriptId + ' has activated. \n 记录ID ' + recId + '\n 参数为\n' + JSON.stringify(param)
+            // })
         }
 
         return {

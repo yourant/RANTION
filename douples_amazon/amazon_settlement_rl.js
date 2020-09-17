@@ -873,9 +873,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
     var acc_arrys = [],orders = []
     var fils = [],limit = 20
     fils = [
-      ['custrecord_settlement_enddate', 'onorafter', '2020-6-1'],
+      ['custrecord_settlement_enddate', 'within', ['2020-6-1', '2020-6-30']],
       'and',
       ['custrecord_settlement_acc', 'anyof', '@NONE@'],
+      'and',
+      ['custrecord_aio_account_2.isinactive', 'is', 'F@'],
       'and',
       [
         ['custrecord_settlement_acc', 'anyof', '@NONE@'],

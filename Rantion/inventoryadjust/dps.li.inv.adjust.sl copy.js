@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 11:34:43
- * @LastEditTime   : 2020-09-17 11:05:46
+ * @LastEditTime   : 2020-09-16 20:50:53
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.sl.js
@@ -15,6 +15,8 @@
 define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], function(record, search, log, serverWidget, runtime) {
 
     function onRequest(context) {
+
+        // 一次性限制于 350
 
         var userObj = runtime.getCurrentUser();
 
@@ -36,10 +38,11 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                 if (!lineNumber) {
                     lineNumber = 50;
                 }
-
                 log.audit('lineNumber', lineNumber);
 
                 var nowPage = parameters.custpage_li_pages;
+
+                // var resArr = getSublistValue("", lineNumber, nowPage);
                 var resArr = searchResult(param, lineNumber, nowPage);
 
                 var resultArr = resArr.result,
@@ -47,7 +50,11 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                     pageCount = resArr.pageCount,
                     filter = resArr.filter;
 
+                // log.error('第一个数据 resultArr[0]', resultArr[0])
+
                 log.audit('数据长度 resultArr', resultArr.length);
+
+
 
                 log.audit("总数量 totalCount", totalCount);
                 log.audit("总页数 pageCount", pageCount);
@@ -66,6 +73,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                     container: 'fieldgroupid'
                 });
 
+
                 var pagesObj = {
                     20: 20,
                     50: 50,
@@ -74,6 +82,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                 }
 
                 if (pageCount) {
+
                     for (var i = 0, z = i + 1; i < pageCount; i++, z = i + 1) {
                         var temp = selectpages.addSelectOption({
                             value: z,
@@ -109,10 +118,12 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                 var temp = {
                     custpage_li_total: totalCount,
                     custpage_li_pages: nowPage,
+                    // custpage_li_per_page: lineNumber
                 }
                 form.updateDefaultValues(temp);
 
                 var _resultArr = resultArr.slice(0, lineNumber)
+
                 log.debug('截取数据长度', _resultArr.length)
 
                 var curr_qty = form.addField({
@@ -141,6 +152,8 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             context.response.writeLine("开发中...")
         }
 
+
+
     }
 
 
@@ -150,6 +163,9 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
      * @param {Object} form
      */
     function getParams(params, form) {
+
+        // var request = context.request;
+        // var response = context.response;
 
         var date = new Date();
         var firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -190,13 +206,16 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
         var form = serverWidget.createForm({
             title: 'Amazon & NS月度库存差异表'
         });
+
         form.clientScriptModulePath = './dps.li.inv.adjust.cs'
+
 
         form.addButton({
             id: 'button_inv_adj_id',
             label: '生成库存调整单',
             functionName: "createInventoryAdjust()"
         });
+
 
         var fieldgroup = form.addFieldGroup({
             id: 'fieldgroupid',
@@ -283,6 +302,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             displayType: serverWidget.FieldDisplayType.INLINE
         });
 
+
         sublist.addField({
             id: 'custpage_label_fnsku',
             type: serverWidget.FieldType.TEXT,
@@ -336,13 +356,10 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             // displayType: serverWidget.FieldDisplayType.DISABLED
             displayType: serverWidget.FieldDisplayType.HIDDEN
         });
-        sublist.addField({
-            id: 'custpage_label_inv_recid_arr',
-            type: serverWidget.FieldType.TEXTAREA,
-            label: '对应的记录 Info'
-        });
+
         return form;
     }
+
 
     var sublistField = ["custpage_label_account", "custpage_label_location", "custpage_label_sku", "custpage_label_msku", "custpage_label_amazon_qty", "custpage_label_ns_qty", "custpage_label_inv_diff_qty"]
 
@@ -362,7 +379,6 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
         "custpage_label_inv_moninv_month", // 月度时间
         "custpage_label_inv_subsidiary" // 子公司
     ]
-
     /**
      * 设置子列表的值
      * @param {*} sublist
@@ -460,7 +476,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             if (result.custpage_label_amazon_qty || result.custpage_label_amazon_qty == 0) {
                 sublist.setSublistValue({
                     id: 'custpage_label_amazon_qty',
-                    value: (result.custpage_label_amazon_qty).toFixed(0),
+                    value: result.custpage_label_amazon_qty,
                     line: key
                 }); // Amazon 入库量
             }
@@ -477,13 +493,6 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                 sublist.setSublistValue({
                     id: 'custpage_label_inv_diff_qty',
                     value: (result.custpage_label_inv_diff_qty).toFixed(0),
-                    line: key
-                }); // 差异数量
-            }
-            if (result.custpage_label_inv_recid_arr) {
-                sublist.setSublistValue({
-                    id: 'custpage_label_inv_recid_arr',
-                    value: result.custpage_label_inv_recid_arr,
                     line: key
                 }); // 差异数量
             }
@@ -576,11 +585,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
 
         var temp_map_filter = [];
 
-        if (param.custpage_li_sku) {
-            temp_map_filter.push(["custrecord_ass_sku", "anyof", [param.custpage_li_sku]]);
-        } else {
-            temp_map_filter.push(["custrecord_ass_sku", "noneof", ["@NONE@"]]);
-        }
+        temp_map_filter.push(["custrecord_ass_sku", "noneof", ["@NONE@"]]);
 
         amazon_result.forEach(function(res, key) {
             if (key == 0) {
@@ -671,11 +676,11 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             });
         }
 
+
         log.audit('counter', counter);
 
-        log.debug('map_result length ', map_result.length);
-        log.debug('第二个表关联的数据 ', map_result[0]);
-
+        log.debug('map_result length ', map_result.length)
+        log.debug('第二个表关联的数据 ', map_result[0])
         // {
         //     "msku":"HP110-AD-FR-FBA",
         //     "itemId":"2952",
@@ -692,8 +697,6 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
         var new_map_arr = [];
         map_result.map(function(_res) {
             if (_res) {
-                var ns_itemId = _res.itemId,
-                    fba_location = _res.fba_location;
                 var temp_total_ama = 0,
                     _msku, _month, _location, _itemId
                 var temp_element = map_result.filter(function(a1) {
@@ -704,11 +707,11 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                     if (_ele) {
                         _msku = _ele.custpage_label_msku;
                         _month = _ele.custpage_label_inv_moninv_month;
-                        _location = _ele.fba_location;
-                        _itemId = _ele.itemId;
+                        _location = _ele.fba_location
+                        _itemId = _ele.itemId
                         temp_total_ama += Number(_ele.end_qty);
-                        var index = getArrIndex(map_result, _ele);
-                        delete map_result[index];
+                        var index = getArrIndex(map_result, _res);
+                        delete map_result[index]
                     }
                 })
                 new_map_arr.push({
@@ -720,14 +723,11 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                     "custpage_label_msku": _msku,
                     "custpage_label_sku": _itemId,
                     "custpage_label_inv_moninv_month": _month,
-                    "info": temp_element
                 })
             }
 
         })
 
-
-        log.debug("new_map_arr", new_map_arr[0]);
 
 
 
@@ -755,17 +755,10 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             ns_filters.push("and",
                 ["location", "anyof", param.custpage_li_location])
         }
-        if (param.custpage_li_start_date && param.custpage_li_end_date) {
-            ns_filters.push("and", ["trandate", "within", [param.custpage_li_start_date, param.custpage_li_end_date]]);
-        } else if (param.custpage_li_start_date && !param.custpage_li_end_date) {
-            ns_filters.push("and", ["trandate", "onorafter", [param.custpage_li_start_date]]);
-        } else if (!param.custpage_li_start_date && param.custpage_li_end_date) {
-            ns_filters.push("and", ["trandate", "onorbefore", [param.custpage_li_end_date]]);
-        }
         var temp_ns_filter = [];
 
         new_map_arr.map(function(map, key) {
-            // map_result.map(function(map, key) {
+        // map_result.map(function(map, key) {
             if (map.fba_location && map.itemId) {
 
                 if (key == 0) {
@@ -804,6 +797,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                 { name: "quantity", summary: "SUM", type: "float", label: "结余数量" }, // 3
                 { name: "locationaveragecost", join: "item", summary: "MAX", label: "Location Average Cost" }, // 4
                 // { name: "averagecost", join: "item", summary: "AVG", label: "Average Cost" }
+
             ]
         });
 
@@ -813,8 +807,8 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
         var ns_totalCount = pageData.count; //总数
         var ns_pageCount = pageData.pageRanges.length; //页数
 
-        log.audit('关联第三个表 总数 ns_totalCount', ns_totalCount);
-        log.audit('关联第三个表 页数 ns_pageCount', ns_pageCount);
+        log.audit('关联第三个表 ns_totalCount', ns_totalCount);
+        log.audit('关联第三个表 ns_pageCount', ns_pageCount);
 
         var result = []; //结果
 
@@ -834,14 +828,9 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                     ns_deparment = rs.getValue(rs.columns[2])
                 // ns_subsidiary = rs.getValue(rs.columns[6])
 
-                log.debug('ns_itemId: ' + ns_itemId, "fba_location: " + fba_location)
-
-                var temp_element = new_map_arr.filter(function(a1) {
-                    log.debug('a1.fba_location: ' + a1.itemId, "a1.fba_location: " + a1.fba_location)
+                var temp_element = map_result.filter(function(a1) { // find(),
                     return a1.itemId == ns_itemId && a1.fba_location == fba_location
                 });
-
-                log.debug('temp_element', temp_element)
 
                 temp_element.map(function(ele) {
                     var it = {
@@ -854,8 +843,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                         custpage_label_inv_moninv_month: ele.custpage_label_inv_moninv_month, // 月度库存时间
                         custpage_label_inv_locationaveragecost: ns_locationaveragecost, // 平均成本
                         custpage_label_fnsku: ele.custpage_label_fnsku,
-                        custpage_label_deparment: ns_deparment,
-                        custpage_label_inv_recid_arr: JSON.stringify(ele.info)
+                        custpage_label_deparment: ns_deparment
                     };
 
                     temp_result.push(it);
@@ -904,9 +892,9 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
      * @param {Array} arr
      * @param {Object} obj
      */
-    function getArrIndex(arr, obj) {
-        var index = null;
-        var key = Object.keys(obj)[0];
+    function  getArrIndex(arr, obj) {
+        let index = null;
+        let key = Object.keys(obj)[0];
         arr.every(function(value, i) {
             if (value[key] === obj[key]) {
                 index = i;

@@ -26,23 +26,6 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
     Object.defineProperty(exports, '__esModule', {
       value: true
     })
-    /** 检查对应报告类型*/
-    var check_if_handle = function (cfg, type) {
-      return ((cfg.if_handle_removal_report && (type == core.enums.report_type._GET_FBA_FULFILLMENT_REMOVAL_ORDER_DETAIL_DATA_ || type == core.enums.report_type._GET_FBA_FULFILLMENT_REMOVAL_SHIPMENT_DETAIL_DATA_)) ||
-        (cfg.if_handle_custrtn_report && (type == core.enums.report_type._GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA_ || type == core.enums.report_type._GET_FBA_FULFILLMENT_CUSTOMER_SHIPMENT_REPLACEMENT_DATA_)) ||
-        (cfg.if_handle_inventory_report && type == core.enums.report_type._GET_FBA_FULFILLMENT_CURRENT_INVENTORY_DATA_) ||
-        (cfg.if_handle_settlement_report && type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) ||
-        (type == core.enums.report_type._GET_AFN_INVENTORY_DATA_) ||
-        (type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_) ||
-        (type == core.enums.report_type._GET_FBA_REIMBURSEMENTS_DATA_) ||
-        (type == core.enums.report_type._POST_ORDER_FULFILLMENT_DATA_) ||
-        (type == core.enums.report_type._GET_AMAZON_FULFILLED_SHIPMENTS_DATA_) ||
-        (type == core.enums.report_type._GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA_) ||
-        (type == core.enums.report_type._GET_VAT_TRANSACTION_DATA_) ||
-        (type == core.enums.report_type._GET_FBA_FULFILLMENT_INVENTORY_RECEIPTS_DATA_) ||
-        (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) ||
-        (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_))
-    }
 
     exports.getInputData = function () {
       var lines = []
@@ -75,58 +58,74 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
         if (account.id != caac && caac) return
         // core.amazon.getAccountList().map(function (account) {
         var marketplace = account.marketplace
-        if (check_if_handle(account.extra_info, report_type)) {
-          log.audit('account:' + account.id, marketplace)
-          if (is_request) {
-            /** Settlement Report 结算报告 Request */
-            if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-              sum++
-              core.amazon.requestReportFake(account, report_type)
-              log.audit('requestReportFake', 'requestReportFake')
-            } else {
-              log.audit('requestReportrequestReport', account.id)
-              // 根据站点来设置时间
-              if (account.enabled_sites == 'AmazonUS') {
-                // 美国站点
-                log.audit('account.id ' + account.id, '美国站点')
-                startDate = '2020-04-01T00:00:00.000Z'
-                endate = '2020-04-19T23:59:59.999Z'
-              } else if (account.enabled_sites == 'AmazonUK') {
-                // 英国站点
-                log.audit('account.id ' + account.id, '英国站点')
-                startDate = '2020-04-01T08:00:00.000Z'
-                endate = '2020-03-20T08:00:00.000Z'
-              } else if (account.enabled_sites == 'AmazonDE' || account.enabled_sites == 'AmazonES' || account.enabled_sites == 'AmazonFR' || account.enabled_sites == 'AmazonIT') {
-                // 欧洲站点
-                log.audit('account.id ' + account.id, '欧洲站点')
-                startDate = '2020-04-01T09:00:00.000Z'
-                endate = '2020-03-20T09:00:00.000Z'
-              } else {
-                // 其他站点
-                log.audit('account.id ' + account.id, '其他站点')
-                startDate = '2020-04-01T00:00:00.000Z'
-                endate = '2020-03-19T23:59:59.999Z'
-              }
-              startDate = report_start_date
-              endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
-              startDate = '2020-05-0T00:00:00.000Z'
-              endate = '2020-06-01T00:00:00.000Z'
-              log.debug(report_type, 'startDate:' + startDate + '   endate:' + endate)
-
-              core.amazon.requestReport(account, report_type, {
-                'StartDate': startDate,
-                'EndDate': endate,
-                'MarketplaceIdList.Id.1': account.marketplace
-              })
-            }
+        log.audit('account:' + account.id, marketplace)
+        if (is_request) {
+          /** Settlement Report 结算报告 Request */
+          if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
+            sum++
+            core.amazon.requestReportFake(account, report_type)
+            log.audit('requestReportFake', 'requestReportFake')
           } else {
-            var rid = Date.now()
-            log.audit('getRequestingReportList', 'getRequestingReportList')
-            core.amazon.getRequestingReportList(account, report_type).map(function (r) {
-              log.error('账号 ID', account)
-              var rLines = r.lines
-              log.audit('rLines' + rLines.length, rLines[0])
+            log.audit('requestReportrequestReport', account.id)
+            // 根据站点来设置时间
+            if (account.enabled_sites == 'AmazonUS') {
+              // 美国站点
+              log.audit('account.id ' + account.id, '美国站点')
+              startDate = '2020-04-01T00:00:00.000Z'
+              endate = '2020-04-19T23:59:59.999Z'
+            } else if (account.enabled_sites == 'AmazonUK') {
+              // 英国站点
+              log.audit('account.id ' + account.id, '英国站点')
+              startDate = '2020-04-01T08:00:00.000Z'
+              endate = '2020-03-20T08:00:00.000Z'
+            } else if (account.enabled_sites == 'AmazonDE' || account.enabled_sites == 'AmazonES' || account.enabled_sites == 'AmazonFR' || account.enabled_sites == 'AmazonIT') {
+              // 欧洲站点
+              log.audit('account.id ' + account.id, '欧洲站点')
+              startDate = '2020-04-01T09:00:00.000Z'
+              endate = '2020-03-20T09:00:00.000Z'
+            } else {
+              // 其他站点
+              log.audit('account.id ' + account.id, '其他站点')
+              startDate = '2020-04-01T00:00:00.000Z'
+              endate = '2020-03-19T23:59:59.999Z'
+            }
+            startDate = report_start_date
+            endate = moment.utc().subtract(1, 'days').endOf('day').toISOString()
+            startDate = '2020-05-0T00:00:00.000Z'
+            endate = '2020-06-01T00:00:00.000Z'
+            log.debug(report_type, 'startDate:' + startDate + '   endate:' + endate)
 
+            core.amazon.requestReport(account, report_type, {
+              'StartDate': startDate,
+              'EndDate': endate,
+              'MarketplaceIdList.Id.1': account.marketplace
+            })
+          }
+        } else {
+          var rid = Date.now()
+          var setl_accObjs = {}
+          log.audit('getRequestingReportList', 'getRequestingReportList')
+          core.amazon.getRequestingReportList(account, report_type).map(function (r) {
+            log.error('账号 ID', account)
+            var rLines = r.lines
+            log.audit('rLines' + rLines.length, rLines[0])
+            if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
+              rLines.map(function (l) {
+                if (JSON.stringify(l['marketplace-name']).indexOf('Amazon.') > -1 && !setl_accObjs[l['settlement-id']]) {
+                  setl_accObjs[l['settlement-id']] = interfun.GetstoreInEU(account.id, l['marketplace-name'], 'acc_text').acc
+                }
+                return lines.push({
+                  acc_id: account.id,
+                  settle_acc: setl_accObjs[l['settlement-id']],
+                  salesorder_location: account.extra_info.fbaorder_location,
+                  id: r.id,
+                  rid: rid,
+                  type: report_type,
+                  line: l,
+                  firstLine: rLines[0]
+                })
+              })
+            }else {
               rLines.map(function (l) {
                 return lines.push({
                   acc_id: account.id,
@@ -138,70 +137,68 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
                   firstLine: rLines[0]
                 })
               })
+            }
 
-              record.submitFields({
-                type: core.ns.amazon_report._name,
-                id: r.id,
-                values: {
-                  'custrecord_aio_origin_report_is_download': true,
-                  'custrecord_amazon_report_counts': rLines.length // 本次拉取总数
-                }
-              })
-              log.error('rid+店铺+FBA仓库+数量', rid + '-' + account.id + '-' + account.extra_info.fbaorder_location + '-' + rLines.length)
-              if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_ && rLines.length > 0) {
-                if (account.extra_info.fbaorder_location) {
-                  reportFlag = true
-                  var filters = []
-                  filters.push({ name: 'custrecord_fba_update_inventory_account', operator: 'EQUALTO', values: account.id })
-                  filters.push({ name: 'custrecord_salesorder_location', operator: 'EQUALTO', values: account.extra_info.fbaorder_location })
-                  var updateId
-                  var fbaUpdateInventorySearch = search.create({
-                    type: 'customrecord_fba_update_inventory',
-                    filters: filters,
-                    columns: [
-                      'custrecord_fba_update_inventory_account',
-                      'custrecord_salesorder_location',
-                      'custrecord_fba_update_inventory_rid',
-                      'custrecord_fba_update_status'
-                    ]
-                  }).run().each(function (e) {
-                    updateId = e.id
-                  })
-                  var updateInventoryRecord
-                  if (!updateId) {
-                    updateInventoryRecord = record.create({
-                      type: 'customrecord_fba_update_inventory',
-                      isDynamic: true
-                    })
-                  } else {
-                    updateInventoryRecord = record.load({
-                      type: 'customrecord_fba_update_inventory',
-                      id: updateId
-                    })
-                  }
-                  updateInventoryRecord.setValue({
-                    fieldId: 'custrecord_fba_update_inventory_account',
-                    value: account.id
-                  })
-                  updateInventoryRecord.setValue({
-                    fieldId: 'custrecord_salesorder_location',
-                    value: account.extra_info.fbaorder_location
-                  })
-                  updateInventoryRecord.setValue({
-                    fieldId: 'custrecord_fba_update_inventory_rid',
-                    value: rid
-                  })
-                  updateInventoryRecord.setValue({
-                    fieldId: 'custrecord_fba_update_status',
-                    value: 2
-                  })
-                  updateInventoryRecord.save()
-                }
+            record.submitFields({
+              type: core.ns.amazon_report._name,
+              id: r.id,
+              values: {
+                'custrecord_aio_origin_report_is_download': true,
+                'custrecord_amazon_report_counts': rLines.length // 本次拉取总数
               }
             })
-          }
-        } else {
-          log.audit('check_if_handle', 'check_if_handle false')
+            log.error('rid+店铺+FBA仓库+数量', rid + '-' + account.id + '-' + account.extra_info.fbaorder_location + '-' + rLines.length)
+            if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_ && rLines.length > 0) {
+              if (account.extra_info.fbaorder_location) {
+                reportFlag = true
+                var filters = []
+                filters.push({ name: 'custrecord_fba_update_inventory_account', operator: 'EQUALTO', values: account.id })
+                filters.push({ name: 'custrecord_salesorder_location', operator: 'EQUALTO', values: account.extra_info.fbaorder_location })
+                var updateId
+                var fbaUpdateInventorySearch = search.create({
+                  type: 'customrecord_fba_update_inventory',
+                  filters: filters,
+                  columns: [
+                    'custrecord_fba_update_inventory_account',
+                    'custrecord_salesorder_location',
+                    'custrecord_fba_update_inventory_rid',
+                    'custrecord_fba_update_status'
+                  ]
+                }).run().each(function (e) {
+                  updateId = e.id
+                })
+                var updateInventoryRecord
+                if (!updateId) {
+                  updateInventoryRecord = record.create({
+                    type: 'customrecord_fba_update_inventory',
+                    isDynamic: true
+                  })
+                } else {
+                  updateInventoryRecord = record.load({
+                    type: 'customrecord_fba_update_inventory',
+                    id: updateId
+                  })
+                }
+                updateInventoryRecord.setValue({
+                  fieldId: 'custrecord_fba_update_inventory_account',
+                  value: account.id
+                })
+                updateInventoryRecord.setValue({
+                  fieldId: 'custrecord_salesorder_location',
+                  value: account.extra_info.fbaorder_location
+                })
+                updateInventoryRecord.setValue({
+                  fieldId: 'custrecord_fba_update_inventory_rid',
+                  value: rid
+                })
+                updateInventoryRecord.setValue({
+                  fieldId: 'custrecord_fba_update_status',
+                  value: 2
+                })
+                updateInventoryRecord.save()
+              }
+            }
+          })
         }
       })
       log.audit('000input', {
@@ -237,7 +234,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
         name: 'custscript_aio_obt_report_type2'
       })
       log.error('vArray:' + vArray.length, vArray)
-      var acc_id, id, type, line, firstLine
+      var acc_id, id, type, line, firstLine,settle_acc
       var startT = new Date().getTime()
       try {
         if (report_type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
@@ -251,6 +248,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
             acc_id = Number(v.acc_id),
             id = Number(v.id),
             type = v.type,
+            settle_acc = v.settle_acc,
             line = v.line,
             firstLine = v.firstLine
 
@@ -280,29 +278,110 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
                 rec.setCurrentSublistValue({sublistId: 'recmachcustrecord_settlement_link',fieldId: field_id,value: values.substring(0, 299)})
               }
             })
-            if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-              rec.setCurrentSublistText({
-                sublistId: 'recmachcustrecord_settlement_link',
-                fieldId: 'custrecord_settlement_start',
-                text: interfun.getFormatedDate('', '', line['settlement-start-date']).date
-              })
-              rec.setCurrentSublistText({
-                sublistId: 'recmachcustrecord_settlement_link',
-                fieldId: 'custrecord_settlement_enddate',
-                text: interfun.getFormatedDate('', '', line['settlement-end-date']).date
-              })
-            }
+            rec.setCurrentSublistText({
+              sublistId: 'recmachcustrecord_settlement_link',
+              fieldId: 'custrecord_settlement_start',
+              text: interfun.getFormatedDate('', '', line['settlement-start-date']).date
+            })
+            rec.setCurrentSublistText({
+              sublistId: 'recmachcustrecord_settlement_link',
+              fieldId: 'custrecord_settlement_enddate',
+              text: interfun.getFormatedDate('', '', line['settlement-end-date']).date
+            })
+            rec.setCurrentSublistValue({
+              sublistId: 'recmachcustrecord_settlement_link',
+              fieldId: 'custrecord_settlement_acc',
+              value: settle_acc
+            })
             rec.commitLine({sublistId: 'recmachcustrecord_settlement_link'})
           })
           var ss = rec.save()
           log.debug('00000000000000头表保存成功', ss)
-          return
+        } else if (report_type == core.enums.report_type._GET_FBA_FULFILLMENT_INVENTORY_SUMMARY_DATA_) {
+          var rec = record.create({type: 'customrecord_amazon_fulfill_invent_h',isDynamic: true})
+          log.debug('sublists', rec.getSublists())
+          var mapping = core.consts.fieldsMapping[core.enums.report_type[report_type]]
+          vArray.map(function (v) {
+            rec.selectNewLine({sublistId: 'recmachcustrecord_invful_link'})
+            log.error('v:', v)
+            // log.audit("JSON.parse(ctx.value)",JSON.stringify(v))
+            acc_id = Number(v.acc_id),
+            id = Number(v.id),
+            type = v.type,
+            settle_acc = v.settle_acc,
+            line = v.line,
+            firstLine = v.firstLine
+
+            line['report-id'] = id
+            line['account'] = acc_id
+            var date_key = mapping.date_key
+            // log.debug('line[date_key:',line[date_key])
+            line[date_key + '-txt'] = line[date_key]
+            if (line[date_key]) {
+              line[date_key] = interfun.getFormatedDate('', '', line[date_key]).date
+            }
+            Object.keys(mapping.mapping).map(function (field_id) {
+              var values = line[mapping.mapping[field_id]]
+              if (values && JSON.stringify(values).length < 300) {
+                if (mapping.mapping[field_id] == date_key) {
+                  rec.setCurrentSublistText({sublistId: 'recmachcustrecord_invful_link',fieldId: field_id,text: values})
+                } else {
+                  rec.setCurrentSublistValue({sublistId: 'recmachcustrecord_invful_link',fieldId: field_id,value: values})
+                }
+              } else if (values && JSON.stringify(values).length >= 300) {
+                rec.setCurrentSublistValue({sublistId: 'recmachcustrecord_invful_link',fieldId: field_id,value: values.substring(0, 299)})
+              }
+            })
+            rec.commitLine({sublistId: 'recmachcustrecord_invful_link'})
+          })
+          var ss = rec.save()
+          log.debug('00000000000000头表保存成功', ss)
+        } else if (report_type == core.enums.report_type._GET_FBA_FULFILLMENT_MONTHLY_INVENTORY_DATA_) {
+          var rec = record.create({type: 'customrecord_amazon_monthinventory_h',isDynamic: true})
+          log.debug('sublists', rec.getSublists())
+          var mapping = core.consts.fieldsMapping[core.enums.report_type[report_type]]
+          vArray.map(function (v) {
+            rec.selectNewLine({sublistId: 'recmachcustrecord_moninv_link'})
+            log.error('v:', v)
+            // log.audit("JSON.parse(ctx.value)",JSON.stringify(v))
+            acc_id = Number(v.acc_id),
+            id = Number(v.id),
+            type = v.type,
+            settle_acc = v.settle_acc,
+            line = v.line,
+            firstLine = v.firstLine
+
+            line['report-id'] = id
+            line['account'] = acc_id
+            var date_key = mapping.date_key
+            // log.debug('line[date_key:',line[date_key])
+            line[date_key + '-txt'] = line[date_key]
+            if (line[date_key]) {
+              line[date_key] = interfun.getFormatedDate('', '', line[date_key]).date
+            }
+            Object.keys(mapping.mapping).map(function (field_id) {
+              var values = line[mapping.mapping[field_id]]
+              if (values && JSON.stringify(values).length < 300) {
+                if (mapping.mapping[field_id] == date_key) {
+                  rec.setCurrentSublistText({sublistId: 'recmachcustrecord_moninv_link',fieldId: field_id,text: values})
+                } else {
+                  rec.setCurrentSublistValue({sublistId: 'recmachcustrecord_moninv_link',fieldId: field_id,value: values})
+                }
+              } else if (values && JSON.stringify(values).length >= 300) {
+                rec.setCurrentSublistValue({sublistId: 'recmachcustrecord_moninv_link',fieldId: field_id,value: values.substring(0, 299)})
+              }
+            })
+            var mon = line['month'].split('/')[0],year = line['month'].split('/')[1]
+            rec.setCurrentSublistValue({sublistId: 'recmachcustrecord_moninv_link',fieldId: 'custrecord_moninv_month',value: new Date(year, mon, 0)})
+            rec.commitLine({sublistId: 'recmachcustrecord_moninv_link'})
+          })
+          var ss = rec.save()
+          log.debug('00000000000000头表保存成功', ss)
         }
-        var ss = 'success ,' + ' 耗时：' + (new Date().getTime() - startT)
-        log.debug('000000000000a耗时:', ss)
       } catch (error) {
         log.error('000000000000error:', error)
       }
+      log.debug('map - ci 耗时:', (new Date().getTime() - startT))
       return
       try {
         vArray.map(function (v) {

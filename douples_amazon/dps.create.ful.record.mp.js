@@ -836,384 +836,120 @@ define(['../Rantion/Helper/config.js', '../Rantion/Helper/logistics_cost_calcula
         order.lwh = order.long + order.wide + order.high;
 
         var getFilter = [];
-        var searchRe = [];
-        var searchARe = [];
-        var searchVRe = [];
-        var searchZRe = [];
         // 站点
         if (order.siteid) {
-            getFilter.push({
-                name: 'custrecord_lmr_site',
-                operator: 'anyof',
-                values: order.siteid
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_site', 'anyof', order.siteid ], 'or', [ 'custrecord_lmr_site', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_site', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_site',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        log.debug('站点', searchRe);
-
         // 账号
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.accountid) {
-            getFilter.push({
-                name: 'custrecord_lmr_account',
-                operator: 'anyof',
-                values: order.accountid
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_account', 'anyof', order.accountid ], 'or', [ 'custrecord_lmr_account', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_account', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_account',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('账号', searchRe);
-
         // 仓库
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.locationid) {
-            getFilter.push({
-                name: 'custrecord_lmr_location',
-                operator: 'anyof',
-                values: order.locationid
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_location', 'anyof', order.locationid ], 'or', [ 'custrecord_lmr_location', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_location', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_location',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('仓库', searchRe);
-
         // 目的地
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.country) {
-            getFilter.push({
-                name: 'custrecord_cc_country_code',
-                join: 'custrecord_lmr_destination',
-                operator: 'contains',
-                values: order.country
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_destination.custrecord_cc_country_code', 'contains', order.country ], 'or', [ 'custrecord_lmr_destination', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_destination', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_cc_country_code',
-            join: 'custrecord_lmr_destination',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('目的地', searchRe);
-
         // 产品
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (SKUs.length > 0) {
-            getFilter.push({
-                name: 'internalid',
-                join: 'custrecord_lmr_sku',
-                operator: 'anyof',
-                values: SKUs
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_sku', 'anyof', SKUs ], 'or', [ 'custrecord_lmr_sku', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_sku', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'internalid',
-            join: 'custrecord_lmr_sku',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('产品', searchRe);
-
         // 物流分组
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.group) {
-            getFilter.push({
-                name: 'custrecord_lmr_logistics_group',
-                operator: 'anyof',
-                values: order.group
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_logistics_group', 'anyof', order.group ], 'or', [ 'custrecord_lmr_logistics_group', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_logistics_group', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_logistics_group',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('物流分组', searchRe);
-
         // 金额范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.amount > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_weight_start',
-                operator: 'lessthanorequalto',
-                values: order.amount
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_weight_end',
-                operator: 'greaterthanorequalto',
-                values: order.amount
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_amount_start', 'lessthanorequalto', order.amount ], 'and', [ 'custrecord_lmr_amount_end', 'greaterthanorequalto', order.amount ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'lessthanorequalto', order.amount ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'greaterthanorequalto', order.amount ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_weight_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_weight_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('重量范围', searchRe);
-
         // 重量范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.weight > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_weight_start',
-                operator: 'lessthanorequalto',
-                values: order.weight
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_weight_end',
-                operator: 'greaterthanorequalto',
-                values: order.weight
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_weight_start', 'lessthanorequalto', order.weight ], 'and', [ 'custrecord_lmr_weight_end', 'greaterthanorequalto', order.weight ]],'or',
+                [[ 'custrecord_lmr_weight_start', 'lessthanorequalto', order.weight ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'greaterthanorequalto', order.weight ]], 'or',
+                [[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_weight_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_weight_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('重量范围', searchRe);
-
         // 长度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.long > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_length_start',
-                operator: 'lessthanorequalto',
-                values: order.long
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_length_end',
-                operator: 'greaterthanorequalto',
-                values: order.long
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_length_start', 'lessthanorequalto', order.long ], 'and', [ 'custrecord_lmr_length_end', 'greaterthanorequalto', order.long ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'lessthanorequalto', order.long ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'greaterthanorequalto', order.long ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_length_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_length_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('长度范围', searchRe);
-
         // 宽度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.wide > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_width_start',
-                operator: 'lessthanorequalto',
-                values: order.wide
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_width_end',
-                operator: 'greaterthanorequalto',
-                values: order.wide
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_width_start', 'lessthanorequalto', order.wide ], 'and', [ 'custrecord_lmr_width_end', 'greaterthanorequalto', order.wide ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'lessthanorequalto', order.wide ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'greaterthanorequalto', order.wide ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_width_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_width_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('宽度范围', searchRe);
-
         // 高度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.high > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_height_start',
-                operator: 'lessthanorequalto',
-                values: order.high
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_height_end',
-                operator: 'greaterthanorequalto',
-                values: order.high
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_height_start', 'lessthanorequalto', order.high ], 'and', [ 'custrecord_lmr_height_end', 'greaterthanorequalto', order.high ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'lessthanorequalto', order.high ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'greaterthanorequalto', order.high ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_height_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_height_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('高度范围', searchRe);
-
         // 长宽高范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.lwh > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_lwh_start',
-                operator: 'lessthanorequalto',
-                values: order.lwh
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_lwh_end',
-                operator: 'greaterthanorequalto',
-                values: order.lwh
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_lwh_start', 'lessthanorequalto', order.lwh ], 'and', [ 'custrecord_lmr_lwh_end', 'greaterthanorequalto', order.lwh ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'lessthanorequalto', order.lwh ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'greaterthanorequalto', order.lwh ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_lwh_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_lwh_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('长宽高范围', searchRe);
+        var searchRe = getRecBySearch(getFilter);
 
         // 计算预估运费
         var resultJSON = costCal.calculationByRule(searchRe, order.country, order.zip, order.weight, order.long, order.wide, order.high);

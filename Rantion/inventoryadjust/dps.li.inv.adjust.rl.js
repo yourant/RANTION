@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 19:08:37
- * @LastEditTime   : 2020-08-25 10:41:59
+ * @LastEditTime   : 2020-09-17 11:04:01
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.rl.js
@@ -12,199 +12,208 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/search', 'N/log'], function (record, search, log) {
+define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
 
+
+    const _invAdjAccount = 526; // 库存调整的科目
+    const _subsidiary = 5; // 蓝深贸易有限公司
 
     function _post(context) {
 
-        log.debug('context', context);
 
-        log.debug('typeof ', typeof (context));
-        log.debug('typeof ', typeof (context.data));
+        // 一次性限制于 350
+        // log.audit('context', context.data[0]);
 
-        var typeof_data = typeof (context.data);
+        // log.debug('typeof ', typeof(context));
+        // log.debug('typeof ', typeof(context.data));
+
+
+        var temp_arr = [];
+        var dealDate = context.data.slice(0, 100); // 限制于 100 条数据
+        log.audit('dealDate 第一个数据', dealDate[0]);
+        try {
+
+
+            dealDate.map(function(info) {
+
+                var temp_inadju = inventoryAdjustment(info);
+                if (temp_inadju) {
+                    temp_arr.push(temp_arr)
+                }
+            });
+        } catch (error) {
+            log.error('生成库存调整单出错了', error);
+        }
 
         return {
-            msg: ' 已接收',
-            data: typeof_data
+            msg: ' 处理完成',
+            data: "总共处理数据量： " + dealDate.length + ", 处理成功数量： " + temp_arr.length
         }
 
     }
 
 
-
-
-    function inventoryAdjustment(recId) {
-
-        var info = {};
-        var limit = 3999;
-
-        var TRANSACTION_TYPE = ["VendorReturns"];
-        var DISPOSITION = ["CUSTOMER_DAMAGED", "DEFECTIVE", "DISTRIBUTOR_DAMAGED", "CARRIER_DAMAGED"];
-        search.create({
-            type: "customrecord_amazon_fulfill_invtory_rep",
-            filters: [{
-                    isnot: false,
-                    isor: false,
-                    name: "custrecord_invful_transation_type",
-                    operator: "startswith",
-                    values: ["VendorReturns"]
-                },
-                {
-                    isnot: false,
-                    isor: true,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["CARRIER_DAMAGED"]
-                },
-                {
-                    isnot: false,
-                    isor: true,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["DISTRIBUTOR_DAMAGED"]
-                },
-                {
-                    isnot: false,
-                    isor: true,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["DEFECTIVE"]
-                },
-                {
-                    isnot: false,
-                    isor: false,
-                    name: "custrecord_invful_disposition",
-                    operator: "is",
-                    values: ["CUSTOMER_DAMAGED"]
-                },
-                {
-                    name: 'custrecord_dps_invful_processed',
-                    operator: 'is',
-                    values: false
-                }
-            ],
-            columns: [{
-                    name: "custrecord_division",
-                    join: 'custrecord_invful_account'
-                }, // 部门
-                {
-                    name: 'custrecord_aio_subsidiary',
-                    join: 'custrecord_invful_account'
-                }, // 子公司
-                {
-                    name: 'custrecord_aio_fbaorder_location',
-                    join: 'custrecord_invful_account'
-                }, // 地点
-                {
-                    name: 'custrecord_aio_seller_id',
-                    join: 'custrecord_invful_account'
-                }, // sellerId
-                "custrecord_invful_quantity", // 数量
-                "custrecord_invful_transation_type", // TRANSACTION-TYPE
-                "custrecord_invful_fnsku", // fnsku
-                "custrecord_invful_sku", // SKU
-                "custrecord_invful_snapshot_date", // SNAPSHOT-DATE
-            ]
-        }).run().each(function (r) {
-            info = {
-                snapshot_date: r.getValue('custrecord_invful_snapshot_date'),
-                sellerId: r.getValue({
-                    name: 'custrecord_aio_seller_id',
-                    join: 'custrecord_invful_account'
-                }),
-                subsidiary: r.getValue({
-                    name: 'custrecord_aio_subsidiary',
-                    join: 'custrecord_invful_account'
-                }),
-                department: r.getValue({
-                    name: "custrecord_division",
-                    join: 'custrecord_invful_account'
-                }),
-                location: r.getValue({
-                    name: 'custrecord_aio_fbaorder_location',
-                    join: 'custrecord_invful_account'
-                }),
-                qty: r.getValue('custrecord_invful_quantity'),
-                transation_type: r.getValue('custrecord_invful_transation_type'),
-                fnsku: r.getValue('custrecord_invful_fnsku'),
-                sku: r.getValue('custrecord_invful_sku')
-            }
-
-            return --limit > 0;
-        });
-
-        search.create({
-            type: 'customrecord_aio_amazon_seller_sku',
-            filters: [{
-                    name: 'custrecord_aio_seller_id',
-                    join: 'custrecord_ass_account',
-                    operator: 'is',
-                    values: info.sellerId
-                },
-                {
-                    name: 'name',
-                    operator: 'is',
-                    values: info.sku
-                }
-            ],
-            columns: [
-                "custrecord_ass_sku", // NS 货品
-            ]
-        }).run().each(function (rec) {
-            info.itemId = rec.getValue('custrecord_ass_sku')
-        });
+    /**
+     * 生成库存调整单, 子公司 和 盘盈盘亏 状态归总
+     * @param {Object} info
+     */
+    function inventoryAdjustment(info) {
 
         var invAdj = record.create({
             type: 'inventoryadjustment',
-
         });
         invAdj.setValue({
             fieldId: 'subsidiary',
-            value: info.subsidiary
+            value: _subsidiary
         });
         invAdj.setValue({
             fieldId: 'memo',
-            value: "FBA仓报损"
+            value: "Amazon & NS月度库存差异 调整"
         });
         invAdj.setValue({
             fieldId: 'account',
-            value: 538
+            value: _invAdjAccount
         });
+
+        // 32 盘盈入库
+        // 33 盘亏出库
+
+        var ama_type = 32;
+        if (info.custpage_label_inv_diff_qty < 0) {
+            ama_type = 33;
+        }
+
         invAdj.setValue({
             fieldId: 'custbody_stock_use_type',
-            value: 40
+            value: ama_type
         });
         invAdj.setText({
             fieldId: 'trandate',
-            text: info.snapshot_date
+            text: info.custpage_label_inv_moninv_month
         });
-        invAdj.setValue({
+        invAdj.setText({
             fieldId: 'department',
-            value: info.department
+            text: info.custpage_label_deparment
         });
 
         invAdj.setSublistValue({
             sublistId: 'inventory',
             fieldId: 'item',
-            value: info.itemid,
+            value: info.custpage_label_sku,
             line: 0
         });
         invAdj.setSublistValue({
             sublistId: 'inventory',
             fieldId: 'location',
-            value: info.itemid,
+            value: info.custpage_label_location,
             line: 0
         });
         invAdj.setSublistValue({
             sublistId: 'inventory',
             fieldId: 'adjustqtyby',
-            value: info.qty,
+            value: info.custpage_label_inv_diff_qty,
+            line: 0
+        });
+        invAdj.setSublistValue({
+            sublistId: 'inventory',
+            fieldId: 'unitcost',
+            value: info.custpage_label_inv_locationaveragecost,
             line: 0
         });
 
         var invAdj_id = invAdj.save();
         log.debug('库存调整单', invAdj_id);
+
+
+        if (invAdj_id) {
+
+            // {
+            //     "custpage_label_location":"57",
+            //     "custpage_label_sku":"3937",
+            //     "custpage_label_inv_diff_qty":-3580,
+            //     "custpage_label_msku":"HP115-UK-GM-FBA",
+            //     "custpage_label_fnsku":"",
+            //     "custpage_label_inv_moninv_month":"2020-6-30",
+            //     "custpage_label_deparment":"LR事业部",
+            //     "custpage_label_inv_locationaveragecost":"29.66",
+            //     "custpage_label_inv_recid_arr":[
+            //         {
+            //             "msku":"HP115-AD-FR-FBA",
+            //             "itemId":"3937",
+            //             "end_qty":"70",
+            //             "fba_location":"57",
+            //             "custpage_label_amazon_qty":"70",
+            //             "custpage_label_msku":"HP115-AD-FR-FBA",
+            //             "custpage_label_sku":"3937",
+            //             "custpage_label_inv_moninv_month":"2020-6-30",
+            //             "custpage_label_fnsku":"X000UJO20N"
+            //         },
+            //         {
+            //             "msku":"HP115-UK-GM-FBA",
+            //             "itemId":"3937",
+            //             "end_qty":"16",
+            //             "fba_location":"57",
+            //             "custpage_label_amazon_qty":"16",
+            //             "custpage_label_msku":"HP115-UK-GM-FBA",
+            //             "custpage_label_sku":"3937",
+            //             "custpage_label_inv_moninv_month":"2020-6-30",
+            //             "custpage_label_fnsku":"X000UB3CDJ"
+            //         }
+            //     ]
+            // }
+
+
+            var invFilter = [];
+            var recInfo = info.custpage_label_inv_recid_arr;
+
+            recInfo.map(function(_info, _key) {
+
+                if (_key == 0) {
+                    invFilter.push(
+                        [
+                            ['custrecord_moninv_month', 'on', _info.custpage_label_inv_moninv_month],
+                            "and",
+                            ["custrecord_moninv_sku", 'is', _info.custpage_label_msku],
+                            "and",
+                            ['custrecord_moninv_fnsku', 'is', _info.custpage_label_fnsku]
+                        ]
+                    );
+                } else {
+                    invFilter.push("or",
+                        [
+                            ['custrecord_moninv_month', 'on', _info.custpage_label_inv_moninv_month],
+                            "and",
+                            ["custrecord_moninv_sku", 'is', _info.custpage_label_msku],
+                            "and",
+                            ['custrecord_moninv_fnsku', 'is', _info.custpage_label_fnsku]
+                        ]
+                    );
+                }
+            });
+
+            log.debug("invFilter", invFilter);
+
+            var searchArr = [];
+            search.create({
+                type: "customrecord_amazon_monthinventory_rep",
+                filters: invFilter
+            }).run().each(function(rec) {
+                searchArr.push(rec.id);
+                record.submitFields({
+                    type: 'customrecord_amazon_monthinventory_rep',
+                    id: rec.id,
+                    values: {
+                        custrecord_dps_li_inventoryadjust_rec: invAdj_id,
+                        custrecord_moninv_adjustment_order: true
+                    }
+                });
+
+                return true;
+            })
+
+            log.debug('searchArr  ' + searchArr.length, searchArr)
+        }
+        return invAdj_id;
 
     }
 

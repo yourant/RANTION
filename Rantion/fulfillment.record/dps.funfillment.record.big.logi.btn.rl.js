@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-11 14:59:25
- * @LastEditTime   : 2020-08-26 19:00:27
+ * @LastEditTime   : 2020-09-14 19:07:40
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.btn.rl.js
@@ -18,7 +18,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
     'SuiteScripts/dps/logistics/yanwen/dps_yanwen_request.js',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
     'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml", "../Helper/config", "../Helper/tool.li"
-], function (http, https, log, record, search, jetstar, openapi, yanwen, endicia, Moment, file, xml, config, tool) {
+], function(http, https, log, record, search, jetstar, openapi, yanwen, endicia, Moment, file, xml, config, tool) {
 
     function _post(context) {
         log.debug('context', context);
@@ -93,7 +93,7 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         join: "custrecord_dps_shipping_rec_to_location"
                     }, // 目标仓库 财务分仓
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 to_id = rec.getValue('custrecord_dps_shipping_rec_order_num');
                 to_2_id_rec = rec.getValue('custrecord_transfer_order3');
                 to_2_status_rec = rec.getValue({
@@ -134,17 +134,17 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         "custbody_actual_target_warehouse", // 实际目标仓库
                         "custbody_dps_transferor_type", // 调拨单类型
                     ]
-                }).run().each(function (rec) {
+                }).run().each(function(rec) {
                     to_status = rec.getValue('statusref');
                     transferor_type = rec.getValue('custbody_dps_transferor_type');
                     transferlocation = rec.getValue('transferlocation');
                     target_warehouse = rec.getValue('custbody_actual_target_warehouse');
                 });
 
-                log.debug('to_status   ' + typeof (to_status), to_status);
-                log.debug('transferor_type   ' + typeof (transferor_type), transferor_type);
-                log.debug('transferlocation    ' + typeof (transferlocation), transferlocation);
-                log.debug('target_warehouse     ' + typeof (target_warehouse), target_warehouse);
+                log.debug('to_status   ' + typeof(to_status), to_status);
+                log.debug('transferor_type   ' + typeof(transferor_type), transferor_type);
+                log.debug('transferlocation    ' + typeof(transferlocation), transferlocation);
+                log.debug('target_warehouse     ' + typeof(target_warehouse), target_warehouse);
 
                 if ((financia_warehous == 3) && (transferlocation == target_warehouse)) { // 不存在虚拟在途
 
@@ -163,7 +163,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             value: 'C'
                         });
 
-                        var objRecord_id = objRecord.save();
+                        var objRecord_id = objRecord.save({
+                            // enableSourcing: true,
+                            ignoreMandatoryFields: true
+                        });
 
                         log.debug('to 货品履行', objRecord_id);
                     }
@@ -252,7 +255,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             fieldId: 'shipstatus',
                             value: 'C'
                         });
-                        objRecord_id = objRecord.save();
+                        objRecord_id = objRecord.save({
+                            // enableSourcing: true,
+                            ignoreMandatoryFields: true
+                        });
 
                         log.debug('if to 1 货品履行', objRecord_id);
 
@@ -299,7 +305,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             value: 'B'
                         }); // 设置调拨单审批状态
 
-                        to_2_id = get.save();
+                        to_2_id = get.save({
+                            // enableSourcing: true,
+                            ignoreMandatoryFields: true
+                        });
 
                         log.debug('复制记录ID', to_2_id);
 
@@ -312,7 +321,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             fieldId: 'shipstatus',
                             value: 'C'
                         });
-                        var objRecord_id = objRecord.save();
+                        var objRecord_id = objRecord.save({
+                            // enableSourcing: true,
+                            ignoreMandatoryFields: true
+                        });
 
                         log.debug('to 2 货品履行', objRecord_id);
                     } else if (to_2_id_rec && (to_2_status_rec == "pendingFulfillment" || to_2_status_rec == "等待发货")) {
@@ -327,7 +339,10 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                             fieldId: 'shipstatus',
                             value: 'C'
                         });
-                        var objRecord_id = objRecord.save();
+                        var objRecord_id = objRecord.save({
+                            // enableSourcing: true,
+                            ignoreMandatoryFields: true
+                        });
 
                         log.debug('to 2 货品履行', objRecord_id);
                         // } else {

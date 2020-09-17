@@ -79,22 +79,22 @@ define(['N/format', 'require', 'exports', 'N/log', 'N/record', 'N/search', './He
     ]
     exports.getInputData = function () {
       var orders = [],
-        limit = 4000
+        limit = 3999
       search.create({
         type: 'customrecord_amazon_finances_cahce',
         filters: [
-          // { name: 'custrecord_amazon_finances_postedafter',operator:"within", values: ["2020��2��1��","2020��2��29��"]}, 
+          // { name: 'custrecord_amazon_finances_postedafter',operator:"within", values: ["2020��2��1��","2020��2��29��"]},
           { name: 'custrecord_amazon_finances_checkbox',operator: search.Operator.IS, values: false},
           { name: 'custrecordsssssssss',operator: search.Operator.ISNOT, values: 'F'},
-        // { name: 'custrecord_finance_type',operator:"is",values:"orders"}, 
-        // { name: 'custrecord_amazon_finances_orderid',operator:"is",values:"303-6657489-5667535"}, 
+        // { name: 'custrecord_finance_type',operator:"is",values:"orders"},
+        // { name: 'custrecord_amazon_finances_orderid',operator:"is",values:"303-6657489-5667535"},
         ]
       }).run().each(function (e) {
         orders.push(e.id)
         return --limit > 0
       })
 
-      log.audit('��������:', orders.length)
+      log.audit('获取数据长度:', orders.length)
       return orders
     }
 
@@ -139,8 +139,8 @@ define(['N/format', 'require', 'exports', 'N/log', 'N/record', 'N/search', './He
     }
     exports.reduce = function (ctx) {}
     /**
-     * ��cache���ɲ��񱨸棬refunds & orders     
-     * 
+     * ��cache���ɲ��񱨸棬refunds & orders
+     *
      */
     function createRec (l, acc, cache_id, type_finances, postdate) {
       log.debug('type:' + type_finances, JSON.stringify(l))

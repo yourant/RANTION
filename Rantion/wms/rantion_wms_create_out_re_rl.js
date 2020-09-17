@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-07-16 14:48:01
+ * @LastEditTime   : 2020-09-08 17:07:00
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_re_rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -12,7 +12,7 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li'], function (record, search, requestRecord, tool) {
+define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li'], function(record, search, requestRecord, tool) {
 
 
     // OutMasterResultNsDto: {
@@ -59,7 +59,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                         values: sourceNo
                     }],
                     columns: ['custrecord_dps_ship_small_salers_order']
-                }).run().each(function (rec) {
+                }).run().each(function(rec) {
                     recId = rec.id;
                     redSo = rec.getValue('custrecord_dps_ship_small_salers_order');
                 });
@@ -163,7 +163,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                             "item",
                             'quantity'
                         ]
-                    }).run().each(function (rec) {
+                    }).run().each(function(rec) {
                         vRecId = rec.id;
                         var it = {
                             itemId: rec.getValue('item'),
@@ -180,7 +180,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                             toType: 'itemfulfillment'
                         });
 
-                        storageList.map(function (stoItem) {
+                        storageList.map(function(stoItem) {
                             var sku = stoItem.sku,
                                 positionCode = stoItem.positionCode,
                                 barcode = stoItem.barcode,
@@ -275,8 +275,8 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                 // retjson.msg = '操作成功';
                 requestRecord.saveRequestRecord(context.requestId, JSON.stringify(context.requestBody), JSON.stringify(retjson), 1, "outMaster");
             }
-          
-          if (sourceType == 40) {
+
+            if (sourceType == 40) {
                 //创建库存调整
                 var subsidiary_type, account_type, location_use, bill_id;
                 search.create({
@@ -289,7 +289,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                         'custrecord_account_type1',
                         'custrecord_location_use_back'
                     ]
-                }).run().each(function (rec) {
+                }).run().each(function(rec) {
                     bill_id = rec.id;
                     subsidiary_type = rec.getValue('custrecord_subsidiary_type_1');
                     account_type = rec.getValue('custrecord_account_type1');
@@ -328,18 +328,18 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
         return JSON.stringify(retjson);
     }
 
-  
-  /**
-    * 创建库存调整
-    * 
-    */
+
+    /**
+     * 创建库存调整
+     *
+     */
     function createInventoryadjustment(subsidiary_type, account_type, location_use, item_list) {
         var inventory_ord = record.create({ type: 'inventoryadjustment', isDynamic: true });
         inventory_ord.setValue({ fieldId: 'subsidiary', value: subsidiary_type });
         inventory_ord.setValue({ fieldId: 'account', value: account_type });
         inventory_ord.setValue({ fieldId: 'custbody_stock_use_type', value: 36 });
 
-        item_list.map(function (lia) {
+        item_list.map(function(lia) {
             inventory_ord.selectNewLine({ sublistId: 'inventory' });
             var item_id;
             search.create({
@@ -347,7 +347,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                 filters: [
                     { name: 'itemid', operator: 'is', values: lia.sku }
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 item_id = rec.id;
             });
             inventory_ord.setCurrentSublistValue({ sublistId: 'inventory', fieldId: 'item', value: item_id });
@@ -373,8 +373,8 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
 
     /**
      * 创建货品履行
-     * @param {Number} recId 
-     * @param {Array} itemList 
+     * @param {Number} recId
+     * @param {Array} itemList
      */
     function createItemFulfillment(recId, itemList) {
 
@@ -403,7 +403,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
                 'item',
                 'quantity'
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             var it = {
                 itemId: rec.getValue('item'),
                 itemName: rec.getText('item')
@@ -424,7 +424,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
             value: 'C'
         });
 
-        itemList.map(function (item) {
+        itemList.map(function(item) {
 
             log.debug('item', item);
             for (var i = 0, iLen = itemArr.length; i < iLen; i++) {
@@ -490,7 +490,7 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
 
     /**
      * 创建发票
-     * @param {Number} recId 
+     * @param {Number} recId
      */
     function createInvoice(recId) {
         var inv = record.transform({
@@ -500,6 +500,32 @@ define(['N/record', 'N/search', '../common/request_record', '../Helper/tool.li']
         });
         var invId = inv.save();
         return invId || false;
+    }
+
+
+    var SO_STATUS = ["billed", "blosed", "partiallyFulfilled", "pendingApproval",
+        "pendingBilling", "pendingBilling/partiallyFulfilled", "pendingFulfillment"]
+
+        ["SalesOrd:G","SalesOrd:H","SalesOrd:D","SalesOrd:A","SalesOrd:F","SalesOrd:E","SalesOrd:B"]
+
+    function searchSOStatus(_soId, _recordType) {
+        var status;
+        search.create({
+            type: _recordType,
+            filters: [
+                { name: "internalid", operator: "anyof", values: _soId },
+                { name: 'mainline', operator: 'is', values: true }
+            ],
+            columns: [
+                "statusref"
+            ]
+        }).run().each(function(_re) {
+            status = _re.getValue('statusref')
+        });
+
+
+        return status;
+
     }
 
 

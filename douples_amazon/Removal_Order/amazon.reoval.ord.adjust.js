@@ -19,7 +19,6 @@ define(['N/log', 'N/search', 'N/record', '../Helper/interfunction.min', 'N/runti
      */
     function getInputData () {
       var orders = [],limit = 3000
-
       var acc = runtime.getCurrentScript().getParameter({
         name: 'custscript_defect_acc'
       })
@@ -167,44 +166,58 @@ define(['N/log', 'N/search', 'N/record', '../Helper/interfunction.min', 'N/runti
       var rec_type = obj.rec_type
       try {
         if (rec_type == 'customrecord_aio_amazon_removal_shipment') {
+          var t_ord
+          search.create({
+            type: 'customrecord_aio_amazon_removal_shipment',
+            filters: [
+              {name: 'custbody_rel_removal_shipment',operator: 'anyof',values: obj.rec_id}
+            ]
+          }).run().each(function (fd) {
+            t_ord = record.load({
+              type: 'transferorder',
+              id: fd.id
+            })
+          })
           // 移除出库，做调拨单
-          var t_ord = record.create({
-            type: 'transferorder',
-            isDynamic: true
-          })
-          t_ord.setValue({ fieldId: 'subsidiary', value: obj.subsidiary })
-          t_ord.setValue({ fieldId: 'location', value: obj.location })
-          t_ord.setText({ fieldId: 'trandate', text: interfun.getFormatedDate('', '', obj.date).date})
-          t_ord.setValue({ fieldId: 'custbody_dps_start_location', value: obj.location })
-          t_ord.setValue({ fieldId: 'custbody_order_locaiton', value: obj.acc})
-          t_ord.setValue({fieldId: 'department',value: obj.division })
-          t_ord.setValue({ fieldId: 'custbody_rel_removal_shipment', value: obj.rec_id})
-          t_ord.setValue({ fieldId: 'custbody_inv_item_ls', value: obj.desc})
-          t_ord.setValue({ fieldId: 'memo', value: 'FBA调拨货物出库（' + obj.orderid + '）' })
-          t_ord.setValue({fieldId: 'transferlocation',value: 4}); // 梅西仓
-          t_ord.setValue({fieldId: 'custbody_actual_target_warehouse',value: 4 })
-          t_ord.setValue({fieldId: 'custbody_dps_transferor_type',value: 4}) // 类型是移库
-          t_ord.setValue({fieldId: 'employee',value: runtime.getCurrentUser().id})
-          t_ord.selectNewLine({ sublistId: 'item' })
-          var rs = interfun.getskuId(obj.sku, obj.acc, '')
-          t_ord.setCurrentSublistValue({sublistId: 'item',fieldId: 'item',value: rs.skuid})
-          t_ord.setCurrentSublistValue({sublistId: 'item',fieldId: 'quantity',value: obj.qty})
-          t_ord.setCurrentSublistValue({sublistId: 'item',fieldId: 'rate',value: rs.averagecost})
-          // 其他字段
-          try {
-            t_ord.commitLine({ sublistId: 'item' })
-          } catch (err) {
-            throw (
-            'Error inserting item line: ' +
-            ', abort operation!' +
-            err
-            )
+          if (!t_ord) {
+            t_ord = record.create({
+              type: 'transferorder',
+              isDynamic: true
+            })
+            t_ord.setValue({ fieldId: 'subsidiary', value: obj.subsidiary })
+            t_ord.setValue({ fieldId: 'location', value: obj.location })
+            t_ord.setText({ fieldId: 'trandate', text: interfun.getFormatedDate('', '', obj.date).date})
+            t_ord.setValue({ fieldId: 'custbody_dps_start_location', value: obj.location })
+            t_ord.setValue({ fieldId: 'custbody_order_locaiton', value: obj.acc})
+            t_ord.setValue({fieldId: 'department',value: obj.division })
+            t_ord.setValue({ fieldId: 'custbody_rel_removal_shipment', value: obj.rec_id})
+            t_ord.setValue({ fieldId: 'custbody_inv_item_ls', value: obj.desc})
+            t_ord.setValue({ fieldId: 'memo', value: 'FBA调拨货物出库（' + obj.orderid + '）' })
+            t_ord.setValue({fieldId: 'transferlocation',value: 4}); // 梅西仓
+            t_ord.setValue({fieldId: 'custbody_actual_target_warehouse',value: 4 })
+            t_ord.setValue({fieldId: 'custbody_dps_transferor_type',value: 4}) // 类型是移库
+            t_ord.setValue({fieldId: 'employee',value: runtime.getCurrentUser().id})
+            t_ord.selectNewLine({ sublistId: 'item' })
+            var rs = interfun.getskuId(obj.sku, obj.acc, '')
+            t_ord.setCurrentSublistValue({sublistId: 'item',fieldId: 'item',value: rs.skuid})
+            t_ord.setCurrentSublistValue({sublistId: 'item',fieldId: 'quantity',value: obj.qty})
+            t_ord.setCurrentSublistValue({sublistId: 'item',fieldId: 'rate',value: rs.averagecost})
+            // 其他字段
+            try {
+              t_ord.commitLine({ sublistId: 'item' })
+            } catch (err) {
+              throw (
+              'Error inserting item line: ' +
+              ', abort operation!' +
+              err
+              )
+            }
+            var t_ord_id = t_ord.save({
+              enableSourcing: true,
+              ignoreMandatoryFields: true
+            })
+            log.debug('移库 创建调拨单成功：' + t_ord_id)
           }
-          var t_ord_id = t_ord.save({
-            enableSourcing: true,
-            ignoreMandatoryFields: true
-          })
-          log.debug('移库 创建调拨单成功：' + t_ord_id)
           var filds = {}
           filds[obj.ck_filed] = true
           record.submitFields({
@@ -213,31 +226,51 @@ define(['N/log', 'N/search', 'N/record', '../Helper/interfunction.min', 'N/runti
             values: filds
           })
         }else {
-          var rec = record.create({type: 'inventoryadjustment',isDynamic: true})
-          rec.setValue({fieldId: 'subsidiary',value: obj.subsidiary})
-          rec.setValue({fieldId: 'account',value: adjAccount })
-          rec.setValue({fieldId: 'department',value: obj.division })
-          rec.setValue({fieldId: 'custbody_order_locaiton',value: obj.acc })
-          rec.setValue({ fieldId: 'custbody_inv_item_ls', value: obj.desc})
-          rec.setValue({ fieldId: 'memo', value: 'FBA仓报损'})
+          var rec,fils = []
+
           if (obj.rec_type == 'customrecord_aio_amazon_customer_return') {
-            // 退货报告
-            rec.setValue({ fieldId: 'custbody_origin_customer_return_order', value: obj.rec_id})
+            fils.push({name: 'custbody_origin_customer_return_order',operator: 'anyof',values: obj.rec_id})
+          // 退货报告
           }else {
             // 来源库存动作详情
-            rec.setValue({ fieldId: 'custbody_rel_fulfillment_invreq', value: obj.rec_id})
+            fils.push({name: 'custbody_rel_fulfillment_invreq',operator: 'anyof',values: obj.rec_id})
           }
-          rec.setText({ fieldId: 'trandate', text: interfun.getFormatedDate('', '', obj.date).date })
-          rec.selectNewLine({sublistId: 'inventory'})
-          rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'item',value: interfun.getskuId(obj.sku, obj.acc).skuid})
-          rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'location',value: obj.location})
-          rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'adjustqtyby',value: obj.qty})
-          rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'newquantity',value: obj.qty})
-          rec.commitLine({sublistId: 'inventory'})
-          var inventoryadjustment_save = rec.save({
-            ignoreMandatoryFields: true
+          search.create({
+            type: 'inventoryadjustment',
+            filters: fils
+          }).run().each(function (fd) {
+            rec = record.load({
+              type: 'inventoryadjustment',
+              id: fd.id
+            })
           })
-          log.debug('库存调整成功', inventoryadjustment_save)
+          if (!rec) {
+            rec = record.create({type: 'inventoryadjustment',isDynamic: true})
+            rec.setValue({fieldId: 'subsidiary',value: obj.subsidiary})
+            rec.setValue({fieldId: 'account',value: adjAccount })
+            rec.setValue({fieldId: 'department',value: obj.division })
+            rec.setValue({fieldId: 'custbody_order_locaiton',value: obj.acc })
+            rec.setValue({ fieldId: 'custbody_inv_item_ls', value: obj.desc})
+            rec.setValue({ fieldId: 'memo', value: 'FBA仓报损'})
+            if (obj.rec_type == 'customrecord_aio_amazon_customer_return') {
+              // 退货报告
+              rec.setValue({ fieldId: 'custbody_origin_customer_return_order', value: obj.rec_id})
+            }else {
+              // 来源库存动作详情
+              rec.setValue({ fieldId: 'custbody_rel_fulfillment_invreq', value: obj.rec_id})
+            }
+            rec.setText({ fieldId: 'trandate', text: interfun.getFormatedDate('', '', obj.date).date })
+            rec.selectNewLine({sublistId: 'inventory'})
+            rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'item',value: interfun.getskuId(obj.sku, obj.acc).skuid})
+            rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'location',value: obj.location})
+            rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'adjustqtyby',value: obj.qty})
+            rec.setCurrentSublistValue({sublistId: 'inventory',fieldId: 'newquantity',value: obj.qty})
+            rec.commitLine({sublistId: 'inventory'})
+            var inventoryadjustment_save = rec.save({
+              ignoreMandatoryFields: true
+            })
+            log.debug('库存调整成功', inventoryadjustment_save)
+          }
           var filds = {}
           filds[obj.ck_filed] = true
           record.submitFields({

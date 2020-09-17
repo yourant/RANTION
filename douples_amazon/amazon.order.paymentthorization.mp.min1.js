@@ -1,159 +1,100 @@
 /*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-28 14:09:58
- * @LastEditors    : Li
- * @Description    :
- * @FilePath       : \douples_amazon\amazon.order.paymentthorization.mp.min1.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
-/*
  * @version: 1.0
  * @Author: ZJG
  * @Date: 2020-03-27 17:11:52
- * @LastEditTime   : 2020-08-27 12:59:02
+ * @LastEditTime   : 2020-09-15 20:05:24
  */
 /**
  *@NApiVersion 2.x
  *@NScriptType MapReduceScript
  */
-define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.min', './Helper/core.min', 'N/log', 'N/search', 'N/record', './Helper/fields.min'],
-    function(interfun, runtime, format, moment, core, log, search, record, fiedls) {
+define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.min', './Helper/core.min', 'N/log', 'N/search', 'N/record', './Helper/fields.min', 'N/task', 'N/email'],
+    function(interfun, runtime, format, moment, core, log, search, record, fiedls, task, email) {
         // 结算报告退款 欧洲可以根据 marcktplace Name区分国家
         const fba_return_location = 2502
+        const fmt = "yyyy-M-d"
 
         function getInputData() {
             var payments = [],
                 limit_payments = 4000
             var sT = new Date().getTime()
             try {
-                var acc = runtime.getCurrentScript().getParameter({
-                    name: 'custscript_refund_acc'
-                });
+                var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_refund_acc' });
 
                 log.error('店铺', acc);
-                var group = runtime.getCurrentScript().getParameter({
-                    name: 'custscript_refund_accgroup'
-                });
+                var group = runtime.getCurrentScript().getParameter({ name: 'custscript_refund_accgroup' });
 
-                var runPaged = runtime.getCurrentScript().getParameter({
-                    name: 'custscript_refund_runpaged'
-                }); // 获取数据的形式
-                var recId = runtime.getCurrentScript().getParameter({
-                    name: 'custscript_dps_li_account_id_text'
-                }); // 获取数据的形式
+                var runPaged = runtime.getCurrentScript().getParameter({ name: 'custscript_refund_runpaged' }); // 获取数据的形式
+                var recId = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_rec_id' }); //  记录 ID
+                var _start_date = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_start_date' }); // 开始时间
+                var _end_date = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_end_date' }); //  结束时间
+                var _order_id = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_order_id' }); //订单号
 
-
-                var fils = [{
-                        name: 'custrecord_aio_sett_tran_type',
-                        operator: 'contains',
-                        values: 'Refund'
-                    },
-                    {
-                        name: 'custrecord_settlement_enddate',
-                        operator: 'within',
-                        values: ['2020-6-1', '2020-6-30']
-                    }, // end date从2月份开始
-                    {
-                        name: 'custrecord_aio_sett_amount_type',
-                        operator: 'is',
-                        values: ['ItemPrice']
-                    },
-                    {
-                        name: 'custrecord_aio_sett_amount_desc',
-                        operator: 'is',
-                        values: ['Principal']
-                    },
-                    {
-                        name: 'custrecord_aio_sett_credit_memo',
-                        operator: 'isnot',
-                        values: 'T'
-                    },
-                    {
-                        name: 'custrecord_february_undeal',
-                        operator: 'isnot',
-                        values: 'F'
-                    }
+                var fils = [
+                    { name: 'custrecord_aio_sett_tran_type', operator: 'contains', values: 'Refund' },
+                    // {
+                    //     name: 'custrecord_settlement_enddate',
+                    //     operator: 'within',
+                    //     values: ['2020-6-1', '2020-6-30']
+                    // }, // end date从2月份开始
+                    { name: 'custrecord_aio_sett_amount_type', operator: 'is', values: ['ItemPrice'] },
+                    // {
+                    //     name: 'custrecord_aio_sett_amount_desc',
+                    //     operator: 'is',
+                    //     values: ['Principal']
+                    // },
+                    { name: 'custrecord_aio_sett_credit_memo', operator: 'isnot', values: 'T' },
+                    { name: 'custrecord_february_undeal', operator: 'isnot', values: 'F' }
                 ]
+
+                if (_order_id) {
+                    fils.push({ name: 'custrecord_aio_sett_order_id', operator: 'startswith', values: _order_id })
+                }
+
+                if (_start_date && _end_date) {
+                    fils.push({ name: 'custrecord_settlement_enddate', operator: 'within', values: [_li_dateFormat(_start_date, fmt), _li_dateFormat(_end_date, fmt)] }) // end date从2月份开始
+                }
+                if (_start_date && !_end_date) {
+                    fils.push({ name: 'custrecord_settlement_enddate', operator: 'onorafter', values: [_li_dateFormat(_start_date, fmt)] }) // end date从2月份开始
+                }
+                if (!_start_date && _end_date) {
+                    fils.push({ name: 'custrecord_settlement_enddate', operator: 'onorbefore', values: [_li_dateFormat(_end_date, fmt)] }) // end date从2月份开始
+                }
+
+
                 if (acc) {
-                    fils.push({
-                        name: 'custrecord_aio_account_2',
-                        operator: 'anyof',
-                        values: acc
-                    })
+                    fils.push({ name: 'custrecord_aio_account_2', operator: 'anyof', values: acc })
                 }
                 if (group) {
-                    fils.push({
-                        name: 'custrecord_aio_getorder_group',
-                        join: 'custrecord_aio_account_2',
-                        operator: 'anyof',
-                        values: group
-                    })
+                    fils.push({ name: 'custrecord_aio_getorder_group', join: 'custrecord_aio_account_2', operator: 'anyof', values: group })
                 }
+
+                log.error("过滤器", fils);
                 // fils.push({ name: 'custrecord_aio_account_region',join: 'custrecord_aio_account_2', operator: 'noneof', values: ['1'] })
                 var mySearch = search.create({
                     type: 'customrecord_aio_amazon_settlement',
                     filters: fils,
-                    columns: [{
-                            name: 'custrecord_settlement_acc'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_amount_desc'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_amount_type'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_merchant_order_id'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_order_id'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_sku'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_amount'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_deposit_date'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_end_date'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_posted_date_time'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_marketplace_name'
-                        },
-                        {
-                            name: 'custrecord_february_undeal'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_credit_memo'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_adjust_item_id'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_currency'
-                        },
+                    columns: [
+                        { name: 'custrecord_settlement_acc' },
+                        { name: 'custrecord_aio_sett_amount_desc' },
+                        { name: 'custrecord_aio_sett_amount_type' },
+                        { name: 'custrecord_aio_sett_merchant_order_id' },
+                        { name: 'custrecord_aio_sett_order_id' },
+                        { name: 'custrecord_aio_sett_sku' },
+                        { name: 'custrecord_aio_sett_amount' },
+                        { name: 'custrecord_aio_sett_deposit_date' },
+                        { name: 'custrecord_aio_sett_end_date' },
+                        { name: 'custrecord_aio_sett_posted_date_time' },
+                        { name: 'custrecord_aio_sett_marketplace_name' },
+                        { name: 'custrecord_february_undeal' },
+                        { name: 'custrecord_aio_sett_credit_memo' },
+                        { name: 'custrecord_aio_sett_adjust_item_id' },
+                        { name: 'custrecord_aio_sett_currency' },
                         // { name: 'internalid', sort: search.Sort.DESC },
-                        {
-                            name: 'custrecord_division',
-                            join: 'custrecord_settlement_acc'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_quantity_purchased'
-                        },
-                        {
-                            name: 'custrecord_aio_sett_id'
-                        },
-                        {
-                            name: 'custrecord_aio_account_2'
-                        }
+                        { name: 'custrecord_division', join: 'custrecord_settlement_acc' },
+                        { name: 'custrecord_aio_sett_quantity_purchased' },
+                        { name: 'custrecord_aio_sett_id' },
+                        { name: 'custrecord_aio_account_2' }
                     ]
                 });
 
@@ -169,33 +110,33 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                     var pageCount = pageData.pageRanges.length; //页数
                     log.error('总共的页数', pageCount);
 
-                    for (var i = 0; i < pageCount; i++) {
-                        pageData.fetch({
-                            index: i
-                        }).data.forEach(function(rec) {
-                            get_result.push({
-                                recid: rec.id,
-                                acc: rec.getValue(rec.columns[0]),
-                                acc_text: rec.getText(rec.columns[0]),
-                                marketplace_name: rec.getValue('custrecord_aio_sett_marketplace_name'),
-                                merchant_order_id: rec.getValue('custrecord_aio_sett_merchant_order_id'),
-                                merchant_adjustment_itemid: rec.getValue('custrecord_aio_sett_adjust_item_id'),
-                                order_id: rec.getValue('custrecord_aio_sett_order_id'),
-                                sku: rec.getValue('custrecord_aio_sett_sku'),
-                                amount: rec.getValue('custrecord_aio_sett_amount'),
-                                deposit_date: rec.getValue('custrecord_aio_sett_deposit_date'),
-                                endDate: rec.getValue('custrecord_aio_sett_end_date'),
-                                postDate: rec.getValue('custrecord_aio_sett_posted_date_time'),
-                                dept: rec.getValue(rec.columns[15]),
-                                curency_txt: rec.getValue('custrecord_aio_sett_currency'),
-                                setl_id: rec.getValue('custrecord_aio_sett_id'),
-                                aio_acc: rec.getValue('custrecord_aio_account_2'),
-                                quantity: rec.getValue('custrecord_aio_sett_quantity_purchased') ? rec.getValue('custrecord_aio_sett_quantity_purchased') : 1
-                            })
-                        });
+                    if (totalCount > 0) {
+                        for (var i = 0; i < pageCount; i++) {
+                            pageData.fetch({
+                                index: i
+                            }).data.forEach(function(rec) {
+                                get_result.push({
+                                    recid: rec.id,
+                                    acc: rec.getValue(rec.columns[0]),
+                                    acc_text: rec.getText(rec.columns[0]),
+                                    marketplace_name: rec.getValue('custrecord_aio_sett_marketplace_name'),
+                                    merchant_order_id: rec.getValue('custrecord_aio_sett_merchant_order_id'),
+                                    merchant_adjustment_itemid: rec.getValue('custrecord_aio_sett_adjust_item_id'),
+                                    order_id: rec.getValue('custrecord_aio_sett_order_id'),
+                                    sku: rec.getValue('custrecord_aio_sett_sku'),
+                                    amount: rec.getValue('custrecord_aio_sett_amount'),
+                                    deposit_date: rec.getValue('custrecord_aio_sett_deposit_date'),
+                                    endDate: rec.getValue('custrecord_aio_sett_end_date'),
+                                    postDate: rec.getValue('custrecord_aio_sett_posted_date_time'),
+                                    dept: rec.getValue(rec.columns[15]),
+                                    curency_txt: rec.getValue('custrecord_aio_sett_currency'),
+                                    setl_id: rec.getValue('custrecord_aio_sett_id'),
+                                    aio_acc: rec.getValue('custrecord_aio_account_2'),
+                                    quantity: rec.getValue('custrecord_aio_sett_quantity_purchased') ? rec.getValue('custrecord_aio_sett_quantity_purchased') : 1
+                                })
+                            });
+                        }
                     }
-
-
                     var results = []
                     var count = 0
                     var r
@@ -242,69 +183,6 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                     return --limit_payments > 0
                 });
 
-
-                if (runPaged) {
-                    var get_result = []; //结果
-                    var pageSize = 1000; //每页条数
-                    var pageData = mySearch.runPaged({
-                        pageSize: pageSize
-                    });
-                    var totalCount = pageData.count; //总数
-
-                    log.error('总共的数据量', totalCount);
-                    var pageCount = pageData.pageRanges.length; //页数
-                    log.error('总共的页数', pageCount);
-
-                    for (var i = 0; i < pageCount; i++) {
-                        pageData.fetch({
-                            index: i
-                        }).data.forEach(function(rec) {
-                            get_result.push({
-                                recid: rec.id,
-                                acc: rec.getValue(rec.columns[0]),
-                                acc_text: rec.getText(rec.columns[0]),
-                                marketplace_name: rec.getValue('custrecord_aio_sett_marketplace_name'),
-                                merchant_order_id: rec.getValue('custrecord_aio_sett_merchant_order_id'),
-                                merchant_adjustment_itemid: rec.getValue('custrecord_aio_sett_adjust_item_id'),
-                                order_id: rec.getValue('custrecord_aio_sett_order_id'),
-                                sku: rec.getValue('custrecord_aio_sett_sku'),
-                                amount: rec.getValue('custrecord_aio_sett_amount'),
-                                deposit_date: rec.getValue('custrecord_aio_sett_deposit_date'),
-                                endDate: rec.getValue('custrecord_aio_sett_end_date'),
-                                postDate: rec.getValue('custrecord_aio_sett_posted_date_time'),
-                                dept: rec.getValue(rec.columns[15]),
-                                curency_txt: rec.getValue('custrecord_aio_sett_currency'),
-                                setl_id: rec.getValue('custrecord_aio_sett_id'),
-                                aio_acc: rec.getValue('custrecord_aio_account_2'),
-                                quantity: rec.getValue('custrecord_aio_sett_quantity_purchased') ? rec.getValue('custrecord_aio_sett_quantity_purchased') : 1
-                            })
-                        });
-                    }
-
-
-                    var results = []
-                    var count = 0
-                    var r
-                    for (var i = 0; i < get_result.length; i++) {
-                        if (!r) {
-                            r = []
-                        }
-                        r.push(get_result[i])
-                        count++
-
-                        if (count >= 2 || i == (get_result.length - 1)) {
-                            results.push(JSON.stringify(r))
-                            count = 0
-                            r = []
-                        }
-                    }
-                    log.error('runPaged 0000000results.length  ' + results.length, '搜索耗时：' + new Date().getTime() - sT)
-
-
-                    return;
-                    return results
-
-                }
                 var results = []
                 var count = 0
                 var r
@@ -323,6 +201,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                 }
                 log.error('0000000results.length  ' + results.length, '搜索耗时：' + new Date().getTime() - sT)
 
+
                 return results
             } catch (e) {
                 log.error('error:', e)
@@ -330,6 +209,9 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         }
 
         function map(context) {
+
+
+            // return;
             var startT = new Date().getTime()
             var acc_text
             var o
@@ -536,33 +418,6 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         function reduce(context) {}
 
         function summarize(summary) {
-
-
-            var runPaged = runtime.getCurrentScript().getParameter({
-                name: 'custscript_refund_runpaged'
-            }); // 获取数据的形式
-
-            log.error('summary runPaged', runPaged);
-            var recId = runtime.getCurrentScript().getParameter({
-                name: 'custscript_dps_li_account_id_text'
-            }); // 获取数据的形式
-
-
-            if (runPaged) {
-                record.submitFields({
-                    type: 'customrecord_dps_li_automatically_execut',
-                    id: recId,
-                    values: {
-                        custrecord_dps_li_credit_memo: true
-                    }
-                });
-
-
-                submitMapReduceDeployment("customscript_dps_li_timed_switch_script", "customdeploy_dps_li_timed_switch_script", "recId", "param");
-            }
-
-            log.error('summary recId', recId);
-
 
             log.debug('处理完成');
         }
@@ -1160,10 +1015,10 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             } catch (err) {
                 log.error('commitLine error', err)
             }
-            log.debug('增加货品成功')
+            log.debug('增加货品成功');
             var rs = rt.save({
                 ignoreMandatoryFields: true
-            })
+            });
             log.debug('生成退货单成功', rs)
             log.audit('\u5f00\u59cb\u751f\u6210\u8d37\u9879\u901a\u77e5\u5355')
             // 创建贷项通知单
@@ -1214,7 +1069,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                 taskType: task.TaskType.MAP_REDUCE,
                 scriptId: mapReduceScriptId,
                 deploymentId: mapReduceDeploymentId,
-                params: param
+                // params: param
             });
 
             // Submit the map/reduce task.
@@ -1259,6 +1114,28 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                     body: 'Map reduce task: ' + mapReduceScriptId + ' has activated. \n 记录ID ' + recId + "\n 参数为\n" + JSON.stringify(param)
                 });
             }
+        }
+
+
+        function _li_dateFormat(date, fmt) {
+            var o = {
+                "M+": date.getMonth() + 1,
+                "d+": date.getDate(),
+                "h+": date.getHours(),
+                "m+": date.getMinutes(),
+                "s+": date.getSeconds(),
+                "q+": Math.floor((date.getMonth() + 3) / 3),
+                "S": date.getMilliseconds()
+            }
+            if (/(y+)/.test(fmt)) {
+                fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length));
+            }
+            for (var k in o) {
+                if (new RegExp('(' + k + ')').test(fmt)) {
+                    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)));
+                }
+            }
+            return fmt;
         }
 
 

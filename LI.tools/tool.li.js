@@ -2,14 +2,14 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-08-28 14:04:56
+ * @LastEditTime   : 2020-09-08 17:26:55
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \LI.tools\tool.li.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 
-define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], function (search, record, log, http, runtime, util) {
+define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], function(search, record, log, http, runtime, util) {
 
 
 
@@ -27,28 +27,28 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         search.create({
             type: "customrecord_transfer_order_details",
             filters: [{
-                join: "custrecord_transfer_code",
-                name: "item",
-                operator: "anyof",
-                values: itemArr
-            },
-            {
-                name: "custrecord_transfer_code",
-                operator: "anyof",
-                values: [toId]
-            }
+                    join: "custrecord_transfer_code",
+                    name: "item",
+                    operator: "anyof",
+                    values: itemArr
+                },
+                {
+                    name: "custrecord_transfer_code",
+                    operator: "anyof",
+                    values: [toId]
+                }
             ],
             columns: [{
-                name: "custrecord__realted_transfer_head",
-                summary: "GROUP"
-            }, // 采购订单
-            {
-                join: "CUSTRECORD_TRANSFER_CODE",
-                name: "item",
-                summary: "GROUP"
-            } // 货品
+                    name: "custrecord__realted_transfer_head",
+                    summary: "GROUP"
+                }, // 采购订单
+                {
+                    join: "CUSTRECORD_TRANSFER_CODE",
+                    name: "item",
+                    summary: "GROUP"
+                } // 货品
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             var item_code = rec.getValue({
                 join: "CUSTRECORD_TRANSFER_CODE",
                 name: "item",
@@ -90,7 +90,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 operator: 'anyof',
                 values: linkId
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             recId = rec.id;
         });
 
@@ -283,7 +283,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         var BinArr = [],
             BoxArr = [],
             sBinBox = [];
-        itemArr.forEach(function (item) {
+        itemArr.forEach(function(item) {
             var type = item.type;
             if (type == 2) { // 未装箱, 从库位出
                 BinArr.push(item)
@@ -353,17 +353,17 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         search.create({
             type: listType,
             filters: [{
-                name: 'name',
-                operator: 'is',
-                values: BinName
-            },
-            {
-                name: 'isinactive',
-                operator: 'is',
-                values: false
-            }, // 排除已经非活动的记录
+                    name: 'name',
+                    operator: 'is',
+                    values: BinName
+                },
+                {
+                    name: 'isinactive',
+                    operator: 'is',
+                    values: false
+                }, // 排除已经非活动的记录
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             BinId = rec.id
         });
         return BinId || false;
@@ -439,25 +439,25 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         search.create({
             type: recType,
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: [recId]
-            },
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: false
-            },
-            {
-                name: 'taxline',
-                operator: 'is',
-                values: false
-            }
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: [recId]
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                }
             ],
             columns: [
                 "item", "quantity"
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             if (recType == "transferorder") {
 
@@ -504,25 +504,25 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         search.create({
             type: recType,
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: [recId]
-            },
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: false
-            },
-            {
-                name: 'taxline',
-                operator: 'is',
-                values: false
-            }
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: [recId]
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                }
             ],
             columns: [
                 "item", "quantity"
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             if (recType == "transferorder") { // 库存转移订单会出现多行重复项
 
@@ -570,7 +570,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 name: 'custrecord_dps_shipping_record_item',
                 join: 'custrecord_dps_shipping_record_parentrec'
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             var it = rec.getText({
                 name: 'custrecord_dps_shipping_record_item',
@@ -585,7 +585,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
 
         var itemIdArr = [];
-        judArr.map(function (jud) {
+        judArr.map(function(jud) {
             var itemId = jud.sku;
             itemIdArr.push(itemId);
         });
@@ -635,7 +635,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 values: 1
             }],
             columns: ['custrecord_wtr_token']
-        }).run().each(function (result) {
+        }).run().each(function(result) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;
@@ -695,74 +695,74 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 values: recId
             }],
             columns: [{
-                name: 'custrecord_dps_shipping_rec_account',
-                join: "custrecord_dps_shipping_record_parentrec"
-            }, // 店铺
+                    name: 'custrecord_dps_shipping_rec_account',
+                    join: "custrecord_dps_shipping_record_parentrec"
+                }, // 店铺
                 "custrecord_dps_shipping_record_item", // 货品
                 "custrecord_dps_ship_record_item_quantity", // 数量
                 "custrecord_dps_ship_record_sku_item", // seller SKU
-            {
-                name: 'custitem_dps_skuchiense',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 货品中文标题
-            {
-                name: 'custitem_dps_long',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 长
-            {
-                name: 'custitem_dps_wide',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 宽
-            {
-                name: 'custitem_dps_high',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 高
-            {
-                name: 'custitem_dps_mpq',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 每箱数量
-            {
-                name: 'custitem_dps_packing_weight',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 装箱重量(G)
-            {
-                name: 'custitem_dps_skuenglish',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // SKU英文标题
-            {
-                name: 'averagecost',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 平均成本
-            {
-                name: 'custitem_dps_brand',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 品牌
-            {
-                name: 'custitem_dps_group',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 物流分组
-            {
-                name: 'custitem_dps_nature',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 产品材质
-            {
-                name: 'custitem_dps_use',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 用途
-            {
-                name: 'custitem_dps_box_long',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 装箱长
-            {
-                name: 'custitem_dps_box_high',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 装箱高
-            {
-                name: 'custitem_dps_box_wide',
-                join: 'custrecord_dps_shipping_record_item'
-            }, // 装箱宽
+                {
+                    name: 'custitem_dps_skuchiense',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 货品中文标题
+                {
+                    name: 'custitem_dps_long',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 长
+                {
+                    name: 'custitem_dps_wide',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 宽
+                {
+                    name: 'custitem_dps_high',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 高
+                {
+                    name: 'custitem_dps_mpq',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 每箱数量
+                {
+                    name: 'custitem_dps_packing_weight',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 装箱重量(G)
+                {
+                    name: 'custitem_dps_skuenglish',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // SKU英文标题
+                {
+                    name: 'averagecost',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 平均成本
+                {
+                    name: 'custitem_dps_brand',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 品牌
+                {
+                    name: 'custitem_dps_group',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 物流分组
+                {
+                    name: 'custitem_dps_nature',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 产品材质
+                {
+                    name: 'custitem_dps_use',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 用途
+                {
+                    name: 'custitem_dps_box_long',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 装箱长
+                {
+                    name: 'custitem_dps_box_high',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 装箱高
+                {
+                    name: 'custitem_dps_box_wide',
+                    join: 'custrecord_dps_shipping_record_item'
+                }, // 装箱宽
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             var it = {
                 account: rec.getValue({
@@ -853,7 +853,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             var add_fils = [],
                 num = 0,
                 len = boxArr.length;
-            boxArr.map(function (ld) {
+            boxArr.map(function(ld) {
                 num++;
                 if (ld.sellersku) { // 存在 msku
                     add_fils.push([
@@ -889,7 +889,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     "custrecord_ass_fnsku", // fnsku
                 ]
 
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 var itemId = rec.getValue('custrecord_ass_sku');
                 var asin = rec.getValue('custrecord_ass_asin');
                 var fnsku = rec.getValue('custrecord_ass_fnsku');
@@ -899,10 +899,10 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 }
             });
 
-            log.debug('getInfo 搜索货品 itemObj: ' + typeof (itemObj), itemObj);
+            log.debug('getInfo 搜索货品 itemObj: ' + typeof(itemObj), itemObj);
 
             if (JSON.stringify(itemObj) != "{}") {
-                boxArr.map(function (box) {
+                boxArr.map(function(box) {
                     if (itemObj[box.itemId]) {
                         box.asin = itemObj[box.itemId].asin
                         box.fnsku = itemObj[box.itemId].fnsku
@@ -994,7 +994,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     join: "custrecord_dps_ship_box_fa_record_link"
                 }, // 店铺
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             var it = {
                 account: rec.getValue({
@@ -1080,7 +1080,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             var add_fils = [],
                 num = 0,
                 len = boxArr.length;
-            boxArr.map(function (ld) {
+            boxArr.map(function(ld) {
                 num++;
                 if (ld.sellersku) { // 存在 msku
                     add_fils.push([
@@ -1117,7 +1117,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     "custrecord_ass_fnsku", // fnsku
                 ]
 
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 var itemId = rec.getValue('custrecord_ass_sku');
                 var asin = rec.getValue('custrecord_ass_asin');
                 var fnsku = rec.getValue('custrecord_ass_fnsku');
@@ -1131,7 +1131,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
             if (JSON.stringify(itemObj) != "{}") {
 
-                boxArr.map(function (box) {
+                boxArr.map(function(box) {
                     if (itemObj[box.itemId]) {
                         box.asin = itemObj[box.itemId].asin
                         box.fnsku = itemObj[box.itemId].fnsku
@@ -1184,7 +1184,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 }, // 部门
 
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             transport = rec.getValue("custrecord_dps_shipping_rec_transport");
             targetWarehouseName = rec.getText('custrecord_dps_shipping_rec_to_location');
             tradeCompanyName = rec.getText('custrecord_dps_shipping_rec_transa_subje').split(":").slice(-1)[0].trim();
@@ -1234,7 +1234,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         var newBoxArr = [],
             sea_box_info_arr = [],
             air_box_info_arr = [];
-        boxInfo.map(function (box) {
+        boxInfo.map(function(box) {
             var temp = box;
             var it = JSON.stringify(temp);
             var qty = temp.qty;
@@ -1276,7 +1276,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
         var box_arr = [];
 
-        newBoxArr.map(function (box, key) {
+        newBoxArr.map(function(box, key) {
             if (box) {
                 var itemId = box.itemId,
                     sku = box.sku,
@@ -1314,7 +1314,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             }
         });
 
-        box_arr.map(function (box) {
+        box_arr.map(function(box) {
             var boxNo = box.boxNo;
 
             if (util.isArray(boxNo)) {
@@ -1367,50 +1367,50 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 values: recId
             }],
             columns: [{
-                name: "custrecord_dps_ship_box_box_number",
-                summary: "COUNT",
-                type: "text",
-                label: "箱号"
-            },
-            {
-                name: "custrecord_dps_ship_box_item",
-                summary: "GROUP",
-                type: "select",
-                label: "货品"
-            },
-            {
-                name: "custrecord_dps_ship_box_sku",
-                summary: "GROUP",
-                type: "text",
-                label: "SKU"
-            },
-            {
-                name: "custrecord_dps_ship_box_quantity",
-                summary: "GROUP",
-                type: "integer",
-                label: "数量"
-            },
-            {
-                name: "custrecord_dps_ful_rec_box_length",
-                summary: "GROUP",
-                type: "float",
-                label: "箱长"
-            },
-            {
-                name: "custrecord_dps_ful_rec_big_box_width",
-                summary: "GROUP",
-                type: "float",
-                label: "箱宽"
-            },
-            {
-                name: "custrecord_dps_ful_rec_big_box_hight",
-                summary: "GROUP",
-                type: "float",
-                label: "箱高"
-            },
+                    name: "custrecord_dps_ship_box_box_number",
+                    summary: "COUNT",
+                    type: "text",
+                    label: "箱号"
+                },
+                {
+                    name: "custrecord_dps_ship_box_item",
+                    summary: "GROUP",
+                    type: "select",
+                    label: "货品"
+                },
+                {
+                    name: "custrecord_dps_ship_box_sku",
+                    summary: "GROUP",
+                    type: "text",
+                    label: "SKU"
+                },
+                {
+                    name: "custrecord_dps_ship_box_quantity",
+                    summary: "GROUP",
+                    type: "integer",
+                    label: "数量"
+                },
+                {
+                    name: "custrecord_dps_ful_rec_box_length",
+                    summary: "GROUP",
+                    type: "float",
+                    label: "箱长"
+                },
+                {
+                    name: "custrecord_dps_ful_rec_big_box_width",
+                    summary: "GROUP",
+                    type: "float",
+                    label: "箱宽"
+                },
+                {
+                    name: "custrecord_dps_ful_rec_big_box_hight",
+                    summary: "GROUP",
+                    type: "float",
+                    label: "箱高"
+                },
             ]
 
-        }).run().each(function (re) {
+        }).run().each(function(re) {
 
             var it = {
                 itemId: re.getValue({
@@ -1590,7 +1590,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     join: 'custrecord_dps_ship_box_item'
                 }, // 产品重
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
 
             var itemId = rec.getValue('custrecord_dps_ship_box_item'),
@@ -1741,7 +1741,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             var add_fils = [],
                 num = 0,
                 len = boxArr.length;
-            boxArr.map(function (ld) {
+            boxArr.map(function(ld) {
                 num++;
                 if (ld.sellersku) { // 存在 msku
                     add_fils.push([
@@ -1777,7 +1777,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     "custrecord_ass_fnsku", // fnsku
                 ]
 
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 var itemId = rec.getValue('custrecord_ass_sku');
                 var asin = rec.getValue('custrecord_ass_asin');
                 var fnsku = rec.getValue('custrecord_ass_fnsku');
@@ -1790,7 +1790,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             log.debug('getGroupBoxInfo 搜索货品 itemObj', itemObj)
             if (JSON.stringify(itemObj) != "{}") {
 
-                boxArr.map(function (box) {
+                boxArr.map(function(box) {
                     if (itemObj[box.itemId]) {
                         box.asin = itemObj[box.itemId].asin
                         box.fnsku = itemObj[box.itemId].fnsku
@@ -1850,7 +1850,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     join: 'custrecord_dps_shipping_record_parentrec'
                 }, // seller sku
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             shipment = rec.getValue('custrecord_dps_shipping_rec_shipmentsid'); // shipment
             shipmentName = rec.getValue('custrecord_dps_to_shipment_name'); // shipment
             centerId = rec.getValue('custrecord_dps_shipping_rec_destinationf'); // centerId
@@ -1860,9 +1860,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             }); // aono
 
             var itemId = rec.getValue({
-                name: 'custrecord_dps_shipping_record_item',
-                join: 'custrecord_dps_shipping_record_parentrec'
-            }),
+                    name: 'custrecord_dps_shipping_record_item',
+                    join: 'custrecord_dps_shipping_record_parentrec'
+                }),
                 item_qty = rec.getValue({
                     name: 'custrecord_dps_ship_record_item_quantity',
                     join: 'custrecord_dps_shipping_record_parentrec'
@@ -1902,9 +1902,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 values: recId
             }],
             columns: [{
-                name: "custrecord_dps_ship_box_box_number",
-                sortdir: "ASC"
-            }, // 箱号
+                    name: "custrecord_dps_ship_box_box_number",
+                    sortdir: "ASC"
+                }, // 箱号
                 "custrecord_dps_ship_box_item", // 货品
                 "custrecord_dps_ship_box_sku", // seller sku
                 "custrecord_dps_ship_box_quantity", // 装箱数量
@@ -1915,7 +1915,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 'custrecord_dps_ful_rec_big_box_hight', // 箱高
                 'custrecord_dps_ship_box_weight', // 箱重
             ]
-        }).run().each(function (r) {
+        }).run().each(function(r) {
 
             boxItemTotal += Number(r.getValue({
                 name: 'custrecord_dps_ship_box_quantity',
@@ -1964,7 +1964,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         var box_key_arr = Object.keys(item_boxNo_obj); // 获取箱号数据
 
         var new_item_info_arr = [];
-        item_key_arr.map(function (item) {
+        item_key_arr.map(function(item) {
 
             var temp_item_info = {};
             temp_item_info.sellersku = item_info_obj[item].item_seller_sku;
@@ -1974,7 +1974,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
             var temp_item_box_arr = []; // 用于当前货品对应的所有箱号
             var tep_mitem_boxInfo_arr = []; // 用于当前货品对应的所有箱子信息
-            box_key_arr.map(function (box) {
+            box_key_arr.map(function(box) {
 
                 if (item_boxNo_obj[box]) { // 当前箱号存在值
 
@@ -2011,7 +2011,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
         var new_boxNo_arr = [];
 
-        Object.keys(item_boxNo_obj).map(function (box) {
+        Object.keys(item_boxNo_obj).map(function(box) {
             var it = {
                 boxNo: item_boxNo_obj[box][0].boxNo,
                 box_length: item_boxNo_obj[box][0].box_length,
@@ -2057,15 +2057,15 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         search.create({
             type: "customrecord_dps_amazo_center_id_address",
             filters: [{
-                name: 'name',
-                operator: 'is',
-                values: centerId
-            },
-            {
-                name: 'isinactive',
-                operator: 'is',
-                values: false
-            }, // 不属于非活动的
+                    name: 'name',
+                    operator: 'is',
+                    values: centerId
+                },
+                {
+                    name: 'isinactive',
+                    operator: 'is',
+                    values: false
+                }, // 不属于非活动的
             ],
             columns: [
                 "name", // center Id
@@ -2077,7 +2077,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 "custrecord_dps_amazon_center_id_state", // 州
                 "custrecord_dps_amazon_center_id_postcode", // 邮编
             ]
-        }).run().each(function (re) {
+        }).run().each(function(re) {
 
             shipTo.centerId = re.getValue("name");
             shipTo.country = re.getValue("custrecord_dps_amazon_center_id_country");
@@ -2106,17 +2106,17 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         search.create({
             type: "customrecord_dps_port",
             filters: [{
-                name: 'name',
-                operator: 'is',
-                values: city
-            },
-            {
-                name: 'isinactive',
-                operator: 'is',
-                values: false
-            }, // 不属于非活动的
+                    name: 'name',
+                    operator: 'is',
+                    values: city
+                },
+                {
+                    name: 'isinactive',
+                    operator: 'is',
+                    values: false
+                }, // 不属于非活动的
             ]
-        }).run().each(function (re) {
+        }).run().each(function(re) {
             cityId = re.id;
         });
 
@@ -2154,7 +2154,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 operator: 'is',
                 values: country
             }]
-        }).run().each(function (r) {
+        }).run().each(function(r) {
             countryId = r.id;
         });
 
@@ -2200,7 +2200,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 operator: 'anyof',
                 values: recId
             }]
-        }).run().each(function (r) {
+        }).run().each(function(r) {
             boxIdArr.push(r.id);
 
             return --limit > 0;
@@ -2209,7 +2209,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
         log.audit('搜索 End', runtime.getCurrentScript().getRemainingUsage());
 
-        boxIdArr.map(function (boxId, key) {
+        boxIdArr.map(function(boxId, key) {
 
             log.audit('删除 Starts ' + key, runtime.getCurrentScript().getRemainingUsage());
             record.delete({
@@ -2253,7 +2253,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 operator: 'anyof',
                 values: recId
             }]
-        }).run().each(function (r) {
+        }).run().each(function(r) {
             boxLine++;
             return --limit > 0;
         });
@@ -2334,7 +2334,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             columns: [
                 "message"
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             message = rec.getValue('message');
         })
 
@@ -2433,20 +2433,20 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         search.create({
             type: "transferorder",
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: recIds
-            },
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: false
-            },
-            {
-                name: 'taxline',
-                operator: 'is',
-                values: false
-            }
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recIds
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                }
             ],
             columns: [
                 "subsidiary", // 子公司
@@ -2477,7 +2477,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     join: 'item'
                 }, // 每箱数量
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             data.tradeCompanyCode = rec.getValue('subsidiary');
             data.tradeCompanyName = rec.getText('subsidiary').split(":").slice(-1)[0].trim();
@@ -2580,15 +2580,15 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         "yyyy年MM月dd日 hh时mm分ss秒", "yyyy-MM-dd hh:mm:ss.S", "yyyy-M-d h:m:s.S"]
      * @param {format} 时间显示格式
      */
-    Date.prototype.Format = function (format) {
+    Date.prototype.Format = function(format) {
         var date = {
-            "M+": this.getMonth() + 1,                 //月份
-            "d+": this.getDate(),                    //日
-            "h+": this.getHours(),                   //小时
-            "m+": this.getMinutes(),                 //分
-            "s+": this.getSeconds(),                 //秒
+            "M+": this.getMonth() + 1, //月份
+            "d+": this.getDate(), //日
+            "h+": this.getHours(), //小时
+            "m+": this.getMinutes(), //分
+            "s+": this.getSeconds(), //秒
             "q+": Math.floor((this.getMonth() + 3) / 3), //季度
-            "S": this.getMilliseconds()             //毫秒
+            "S": this.getMilliseconds() //毫秒
         };
         if (/(y+)/i.test(format)) {
             format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
@@ -2607,18 +2607,18 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
      * @param {*} weeks  周数
      * @param {String} fmt 需要格式的时间
      */
-    function weekGetDate(year, weeks, fmt) {    //通过周取日期范围   year 年   weeks 周
+    function weekGetDate(year, weeks, fmt) { //通过周取日期范围   year 年   weeks 周
         var date = new Date(year, "0", "1");
         // 获取当前星期几,0:星期一
         var time = date.getTime();
         //当这一年的1月1日为周日时则本年有54周,否则没有54周,没有则去除第54周的提示
         var _week = date.getDay();
 
-        if (_week != 0) {//一年53周情况
+        if (_week != 0) { //一年53周情况
             if (weeks == 54) {
                 return '今年没有54周';
             }
-            var cnt = 0;// 获取距离周末的天数
+            var cnt = 0; // 获取距离周末的天数
             if (_week == 0) {
                 cnt = 7;
             } else if (_week == 1) {
@@ -2634,11 +2634,11 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             } else if (_week == 6) {
                 cnt = 1;
             }
-            cnt += 1;//加1表示以星期一为一周的第一天    // 将这个长整形时间加上第N周的时间偏移
+            cnt += 1; //加1表示以星期一为一周的第一天    // 将这个长整形时间加上第N周的时间偏移
             time += cnt * 24 * 3600000; //第2周开始时间
             var nextYear = new Date(parseInt(year, 10) + 1, "0", "1");
             var nextWeek = nextYear.getDay();
-            var lastcnt = 0;//获取最后一周开始时间到周末的天数
+            var lastcnt = 0; //获取最后一周开始时间到周末的天数
             if (nextWeek == 0) {
                 lastcnt = 6;
             } else if (nextWeek == 1) {
@@ -2654,12 +2654,12 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             } else if (nextWeek == 6) {
                 lastcnt = 5;
             }
-            if (weeks == 1) {//第1周特殊处理    // 为日期对象 date 重新设置成时间 time
+            if (weeks == 1) { //第1周特殊处理    // 为日期对象 date 重新设置成时间 time
                 var start = date.Format(fmt);
                 date.setTime(time - 24 * 3600000);
                 var end = date.Format(fmt);
                 return start + "-----" + end;
-            } else if (weeks == 53) {//第53周特殊处理
+            } else if (weeks == 53) { //第53周特殊处理
                 //第53周开始时间
                 var start = time + (weeks - 2) * 7 * 24 * 3600000;
                 //第53周结束时间
@@ -2678,9 +2678,9 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 var _end = date.Format(fmt);
                 return _start + "-----" + _end;
             }
-        } else {//一年54周情况
-            var cnt = 0;// 获取距离周末的天数
-            if (_week == 0 && weeks == 1) {//第一周
+        } else { //一年54周情况
+            var cnt = 0; // 获取距离周末的天数
+            if (_week == 0 && weeks == 1) { //第一周
                 cnt = 0;
             } else if (_week == 0) {
                 cnt = 7;
@@ -2697,12 +2697,12 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             } else if (_week == 6) {
                 cnt = 1;
             }
-            cnt += 1;//加1表示以星期一为一周的第一天
+            cnt += 1; //加1表示以星期一为一周的第一天
             // 将这个长整形时间加上第N周的时间偏移
             time += 24 * 3600000; //第2周开始时间
             var nextYear = new Date(parseInt(year, 10) + 1, "0", "1");
             var nextWeek = nextYear.getDay();
-            var lastcnt = 0;//获取最后一周开始时间到周末的天数
+            var lastcnt = 0; //获取最后一周开始时间到周末的天数
             if (nextWeek == 0) {
                 lastcnt = 6;
             } else if (nextWeek == 1) {
@@ -2718,12 +2718,12 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             } else if (nextWeek == 6) {
                 lastcnt = 5;
             }
-            if (weeks == 1) {//第1周特殊处理
+            if (weeks == 1) { //第1周特殊处理
                 var start = date.Format(fmt);
                 date.setTime(time - 24 * 3600000);
                 var end = date.Format(fmt);
                 return _start + "-----" + end;
-            } else if (weeks == 54) {//第54周特殊处理
+            } else if (weeks == 54) { //第54周特殊处理
                 //第54周开始时间
                 var start = time + (weeks - 2) * 7 * 24 * 3600000;
                 //第53周结束时间
@@ -2753,7 +2753,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
       * @param {Object} date 日期
      * @param {String} fmt 需要格式样例
      */
-    function dateFormat(date, fmt) {
+    function _li_dateFormat(date, fmt) {
         var o = {
             "M+": date.getMonth() + 1,
             "d+": date.getDate(),
@@ -3017,11 +3017,11 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
 
 
 
-    var dateFormat = function () {
+    var dateFormat = function() {
         var token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LloSZ]|"[^"]*"|'[^']*'/g,
             timezone = /\b(?:[PMCEA][SDP]T|(?:Pacific|Mountain|Central|Eastern|Atlantic) (?:Standard|Daylight|Prevailing) Time|(?:GMT|UTC)(?:[-+]\d{4})?)\b/g,
             timezoneClip = /[^-+\dA-Z]/g,
-            pad = function (val, len) {
+            pad = function(val, len) {
                 val = String(val);
                 len = len || 2;
                 while (val.length < len) val = "0" + val;
@@ -3029,7 +3029,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             };
 
         // Regexes and supporting functions are cached through closure
-        return function (date, mask, utc) {
+        return function(date, mask, utc) {
             var dF = dateFormat;
 
             // You can't provide utc if you skip other args (use the "UTC:" mask prefix)
@@ -3061,7 +3061,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 L = date[_ + "Milliseconds"](),
                 o = utc ? 0 : date.getTimezoneOffset(),
                 flags = {
-                    d: d,  // day
+                    d: d, // day
                     dd: pad(d),
                     ddd: dF.i18n.dayNames[D],
                     dddd: dF.i18n.dayNames[D + 7],
@@ -3069,7 +3069,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     mm: pad(m + 1),
                     mmm: dF.i18n.monthNames[m],
                     mmmm: dF.i18n.monthNames[m + 12],
-                    yy: String(y).slice(2),  // year
+                    yy: String(y).slice(2), // year
                     yyyy: y,
                     h: H % 12 || 12,
                     hh: pad(H % 12 || 12),
@@ -3090,7 +3090,7 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                     S: ["th", "st", "nd", "rd"][d % 10 > 3 ? 0 : (d % 100 - d % 10 != 10) * d % 10]
                 };
 
-            return mask.replace(token, function ($0) {
+            return mask.replace(token, function($0) {
                 return $0 in flags ? flags[$0] : $0.slice(1, $0.length - 1);
             });
         };
@@ -3123,6 +3123,20 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
         ]
     };
+
+
+
+    const SOSTATUS = {
+        fullyBilled: "Billed",
+        closed: "Closed",
+        partiallyFulfilled: "Partially Fulfilled",
+        pendingApproval: "Pending Approval",
+        pendingBilling: "Pending Billing",
+        pendingBillingPartFulfilled: "Pending Billing/Partially Fulfilled",
+        pendingFulfillment: "Pending Fulfillment"
+    }
+
+
 
 
     return {

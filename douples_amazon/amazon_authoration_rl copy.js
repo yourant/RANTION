@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-08 16:03:17
+ * @LastEditTime   : 2020-09-02 11:11:24
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \douples_amazon\amazon_authoration_rl.js
@@ -116,7 +116,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 //     log.audit(account.id)
                 var ss = Orderpull(acc, last_updated_after, last_updated_before)
                 //  })
-                ss += 'success 完成时间: ' + JSON.stringify(new Date(+new Date() + 8 * 3600 * 1000)) + ', 耗时：' + (new Date().getTime() - startT) / 1000 + ' s'
+                ss += 'success 完成时间: ' + JSON.stringify(new Date(+new Date() + 8 * 3600 * 1000)) + ', 耗时：' + (new Date().getTime() - startT)/1000+' s'
                 return ss
                 break
             case 'Get_shipReport':
@@ -665,154 +665,148 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
     function Orderpull(acc, last_updated_after, last_updated_before) {
         var orders = []
-        try {
+        var ssd = core1.handleit(acc, last_updated_after, last_updated_before)
+        if (!ssd)
+            return '没有数据 店铺: ' + acc
+        ssd.map(function(order) {
+            orders.push(order)
+        })
 
-            var ssd = core1.handleit(acc, last_updated_after, last_updated_before)
-            if (!ssd)
-                return '没有数据 店铺: ' + acc
-            ssd.map(function(order) {
-                orders.push(order)
-            })
-
-            log.audit('订单的长度', orders.length);
-            orders.map(function(order) {
-                log.debug('order:', order)
-                // ====================进cache==============
-                try {
-                    var r, r_id, ck = true
-                    search.create({
-                        type: 'customrecord_aio_order_import_cache',
-                        filters: [{
-                                name: 'custrecord_aio_cache_acc_id',
-                                operator: search.Operator.ANYOF,
-                                values: order.AccID
-                            },
-                            {
-                                name: 'custrecord_aio_cache_order_id',
-                                operator: search.Operator.IS,
-                                values: order.amazon_order_id
-                            }
-                        ],
-                        columns: ['custrecord_aio_cache_status']
-                    }).run().each(function(rec) {
-                        if (rec.getValue('custrecord_aio_cache_status') != 'Pending') {
-                            ck = false
+        log.audit('订单的长度', orders.length);
+        orders.map(function(order) {
+            log.debug('order:', order)
+            // ====================进cache==============
+            try {
+                var r, r_id, ck = true
+                search.create({
+                    type: 'customrecord_aio_order_import_cache',
+                    filters: [{
+                            name: 'custrecord_aio_cache_acc_id',
+                            operator: search.Operator.ANYOF,
+                            values: order.AccID
+                        },
+                        {
+                            name: 'custrecord_aio_cache_order_id',
+                            operator: search.Operator.IS,
+                            values: order.amazon_order_id
                         }
-                        r = record.load({
-                            type: 'customrecord_aio_order_import_cache',
-                            id: rec.id
-                        })
-                        r_id = rec.id
-                        return false
-                    })
-                    if (!ck) return
-                    if (!r) {
-                        r = record.create({
-                            type: 'customrecord_aio_order_import_cache',
-                            isDynamic: true
-                        })
+                    ],
+                    columns: ['custrecord_aio_cache_status']
+                }).run().each(function(rec) {
+                    if (rec.getValue('custrecord_aio_cache_status') != 'Pending') {
+                        ck = false
                     }
-                    var order_trandate = interfun.getFormatedDate('', '', order.purchase_date).date
-                    var last_update_date = interfun.getFormatedDate('', '', order.last_update_date).date
+                    r = record.load({
+                        type: 'customrecord_aio_order_import_cache',
+                        id: rec.id
+                    })
+                    r_id = rec.id
+                    return false
+                })
+                if (!ck) return
+                if (!r) {
+                    r = record.create({
+                        type: 'customrecord_aio_order_import_cache',
+                        isDynamic: true
+                    })
+                }
+                var order_trandate = interfun.getFormatedDate('', '', order.purchase_date).date
+                var last_update_date = interfun.getFormatedDate('', '', order.last_update_date).date
 
-                    r.setValue({
-                        fieldId: 'custrecord_aio_cache_acc_id',
-                        value: order.AccID
+                r.setValue({
+                    fieldId: 'custrecord_aio_cache_acc_id',
+                    value: order.AccID
+                })
+                r.setValue({
+                    fieldId: 'custrecord_aio_cache_body',
+                    value: JSON.stringify(order)
+                })
+                r.setValue({
+                    fieldId: 'custrecord_aio_cache_order_id',
+                    value: order.amazon_order_id
+                })
+                r.setValue({
+                    fieldId: 'custrecord_aio_cache_resolved',
+                    value: false
+                })
+                r.setValue({
+                    fieldId: 'custrecord_aio_cache_status',
+                    value: order.order_status || ''
+                })
+                r.setValue({
+                    fieldId: 'custrecord_aio_cache_version',
+                    value: 1
+                })
+                r.setText({
+                    fieldId: 'custrecord_trandate_amazonorder',
+                    text: order_trandate
+                })
+                r.setValue({
+                    fieldId: 'custrecord_text_trandate',
+                    value: order.purchase_date
+                })
+                r.setText({
+                    fieldId: 'custrecord_amazon_last_update_date',
+                    text: last_update_date
+                })
+                r.setValue({ fieldId: 'custrecord_dps_cache_fulfillment_channel', value: order.fulfillment_channel })
+                r.setValue({ fieldId: 'custrecord_shipment_date_cache', value: order.latest_ship_date })
+                r.setValue({ fieldId: 'custrecord_purchase_date_1', value: order.purchase_date })
+                r.setValue({ fieldId: 'custrecord_last_update_date', value: order.last_update_date })
+                r.setText({ fieldId: 'custrecordlatest_ship_date', text: interfun.getFormatedDate('', '', order.latest_ship_date).date })
+                r.setValue({ fieldId: 'custrecord_seller_order_id_1', value: order.seller_order_id })
+                r.setValue({ fieldId: 'custrecord_dps_cache_shipped_byamazont_f', value: order.shipped_byamazont_fm })
+                // rec.selectNewLine({sublistId:"recmachcustrecord_aitem_rel_cahce"})
+                // rec.setCurrentSublistText({sublistId:"recmachcustrecord_settlement_link",fieldId:field_id,text:values})
+                var ss = r.save()
+                log.debug('11cache save success：', ss)
+            } catch (e) {
+                log.error('import cache error', e)
+                var mo
+                search.create({
+                    type: 'customrecord_dps_transform_mo',
+                    filters: [{
+                        name: 'externalid',
+                        operator: 'is',
+                        values: externalid
+                    }]
+                }).run().each(function(rec) {
+                    mo = record.load({
+                        type: 'customrecord_dps_transform_mo',
+                        id: rec.id
                     })
-                    r.setValue({
-                        fieldId: 'custrecord_aio_cache_body',
-                        value: JSON.stringify(order)
+                    return false
+                })
+                if (!mo) {
+                    mo = record.create({
+                        type: 'customrecord_dps_transform_mo',
+                        isDynamic: true
                     })
-                    r.setValue({
-                        fieldId: 'custrecord_aio_cache_order_id',
+                    mo.setValue({
+                        fieldId: 'externalid',
+                        value: acc + '' + order.amazon_order_id
+                    })
+                    mo.setValue({
+                        fieldId: 'custrecord_tr_missing_order_type',
+                        value: '拉单报错'
+                    })
+                    mo.setValue({
+                        fieldId: 'custrecord_missing_orderid_txt',
                         value: order.amazon_order_id
                     })
-                    r.setValue({
-                        fieldId: 'custrecord_aio_cache_resolved',
-                        value: false
+                    mo.setValue({
+                        fieldId: 'custrecord_tracking_missing_acoount',
+                        value: acc
                     })
-                    r.setValue({
-                        fieldId: 'custrecord_aio_cache_status',
-                        value: order.order_status || ''
+                    mo.setValue({
+                        fieldId: 'custrecord_tr_missing_order_reason',
+                        value: JSON.stringify(e)
                     })
-                    r.setValue({
-                        fieldId: 'custrecord_aio_cache_version',
-                        value: 1
-                    })
-                    r.setText({
-                        fieldId: 'custrecord_trandate_amazonorder',
-                        text: order_trandate
-                    })
-                    r.setValue({
-                        fieldId: 'custrecord_text_trandate',
-                        value: order.purchase_date
-                    })
-                    r.setText({
-                        fieldId: 'custrecord_amazon_last_update_date',
-                        text: last_update_date
-                    })
-                    r.setValue({ fieldId: 'custrecord_dps_cache_fulfillment_channel', value: order.fulfillment_channel })
-                    r.setValue({ fieldId: 'custrecord_shipment_date_cache', value: order.latest_ship_date })
-                    r.setValue({ fieldId: 'custrecord_purchase_date_1', value: order.purchase_date })
-                    r.setValue({ fieldId: 'custrecord_last_update_date', value: order.last_update_date })
-                    r.setText({ fieldId: 'custrecordlatest_ship_date', text: interfun.getFormatedDate('', '', order.latest_ship_date).date })
-                    r.setValue({ fieldId: 'custrecord_seller_order_id_1', value: order.seller_order_id })
-                    r.setValue({ fieldId: 'custrecord_dps_cache_shipped_byamazont_f', value: order.shipped_byamazont_fm })
-                    // rec.selectNewLine({sublistId:"recmachcustrecord_aitem_rel_cahce"})
-                    // rec.setCurrentSublistText({sublistId:"recmachcustrecord_settlement_link",fieldId:field_id,text:values})
-                    var ss = r.save()
-                    log.debug('11cache save success：', ss)
-                } catch (e) {
-                    log.error('import cache error', e)
-                    var mo
-                    search.create({
-                        type: 'customrecord_dps_transform_mo',
-                        filters: [{
-                            name: 'externalid',
-                            operator: 'is',
-                            values: externalid
-                        }]
-                    }).run().each(function(rec) {
-                        mo = record.load({
-                            type: 'customrecord_dps_transform_mo',
-                            id: rec.id
-                        })
-                        return false
-                    })
-                    if (!mo) {
-                        mo = record.create({
-                            type: 'customrecord_dps_transform_mo',
-                            isDynamic: true
-                        })
-                        mo.setValue({
-                            fieldId: 'externalid',
-                            value: acc + '' + order.amazon_order_id
-                        })
-                        mo.setValue({
-                            fieldId: 'custrecord_tr_missing_order_type',
-                            value: '拉单报错'
-                        })
-                        mo.setValue({
-                            fieldId: 'custrecord_missing_orderid_txt',
-                            value: order.amazon_order_id
-                        })
-                        mo.setValue({
-                            fieldId: 'custrecord_tracking_missing_acoount',
-                            value: acc
-                        })
-                        mo.setValue({
-                            fieldId: 'custrecord_tr_missing_order_reason',
-                            value: JSON.stringify(e)
-                        })
-                        mo.save()
-                    }
+                    mo.save()
                 }
-                // =======================进cache==============end
-            })
-        } catch (error) {
-            log.error('出错了', error);
-            return acc;
-        }
+            }
+            // =======================进cache==============end
+        })
         return acc
     }
 
@@ -903,21 +897,15 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 })
             }
 
-            log.audit('last_update_date', last_update_date)
+            log.audit('last_update_date',last_update_date)
             var field_token = cut_token ? 'custrecord_nexttoken_cust' : 'custrecord_aio_importer_next_token'
             log.debug('field_token', field_token)
 
             if (!last_update_date)
-                last_update_date = '2020-07-01T00:00:00.000Z'
+                last_update_date = '2020-07-21T00:00:00.000Z'
             if (hid && nextToken) {
                 if (nextToken == '-1') {
-                    // var pullOrderAcc_2 = [156,120,113,146,104,107,9,130]
-                    // var accArr_3 = [21, 49, 1, 33, 97, 31, 22, 18, 166, 19, 12, 78, 79, 115, 54, 123]
 
-                    // if (pullOrderAcc_2.indexOf(acc_id) > -1) {
-                    //     log.error('店铺已经拉取完成了',acc_id)
-                    //     return [];
-                    // }
 
                     return [];
 
@@ -935,16 +923,16 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                     //     value: last_update_date
                     // })
                     log.debug('1111111')
-                    // if (last_after)
-                    //     h.setText({
-                    //         fieldId: 'custrecord_aio_importer_last_updated_af',
-                    //         text: moment(last_after).toDate()
-                    //     })
-                    // if (last_before)
-                    //     h.setText({
-                    //         fieldId: 'custrecord_aio_importer_last_updated_bf',
-                    //         text: moment(last_before).toDate()
-                    //     })
+                    if (last_after)
+                        h.setText({
+                            fieldId: 'custrecord_aio_importer_last_updated_af',
+                            text: moment(last_after).toDate()
+                        })
+                    if (last_before)
+                        h.setText({
+                            fieldId: 'custrecord_aio_importer_last_updated_bf',
+                            text: moment(last_before).toDate()
+                        })
 
                     if (last_after)
                         // 文本形式时间
@@ -1022,12 +1010,12 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         value: rtn.LastUpdatedBefore
                     })
 
-                // if (last_update_date)
-                //     h.setText({
-                //         fieldId: 'custrecord_aio_importer_last_updated_af',
-                //         // text: last_update_date
-                //         text: moment(last_update_date).toDate()
-                //     })
+                if (last_update_date)
+                    h.setText({
+                        fieldId: 'custrecord_aio_importer_last_updated_af',
+                        // text: last_update_date
+                        text: moment(last_update_date).toDate()
+                    })
 
                 h.setValue({
                     fieldId: 'custrecord_aio_importer_last_updated_bf',

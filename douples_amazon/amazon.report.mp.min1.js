@@ -100,6 +100,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
       }
       // core.amazon.getReportAccountList().map(function (account) {
       log.debug(report_type, '店铺数量:' + acc_arrys.length)
+      log.audit('店铺数据', acc_arrys)
       acc_arrys.map(function (account) {
         if (account.id != stroe && stroe) return
         var marketplace = account.marketplace
@@ -113,10 +114,17 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
             log.audit('requestReportFake', 'requestReportFake')
           } else if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
             core.amazon.requestReport(account, report_type, {})
-          } else {
+          } else if (report_type == core.enums.report_type._GET_FBA_FULFILLMENT_INVENTORY_SUMMARY_DATA_) {
             core.amazon.requestReport(account, report_type, {
-              'StartDate': '2020-05-31T00:00:00.000Z',
-              // 'EndDate': '2020-06-01T00:00:00.000Z',
+              'StartDate': startDate,
+              'EndDate': endDate,
+              'MarketplaceIdList.Id.1': account.marketplace,
+              'ReportOptions': 'ShowSalesChannel'
+            })
+          }else {
+            core.amazon.requestReport(account, report_type, {
+              'StartDate': startDate,
+              'EndDate': endDate,
               'MarketplaceIdList.Id.1': account.marketplace,
               'ReportOptions': 'ShowSalesChannel'
             })
@@ -304,7 +312,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
                   name: 'custrecord_amazon_order_id',
                   operator: 'is',
                   values: line['amazon-order-id']
-                }, // Order ID 
+                }, // Order ID
                 {
                   name: 'formulanumeric',
                   operator: 'equalto',
@@ -315,7 +323,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
                   name: 'custrecord_shipment_account',
                   operator: 'anyof',
                   values: [line['account']]
-                }, // account 
+                }, // account
                 {
                   name: 'custrecord_sku',
                   operator: 'is',
@@ -512,7 +520,6 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
             }).run().each(function (e) {
               check_rec_id = e.id
             })
-            log.audit('check_rec_id', check_rec_id)
           }else if (mapping.record_type_id == 'customrecord_amazon_monthinventory_rep') {
             // 亚马逊月度历史库存
             /**
@@ -560,9 +567,38 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
               ]
             }).run().each(function (e) {
               check_rec_id = e.id
-            }) 
+            })
              */
 
+          }else if (mapping.record_type_id == 'customrecord_aio_amazon_removal_shipment') {
+            var fils = [
+              {name: 'custrecord_remo_shipment_account', operator: 'is',values: line['account']},
+              {name: 'custrecord_aio_rmv_request_date', operator: 'is',values: line['request-date']},
+              {name: 'custrecord_aio_rmv_order_id', operator: 'is',values: line['order-id']},
+              {name: 'custrecord_aio_rmv_date', operator: 'is',values: line['shipment-date-txt']},
+              {name: 'custrecord_aio_rmv_sku', operator: 'is',values: line['sku']},
+              {name: 'custrecord_aio_rmv_fnsku', operator: 'is',values: line['fnsku']},
+              {name: 'custrecord_aio_rmv_disposition', operator: 'is',values: line['disposition']},
+              {name: 'custrecord_aio_rmv_shipped_qty', operator: 'is',values: line['shipped-quantity']}
+            ]
+            if (line['carrier']) {
+              fils.push({name: 'custrecord_aio_rmv_carrier', operator: 'is',values: line['carrier']})
+            }else {
+              fils.push({name: 'custrecord_aio_rmv_carrier', operator: 'isempty'})
+            }
+            if (line['tracking-number']) {
+              fils.push({name: 'custrecord_aio_rmv_tracking_number', operator: 'is',values: line['tracking-number']})
+            }else {
+              fils.push({name: 'custrecord_aio_rmv_tracking_number', operator: 'isempty'})
+            }
+
+            // 亚马逊移除货件
+            search.create({
+              type: mapping.record_type_id,
+              filters: fils
+            }).run().each(function (e) {
+              check_rec_id = e.id
+            })
           }
           if (check_rec_id) {
             log.audit('0load ' + line['amazon-order-id'] ? line['amazon-order-id'] : line['order-id'], '1 load: ' + mapping.record_type_id)
@@ -665,9 +701,24 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
               sku_corr.setValue({fieldId: 'custrecord_ass_account',value: acc_id})
               sku_corr.setValue({fieldId: 'custrecord_ass_asin',value: line.asin1})
               sku_corr.setValue({fieldId: 'name',value: line['seller-sku']})
-              sku_corr.setValue({fieldId: 'custrecord_ass_sellersku_site',value: site_id})
-              var ss = sku_corr.save()
-              log.debug('SKU对应关系 ' + ss)
+              if (site_id) {
+                sku_corr.setValue({fieldId: 'custrecord_ass_sellersku_site',value: site_id})
+                var ss = sku_corr.save()
+                log.debug('SKU对应关系 ' + ss)
+              }else {
+                // 站点不存在？？？？店铺信息配置里面没有站点?
+                search.create({
+                  type: 'customrecord_aio_account',
+                  filters: [
+                    {name: 'internalidnumber', operator: 'equalto',values: acc_id}
+                  ],columns: [{name: 'custrecord_aio_enabled_sites'}]
+                }).run().each(function (e) {
+                  log.audit('找到站点', e.getValue('custrecord_aio_enabled_sites'))
+                  sku_corr.setValue({fieldId: 'custrecord_ass_sellersku_site',value: e.getValue('custrecord_aio_enabled_sites')})
+                  var ss = sku_corr.save()
+                  log.debug('SKU对应关系 ' + ss)
+                })
+              }
             }
           }
           if (type == core.enums.report_type._GET_FBA_FULFILLMENT_MONTHLY_INVENTORY_DATA_) {
@@ -677,6 +728,7 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
               value: new Date(year, mon, 0)
             })
           }
+
           var ss = rec.save()
           log.debug('rec.id', ss)
         })
@@ -701,12 +753,12 @@ define(['N/format', 'require', 'exports', './Helper/core.min', 'N/log', 'N/recor
 
     /**
     * 生成单据失败记录
-    * @param {*} type 
-    * @param {*} account_id 
-    * @param {*} order_id 
-    * @param {*} so_id 
-    * @param {*} reason 
-    * @param {*} date 
+    * @param {*} type
+    * @param {*} account_id
+    * @param {*} order_id
+    * @param {*} so_id
+    * @param {*} reason
+    * @param {*} date
     */
     function createMissingReport (repoty, repo_id, reason, acc, ck) {
       var mo

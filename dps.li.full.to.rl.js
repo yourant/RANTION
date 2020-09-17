@@ -1,494 +1,952 @@
-/*
- * @Author         : Li
- * @Version        : 1.0
- * @Date           : 2020-07-22 23:57:07
- * @LastEditTime   : 2020-08-19 11:50:29
- * @LastEditors    : Li
- * @Description    : 
- * @FilePath       : \dps.li.full.to.rl.js
- * @可以输入预定的版权声明、个性签名、空行等
- */
-
-
 /**
  *@NApiVersion 2.x
- *@NScriptType Restlet
+ *@NScriptType MapReduceScript
+ amazon.order.mp.js
+ *@author Doris
+ *@description 亚马逊抓单脚本/使用MP直接抓单
  */
-define(['N/record', 'N/search', 'N/log', 'N/format', 'N/https', './Rantion/Helper/tool.li'], function (record, search, log, format, https, tool) {
+define(["N/format", "N/runtime", "./Helper/core.min", "../../Helper/CryptoJS.min",
+    "../../Helper/Moment.min", "N/log", "N/search", "N/record", "N/encode", "N/https", "N/xml", "../../Helper/interfunction.min"
+], function(format, runtime, core, cryptoJS, moment, log, search, record, encode, https, xml, interfun) {
+    var tz = new Date().getTimezoneOffset();
+
+
+    function _get(context) {
+
+    }
 
     function _post(context) {
 
-
-        var action = context.action;
-
-        var recIds = context.recIds;
-
-        if (action == "search") {
-
-        }
-
-        if (action == "update") {
-            try {
-                // VendorPrepayment(context.recId);
-
-            } catch (error) {
-                log.error('更改字段出错了', error);
-            }
-        }
-
-        if (action == "tranferOrderToWMS") {
-            var get_data = tranferOrderToWMS();
-
-            var token = getToken();
-            if (token) {
-
-            }
-        }
-
-
     }
 
-
-
-    function tranferOrderToWMS(recIds) {
-
-        // InMasterCreateRequestDto {
-        //     boxNum(integer): 箱数,       1
-        //     estimateTime(string): 预计到货时间,          1
-        //     inspectionType(integer): 质检类型 10: 全检 20: 抽检,             1
-        //     planQty(integer): 计划入库数量,
-        //     pono(string, optional): 采购单号,
-        //     purchaser(string): 采购员,
-        //     remark(string, optional): 备注,                1
-        //     skuList(Array[InDetailCreateRequestDto]): 入库SKU明细,
-        //     sourceNo(string): 来源单号,                  1
-        //     sourceType(integer): 来源类型 10: 交货单 20: 退货入库 30: 调拨入库 40: 借调入库,             1
-        //     supplierCode(string, optional): 供应商编号,
-        //     supplierName(string, optional): 供应商名称,
-        //     taxFlag(integer): 是否含税 0: 否1: 是,               1
-        //     tradeCompanyCode(string): 交易主体编号,              1
-        //     tradeCompanyName(string): 交易主体名称,              1
-        //     warehouseCode(string): 仓库编号,                 1
-        //     warehouseName(string): 仓库名称,                 1
-        //     waybillNo(string, optional): 运单号
-        // }
-        // InDetailCreateRequestDto {
-        //     boxInfo(InDetailBoxInfoCreateRequestDto): 箱子信息,
-        //     boxNum(integer): 箱数,
-        //     inspectionType(integer): 质检类型 10: 全检 20: 抽检 30: 免检,
-        //     planQty(integer): 计划入库数,
-        //     productCode(string): 产品编号,
-        //     productImageUrl(string): 图片路径,
-        //     productTitle(string): 产品标题,
-        //     remainderQty(integer): 余数,
-        //     sku(string): sku,
-        //     supplierVariant(string, optional): 供应商变体规格 json,
-        //     variant(string, optional): 变体规格 json
-        // }
-        // InDetailBoxInfoCreateRequestDto {
-        //     height(number): 高,
-        //     length(number): 长,
-        //     width(number): 宽
-        // }
-
-
-        var limit = 3999;
-
-        var data = {};
-        var itemInfo = [];
-        data.sourceType = 30;
-        data.estimateTime = new Date().toISOString();
-        data.inspectionType = 10;
-        data.boxNum = 10;
-        data.taxFlag = 0;
-
-        var planQty = 0;
-
-        search.create({
-            type: "transferorder",
-            filters: [{
-                    name: 'internalid',
-                    operator: 'anyof',
-                    values: recIds
-                },
-                {
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
+    function getInputData() {
+        var orders = []
+        try {
+            var req = runtime.getCurrentScript().getParameter({
+                name: 'custscript_listorder_date'
+            });
+            var request_acc = runtime.getCurrentScript().getParameter({
+                name: 'custscript_amazon_ord_store'
+            });
+            var request_start = runtime.getCurrentScript().getParameter({
+                name: 'custscript_start_date'
+            });
+            var request_end = runtime.getCurrentScript().getParameter({
+                name: 'custscript_end_date'
+            });
+            var dps_pull_order = runtime.getCurrentScript().getParameter({
+                name: 'custscript_dps_pull_order'
+            });
+            if (request_start)
+                request_start = new Date(request_start.getTime() - tz * 60 * 1000).toISOString();
+            if (request_end)
+                request_end = new Date(request_end.getTime() - tz * 60 * 1000).toISOString();
+            log.debug("店铺L:" + request_acc + ",分组：" + dps_pull_order, "date end:" + request_end + ",date request_start:" + request_start);
+            var ff = core.amazon.getAccountList(dps_pull_order);
+            log.debug("ff:" + ff.length);
+            ff.map(function(account) {
+                log.debug("0000000000000000000000000000getAccountList.id: " + account.id, dps_pull_order);
+                if (account.id != request_acc && request_acc) return;
+                last_updated_after = "2020-05-31T00:00:00.000Z";
+                if (req) {
+                    // // 设置统一时间
+                    var ssd = core1.handleit(account.id, request_start, request_end);
+                    if (ssd)
+                        ssd.map(function(order) {
+                            order.timezone = account.timezone;
+                            orders.push(order);
+                        })
+                } else {
+                    log.audit(' !request', account.id);
+                    core1.handleit(account.id).map(function(order) {
+                        order.timezone = account.timezone;
+                        orders.push(order);
+                    });
                 }
-            ],
-            columns: [
-                "subsidiary", // 子公司
-                // "transferlocation", // 入库地点
-                "memo", // 备注
-                "custbodyexpected_arrival_time", // 预计到货时间
-                "tranid", // 订单号
-                {
-                    name: "custrecord_dps_wms_location",
-                    join: "toLocation"
-                }, // 仓库编号
-                {
-                    name: 'custrecord_dps_wms_location_name',
-                    join: "toLocation"
-                }, // 仓库名称
 
-                "item", "quantity",
-                {
-                    name: 'custitem_dps_picture',
-                    join: 'item'
-                }, // 产品图片
-                {
-                    name: 'custitem_dps_skuchiense',
-                    join: 'item'
-                }, // 中文标题
-                {
-                    name: 'custitem_dps_mpq',
-                    join: 'item'
-                }, // 每箱数量
-            ]
-        }).run().each(function (rec) {
-
-            data.tradeCompanyCode = rec.getValue('subsidiary');
-            data.tradeCompanyName = rec.getText('subsidiary').split(":").slice(-1)[0].trim();
-            data.remark = rec.getValue('memo');
-
-
-
-            var loca_code = rec.getValue({
-                name: 'custrecord_dps_wms_location',
-                join: 'toLocation'
-            });
-
-            var loca_name = rec.getValue({
-                name: 'custrecord_dps_wms_location_name',
-                join: 'toLocation'
-            })
-            log.audit('loca_code: ' + loca_code, 'loca_name: ' + loca_name)
-
-            data.sourceNo = rec.getValue('tranid');
-            data.warehouseCode = rec.getValue({
-                name: 'custrecord_dps_wms_location',
-                join: 'toLocation'
-            });
-            data.warehouseName = rec.getValue({
-                name: 'custrecord_dps_wms_location_name',
-                join: 'toLocation'
-            });
-
-            var temp_qty = Number(rec.getValue('quantity'));
-
-            var mpq = rec.getValue({
-                name: 'custitem_dps_mpq',
-                join: 'item'
-            });
-            log.audit('mpq', mpq);
-
-            var imgUrl = rec.getValue({
-                name: 'custitem_dps_picture',
-                join: 'item'
             })
 
-            var it = {
-                boxNum: 1,
-                inspectionType: 30,
-                planQty: temp_qty,
-                productCode: rec.getValue('item'),
-                productImageUrl: imgUrl ? imgUrl : 'imgUrl',
-                productTitle: rec.getValue({
-                    name: 'custitem_dps_skuchiense',
-                    join: 'item'
-                }),
-                remainderQty: temp_qty % (mpq ? mpq : 1),
-                sku: rec.getText('item'),
+        } catch (e) {
+            log.error('getinput error 出错了', e);
+        }
+        log.audit("orders 总数：", orders.length);
+        return "1"
+        return orders;
+    }
+
+    function map(context) {
+        var order = JSON.parse(context.value);
+        log.debug("order:", context.value);
+        // ====================进cache==============
+
+        try {
+            var r, r_id;
+            search.create({
+                type: 'customrecord_aio_order_import_cache',
+                filters: [{
+                        name: 'custrecord_aio_cache_acc_id',
+                        operator: search.Operator.ANYOF,
+                        values: order.AccID
+                    },
+                    {
+                        name: 'custrecord_aio_cache_order_id',
+                        operator: search.Operator.IS,
+                        values: order.amazon_order_id
+                    }
+                ]
+            }).run().each(function(rec) {
+                r_id = rec.id
+                r = record.load({
+                    type: 'customrecord_aio_order_import_cache',
+                    id: rec.id
+                });
+                return false;
+            });
+            if (!r) {
+                r = record.create({
+                    type: 'customrecord_aio_order_import_cache'
+                });
+            }
+            var order_trandate = interfun.getFormatedDate("", "", order.purchase_date).date;
+            var last_update_date = interfun.getFormatedDate("", "", order.last_update_date, "", true).date;
+            if (last_update_date == "2") {
+                if (r_id) {
+                    var del = record.delete({
+                        type: "customrecord_aio_order_import_cache",
+                        id: r_id
+                    });
+                    log.debug("删除 del:" + del);
+                }
+                return;
+            }
+            r.setValue({
+                fieldId: 'custrecord_aio_cache_acc_id',
+                value: order.AccID
+            });
+            r.setValue({
+                fieldId: 'custrecord_aio_cache_body',
+                value: JSON.stringify(order)
+            });
+            r.setValue({
+                fieldId: 'custrecord_aio_cache_order_id',
+                value: order.amazon_order_id
+            });
+            r.setValue({
+                fieldId: 'custrecord_aio_cache_resolved',
+                value: false
+            });
+            r.setValue({
+                fieldId: 'custrecord_aio_cache_status',
+                value: order.order_status || ''
+            });
+            r.setValue({
+                fieldId: 'custrecord_aio_cache_version',
+                value: 1
+            });
+            r.setText({
+                fieldId: 'custrecord_trandate_amazonorder',
+                text: order_trandate
+            });
+            r.setValue({
+                fieldId: 'custrecord_text_trandate',
+                value: order.purchase_date
+            });
+            r.setText({
+                fieldId: 'custrecord_amazon_last_update_date',
+                text: last_update_date
+            });
+            r.setValue({
+                fieldId: 'custrecord_dps_cache_fulfillment_channel',
+                value: order.fulfillment_channel
+            });
+            r.setValue({
+                fieldId: "custrecord_shipment_date_cache",
+                value: order.latest_ship_date
+            });
+            r.setValue({
+                fieldId: "custrecord_purchase_date_1",
+                value: order.purchase_date
+            });
+            r.setValue({
+                fieldId: "custrecord_last_update_date",
+                value: order.last_update_date
+            });
+            r.setText({
+                fieldId: "custrecordlatest_ship_date",
+                text: interfun.getFormatedDate("", "", order.latest_ship_date).date
+            });
+            r.setValue({
+                fieldId: "custrecord_seller_order_id_1",
+                value: order.seller_order_id
+            });
+            r.setValue({
+                fieldId: "custrecord_dps_cache_shipped_byamazont_f",
+                value: order.shipped_byamazont_fm
+            });
+
+            var acc_local_time = format.format({
+                value: moment.utc(order.purchase_date).toDate(),
+                type: format.Type.DATETIMETZ,
+                timezone: fields.timezone[order.timezone] // depositDate
+            }); // 状态店铺时间
+
+            r.setText({
+                fieldId: "custrecord_dps_acc_local_time",
+                text: acc_local_time
+            });
+
+            var ss = r.save();
+            log.debug("11cache save success：", ss);
+        } catch (e) {
+            log.error("import cache error", e);
+            log.error("import cache error", e);
+            var externalid = order.AccID + "." + order.amazon_order_id
+            var mo;
+            search.create({
+                type: 'customrecord_dps_transform_mo',
+                filters: [{
+                    name: 'externalid',
+                    operator: 'is',
+                    values: externalid
+                }]
+            }).run().each(function(rec) {
+                mo = record.load({
+                    type: 'customrecord_dps_transform_mo',
+                    id: rec.id
+                });
+                return false;
+            });
+            if (!mo) {
+                mo = record.create({
+                    type: 'customrecord_dps_transform_mo',
+                    isDynamic: true,
+                });
+                mo.setValue({
+                    fieldId: "externalid",
+                    value: order.AccID + "." + order.amazon_order_id
+                });
+                mo.setValue({
+                    fieldId: "custrecord_tr_missing_order_type",
+                    value: "拉单报错"
+                });
+                mo.setValue({
+                    fieldId: "custrecord_missing_orderid_txt",
+                    value: order.amazon_order_id
+                });
+                mo.setValue({
+                    fieldId: "custrecord_tracking_missing_acoount",
+                    value: acc
+                });
+                mo.setValue({
+                    fieldId: "custrecord_tr_missing_order_reason",
+                    value: JSON.stringify(e)
+                });
+                mo.save();
+            }
+        }
+        // =======================进cache==============end
+
+    }
+
+    function reduce(context) {
+
+    }
+
+    var core1 = {
+        handleit: function(acc_id, last_after, last_before) {
+            var hid, last_update_date, nextToken, h, orders, cut_token;
+
+            var enabled_sites;
+            if (last_after || last_before) {
+                log.debug("是自定义时间")
+                search.create({
+                    type: 'customrecord_aio_order_import_status',
+                    filters: [{
+                        name: 'custrecord_aio_importer_acc_id',
+                        operator: search.Operator.ANYOF,
+                        values: acc_id
+                    }, ],
+                    columns: [
+                        /** token */
+                        {
+                            name: 'custrecord_aio_importer_next_token'
+                        },
+                        /** Last Updated After */
+                        {
+                            name: 'custrecord_aio_importer_last_updated_af'
+                        },
+                        /** Last Updated Before */
+                        {
+                            name: 'custrecord_aio_importer_last_updated_bf'
+                        },
+                        {
+                            name: "custrecord_aio_enabled_sites",
+                            join: "CUSTRECORD_AIO_IMPORTER_ACC_ID"
+                        }
+                    ]
+                }).run().each(function(rec) {
+                    hid = rec.id;
+                    h = record.load({
+                        type: 'customrecord_aio_order_import_status',
+                        id: rec.id
+                    });
+                    nextToken = rec.getValue(rec.columns[0]);
+                    last_update_date = last_after;
+                    enabled_sites = rec.getText({
+                        name: "custrecord_aio_enabled_sites",
+                        join: "CUSTRECORD_AIO_IMPORTER_ACC_ID"
+                    })
+                    return false;
+                });
+
+                // last_update_date = last_after;
+            } else {
+                log.debug("不是自定义时间")
+                search.create({
+                    type: 'customrecord_aio_order_import_status',
+                    filters: [{
+                        name: 'custrecord_aio_importer_acc_id',
+                        operator: search.Operator.ANYOF,
+                        values: acc_id
+                    }, ],
+                    columns: [
+                        /** token */
+                        {
+                            name: 'custrecord_aio_importer_next_token'
+                        },
+                        /** Last Updated After */
+                        {
+                            name: 'custrecord_aio_importer_last_updated_af'
+                        },
+                        /** Last Updated Before */
+                        {
+                            name: 'custrecord_aio_importer_last_updated_bf'
+                        },
+                        {
+                            name: 'custrecord_dps_amazon_status_order_bf'
+                        }
+                    ]
+                }).run().each(function(rec) {
+                    hid = rec.id;
+                    h = record.load({
+                        type: 'customrecord_aio_order_import_status',
+                        id: rec.id
+                    });
+                    nextToken = rec.getValue(rec.columns[0]);
+                    last_update_date = rec.getValue('custrecord_dps_amazon_status_order_bf');
+                    return false;
+                });
             }
 
-            if (temp_qty > 0) {
+            log.error('last_update_date')
+            var field_token = cut_token ? 'custrecord_nexttoken_cust' : 'custrecord_aio_importer_next_token';
+            log.debug("field_token", field_token)
 
-                planQty += temp_qty;
-                itemInfo.push(it);
+            if (!last_update_date) {
+                last_update_date = "2020-05-31T00:00:00.000Z";
             }
+            if (hid && nextToken) {
+                if (nextToken == '-1') {
+                    /** 寮?1?7鍚?鏂扮殑鍗曟嵁鑾峰弰1?7 */
+                    log.debug("nextToken::::", nextToken + ",account: " + acc_id)
+                    // return false;
+                    var rtn_1 = core1.listOrders(acc_id, moment().utc(last_update_date).toISOString(), '', last_after, last_before);
+                    log.audit('listOrders222');
+                    log.error('rtn LastUpdatedBefore', moment(last_update_date).toISOString() + "------------------" + rtn_1.LastUpdatedBefore)
+                    h.setValue({
+                        // fieldId: 'custrecord_aio_importer_next_token',
+                        fieldId: field_token,
+                        value: rtn_1.token
+                    });
+                    // h.setValue({
+                    //     fieldId: 'custrecord_aio_importer_last_updated_af',
+                    //     value: last_update_date
+                    // });
+                    log.debug("1111111")
+                    if (last_after)
+                        h.setText({
+                            fieldId: 'custrecord_aio_importer_last_updated_af',
+                            text: moment(last_after).toDate()
+                        });
+                    if (last_before)
+                        h.setText({
+                            fieldId: 'custrecord_aio_importer_last_updated_bf',
+                            text: moment(last_before).toDate()
+                        });
 
-            return --limit > 0;
-        });
-        data.skuList = itemInfo; //   货品数量
-        data.planQty = planQty; //   计划入库数
+                    if (last_after)
+                        // 文本形式时间
+                        h.setValue({
+                            fieldId: 'custrecord_dps_amazon_status_order_af',
+                            value: last_after
+                        })
+                    else
+                        h.setValue({
+                            fieldId: 'custrecord_dps_amazon_status_order_af',
+                            value: last_update_date
+                        })
+                    h.setValue({
+                        fieldId: 'custrecord_dps_amazon_status_order_bf',
+                        value: rtn_1.LastUpdatedBefore
+                    })
 
-        return data;
+                    hid = h.save();
+                    log.debug("123new Date()=====save()", hid)
+                    return rtn_1.orders;
+                } else {
+                    log.audit('last_update_date3', last_update_date);
+                    log.audit('date3', moment(last_update_date).toISOString());
+                    // var rtn = core1.listOrders(acc_id, moment(last_update_date).toISOString(), nextToken);
+                    var rtn = core1.listOrders(acc_id, last_update_date, nextToken);
+                    log.audit('listOrders111');
+                    log.error('rtn LastUpdatedBefore', last_update_date + "------------------" + rtn.LastUpdatedBefore)
+                    h.setValue({
+                        // fieldId: 'custrecord_aio_importer_next_token',
+                        fieldId: field_token,
+                        value: rtn.token
+                    });
 
-    }
+                    // 文本形式时间
+                    // h.setValue({
+                    //     fieldId: 'custrecord_dps_amazon_status_order_af',
+                    //     value: last_update_date
+                    // })
+                    // h.setValue({
+                    //     fieldId: 'custrecord_dps_amazon_status_order_bf',
+                    //     value: rtn.LastUpdatedBefore
+                    // })
 
-    /**
-     * 获取
-     */
-    function searchPreDate() {
-
-        var idArr = [];
-        var mySearch = search.load({
-            id: 'customsearch_dps_li_vendorprepayment'
-        });
-
-        mySearch.run().each(function (rec) {
-            idArr.push(rec.id);
-
-            return true;
-        });
-
-        return idArr;
-    }
-
-
-    /**
-     * 更改供应商预付款单的日期
-     * @param {Number} recId 
-     */
-    function VendorPrepayment(recId) {
-
-        search.create({
-            type: 'customrecord_supplier_advance_charge',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: recId
-            }],
-            columns: [
-                "custrecord_dps_advance_charge_time", // 日期
-                "custrecord_related_prepayment", // 关联预付款单
-            ]
-        }).run().each(function (rec) {
-            record.submitFields({
-                type: 'vendorprepayment',
-                id: rec.getValue('custrecord_related_prepayment'),
-                values: {
-                    trandate: rec.getValue("custrecord_dps_advance_charge_time")
-                }
-            })
-        });
-
-    }
-
-
-
-    function ToWMS(context) {
-        var limit = 3999,
-            itemArr = [],
-            date = {};
-
-
-        data["boxNum"] = 1; // 箱数
-        data["estimateTime"] = new Date().toISOString(); // 预计到货时间
-        data["inspectionType"] = 10; // 质检类型
-        data["sourceNo"] = toNO; // 来源单号
-        data["sourceType"] = 30; // 来源类型
-        data["taxFlag"] = 0; // 是否含税
-        data["tradeCompanyCode"] = 0; // 交易主体编号
-        data["tradeCompanyName"] = 0; // 交易主体名称
-        data["warehouseCode"] = "US_MX"; // 仓库编号
-        data["warehouseName"] = "美西仓"; // 仓库名称
-
-
-        search.create({
-            type: 'transferorder',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                value: context
-            }],
-            columns: [
-
-            ]
-        }).run().each(function (rec) {
-
-            var it = {
-                boxInfo: {
-                    msg: 123
-                },
-                boxNum: 1,
-                inspectionType: 30,
-                planQty: 1,
-                productCode: 1,
-                productImageUrl: 1,
-
-            };
-
-
-            itemArr.push();
-            return --limit > 0;
-        })
-
-        data["skuList"] = "美西仓"; // 入库明细
-
-    }
-
-
-    function getToken() {
-        var token;
-        search.create({
-            type: 'customrecord_wms_token',
-            filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: 1
-            }],
-            columns: ['custrecord_wtr_token']
-        }).run().each(function (result) {
-            token = result.getValue('custrecord_wtr_token');
-        });
-        return token;
-    }
-
-
-
-    function recTO() {
-        var ord = [];
-        var limit = 2;
-
-        var a = new Date().getTime();
-        search.create({
-            type: "customrecord_dps_juge_po",
-            filters: [{
-                    name: 'custrecord_juge_wrong',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'custrecord_juge_sho',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'isinactive',
-                    operator: 'is',
-                    values: false
-                }
-            ],
-            columns: [
-                "custrecord_juge_time", // 收货日期
-                "custrecord_juge_po", // 调拨单ID
-                "custrecord_juge_sho", // 已生成单据
-                "custrecord_juge_wrong", // 数据有问题
-            ]
-        }).run().each(function (rec) {
-
-
-            log.debug("编号: " + rec.id, rec.getText("custrecord_juge_po"))
-            try {
-
-                var n_date = rec.getValue('custrecord_juge_time') + "T10:00:00.000Z"
-
-                log.debug("rec.getValue('custrecord_juge_time')", rec.getValue('custrecord_juge_time'))
-                // 直接履行
-                var objRecord = record.transform({
-                    fromType: 'transferorder',
-                    fromId: rec.getValue('custrecord_juge_po'),
-                    toType: 'itemfulfillment',
-                });
-
-                objRecord.setValue({
-                    fieldId: 'shipstatus',
-                    value: 'C'
-                });
-
-                var numLines = objRecord.getLineCount({
-                    sublistId: 'item'
-                });
-
-                for (var i = 0; i < numLines; i++) {
-                    objRecord.setSublistText({
-                        sublistId: 'item',
-                        fieldId: 'custcol_location_bin',
-                        text: 'HD1A01',
-                        line: i
-                    }); // 仓库编号
+                    hid = h.save();
+                    log.debug("456new Date()=====save()", hid)
+                    return rtn.orders;
                 }
 
-                objRecord.setText({
-                    fieldId: 'trandate',
-                    text: rec.getValue('custrecord_juge_time')
+            } else {
+
+                if (!hid) {
+                    h = record.create({
+                        type: 'customrecord_aio_order_import_status'
+                    });
+                    h.setValue({
+                        fieldId: 'custrecord_aio_importer_acc_id',
+                        value: acc_id
+                    });
+                }
+                log.debug("当前店铺不存在转单状态, create", h)
+                log.audit('else ! nextToken', last_update_date)
+                log.audit('last_after, last_before', last_after + ' ' + last_before)
+                // var rtn = core1.listOrders(acc_id, moment(last_update_date).toISOString(), '', last_after, last_before);
+                var rtn = core1.listOrders(acc_id, last_update_date, '', last_after, last_before);
+
+                log.error('rtn LastUpdatedBefore', moment(last_update_date).toISOString() + "------------------" + rtn.LastUpdatedBefore)
+
+                log.audit('last_update_date2', last_update_date);
+
+                if (last_after)
+                    // 文本形式时间
+                    h.setValue({
+                        fieldId: 'custrecord_dps_amazon_status_order_af',
+                        value: last_after
+                    })
+                else
+                    h.setValue({
+                        fieldId: 'custrecord_dps_amazon_status_order_af',
+                        value: last_update_date
+                    })
+                h.setValue({
+                    fieldId: 'custrecord_dps_amazon_status_order_bf',
+                    value: rtn.LastUpdatedBefore
+                })
+
+                if (last_update_date)
+                    h.setText({
+                        fieldId: 'custrecord_aio_importer_last_updated_af',
+                        // text: last_update_date
+                        text: moment(last_update_date).toDate()
+                    });
+
+
+                h.setValue({
+                    fieldId: 'custrecord_aio_importer_last_updated_bf',
+                    value: new Date()
                 });
-                // objRecord.setValue({
-                //     fieldId: 'trandate',
-                //     value: format.format({
-                //         value: new Date(n_date),
-                //         type: format.Type.DATE
-                //     })
+
+                // h.setText({
+                //     fieldId: 'custrecord_aio_importer_last_updated_bf',
+                //     // value: new Date()
+                //     value: moment.utc(last_before).toDate()
                 // });
 
-
-                var objRecord_id = objRecord.save();
-
-
-
-
-
-                var objRecordCeipt = record.transform({
-                    fromType: 'transferorder',
-                    fromId: rec.getValue('custrecord_juge_po'),
-                    toType: 'itemreceipt',
+                h.setValue({
+                    // fieldId: 'custrecord_aio_importer_next_token',
+                    fieldId: field_token,
+                    value: rtn.token
                 });
-
-                objRecordCeipt.setText({
-                    fieldId: 'trandate',
-                    text: rec.getValue('custrecord_juge_time')
-                });
-
-
-                var numLines = objRecordCeipt.getLineCount({
-                    sublistId: 'item'
-                });
-
-                for (var i = 0; i < numLines; i++) {
-                    objRecordCeipt.setSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'custcol_location_bin',
-                        value: '',
-                        line: i
-                    }); // 仓库编号
-                }
-
-
-
-                var obj_id = objRecordCeipt.save();
-
-                var l_rec_id = record.submitFields({
-                    type: 'customrecord_dps_juge_po',
-                    id: rec.id,
-                    values: {
-                        custrecord_juge_sho: true
-                    },
-                })
-            } catch (error) {
-
-                log.error('出错 ' + rec.getText("custrecord_juge_po"), error)
-                var l_rec_id = record.submitFields({
-                    type: 'customrecord_dps_juge_po',
-                    id: rec.id,
-                    values: {
-                        custrecord_juge_wrong: true
-                    },
-                })
+                hid = h.save();
+                log.debug("new Date()=====save()", hid)
+                return rtn.orders;
             }
+        },
 
+        listOrders: function(acc_id, last_updated_after, nextToken, last_after, last_before) {
+            var orders = [],
+                auth = core1.getAuthByAccountId(acc_id);
 
-            return --limit > 0;
+            // log.debug("last_after inlist:",last_after)
+            // log.debug("last_before inlist:",last_before)
+            // log.debug("last_update_date inlist:",last_updated_after)
+            // log.audit('listOrder-->auth锛?1?7', auth);
+            log.audit('listOrder-->last_updated_after', last_updated_after);
 
-        });
+            // last_updated_after = "2020-03-05T00:00:00.000Z"
 
+            if (auth) {
+                try {
+                    log.debug("authauthauthauth  =====", JSON.stringify(auth))
+                    var content = void 0;
+                    if (nextToken) {
+                        content = core.amazon.mwsRequestMaker(auth, 'ListOrdersByNextToken', '2013-09-01', {
+                            NextToken: nextToken,
+                        }, '/Orders/2013-09-01');
+                    } else {
+                        if (last_after || last_before) {
+                            log.debug("last_after:" + last_after, "last_before:" + last_before + ",marketplace_id：" + auth.marketplace_id)
+                            content = core.amazon.mwsRequestMaker(auth, 'ListOrders', '2013-09-01', {
+                                'MarketplaceId.Id.1': auth.marketplace_id,
+                                // 'FulfillmentChannel.Channel.1': "MFN",
+                                'LastUpdatedAfter': last_after,
+                                'LastUpdatedBefore': last_before
+                                // 'CreatedAfter': last_after,
+                                // 'CreatedBefore': last_before
+                            }, '/Orders/2013-09-01');
+                        } else {
+                            log.debug("auth", auth);
+                            content = core.amazon.mwsRequestMaker(auth, 'ListOrders', '2013-09-01', {
+                                'MarketplaceId.Id.1': auth.marketplace_id,
+                                // 'FulfillmentChannel.Channel.1': "MFN",
+                                'LastUpdatedAfter': last_updated_after,
+                                // 'LastUpdatedAfter': "2019-12-20T18:33:09.806Z",
+                                // 'CreatedAfter': "2019-12-20T18:33:09.806Z",
+                            }, '/Orders/2013-09-01');
+                        }
+                    }
 
-        var b = new Date().getTime();
-        var c = {
-            "处理时间": (b - a) / 1000 + ' 秒'
-        }
+                } catch (e) {
+                    log.error("mwsRequestMaker eororooror:", e)
+                }
+                log.audit('listOrder-->content', content);
+                var res = xml.Parser.fromString({
+                    text: content
+                });
+                res.getElementsByTagName({
+                    tagName: 'Order'
+                }).map(function(node) {
+                    orders.push({
+                        AccID: acc_id,
+                        latest_delivery_date: node.getElementsByTagName({
+                            tagName: 'LatestDeliveryDate'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'LatestDeliveryDate'
+                        })[0].textContent : '',
+                        latest_ship_date: node.getElementsByTagName({
+                            tagName: 'LatestShipDate'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'LatestShipDate'
+                        })[0].textContent : '',
+                        order_type: node.getElementsByTagName({
+                            tagName: 'OrderType'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'OrderType'
+                        })[0].textContent : '',
+                        purchase_date: node.getElementsByTagName({
+                            tagName: 'PurchaseDate'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'PurchaseDate'
+                        })[0].textContent : '',
 
-        return c
-    }
+                        is_replacement_order: node.getElementsByTagName({
+                            tagName: 'IsReplacementOrder'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'IsReplacementOrder'
+                        })[0].textContent == 'true' : false,
+                        last_update_date: node.getElementsByTagName({
+                            tagName: 'LastUpdateDate'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'LastUpdateDate'
+                        })[0].textContent : '',
+                        buyer_email: node.getElementsByTagName({
+                            tagName: 'BuyerEmail'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'BuyerEmail'
+                        })[0].textContent : '',
+                        amazon_order_id: node.getElementsByTagName({
+                            tagName: 'AmazonOrderId'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'AmazonOrderId'
+                        })[0].textContent : '',
+
+                        number_of_items_shipped: node.getElementsByTagName({
+                            tagName: 'NumberOfItemsShipped'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'NumberOfItemsShipped'
+                        })[0].textContent : '',
+                        ship_service_level: node.getElementsByTagName({
+                            tagName: 'ShipServiceLevel'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'ShipServiceLevel'
+                        })[0].textContent : '',
+                        order_status: node.getElementsByTagName({
+                            tagName: 'OrderStatus'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'OrderStatus'
+                        })[0].textContent : '',
+                        sales_channel: node.getElementsByTagName({
+                            tagName: 'SalesChannel'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'SalesChannel'
+                        })[0].textContent : '',
+
+                        is_business_order: node.getElementsByTagName({
+                            tagName: 'IsBusinessOrder'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'IsBusinessOrder'
+                        })[0].textContent == 'true' : false,
+                        number_of_items_unshipped: node.getElementsByTagName({
+                            tagName: 'NumberOfItemsUnshipped'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'NumberOfItemsUnshipped'
+                        })[0].textContent : '',
+                        buyer_name: node.getElementsByTagName({
+                            tagName: 'BuyerName'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'BuyerName'
+                        })[0].textContent : '',
+                        is_premium_order: node.getElementsByTagName({
+                            tagName: 'IsPremiumOrder'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'IsPremiumOrder'
+                        })[0].textContent == 'true' : false,
+
+                        earliest_delivery_date: node.getElementsByTagName({
+                            tagName: 'EarliestDeliveryDate'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'EarliestDeliveryDate'
+                        })[0].textContent : '',
+                        earliest_ship_date: node.getElementsByTagName({
+                            tagName: 'EarliestShipDate'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'EarliestShipDate'
+                        })[0].textContent : '',
+                        marketplace_id: node.getElementsByTagName({
+                            tagName: 'MarketplaceId'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'MarketplaceId'
+                        })[0].textContent : '',
+                        fulfillment_channel: node.getElementsByTagName({
+                            tagName: 'FulfillmentChannel'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'FulfillmentChannel'
+                        })[0].textContent : '',
+                        payment_method: node.getElementsByTagName({
+                            tagName: 'PaymentMethod'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'PaymentMethod'
+                        })[0].textContent : '',
+                        is_prime: node.getElementsByTagName({
+                            tagName: 'IsPrime'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'IsPrime'
+                        })[0].textContent == 'true' : false,
+
+                        shipment_service_level_category: node.getElementsByTagName({
+                            tagName: 'ShipmentServiceLevelCategory'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'ShipmentServiceLevelCategory'
+                        })[0].textContent : '',
+                        seller_order_id: node.getElementsByTagName({
+                            tagName: 'SellerOrderId'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'SellerOrderId'
+                        })[0].textContent : '',
+                        shipped_byamazont_fm: node.getElementsByTagName({
+                            tagName: 'ShippedByAmazonTFM'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'ShippedByAmazonTFM'
+                        })[0].textContent == 'true' : false,
+                        tfm_shipment_status: node.getElementsByTagName({
+                            tagName: 'TFMShipmentStatus'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'TFMShipmentStatus'
+                        })[0].textContent : '',
+                        promise_response_due_date: node.getElementsByTagName({
+                            tagName: 'PromiseResponseDueDate'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'PromiseResponseDueDate'
+                        })[0].textContent : '',
+
+                        is_estimated_ship_date_set: node.getElementsByTagName({
+                            tagName: 'IsEstimatedShipDateSet'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'IsEstimatedShipDateSet'
+                        })[0].textContent == 'true' : false,
+                        // 娉ㄦ剰锛岃繖閲岀洿鎺ュ彇鐨勪笅涓?1?7灞傦紝鎵?1?7浠ュ彧浼氬彇涓?1?7涓?1?7
+                        payment_method_detail: node.getElementsByTagName({
+                            tagName: 'PaymentMethodDetail'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'PaymentMethodDetail'
+                        })[0].textContent : '',
+                        payment_execution_detail: node.getElementsByTagName({
+                            tagName: 'PaymentExecutionDetail'
+                        }).length ? node.getElementsByTagName({
+                            tagName: 'PaymentExecutionDetail'
+                        })[0].textContent : '',
+                        order_total: node.getElementsByTagName({
+                            tagName: 'OrderTotal'
+                        }).length ? {
+                            currency_code: node.getElementsByTagName({
+                                tagName: 'OrderTotal'
+                            })[0].getElementsByTagName({
+                                tagName: 'CurrencyCode'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'OrderTotal'
+                            })[0].getElementsByTagName({
+                                tagName: 'CurrencyCode'
+                            })[0].textContent : '',
+                            amount: node.getElementsByTagName({
+                                tagName: 'OrderTotal'
+                            })[0].getElementsByTagName({
+                                tagName: 'Amount'
+                            }).length ? Number(node.getElementsByTagName({
+                                tagName: 'OrderTotal'
+                            })[0].getElementsByTagName({
+                                tagName: 'Amount'
+                            })[0].textContent) : 0,
+                        } : {
+                            currency_code: '_UNKNOW_',
+                            amount: 0
+                        },
+                        shipping_address: node.getElementsByTagName({
+                            tagName: 'ShippingAddress'
+                        }).length ? {
+                            city: node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'City'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'City'
+                            })[0].textContent : '',
+                            postal_code: node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'PostalCode'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'PostalCode'
+                            })[0].textContent : '',
+                            state_or_oegion: node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'StateOrRegion'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'StateOrRegion'
+                            })[0].textContent : '',
+                            country_code: node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'CountryCode'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'CountryCode'
+                            })[0].textContent : '',
+                            name: node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'Name'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'Name'
+                            })[0].textContent : '',
+                            address_line1: node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'AddressLine1'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'AddressLine1'
+                            })[0].textContent : '',
+                            address_line2: node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'AddressLine2'
+                            }).length ? node.getElementsByTagName({
+                                tagName: 'ShippingAddress'
+                            })[0].getElementsByTagName({
+                                tagName: 'AddressLine2'
+                            })[0].textContent : ''
+                        } : null,
+                    });
+                });
+                if (res.getElementsByTagName({
+                        tagName: 'NextToken'
+                    }).length > 0) {
+                    return {
+                        acc_id: acc_id,
+                        orders: orders,
+                        token: res.getElementsByTagName({
+                            tagName: 'NextToken'
+                        })[0].textContent,
+                        LastUpdatedBefore: res.getElementsByTagName({
+                            tagName: 'LastUpdatedBefore'
+                        })[0].textContent
+                    };
+                } else {
+                    // email.send({
+                    //     author: -5,
+                    //     recipients: ['18650801765@126.com'],
+                    //     bcc: ['mars.zhou@icloud.com'],
+                    //     subject: `璁㈠崟瀵煎叆璺戝畬浜哷,
+                    //     body: `Account: ${runtime.accountId}<br /><br />Seller ID: ${auth.seller_id}<br /><br />ACC ID: ${acc_id}<br /><br />Last Updated After: ${last_updated_after}`,
+                    // });
+                    return {
+                        acc_id: acc_id,
+                        orders: orders,
+                        token: '-1',
+                        LastUpdatedBefore: res.getElementsByTagName({
+                            tagName: 'LastUpdatedBefore'
+                        })[0].textContent
+                    };
+                }
+            } else {
+                throw "\u627E\u4E0D\u5230\u6307\u5B9A\u7684\u4E9A\u9A6C\u900A\u8D26\u53F7[" + acc_id + "].";
+            }
+        },
+        getAuthByAccountId: function(account_id) {
+            var auth;
+            log.audit('account_id', account_id);
+            search.create({
+                type: 'customrecord_aio_account',
+                filters: [{
+                    name: 'internalid',
+                    operator: 'is',
+                    values: account_id
+                }],
+                columns: [{
+                        name: 'custrecord_aio_seller_id'
+                    },
+                    {
+                        name: 'custrecord_aio_mws_auth_token'
+                    },
+                    {
+                        name: 'custrecord_aio_aws_access_key_id',
+                        join: 'custrecord_aio_dev_account'
+                    },
+                    {
+                        name: 'custrecord_aio_secret_key_guid',
+                        join: 'custrecord_aio_dev_account'
+                    },
+                    {
+                        name: 'custrecord_aio_amazon_mws_endpoint',
+                        join: 'custrecord_aio_enabled_sites'
+                    },
+                    {
+                        name: 'custrecord_aio_amazon_marketplace_id',
+                        join: 'custrecord_aio_enabled_sites'
+                    }
+                ]
+            }).run().each(function(rec) {
+                auth = {
+                    seller_id: rec.getValue(rec.columns[0]),
+                    auth_token: rec.getValue(rec.columns[1]),
+                    access_id: rec.getValue(rec.columns[2]),
+                    sec_key: rec.getValue(rec.columns[3]),
+                    end_point: rec.getValue(rec.columns[4]),
+                    marketplace_id: rec.getValue(rec.columns[5]),
+                };
+                return false;
+            });
+            return auth || false;
+        },
+        mwsRequestMaker: function(acc_id, auth, action, version, params, resource, body) {
+            if (resource === void 0) {
+                resource = '/';
+            }
+            var timestamp = encodeURIComponent(new Date().toISOString());
+            var query = {
+                SellerId: encodeURIComponent(auth.seller_id),
+                AWSAccessKeyId: encodeURIComponent(auth.access_id),
+                Action: encodeURIComponent(action),
+                SignatureMethod: encodeURIComponent('HmacSHA256'),
+                SignatureVersion: encodeURIComponent('2'),
+                Timestamp: timestamp,
+                Version: encodeURIComponent(version)
+            };
+            if (auth.auth_token) {
+                query['MWSAuthToken'] = encodeURIComponent(auth.auth_token);
+            }
+            for (var key in params) {
+                if (params[key] != '') {
+                    query[key] = encodeURIComponent(params[key]);
+                }
+            }
+            var keys = Object.keys(query);
+            keys.sort();
+            var queryString = keys.map(function(key) {
+                return key + "=" + query[key];
+            }).join('&');
+            var hash = cryptoJS.HmacSHA256("POST\n" + auth.end_point + "\n" + resource + "\n" + queryString, auth.sec_key);
+            var hashInBase64 = encodeURIComponent(encode.convert({
+                string: hash,
+                inputEncoding: encode.Encoding.HEX,
+                outputEncoding: encode.Encoding.BASE_64
+            }));
+            var response = https.post({
+                url: "https://" + auth.end_point + resource + "?" + queryString + "&Signature=" + hashInBase64,
+                body: body ? body : queryString + "&Signature=" + hashInBase64,
+                headers: body ? {
+                    'Content-Type': 'text/xml',
+                } : {}
+            });
+            log.debug('url', "https://" + auth.end_point + resource + "?" + queryString + "&Signature=" + hashInBase64);
+            log.debug('body', body ? body : queryString + "&Signature=" + hashInBase64);
+            log.debug('headers', body ? {
+                'Content-Type': 'text/xml',
+            } : {});
+            log.debug('hashInBase64', hashInBase64);
+            log.debug('response', response);
+            if (response.body.indexOf('</ErrorResponse>') != -1) {
+                var err = xml.Parser.fromString({
+                    text: response.body
+                });
+                if (err) {
+                    /** MWS閿欒??淇℃伅鍗曠嫭鍙戦?1?7?1?7 */
+                    /*email.send({
+                        author: -5,
+                        recipients: ['mars.zhou@icloud.com'],
+                        subject: 'MWS Request Error',
+                        body: "Account: " + runtime.accountId + "<br /><br />Seller ID: " + auth.seller_id + "<br /><br />Action: " + action + "<br /><br />Params: <pre>" + JSON.stringify(params, null, 2) + "</pre><br /><br />Response: " + response.body + "<br /><br />",
+                        attachments: body ? [file.create({ name: 'request.payload.xml', fileType: file.Type.XMLDOC, contents: body })] : [],
+                    });*/
+                    throw acc_id + " MWS Request Builder ERR:\r\n\r\nSeller ID: " + auth.seller_id + "\r\n\r\nError Details: \r\n\r\n" + response.body + " \r\n\rParams: <pre>" + JSON.stringify(params, null, 2) + "</pre> \r\n\r\nSHA 256 HMAC: " + hash;
+                } else {
+                    throw response.body;
+                }
+            }
+            log.debug('mwsRequestMaker.response.header', response.headers);
+            return response.body;
+        },
+    };
+
     return {
-
-        post: _post,
+        // get: _get,
+        // post: _post,
 
     }
 });

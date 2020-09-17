@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-14 15:10:30
+ * @LastEditTime   : 2020-09-14 15:12:24
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\wms\rantion_wms_damaged_re_rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -88,7 +88,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
                 log.audit('Count', firstCount + '-' + secondCount + '-' + thirdCount);
                 var allAccount = firstCount + secondCount + thirdCount
                 var inventoryQty = Number(context.num)
-                //盘盈的情况 当前数量 小于 WMS转移数量  
+                //盘盈的情况 当前数量 小于 WMS转移数量
                 if (allAccount < inventoryQty) {
                     throw new Error("当前可用库存小于报损数量，当前库存：" + allAccount + " 报损数量：" + inventoryQty)
                 }
@@ -209,6 +209,10 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
             value: location
         })
         rec.setValue({
+            fieldId: 'custbody_shipment_method',
+            value: 2
+        }); // 默认运输方式, 海运
+        rec.setValue({
             fieldId: 'custbody_dps_transferor_type',
             value: '4'
         })
@@ -217,8 +221,8 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
             value: toLocation
         })
         // rec.setValue({
-        //     fieldId: 'custbody_dps_end_location',
-        //     value: toLocation
+        //     fieldId: 'memo',
+        //     value: "报损"
         // })
         rec.setValue({
             fieldId: 'custbody_dps_wms_damage_num',
@@ -322,7 +326,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
     }
 
 
-    //获取子公司的ID 
+    //获取子公司的ID
     function getCompanyId(companyName) {
         var result
         search.create({
@@ -359,7 +363,7 @@ define(['N/search', 'SuiteScripts/dps/common/api_util', 'N/record', '../common/r
         return result
     }
 
-    //获取子公司的ID 
+    //获取子公司的ID
     function getLocationId(companyId, positionCode) {
         var result
         search.create({

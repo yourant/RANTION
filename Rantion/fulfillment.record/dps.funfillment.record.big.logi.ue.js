@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-08-17 10:21:58
+ * @LastEditTime   : 2020-09-14 19:31:03
  * @LastEditors    : Li
  * @Description    : 发运记录 大包
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.ue.js
@@ -19,7 +19,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
     'SuiteScripts/dps/logistics/common/Moment.min', 'N/file', "N/xml", 'N/runtime',
     '../Helper/config', '../Helper/tool.li', 'N/runtime'
-], function (record, search, core, log, http, jetstar, openapi, yanwen, endicia, Moment, file, xml, runtime, config, tool, runtime) {
+], function(record, search, core, log, http, jetstar, openapi, yanwen, endicia, Moment, file, xml, runtime, config, tool, runtime) {
 
     function beforeLoad(context) {
 
@@ -59,7 +59,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     "custrecord_dps_ful_reference_id", // 标记已经推送 REFERENCE ID
                     "custrecord_dps_box_return_flag", // 已装箱
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 box_flag = rec.getValue('custrecord_dps_box_return_flag');
                 ful_reference_id = rec.getValue('custrecord_dps_ful_reference_id');
                 reference_id = rec.getValue('custrecord_dps_to_reference_id'); // REFERENCE ID
@@ -214,6 +214,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     function afterSubmit(context) {
 
+        log.audit("开始执行", "afterSubmit")
+
         var af_rec1 = context.newRecord;
         var actionType = context.type;
 
@@ -320,7 +322,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                     join: "custrecord_dps_shipping_record_parentrec"
                                 },
                             ]
-                        }).run().each(function (rec) {
+                        }).run().each(function(rec) {
                             var nsItem = rec.getValue({
                                 name: "custrecord_dps_shipping_record_item",
                                 join: "custrecord_dps_shipping_record_parentrec"
@@ -378,7 +380,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                         }
 
                                     ]
-                                }).run().each(function (rec) {
+                                }).run().each(function(rec) {
                                     address_id = {
                                         Name: rec.getValue('custrecord_aio_sender_name'),
                                         AddressLine1: rec.getValue('custrecord_aio_sender_address'),
@@ -454,7 +456,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                                     operator: 'is',
                                                     values: City
                                                 }]
-                                            }).run().each(function (rec) {
+                                            }).run().each(function(rec) {
                                                 cityId = rec.id;
                                             });
 
@@ -478,7 +480,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                                     operator: 'is',
                                                     values: CountryCode
                                                 }]
-                                            }).run().each(function (rec) {
+                                            }).run().each(function(rec) {
                                                 countryId = rec.id;
                                             });
 
@@ -674,7 +676,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             name: 'custrecord_aio_feed_submission_id',
                             join: 'custrecord_dps_upload_packing_rec'
                         }]
-                    }).run().each(function (rec) {
+                    }).run().each(function(rec) {
                         submission_ids.push(rec.getValue({
                             name: 'custrecord_aio_feed_submission_id',
                             join: 'custrecord_dps_upload_packing_rec'
@@ -754,7 +756,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                                 if (add && add.length > 0) {
                                     recValue.custrecord_dps_recpir_flag = add ? add : '';
                                     var addLen = add.length;
-                                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人 
+                                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人
                                     recValue.custrecord_dps_street1_dh = add[1]; // 街道1
                                     if (addLen > 6) {
                                         recValue.custrecord_dps_street2_dh = add[2]; // 街道2
@@ -832,6 +834,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     // pushOrder(af_rec);   // HACK  暂不推送给捷仕
                 }
                 var rec_status = af_rec.getValue('custrecord_dps_shipping_rec_status'); // 调拨单的状态
+
+                log.audit("发运记录状态", rec_status)
                 if (rec_status == 17) {
                     labelToWMS(af_rec);
                 }
@@ -846,7 +850,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 搜索 TO 的货品和地点
-     * @param {*} toId 
+     * @param {*} toId
      */
     function searchItemTo(toId) {
 
@@ -875,7 +879,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             columns: [
                 "item", "location"
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             itemArr.push(rec.getValue('item'));
             Loca = rec.getValue('location');
             return --limit > 0
@@ -891,8 +895,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 搜索货品对应店铺的库存平均成本
-     * @param {*} itemArr 
-     * @param {*} Location 
+     * @param {*} itemArr
+     * @param {*} Location
      */
     function searchItemAver(itemArr, Location) {
         var priceArr = [];
@@ -910,7 +914,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 }
             ],
             columns: ['locationaveragecost', "averagecost", ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             var it = {
                 itemId: rec.id,
                 averagecost: rec.getValue('averagecost')
@@ -926,8 +930,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 设置 TO 货品行的 转让价格
-     * @param {*} toId 
-     * @param {*} valArr 
+     * @param {*} toId
+     * @param {*} valArr
      */
     function setToValue(toId, valArr) {
 
@@ -968,7 +972,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 搜索并创建城市记录
-     * @param {*} City 
+     * @param {*} City
      */
     function searchCreateCity(City) {
 
@@ -980,7 +984,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 operator: 'is',
                 values: City
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             cityId = rec.id;
         });
 
@@ -1004,7 +1008,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 搜索或创建国家记录
-     * @param {*} CountryCode 
+     * @param {*} CountryCode
      */
     function searchCreateCountry(CountryCode) {
         var countryId;
@@ -1015,7 +1019,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 operator: 'is',
                 values: CountryCode
             }]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             countryId = rec.id;
         });
 
@@ -1027,7 +1031,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     operator: 'is',
                     values: CountryCode
                 }]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 countryId = rec.id;
             });
             var newCode = record.create({
@@ -1141,7 +1145,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     join: 'custrecord_dps_shipping_rec_location'
                 }, // 财务分仓 类型
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
             flagLocation = rec.getValue({
                 name: 'custrecord_dps_financia_warehous',
                 join: 'custrecord_dps_shipping_rec_location'
@@ -1267,7 +1271,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     "custrecord_dps_to_shipment_name", // shipment name
                     "custrecord_dps_to_reference_id", // reference id
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 ful_to_link = rec.getValue('custrecord_dps_shipping_rec_order_num'); // 调拨单号
                 var rec_transport = rec.getValue('custrecord_dps_shipping_rec_transport');
@@ -1329,7 +1333,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 } else {
                     data["logisticsFlag"] = 0;
                 }
-                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
+                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是
 
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer'); // 渠道商名称
 
@@ -1392,7 +1396,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 columns: [
                     "createdby"
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
                 createdBy = rec.getText('createdby');
             });
 
@@ -1503,7 +1507,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         join: "custrecord_dps_shipping_record_item"
                     }, // 英文标题/描述 englishTitle
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 itemArr.push(rec.getValue('custrecord_dps_shipping_record_item'));
 
@@ -1591,12 +1595,12 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             });
 
             log.debug('itemArr', itemArr);
-            // 2020/7/18 13：44 改动 
+            // 2020/7/18 13：44 改动
             var fils = [],
                 add_fils = []; //过滤
             var len = item_info.length,
                 num = 0;
-            item_info.map(function (ld) {
+            item_info.map(function(ld) {
                 num++;
                 add_fils.push([
                     ["name", "is", ld.msku],
@@ -1640,10 +1644,10 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     columns: [
                         "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                     ]
-                }).run().each(function (rec) {
+                }).run().each(function(rec) {
                     var temp_name = rec.getValue('name');
                     var it = rec.getValue('custrecord_ass_sku');
-                    item_info.forEach(function (item, key) {
+                    item_info.forEach(function(item, key) {
                         if (item.itemId == it && item.msku == temp_name && fls_skus.indexOf(temp_name) == -1) {
                             item.asin = rec.getValue("custrecord_ass_asin");
                             item.fnsku = rec.getValue("custrecord_ass_fnsku");
@@ -1676,7 +1680,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
                 var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link)
 
-                newItemInfo.map(function (newItem) {
+                newItemInfo.map(function(newItem) {
                     var itemId = newItem.itemId;
                     newItem.pono = getPoObj[itemId]
                 });
@@ -1755,9 +1759,11 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 标签文件推送 WMS
-     * @param {Object} af_rec 
+     * @param {Object} af_rec
      */
     function labelToWMS(af_rec) {
+
+        log.debug('labelToWMS', "开始推送标签文件")
 
         var fileId, service_code, channelservice, channel_dealer, channel_dealer_id, aono, Label, tranType, waybillNo, location_financia;
 
@@ -1793,7 +1799,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     join: 'custrecord_dps_shipping_rec_order_num'
                 }
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             tranferOrder = rec.getValue('custrecord_dps_shipping_rec_order_num');
             waybillNo = rec.getValue('custrecord_dps_shipping_rec_logistics_no');
@@ -1821,7 +1827,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             return;
         }
         // 属于FBA调拨
-        if ((tranType == 1 || tranType == 3) && channel_dealer_id == 1) { // 跨仓调拨至 FBA、FAB调拨   捷仕渠道 暂不对接
+        if (tranType == 1 || tranType == 3) { // 跨仓调拨至 FBA、FAB调拨   捷仕渠道 暂不对接
+        // if ((tranType == 1 || tranType == 3) && channel_dealer_id == 1) { // 跨仓调拨至 FBA、FAB调拨   捷仕渠道 暂不对接
             // if (Label && (tranType == 1 || tranType == 3) && channel_dealer_id == 1) { // 跨仓调拨至 FBA、FAB调拨   捷仕渠道 暂不对接
             // 存在面单文件
             var url;
@@ -2138,7 +2145,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 values: 1
             }],
             columns: ['custrecord_wtr_token']
-        }).run().each(function (result) {
+        }).run().each(function(result) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;
@@ -2146,8 +2153,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 发送请求
-     * @param {*} token 
-     * @param {*} data 
+     * @param {*} token
+     * @param {*} data
      */
     function sendRequest(token, data) {
 
@@ -2189,7 +2196,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 推送发运记录给渠道商
-     * @param {*} rec 
+     * @param {*} rec
      */
     function pushOrder(rec) {
         rec = record.load({

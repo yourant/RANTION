@@ -68,8 +68,8 @@ define(['./Helper/core.min', 'N/log', 'N/record', './Helper/Moment.min', 'N/sear
           return true
         })
         log.debug('item_objs', item_obj)
-        item_obj = JSON.parse(item_obj)
-        if (item_obj.length < 1 || !item_obj) {
+
+        if (!item_obj) {
           log.debug('item_obj为空,退出', item_obj)
           record.submitFields({
             type: 'customrecord_aio_order_import_cache',
@@ -80,7 +80,7 @@ define(['./Helper/core.min', 'N/log', 'N/record', './Helper/Moment.min', 'N/sear
           })
           return
         }
-
+        item_obj = JSON.parse(item_obj)
         for (var i = 0;i < item_obj.length;i++) {
           var ss = record.create({type: 'customrecord_amazon_item_lines'})
           ss.setValue({fieldId: 'custrecord_aitem_title',value: item_obj[i].title})

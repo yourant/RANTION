@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 11:47:18
- * @LastEditTime   : 2020-08-25 17:00:33
+ * @LastEditTime   : 2020-09-17 10:40:44
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.cs.js
@@ -15,9 +15,11 @@
  */
 define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
     'N/https'
-], function (url, runtime, dialog, currentRecord, https) {
+], function(url, runtime, dialog, currentRecord, https) {
 
-
+    const RUN_DATEFORMAT = runtime.getCurrentUser().getPreference({
+        name: "DATEFORMAT"
+    });
     function pageInit(context) {
 
         console.log('pageInit', "pageInit");
@@ -39,7 +41,7 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
             });
 
             var param = getParams(rec, DATEFORMAT);
-            console.log("typeof (param)", typeof (param));
+            console.log("typeof (param)", typeof(param));
 
             var link = url.resolveScript({
                 scriptId: 'customscript_dps_li_inv_adjust_sl',
@@ -122,6 +124,7 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
     }
 
     function validateLine(context) {
+
         return true;
     }
 
@@ -143,7 +146,7 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
         var fieldArr = ["custpage_li_location", "custpage_li_sku", "custpage_li_start_date", "custpage_li_end_date", "custpage_li_pages", "custpage_li_per_page"];
         var params = {};
 
-        fieldArr.map(function (field) {
+        fieldArr.map(function(field) {
             if (field == "custpage_li_start_date" || field == "custpage_li_end_date") {
                 if (rec.getValue(field)) {
                     params[field] = dateFormat(rec.getValue(field), DATEFORMAT[_dateformat]);
@@ -156,7 +159,7 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
         });
         for (var i in params) {
             if (fieldArr.indexOf(i) > -1) {
-                fieldArr.map(function (field) {
+                fieldArr.map(function(field) {
                     if (!params[field]) {
                         delete params[field]
                     }
@@ -166,17 +169,17 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
             }
         }
 
+        params.cs_op = true;
         log.debug('params', params)
-
         return params;
 
     }
 
-    var dateFormat = function () {
+    var dateFormat = function() {
         var token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LloSZ]|"[^"]*"|'[^']*'/g,
             timezone = /\b(?:[PMCEA][SDP]T|(?:Pacific|Mountain|Central|Eastern|Atlantic) (?:Standard|Daylight|Prevailing) Time|(?:GMT|UTC)(?:[-+]\d{4})?)\b/g,
             timezoneClip = /[^-+\dA-Z]/g,
-            pad = function (val, len) {
+            pad = function(val, len) {
                 val = String(val);
                 len = len || 2;
                 while (val.length < len) val = "0" + val;
@@ -184,7 +187,7 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
             };
 
         // Regexes and supporting functions are cached through closure
-        return function (date, mask, utc) {
+        return function(date, mask, utc) {
             var dF = dateFormat;
 
             // You can't provide utc if you skip other args (use the "UTC:" mask prefix)
@@ -245,7 +248,7 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
                     S: ["th", "st", "nd", "rd"][d % 10 > 3 ? 0 : (d % 100 - d % 10 != 10) * d % 10]
                 };
 
-            return mask.replace(token, function ($0) {
+            return mask.replace(token, function($0) {
                 return $0 in flags ? flags[$0] : $0.slice(1, $0.length - 1);
             });
         };
@@ -336,13 +339,66 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
                         sublistId: 'sublist_show_id',
                         fieldId: 'custpage_label_inv_diff_qty',
                         line: i
-                    })
+                    }),
+                    custpage_label_rec_id: curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_rec_id',
+                        line: i
+                    }),
+                    custpage_label_msku: curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_msku',
+                        line: i
+                    }),
+                    custpage_label_fnsku: curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_fnsku',
+                        line: i
+                    }),
+                    custpage_label_inv_moninv_month: dateFormat(curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_inv_moninv_month',
+                        line: i
+                    }), DATEFORMAT[RUN_DATEFORMAT]),
 
+                    custpage_label_deparment: curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_deparment',
+                        line: i
+                    }),
+                    custpage_label_inv_locationaveragecost: curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_inv_locationaveragecost',
+                        line: i
+                    }),
+                    custpage_label_inv_recid_arr: JSON.parse(curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_inv_recid_arr',
+                        line: i
+                    })),
                 };
 
                 new_sublist_value.push(it);
             }
         }
+
+        var _sublistFields = [
+            "custpage_label_checkbox", // 勾选
+            "custpage_label_account", // 店铺
+            "custpage_label_location", // 地点
+            "custpage_label_sku", // 货品
+            "custpage_label_msku", // msku
+            "custpage_label_deparment", //部门
+            "custpage_label_brand", // 品牌
+            "custpage_label_rec_id", // 月度库存记录 ID
+            "custpage_label_center_id", //仓库中心
+            "custpage_label_amazon_qty", // Amazon 数量
+            "custpage_label_ns_qty", // NS 数量
+            "custpage_label_inv_diff_qty", // 差异数量
+            "custpage_label_inv_moninv_month", // 月度时间
+            "custpage_label_inv_subsidiary", // 子公司
+            "custpage_label_inv_locationaveragecost", // 平均成本
+        ]
 
 
         console.log('子列表记录', new_sublist_value)
@@ -369,28 +425,22 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
                 url: url1,
                 body: body2,
                 headers: header3
-            }).then(function (response) {
+            }).then(function(response) {
                 var rebody = JSON.parse(response.body);
                 endMask();
-
-                // if (rebody.code == 500) {
-                //     msg = '生成库存调整到成功' + JSON.stringify(rebody);
-                // } else {
-                //     msg = '生成库存调整到成功';
-                // }
                 dialog.alert({
                     title: '提示',
                     message: JSON.stringify(rebody)
-                }).then(function () {
+                }).then(function() {
                     window.onbeforeunload = null;
                     window.location.reload();
                 });
-            }).catch(function (reason) {
+            }).catch(function(reason) {
                 endMask();
                 dialog.alert({
                     title: '提示',
                     message: reason
-                }).then(function () {
+                }).then(function() {
                     window.onbeforeunload = null;
                     window.location.reload();
                 });

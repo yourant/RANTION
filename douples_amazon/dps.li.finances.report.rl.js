@@ -1,30 +1,48 @@
 /*
- * @Date           : 2020-04-11 15:50:58
- * @LastEditors    : Li
- * @LastEditTime   : 2020-09-10 20:13:27
- * @Description    :
- * @FilePath       : \douples_amazon\Amazon_salesreport_mp1.js
  * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-09-03 15:49:01
+ * @LastEditTime   : 2020-09-03 16:12:34
+ * @LastEditors    : Li
+ * @Description    :
+ * @FilePath       : \douples_amazon\dps.li.finances.report.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
-
 /**
- * @NApiVersion 2.x
- * @NScriptType MapReduceScript
- * @NModuleScope SameAccount
+ *@NApiVersion 2.x
+ *@NScriptType Restlet
  */
 define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/search', 'N/xml', './Helper/Moment.min', 'N/runtime',
     './Helper/interfunction.min'
 ], function(require, exports, core, log, record, search, xml, moment, runtime, interfun) {
-    Object.defineProperty(exports, '__esModule', {
-        value: true
-    })
 
-    exports.getInputData = function() {
+    function _get(context) {
+
+    }
+
+        function _post(context) {
+
+            var acc = context.acc,
+                group_f = context.group,
+
+            getInputData();
+
+    }
+
+    function _put(context) {
+
+    }
+
+    function _delete(context) {
+
+    }
+
+
+    function  getInputData(acc,group_f) {
         var orderJson = [],
             total = 0
-        var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_store' })
-        var group_f = runtime.getCurrentScript().getParameter({ name: 'custscript_acc_group_fl' })
+        // var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_store' })
+        // var group_f = runtime.getCurrentScript().getParameter({ name: 'custscript_acc_group_fl' })
         log.debug('acc:' + acc)
         var fils = []
         fils.push(search.createFilter({ name: 'custrecord_aio_marketplace', operator: 'anyof', values: '1' })) /* amazon */
@@ -52,10 +70,14 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
         })
 
         log.audit('总数: total  ' + total, JSON.stringify(orderJson))
+
+        orderJson.map(function (ctx) {
+            map(ctx);
+        });
         return orderJson
     }
 
-    exports.map = function(ctx) {
+    function map(ctx) {
         var acc = ctx.value,
             fid, h, PostedAfter, PostedBefore, PBefore, PEndDate, end_dateTime
         var type_fin = runtime.getCurrentScript().getParameter({
@@ -131,7 +153,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
 
             // 若请求的结束时间与终止时间相同, 则退出
             if ((PBefore == PEndDate) && PBefore && PEndDate) {
-                log.debug('PBefore == PEndDate',PBefore +"=="+ PEndDate)
+                log.debug('PBefore == PEndDate')
                 return
             }
 
@@ -161,7 +183,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
 
                 // 获取自定义时间 的财务报告
                 // TODO
-                report_start_date = '2020-07-01T00:00:00.000Z'
+                report_start_date = '2020-06-01T00:00:00.000Z'
                 // 设置请求报告的开始时间
                 h.setValue({
                     fieldId: 'custrecord_dps_financetype_startdate',
@@ -248,8 +270,8 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
                 // 设置请求报告的结束时间
                 h.setValue({
                     fieldId: 'custrecord_dps_amazon_finaces_end_date',
-                    // value: '2020-08-05T00:00:00.000Z'
-                    value: moment.utc().subtract(1, 'days').endOf('day').toISOString()
+                    value: '2020-08-01T00:00:00.000Z'
+                    // value: moment.utc().subtract(1, 'days').endOf('day').toISOString()
                 })
 
                 var ssr = h.save()
@@ -259,6 +281,18 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
                 if (type_fin == 'refunds') enventlists = content.refund_event_list
                 log.audit('enventlists length', enventlists.length)
                 enventlists.map(function(l) {
+
+                    var it = {
+                        'acc': acc,
+                        'posta': posta,
+                        'postb': postb,
+                        'ship_l': l,
+                        'type_fin': type_fin,
+
+                    }
+
+
+                    reduce(it)
                     ctx.write({
                         key: acc + '.' + l.amazon_order_id,
                         value: {
@@ -302,7 +336,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
             log.error('error:', e)
         }
     }
-    exports.reduce = function(ctx) {
+    function reduce(ctx) {
         try {
             var posta, postb, acc, type_fin
             var v = ctx.values
@@ -421,7 +455,11 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
         var cache_id = ship_rec.save()
         log.audit('lie.map OK:', cache_id)
     }
-    exports.summarize = function(ctx) {
-        log.audit('处理完成')
+
+    return {
+        get: _get,
+        post: _post,
+        put: _put,
+        delete: _delete
     }
-})
+});

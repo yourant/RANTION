@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-07 09:41:37
- * @LastEditTime   : 2020-08-24 16:25:32
+ * @LastEditTime   : 2020-09-08 20:16:28
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \douples_amazon\amazon.orderup_mp1.js
@@ -57,13 +57,26 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         var group = runtime.getCurrentScript().getParameter({
             name: 'custscript_acc_group'
         })
+
+
+        var _start_date = runtime.getCurrentScript().getParameter({
+            name: 'custscript_dps_li_tranfet_ord_start_date'
+        })
+        var _end_date = runtime.getCurrentScript().getParameter({
+            name: 'custscript_dps_li_tranfet_ord_end_date'
+        })
+
+
+        // 开始日期	custscript_dps_li_tranfet_ord_start_date	Date
+        // 结束日期	custscript_dps_li_tranfet_ord_end_date	Date
+
         log.debug('acc', acc)
         log.debug('group', group)
         var orders = []
         core.amazon.getAccountList(group).map(function (account) {
             if (account.id != acc && acc) return
             // if(account.id !=79 && account.id !=164 ) return
-            var limit = 4000 // 999 //350
+            var limit = 3999 // 999 //350
             var filters = [{
                 name: 'custrecord_aio_cache_resolved',
                 operator: search.Operator.IS,
@@ -114,6 +127,31 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                     name: 'internalidnumber',
                     operator: 'lessthanorequalto',
                     values: idto
+                })
+            }
+
+            var format = 'yyyy-M-d';
+            if (_start_date && _end_date) {
+
+                _li_dateFormat(_start_date, format)
+                filters.push({
+                    name: 'custrecord_trandate_amazonorder',
+                    operator: 'within',
+                    values: [_li_dateFormat(_start_date, format),_li_dateFormat(_end_date, format)]
+                })
+            }
+            if (_start_date && !_end_date) {
+                filters.push({
+                    name: 'custrecord_trandate_amazonorder',
+                    operator: 'onorafter',
+                    values: [_li_dateFormat(_start_date, format)]
+                })
+            }
+            if (!_start_date && _end_date) {
+                filters.push({
+                    name: 'custrecord_trandate_amazonorder',
+                    operator: 'onorbefore',
+                    values: [_li_dateFormat(_end_date, format)]
                 })
             }
 
@@ -171,8 +209,8 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 })
             }
         })
-        log.debug('orders', orders.length)
-        return orders
+        log.audit('获取数量 orders', orders.length)
+        return orders;
     }
 
     function map(context) {
@@ -233,7 +271,8 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         if (!currency_id) currency_id = cy
         log.debug(externalid, externalid + ' | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!'); // 开始处理订单!
         try {
-            var so_i = interfun.SearchSO(o.amazon_order_id, '', amazon_account_id)
+            var so_i = interfun.SearchSO(o.amazon_order_id, o.amazon_order_id, amazon_account_id)
+            // var so_i = interfun.SearchSO(o.amazon_order_id, '', amazon_account_id)
             if (so_i.so_id)
                 ord = record.load({
                     type: order_type,
@@ -658,11 +697,20 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 log.debug('组合好的计算公式fla_str:', fla_str)
                 log.debug('0000000itemprice:' + itemprice, '原始的货品价格：' + line.item_price)
 
-                ord.setCurrentSublistValue({
-                    sublistId: 'item',
-                    fieldId: 'rate',
-                    value: (itemprice / line.qty).toFixed(2)
-                })
+                if (line.qty == 0) {// 数量 为 0
+                    ord.setCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'rate',
+                        value: 0
+                    })
+
+                } else {
+                    ord.setCurrentSublistValue({
+                        sublistId: 'item',
+                        fieldId: 'rate',
+                        value: (itemprice / line.qty).toFixed(2)
+                    })
+                }
 
                 ord.setCurrentSublistValue({
                     sublistId: 'item',
@@ -1317,6 +1365,28 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         var timestamp = dt.getTime()
         // log.error("offset2",new Date(timestamp+3600*1000*zone).getTimezoneOffset())
         return new Date(timestamp + 3600 * 1000 * zone)
+    }
+
+
+    function _li_dateFormat(date, fmt) {
+        var o = {
+            "M+": date.getMonth() + 1,
+            "d+": date.getDate(),
+            "h+": date.getHours(),
+            "m+": date.getMinutes(),
+            "s+": date.getSeconds(),
+            "q+": Math.floor((date.getMonth() + 3) / 3),
+            "S": date.getMilliseconds()
+        }
+        if (/(y+)/.test(fmt)) {
+            fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length));
+        }
+        for (var k in o) {
+            if (new RegExp('(' + k + ')').test(fmt)) {
+                fmt = fmt.replace(RegExp.$1, (RegExp.$1.length === 1) ? (o[k]) : (('00' + o[k]).substr(('' + o[k]).length)));
+            }
+        }
+        return fmt;
     }
 
     return {

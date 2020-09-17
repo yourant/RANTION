@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-30 15:27:22
- * @LastEditTime   : 2020-08-25 11:14:22
+ * @LastEditTime   : 2020-09-14 19:05:17
  * @LastEditors    : Li
  * @Description    : 应用于发运记录-大包, 用于更新库存转移订单某些字段数据
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.ue.js
@@ -16,7 +16,7 @@
  */
 define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config',
     'N/http', 'N/redirect', 'N/ui/serverWidget', 'N/runtime'
-], function (record, search, log, tool, config, http, redirect, serverWidget, runtime) {
+], function(record, search, log, tool, config, http, redirect, serverWidget, runtime) {
 
     function beforeLoad(context) {
 
@@ -44,7 +44,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                             name: 'custrecord_dps_shipping_rec_status', // 状态
                         }
                     ]
-                }).run().each(function (r) {
+                }).run().each(function(r) {
                     aono = r.getValue({
                         name: "tranid",
                         join: "custrecord_dps_shipping_rec_order_num"
@@ -78,7 +78,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                         log.debug('获取调拨单状态', response);
                         if (response.code == 200) {
                             var body = JSON.parse(response.body);
-                            log.debug('返回的参数' + typeof (body), body);
+                            log.debug('返回的参数' + typeof(body), body);
                             if (body.code == 0) {
 
                                 var status = body.data.status;
@@ -142,7 +142,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                         },
                         "custrecord_dps_box_return_flag", // 已装箱
                     ]
-                }).run().each(function (r) {
+                }).run().each(function(r) {
                     aono = r.getValue({
                         name: "tranid",
                         join: "custrecord_dps_shipping_rec_order_num"
@@ -254,7 +254,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                             join: "custrecord_dps_shipping_rec_order_num"
                         }, // 调拨单
                     ]
-                }).run().each(function (rec) {
+                }).run().each(function(rec) {
                     tranLoca = rec.getValue({
                         name: 'transferlocation',
                         join: "custrecord_dps_shipping_rec_order_num"
@@ -279,12 +279,12 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
                 log.audit('发运记录状态', af_rec_status);
                 if (af_rec_status == 14) {
-                    fieldKey.map(function (field, key) {
+                    fieldKey.map(function(field, key) {
                         var fieldValue = af_rec.getValue(field);
                         updateField[fieldMapping[field]] = fieldValue;
                     });
                 } else if (statusArr.indexOf(af_rec_status) > -1) {
-                    fieldKey.map(function (field, key) {
+                    fieldKey.map(function(field, key) {
                         if (field == "custrecord_dps_to_reference_id") {
                             var fieldValue = af_rec.getValue(field);
                             updateField[fieldMapping[field]] = fieldValue;
@@ -365,12 +365,12 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 }
 
                 var to_itemIdArr = [];
-                toItemArr.map(function (jud) {
+                toItemArr.map(function(jud) {
                     var itemId = jud.itemId;
                     to_itemIdArr.push(itemId);
                 });
                 var fu_itemIdArr = [];
-                newItem.map(function (jud) {
+                newItem.map(function(jud) {
                     var itemId = jud.itemId;
                     fu_itemIdArr.push(itemId);
                 });
@@ -393,7 +393,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                             "averagecost", // 平均成本
                             "cost", // 采购价格
                         ]
-                    }).run().each(function (rec) {
+                    }).run().each(function(rec) {
 
                         var it = {
                             averagecost: rec.getValue("averagecost"),
@@ -408,7 +408,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
 
                 log.audit('itemInfoObj', itemInfoObj);
-                diffArr.map(function (dif) {
+                diffArr.map(function(dif) {
                     if (to_itemIdArr.indexOf(dif) > -1) {
                         log.debug('需要删除货品', dif);
 
@@ -498,7 +498,10 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     value: amount.toFixed(2)
                 });
 
-                var toRec_id = toRec.save();
+                var toRec_id = toRec.save({
+                    // enableSourcing: true,
+                    ignoreMandatoryFields: true
+                });
 
                 log.debug('保存库存转移订单的新增或者删除货品信息', toRec_id)
 
@@ -506,7 +509,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     type: 'transferorder',
                     id: toId,
                 });
-                newItem.map(function (n_item) {
+                newItem.map(function(n_item) {
                     log.debug('n_item.sellerSku', n_item.sellerSku);
 
                     var find_line = n_toRec.findSublistLineWithValue({
@@ -531,7 +534,10 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     }
                 })
 
-                var n_toRec_id = n_toRec.save();
+                var n_toRec_id = n_toRec.save({
+                    // enableSourcing: true,
+                    ignoreMandatoryFields: true
+                });
 
                 log.audit('修改原货品信息', n_toRec_id);
 
@@ -682,7 +688,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                     join: 'custrecord_dps_shipping_record_parentrec'
                 }, // 店铺
             ]
-        }).run().each(function (rec) {
+        }).run().each(function(rec) {
 
             ful_to_link = rec.getValue({
                 name: "custrecord_dps_shipping_rec_order_num",
@@ -787,7 +793,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
             add_fils = []; //过滤
         var len = item_info.length,
             num = 0;
-        item_info.map(function (ld) {
+        item_info.map(function(ld) {
             num++;
 
             if (ld.msku) {
@@ -829,10 +835,10 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 columns: [
                     "name", "custrecord_ass_fnsku", "custrecord_ass_asin", "custrecord_ass_sku",
                 ]
-            }).run().each(function (rec) {
+            }).run().each(function(rec) {
 
                 var it = rec.getValue('custrecord_ass_sku');
-                item_info.forEach(function (item, key) {
+                item_info.forEach(function(item, key) {
                     if (item.itemId == it && fls_skus.indexOf(it) == -1) {
                         item.asin = rec.getValue("custrecord_ass_asin");
                         item.fnsku = rec.getValue("custrecord_ass_fnsku")
@@ -864,7 +870,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
 
             var getPoObj = tool.searchToLinkPO(itemArr, ful_to_link)
 
-            newItemInfo.map(function (newItem) {
+            newItemInfo.map(function(newItem) {
                 var itemId = newItem.itemId;
                 newItem.pono = getPoObj[itemId]
             });
@@ -942,7 +948,7 @@ define(['N/record', 'N/search', 'N/log', '../Helper/tool.li', '../Helper/config'
                 values: 1
             }],
             columns: ['custrecord_wtr_token']
-        }).run().each(function (result) {
+        }).run().each(function(result) {
             token = result.getValue('custrecord_wtr_token');
         });
         return token;

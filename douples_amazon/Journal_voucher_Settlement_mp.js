@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-16 19:29:19
+ * @LastEditTime   : 2020-09-24 10:32:02
  * @LastEditors    : Li
  * @Description    : 生成结算凭证
  * @FilePath       : \douples_amazon\Journal_voucher_Settlement_mp.js
@@ -166,7 +166,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
         }
 
-        log.error('待冲销总数 ' + orders.length, orders)
+        log.error('获取总数 ' + orders.length, orders)
         return orders
     }
 
@@ -621,7 +621,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
     function reduce(context) {
 
         // return;
-        log.debug(' reduce context', JSON.stringify(context))
+
+        log.debug('reduce context', JSON.stringify(context));
+
         var v = context.values
         var key = context.key.split('.')[0] + '-' + context.key.split('.')[2] // setllment ID + month
         // 找到 shipment id 对应的发票，打上备注，计入款型记录
@@ -690,7 +692,6 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 so_id ? jour.setValue({ fieldId: 'custbody_rel_salesorder', value: so_id }) : ''; // 关联销售订单
                 jour.setValue({ fieldId: 'custbody_amazon_settlementid', value: key }) // settlementid
                 jour.setValue({ fieldId: 'custbody_jour_type', value: 'orders' }) // 记录凭证类型 orders / refunds
-
                 jour.setValue({ fieldId: 'custbody_dps_jiesuan', value: settlement_ids }) // 设置关联的结算报告
 
                 // 生成  结
@@ -727,7 +728,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 }
                 log.debug('set Trandate cl_date:', cl_date.date)
                 jour.setText({ fieldId: 'trandate', text: cl_date.date })
-                jour.setValue({ fieldId: 'custbody_relative_finanace_report', value: relative_finance })
+                // jour.setValue({ fieldId: 'custbody_relative_finanace_report', value: relative_finance })
                 jour.setValue({ fieldId: 'custbody_amaozn_order_iemc', value: JSON.stringify(item_codes) }) // 存储item code
                 //  jour.setValue({fieldId:'custbody_relative_inoice',value:cache_id})
 
@@ -822,7 +823,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 log.debug('待付款的发票:' + orders.length, orders)
 
                 // 设置关联字段
-                interfun.relativaJE(jo1_id, jo_3, '', settlement_ids, orders, pr_store, 3)
+                interfun.relativaJE("", jo_3, '', settlement_ids, orders, pr_store, 3)
+                // interfun.relativaJE(jo1_id, jo_3, '', settlement_ids, orders, pr_store, 3)
                 //  custbody_dp_expected_due_date
 
             } catch (e) {

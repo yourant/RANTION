@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-12 19:57:07
- * @LastEditTime   : 2020-08-24 16:07:12
+ * @LastEditTime   : 2020-07-18 17:36:36
  * @LastEditors    : Li
- * @Description    :
+ * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -77,8 +77,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
     // 获取订单对应的库存
     /**
      * 搜索单据的货品、地点、子公司
-     * @param {String} recType
-     * @param {number} recId
+     * @param {String} recType 
+     * @param {number} recId 
      * @returns {Object} {subsidiary: subs,itemArr: itemArr,location: loca,totalQty: totalQty};
      */
     function searchToLocationItem(recType, recId) {
@@ -91,20 +91,20 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: recType,
             filters: [{
-                name: "internalid",
-                operator: 'anyof',
-                values: [recId]
-            },
-            {
-                name: "mainline",
-                operator: 'is',
-                values: false
-            },
-            {
-                name: "taxline",
-                operator: 'is',
-                values: false
-            }
+                    name: "internalid",
+                    operator: 'anyof',
+                    values: [recId]
+                },
+                {
+                    name: "mainline",
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: "taxline",
+                    operator: 'is',
+                    values: false
+                }
             ],
             columns: [
                 "item",
@@ -123,15 +123,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: recType,
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: recId
-            },
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: true
-            }
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: recId
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: true
+                }
             ],
             columns: [
                 "location", "subsidiary"
@@ -168,20 +168,20 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: "location",
             filters: [{
-                name: 'custrecord_dps_parent_location',
-                operator: 'anyof',
-                values: [loca]
-            }, // 父级地点
-            {
-                name: "subsidiary",
-                operator: 'anyof',
-                values: [sub]
-            }, // 子公司
-            {
-                name: 'internalid',
-                operator: 'anyof',
-                values: locaArr
-            }, // 地点
+                    name: 'custrecord_dps_parent_location',
+                    operator: 'anyof',
+                    values: [loca]
+                }, // 父级地点
+                {
+                    name: "subsidiary",
+                    operator: 'anyof',
+                    values: [sub]
+                }, // 子公司
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: locaArr
+                }, // 地点
             ]
         }).run().each(function (rec) {
 
@@ -243,15 +243,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'item',
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: itemArr
-            },
-            {
-                name: 'inventorylocation',
-                operator: 'anyof',
-                values: LocaArr
-            }
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: itemArr
+                },
+                {
+                    name: 'inventorylocation',
+                    operator: 'anyof',
+                    values: LocaArr
+                }
             ],
             columns: [
                 "locationquantityonhand", // 库存量 Location On Hand
@@ -289,16 +289,16 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'item',
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: itemArr
-            },
-            {
-                name: 'subsidiary',
-                join: 'inventorylocation',
-                operator: 'anyof',
-                values: sub
-            }
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: itemArr
+                },
+                {
+                    name: 'subsidiary',
+                    join: 'inventorylocation',
+                    operator: 'anyof',
+                    values: sub
+                }
             ],
             columns: [
                 "inventorylocation"
@@ -316,8 +316,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 判断库存是否充足
-     * @param {String} recType
-     * @param {Number} recId
+     * @param {String} recType 
+     * @param {Number} recId 
      * @returns{Boolean} flag
      */
     function judgmentItemInventory(recType, recId) {
@@ -362,7 +362,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
-     * @param {*} soId
+     * @param {*} soId 
      * @returns {Boolean} true || false
      */
     function qtyBackOrdered(soId) {
@@ -398,7 +398,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 搜索订单的货品信息
-     * @param {*} soid
+     * @param {*} soid 
      */
     function searchItemSO(soid) {
 
@@ -410,26 +410,26 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'salesorder',
             filters: [{
-                name: 'internalid',
-                operator: 'is',
-                values: soid
-            },
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: false
-            },
-            {
-                name: 'taxline',
-                operator: 'is',
-                values: false
-            },
-            {
-                name: 'type',
-                join: 'item',
-                operator: 'noneof',
-                values: 'OthCharge'
-            }
+                    name: 'internalid',
+                    operator: 'is',
+                    values: soid
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'type',
+                    join: 'item',
+                    operator: 'noneof',
+                    values: 'OthCharge'
+                }
             ],
             columns: [
                 'location', 'item', 'quantity',
@@ -454,7 +454,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 判断货品是否有库存
-     * @param {*} itemJson
+     * @param {*} itemJson 
      */
     function searchLocation(itemJson) {
         var itemArr = itemJson.itemarr,
@@ -470,15 +470,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'item',
             filters: [{
-                name: 'internalid',
-                operator: 'anyof',
-                values: itemArr
-            },
-            {
-                name: "inventorylocation",
-                operator: 'anyof',
-                values: location
-            }
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: itemArr
+                },
+                {
+                    name: "inventorylocation",
+                    operator: 'anyof',
+                    values: location
+                }
             ],
             columns: [
                 'inventorylocation'
@@ -510,8 +510,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 生成发运记录, 关联销售订单
-     * @param {*} soid
-     * @param {*} sku
+     * @param {*} soid 
+     * @param {*} sku 
      * @returns {*} 返回生成的发运记录的ID, 或者 false;
      */
     function createFulfillmentRecord(soid, sku) {
@@ -525,26 +525,26 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'salesorder',
             filters: [{
-                name: 'internalid',
-                operator: 'is',
-                values: soid
-            },
-            {
-                name: 'mainline',
-                operator: 'is',
-                values: false
-            },
-            {
-                name: 'taxline',
-                operator: 'is',
-                values: false
-            },
-            {
-                name: 'type',
-                join: 'item',
-                operator: 'noneof',
-                values: 'OthCharge'
-            }
+                    name: 'internalid',
+                    operator: 'is',
+                    values: soid
+                },
+                {
+                    name: 'mainline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: false
+                },
+                {
+                    name: 'type',
+                    join: 'item',
+                    operator: 'noneof',
+                    values: 'OthCharge'
+                }
             ],
             columns: [
                 'location', 'item', 'quantity', 'custbody_aio_api_content', 'tranid', 'amount',
@@ -675,17 +675,17 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             fieldId: 'custrecord_dps_ship_small_channelservice',
             value: custbody_dps_service_channels
         });
-        // 订单号
+        // 订单号 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_order_number',
             value: tranid
         });
-        // 平台订单号
+        // 平台订单号 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_platform_order_numbe',
             value: otherrefnum
         });
-        // 状态
+        // 状态 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_status',
             value: 1
@@ -746,8 +746,6 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             value: cc_state ? cc_state : ''
         });
         var c_country;
-
-        log.audit('cc_country', cc_country);
         if (cc_country) {
             c_country = searchCountryByCode(cc_country);
         }
@@ -798,12 +796,12 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         //     fieldId: 'custrecord_dps_addressee_address',
         //     value: strName + cc_addr1 + cc_addr2 + cc_zip + cc_ctiy + cc_state + cc_country
         // });
-        // 收件人
+        // 收件人 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_recipient',
             value: strName1
         });
-        // 联系电话
+        // 联系电话 
         ful_create_rec.setValue({
             fieldId: 'custrecord_dps_ship_small_phone',
             value: cc_phone_number ? cc_phone_number : ''
@@ -820,7 +818,6 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             log.debug('获取关税起征点的值', JSON.stringify(temp));
             if (temp.length > 0) {
                 var dec_value = temp[0].tariff;
-                log.debug('dec_value', dec_value);
                 currency = temp[0].currency;
                 if (dec_value) {
                     if (amount > dec_value) {
@@ -828,10 +825,10 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
                             h_v = Number(dec_value) * 0.8;
                         set_value = randomNum(l_v, h_v);
                     } else {
-                        set_value = amount;
+                        set_value = account;
                     }
                 } else {
-                    set_value = amount;
+                    set_value = account;
                 }
             }
             ful_create_rec.setValue({
@@ -878,7 +875,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 获取地点的国家
-     * @param {*} locationid
+     * @param {*} locationid 
      */
     function getLocationCode(locationid) {
         var country_id;
@@ -900,7 +897,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 根据国家简码, 搜索对应的国家记录
-     * @param {*} code
+     * @param {*} code 
      */
     function searchCountryByCode(code) {
         var country_id;
@@ -920,7 +917,7 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 获取关税起征点的值
-     * @param {*} code
+     * @param {*} code 
      */
     function getDeclaredValue(code) {
         var target_country_id = searchCountryByCode(code);
@@ -932,15 +929,15 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             search.create({
                 type: 'customrecord_dps_tariff_threshold',
                 filters: [{
-                    name: 'custrecord_dps_tar_the_country_origin',
-                    operator: 'anyof',
-                    values: origin_country_id
-                },
-                {
-                    name: 'custrecord_dps_tar_the_target_country',
-                    operator: 'anyof',
-                    values: target_country_id
-                }
+                        name: 'custrecord_dps_tar_the_country_origin',
+                        operator: 'anyof',
+                        values: origin_country_id
+                    },
+                    {
+                        name: 'custrecord_dps_tar_the_target_country',
+                        operator: 'anyof',
+                        values: target_country_id
+                    }
                 ],
                 columns: ['custrecord_dps_tar_thre_tariff_threshold', 'custrecord_dps_tar_thre_currency']
             }).run().each(function (rec) {
@@ -956,8 +953,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
 
     /**
      * 物流匹配
-     * @param {*} soid
-     * @param {*} fulid
+     * @param {*} soid 
+     * @param {*} fulid 
      */
     function createLogisticsStrategy(soid, fulid) {
         var startTime = new Date().getTime();
@@ -971,31 +968,31 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         search.create({
             type: 'salesorder',
             filters: [{
-                name: 'mainline',
-                operator: 'is',
-                values: ['F']
-            },
-            {
-                name: 'taxline',
-                operator: 'is',
-                values: ['F']
-            },
-            {
-                name: 'type',
-                operator: 'anyof',
-                values: ['SalesOrd']
-            },
-            {
-                name: 'type',
-                join: 'item',
-                operator: 'anyof',
-                values: ['InvtPart']
-            },
-            {
-                name: 'internalid',
-                operator: 'anyof',
-                values: soid
-            }
+                    name: 'mainline',
+                    operator: 'is',
+                    values: ['F']
+                },
+                {
+                    name: 'taxline',
+                    operator: 'is',
+                    values: ['F']
+                },
+                {
+                    name: 'type',
+                    operator: 'anyof',
+                    values: ['SalesOrd']
+                },
+                {
+                    name: 'type',
+                    join: 'item',
+                    operator: 'anyof',
+                    values: ['InvtPart']
+                },
+                {
+                    name: 'internalid',
+                    operator: 'anyof',
+                    values: soid
+                }
             ],
             columns: [
                 "custbody_dps_distributors", // 渠道商
@@ -1040,8 +1037,8 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
             ]
         }).run().each(function (result) {
 
-            custbody_dps_distributors = result.getValue('custbody_dps_distributors'); // 渠道商
-            custbody_dps_service_channels = result.getValue('custbody_dps_service_channels'); // 渠道服务
+            custbody_dps_distributors = rec.getValue('custbody_dps_distributors'); // 渠道商
+            custbody_dps_service_channels = rec.getValue('custbody_dps_service_channels'); // 渠道服务
 
             if (flag) {
                 order.id = soid;
@@ -1132,383 +1129,120 @@ define(['../Helper/config.js', '../Helper/logistics_cost_calculation.js',
         order.lwh = order.long + order.wide + order.high;
 
         var getFilter = [];
-        var searchRe = [];
-        var searchARe = [];
-        var searchVRe = [];
-        var searchZRe = [];
         // 站点
         if (order.siteid) {
-            getFilter.push({
-                name: 'custrecord_lmr_site',
-                operator: 'anyof',
-                values: order.siteid
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_site', 'anyof', order.siteid ], 'or', [ 'custrecord_lmr_site', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_site', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_site',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        log.debug('站点', searchRe);
-
         // 账号
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.accountid) {
-            getFilter.push({
-                name: 'custrecord_lmr_account',
-                operator: 'anyof',
-                values: order.accountid
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_account', 'anyof', order.accountid ], 'or', [ 'custrecord_lmr_account', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_account', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_account',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('账号', searchRe);
-
         // 仓库
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.locationid) {
-            getFilter.push({
-                name: 'custrecord_lmr_location',
-                operator: 'anyof',
-                values: order.locationid
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_location', 'anyof', order.locationid ], 'or', [ 'custrecord_lmr_location', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_location', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_location',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('仓库', searchRe);
-
         // 目的地
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.country) {
-            getFilter.push({
-                name: 'custrecord_cc_country_code',
-                join: 'custrecord_lmr_destination',
-                operator: 'contains',
-                values: order.country
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_destination.custrecord_cc_country_code', 'contains', order.country ], 'or', [ 'custrecord_lmr_destination', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_destination', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_cc_country_code',
-            join: 'custrecord_lmr_destination',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('目的地', searchRe);
-
         // 产品
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (SKUs.length > 0) {
-            getFilter.push({
-                name: 'internalid',
-                join: 'custrecord_lmr_sku',
-                operator: 'anyof',
-                values: SKUs
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_sku', 'anyof', SKUs ], 'or', [ 'custrecord_lmr_sku', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_sku', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'internalid',
-            join: 'custrecord_lmr_sku',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('产品', searchRe);
-
         // 物流分组
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.group) {
-            getFilter.push({
-                name: 'custrecord_lmr_logistics_group',
-                operator: 'anyof',
-                values: order.group
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_logistics_group', 'anyof', order.group ], 'or', [ 'custrecord_lmr_logistics_group', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_logistics_group', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_logistics_group',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('物流分组', searchRe);
-
         // 金额范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.amount > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_weight_start',
-                operator: 'lessthanorequalto',
-                values: order.amount
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_weight_end',
-                operator: 'greaterthanorequalto',
-                values: order.amount
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_amount_start', 'lessthanorequalto', order.amount ], 'and', [ 'custrecord_lmr_amount_end', 'greaterthanorequalto', order.amount ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'lessthanorequalto', order.amount ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'greaterthanorequalto', order.amount ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_weight_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_weight_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('重量范围', searchRe);
-
         // 重量范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.weight > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_weight_start',
-                operator: 'lessthanorequalto',
-                values: order.weight
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_weight_end',
-                operator: 'greaterthanorequalto',
-                values: order.weight
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_weight_start', 'lessthanorequalto', order.weight ], 'and', [ 'custrecord_lmr_weight_end', 'greaterthanorequalto', order.weight ]],'or',
+                [[ 'custrecord_lmr_weight_start', 'lessthanorequalto', order.weight ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'greaterthanorequalto', order.weight ]], 'or',
+                [[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_weight_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_weight_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('重量范围', searchRe);
-
         // 长度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.long > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_length_start',
-                operator: 'lessthanorequalto',
-                values: order.long
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_length_end',
-                operator: 'greaterthanorequalto',
-                values: order.long
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_length_start', 'lessthanorequalto', order.long ], 'and', [ 'custrecord_lmr_length_end', 'greaterthanorequalto', order.long ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'lessthanorequalto', order.long ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'greaterthanorequalto', order.long ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_length_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_length_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('长度范围', searchRe);
-
         // 宽度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.wide > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_width_start',
-                operator: 'lessthanorequalto',
-                values: order.wide
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_width_end',
-                operator: 'greaterthanorequalto',
-                values: order.wide
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_width_start', 'lessthanorequalto', order.wide ], 'and', [ 'custrecord_lmr_width_end', 'greaterthanorequalto', order.wide ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'lessthanorequalto', order.wide ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'greaterthanorequalto', order.wide ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_width_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_width_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('宽度范围', searchRe);
-
         // 高度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.high > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_height_start',
-                operator: 'lessthanorequalto',
-                values: order.high
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_height_end',
-                operator: 'greaterthanorequalto',
-                values: order.high
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_height_start', 'lessthanorequalto', order.high ], 'and', [ 'custrecord_lmr_height_end', 'greaterthanorequalto', order.high ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'lessthanorequalto', order.high ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'greaterthanorequalto', order.high ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_height_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_height_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
-        log.debug('高度范围', searchRe);
-
         // 长宽高范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.lwh > 0) {
-            getFilter.push({
-                name: 'custrecord_lmr_lwh_start',
-                operator: 'lessthanorequalto',
-                values: order.lwh
-            });
-            getFilter.push({
-                name: 'custrecord_lmr_lwh_end',
-                operator: 'greaterthanorequalto',
-                values: order.lwh
-            });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_lwh_start', 'lessthanorequalto', order.lwh ], 'and', [ 'custrecord_lmr_lwh_end', 'greaterthanorequalto', order.lwh ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'lessthanorequalto', order.lwh ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'greaterthanorequalto', order.lwh ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({
-            name: 'custrecord_lmr_lwh_start',
-            operator: 'isempty'
-        });
-        getFilter.push({
-            name: 'custrecord_lmr_lwh_end',
-            operator: 'isempty'
-        });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) {
-            return !(searchARe.indexOf(val) > -1)
-        }));
-        searchRe = searchRe.filter(function (val) {
-            return searchZRe.indexOf(val) > -1
-        });
+        var searchRe = getRecBySearch(getFilter);
         log.debug('长宽高范围', searchRe);
 
         // 计算预估运费

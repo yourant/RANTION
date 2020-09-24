@@ -11,7 +11,7 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             search.create({
                 type: 'returnauthorization',
                 filters: [{
-                    name: 'createdfrom',
+                    name: 'custbody_dps_link_so',
                     operator: 'anyof',
                     values: curr.id
                 }],
@@ -45,6 +45,11 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     return true;
                 });
                 newSorec.setValue({ fieldId: 'location', value: soLoaction });
+            }
+            var line = newSorec.getLineCount({ sublistId: 'item' });
+            for (var i = 0; i < line; i++) {
+                var quantity = newSorec.getSublistValue({ sublistId: 'item', fieldId: 'quantity', line: i });
+                newSorec.setSublistValue({ sublistId: 'item', fieldId: 'custcol_dps_unocc_po_quantity', value: quantity, line: i });
             }
         }
     }
@@ -80,7 +85,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location_IF, line: i });
                     itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity, line: i });
                 }
-                itemFulfillment.save();
+                var ifId = itemFulfillment.save();
+                log.debug('if生成成功', ifId);
 
                 // 生成发票
                 var Invoice = record.transform({
@@ -88,7 +94,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     toType: record.Type.INVOICE,
                     fromId: Number(newSorec.id),
                 })
-                Invoice.save();
+                var InvoiceId = Invoice.save();
+                log.debug('Invoice生成成功', InvoiceId);
 
                 // 生成货品收据
                 var itemReceipt = record.transform({
@@ -106,7 +113,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location_IR, line: i });
                     itemReceipt.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity, line: i });
                 }
-                itemReceipt.save();
+                var irId = itemReceipt.save();
+                log.debug('货品收据生成成功', irId);
 
                 // 生成应付账单
                 var venderBill = record.transform({
@@ -114,7 +122,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     toType: record.Type.VENDOR_BILL,
                     fromId: Number(purchaseOrderRecordId),
                 });
-                venderBill.save();
+                var venderBillId = venderBill.save();
+                log.debug('应付账单生成成功', venderBillId);
 
                 // 生成NO.3 transferorder
                 var shipping_id, subsidiary, to_loaction, informa_id;
@@ -213,7 +222,8 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                         itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'location', value: location_IF, line: i });
                         itemFulfillment.setSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity, line: i });
                     }
-                    itemFulfillment.save();
+                    var ifId = itemFulfillment.save();
+                    log.debug('库存转移订单if生成成功', ifId);
                 }
             }
         }

@@ -109,6 +109,9 @@ define(['N/search', 'N/record'],
                         , custrecord_product_init_grading: rec.getValue('custrecord_product_init_grading')
                         , custrecord_product_sku_default_vendor: rec.getValue('custrecord_product_sku_default_vendor')
                         , custrecord_product_sku_image_url: rec.getValue('custrecord_product_sku_image_url')
+                        , custrecord_product_sku_box_long: rec.getValue('custrecord_product_sku_box_long')
+                        , custrecord_product_sku_box_width: rec.getValue('custrecord_product_sku_box_width')
+                        , custrecord_product_sku_box_height: rec.getValue('custrecord_product_sku_box_height')
 
                         , custrecord_product_code: spuRec.getValue("name")
                         , custrecord_product_name_cn: spuRec.getValue("custrecord_product_name_cn")
@@ -270,6 +273,18 @@ define(['N/search', 'N/record'],
                     fieldId: 'custitem_dps_picture',
                     value: body.custrecord_product_sku_image_url
                 })
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_box_long',
+                    value: body.custrecord_product_sku_box_long
+                })
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_box_wide',
+                    value: body.custrecord_product_sku_box_width
+                })
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_box_high',
+                    value: body.custrecord_product_sku_box_height
+                })
 
                 var itemvendorCount = inventoryitem.getLineCount({
                     sublistId: 'itemvendor'
@@ -319,7 +334,7 @@ define(['N/search', 'N/record'],
                         includechildren: true,
                         custitem_dps_spucoding: body.custrecord_sku_product_code,
                         custitem_dps_skuchiense: body.custrecord_product_sku_name,
-                        custitem_dps_spuenglishnames: body.custrecord_product_sku_name_en,
+                        custitem_dps_skuenglish: body.custrecord_product_sku_name_en,
                         custitem_dps_skureferred: body.custrecord_product_sku_abbr,
                         custitem_dps_deliverydate: body.custrecord_product_delivery_date,
                         custitem_dps_describe: body.custrecord_product_sku_describe,
@@ -338,6 +353,9 @@ define(['N/search', 'N/record'],
                         custitem_product_grading: body.custrecord_product_sku_grading,
                         custitemf_product_grading: body.custrecord_product_init_grading,
                         custitem_dps_picture: body.custrecord_product_sku_image_url,
+                        custitem_dps_box_long: body.custrecord_product_sku_box_long,
+                        custitem_dps_box_wide: body.custrecord_product_sku_box_width,
+                        custitem_dps_box_high: body.custrecord_product_sku_box_height,
                         //SPU
                         displayname: body.custrecord_product_name_cn,
                         custitem_dps_spuenglishnames: body.custrecord_product_name_en,

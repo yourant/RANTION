@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-08 16:03:17
+ * @LastEditTime   : 2020-09-19 14:49:51
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \douples_amazon\amazon_authoration_rl.js
@@ -94,8 +94,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 var last_updated_after = context.last_updated_after
                 var last_updated_before = context.last_updated_before
                 var startT = new Date().getTime()
-                //  core.amazon.getReportAccountList(group).map(function(account){
-                //     log.audit(account.id)
+
                 var ff = []
                 core.amazon.getAccountList(group).map(function(acc) {
                     ff.push(acc.id)
@@ -908,7 +907,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
             log.debug('field_token', field_token)
 
             if (!last_update_date)
-                last_update_date = '2020-07-01T00:00:00.000Z'
+                last_update_date = '2020-08-01T00:00:00.000Z'
             if (hid && nextToken) {
                 if (nextToken == '-1') {
                     // var pullOrderAcc_2 = [156,120,113,146,104,107,9,130]
@@ -919,7 +918,14 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                     //     return [];
                     // }
 
-                    return [];
+                    // return [];
+
+                    last_after = last_update_date;
+                    last_before = new Date(new Date(last_update_date).getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+                    if (new Date(last_before) > new Date("2020-09-05T00:00:00.000Z")) {
+                        return;
+                    }
 
                     /** 寮?1?7鍚?鏂扮殑鍗曟嵁鑾峰弰1?7 */
                     log.debug('nextToken::::', nextToken + ',account: ' + acc_id)
@@ -929,7 +935,8 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         // fieldId: 'custrecord_aio_importer_next_token',
                         fieldId: field_token,
                         value: rtn_1.token
-                    })
+                    });
+
                     // h.setValue({
                     //     fieldId: 'custrecord_aio_importer_last_updated_af',
                     //     value: last_update_date
@@ -959,7 +966,8 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         })
                     h.setValue({
                         fieldId: 'custrecord_dps_amazon_status_order_bf',
-                        value: rtn_1.LastUpdatedBefore
+                        value: moment(rtn_1.LastUpdatedBefore).toISOString()
+                        // value: rtn_1.LastUpdatedBefore
                     })
 
                     hid = h.save()
@@ -1051,7 +1059,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         fieldId: field_token,
                         value: '没有数据'
                     })
-                hid = h.save()
+                hid = h.save();
                 var rs
                 if (rtn)
                     rs = rtn.orders

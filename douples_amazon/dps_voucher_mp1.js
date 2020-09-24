@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-14 20:14:38
+ * @LastEditTime   : 2020-09-22 20:40:16
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \douples_amazon\dps_voucher_mp1.js
@@ -122,13 +122,13 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         const fmt = "yyyy-M-d"
 
         function getInputData() {
-            var limit = 400,
+            var limit = 4000,
                 orders = [],
                 ors = []
             // var acc_sort = 115-67-17-111-184-14-33-1-187
             // var acc_sort = ['172', '211', '136', '113', '156', '118', '31', '21', '102']
             // var acc_sort = ['201', '194', '104', '24', '143', '69', '120', '54', '19','102','154']
-            // var oid = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_oid' }); // 订单号
+            var oid = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_oid' }); // 订单号
             // oid = oid.split('-')
             var acc = runtime.getCurrentScript().getParameter({
                 name: 'custscript_fin_account'
@@ -170,8 +170,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                 operator: 'is',
                 values: full_bj
             })
-            // if (oid)
-            //   fils.push({name: 'custrecord_l_amazon_order_id',operator: 'is',values: oid})
+            if (oid) {
+                fils.push({ name: 'custrecord_l_amazon_order_id', operator: 'is', values: oid })
+            }
             if (group_req) { // 根据拉单分组去履行
                 core.amazon.getReportAccountList(group_req).map(function(acount) {
                     acc_arrys.push(acount.id)
@@ -302,6 +303,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
         }
 
         function map(context) {
+
+            // return;
             var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
             var date = format.parse({
                 value: (moment(new Date().getTime()).format(dateFormat)),
@@ -468,6 +471,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
 
                 // 如果该财务报告生成过凭证，先删除掉
                 if (so_id) {
+                    log.debug("存在订单号", so_id);
                     var ck_jo
                     search.create({
                         type: 'journalentry',
@@ -498,6 +502,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                         }
                         return true
                     })
+
+                    log.debug("搜索对应的日记账", ck_jo);
                     if (ck_jo) {
                         rec_finance.setValue({
                             fieldId: 'custrecord_is_generate_voucher',
@@ -510,10 +516,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                         rec_finance.save({
                             ignoreMandatoryFields: true
                         })
+                        log.audit("找到对应的预估凭证", ck_jo)
                         return '已存在:' + ck_jo
                     }
                     // 开始生成日记账凭证
 
+                    log.debug("订单类型", ord_type);
                     if (ord_type == '2') { // 如果是FMB类型订单，查找有没有发货
                         search.create({
                             type: 'invoice',
@@ -526,6 +534,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                             inv_id = rec.id
                         })
                     }
+                    log.debug("发票", inv_id);
                     if (!inv_id) {
                         if (!ship_recid) {
                             rec_finance.setValue({
@@ -547,11 +556,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                         return '待发货:' + orderid
                     }
 
-                    var fv = []
+                    var fv = [];
+                    log.debug("开始生成预估凭证", "开始生成结算凭证")
                     var jour = record.create({
                         type: 'journalentry',
                         isDynamic: true
-                    })
+                    });
                     jour.setText({
                         fieldId: 'trandate',
                         text: postdate
@@ -724,6 +734,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                     var len = jour.getLineCount({
                         sublistId: 'line'
                     })
+                    log.debug("日记账的行数", len)
                     if (len == 0) {
                         rec_finance.setValue({
                             fieldId: 'custrecord_is_generate_voucher',
@@ -764,11 +775,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime', 
                         type: 'invoice',
                         id: inv_id
                     })
-                    if (isA_order == 1)
+                    if (isA_order == 1) {
                         inv.setValue({
                             fieldId: 'custbody_dps_finance_report',
                             value: fin_id
                         }) // 1 正常单的财务报告
+                    }
                     else if (isA_order == 2)
                         inv.setValue({
                             fieldId: 'custbody_dps_finance_report1',

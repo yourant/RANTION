@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-16 19:31:37
+ * @LastEditTime   : 2020-09-24 09:47:22
  * @LastEditors    : Li
  * @Description    : 用处生成冲销凭证
  * @FilePath       : \douples_amazon\Journal_voucher_Payment_mp.js
@@ -62,7 +62,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         fils = [
             //   ['custrecord_settlement_acc', 'noneof', '@NONE@'],
             // 'and',
-            ['custrecord_aio_sett_tran_type', 'doesnotcontain', 'Refund'],
+            ['custrecord_aio_sett_tran_type', 'is', 'Order'],
+            // ['custrecord_aio_sett_tran_type', 'doesnotcontain', 'Refund'],
             'and',
             ['custrecord_settle_is_write_voucher', 'is', false], // 未生成 冲销凭证
             'and',
@@ -177,6 +178,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         var currency_txt, currency
         var CK_fin // 确认是否需要预估凭证
 
+
+        var num = 0;
         try {
             var end_date, postdate_arry = [],
                 PT_Arrys = [],
@@ -189,7 +192,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 'and',
                 ['custrecord_aio_sett_tran_type', 'isnot', 'Refund'],
                 'and',
-                ['custrecord_settle_is_generate_voucher', 'is', false],
+                // ['custrecord_settle_is_generate_voucher', 'is', false],
+                ['custrecord_settle_is_write_voucher', 'is', false], // 未生成冲销凭证
                 // "and",
                 // ["custrecord_payment_itemprice_pt", "is", false], //不属于货价和税
                 'and',
@@ -213,6 +217,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 fils.push('and')
                 fils.push(['custrecord_aio_sett_merchant_order_id', 'is', merchant_order_id])
             }
+
+            log.debug("结算报告过滤", fils);
+
             var amount_all = 0,
                 settlement_idArrs = [],
                 principals = []
@@ -246,7 +253,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 ]
             }).run().each(function(rec) {
                 currency_txt = rec.getValue('custrecord_aio_sett_currency')
-                // log.debug("00 計數：" + num++, settle_id)
+                log.debug("00 計數：" + num++, settle_id)
                 if (!endDate) {
                     endDate = rec.getValue('custrecord_aio_sett_end_date')
                     cl_date = interfun.getFormatedDate('', '', endDate)
@@ -291,7 +298,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     if (amount.indexOf(',') != -1) {
                         amount = amount.replace(',', '.')
                     }
-                    var ck = interfun.getArFee(Tranction_type, Amount_type, Amount_desc, currency_txt)
+                    var ck = interfun.getArFee(Tranction_type, Amount_type, Amount_desc, currency_txt);
+
+                    log.debug("ck: " + ck, "Tranction_type: " + Tranction_type);
                     if (ck || (!Tranction_type)) {
                         PT_Arrys.push(rec.id)
                         if (Tranction_type == 'Order')
@@ -371,6 +380,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                                 break
                             }
                         }
+
+
+                        log.debug("存放settlmentId ", havedSettlmentid)
                         // settlmentId不相同，直接push
                         if (!havedSettlmentid) {
                             shipmentid_Arrys = []
@@ -498,7 +510,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
             log.audit('entity :' + entity + ',currency: ' + currency, 'orderid:' + orderid + '，店铺：' + pr_store)
             for (var key in settlmentID) {
-                if (interfun.CheckJO(orderid, key, settlement_idObj[key], '结算', search_accObj.acc_search, merchant_order_id)) {
+                if (interfun.CheckJO(orderid, key, settlement_idObj[key], '冲销', search_accObj.acc_search, merchant_order_id)) {
                     context.write({
                         key: key.split('-')[0] + '.' + orderid + '.' + key.split('-')[1], // 按settlment ID +orderid + post date 的月份分组
                         value: {
@@ -688,9 +700,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     }
                 }
 
-                log.audit("生成冲销凭证", "生成冲销凭证");
                 // 生成冲
                 var jo1_arrys_len = jo1_arrys.length
+                log.audit("生成冲销凭证： 行数", jo1_arrys_len);
+                // log.audit("行数", jo1_arrys_len);
                 for (var i = 0; i < jo1_arrys_len; i++) {
                     jour.selectNewLine({ sublistId: 'line' })
                     jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'account', value: jo1_arrys[i].account })
@@ -741,35 +754,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
     function summarize(summary) {
 
-        try {
-
-            var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_li_sett_jour_w_acc_accoun' }); // 店铺
-
-            var runPaged = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_li_sett_jour_w_runpage' }); // 运行方式
-
-            if (runPaged) { // 跑完之后, 直接更改对应的记录
-                search.create({
-                    type: 'customrecord_dps_li_automatically_execut',
-                    filters: [
-                        { name: 'isinactive', operator: 'is', values: false },
-                        { name: 'custrecord_dps_auto_execute_account', operator: 'anyof', values: acc }
-                    ]
-                }).run().each(function(_l) {
-                    record.submitFields({
-                        type: 'customrecord_dps_li_automatically_execut',
-                        id: _l.id,
-                        values: {
-                            custrecord_dps_li_settl_jour_w: true
-                        }
-                    })
-                })
-            }
-        } catch (error) {
-            log.error("设置标记出错了", error)
-        }
-
-
-        log.audit('处理完成')
+        log.audit('处理完成');
     }
 
     function GetInfo_JO1(orderid, search_acc, item_codes, order_id) {
@@ -818,24 +803,13 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'journalentry',
             filters: fils_fee,
-            columns: [{
-                    name: 'debitfxamount'
-                }, // 借（外币
-                {
-                    name: 'creditfxamount'
-                }, // 贷(外币
-                {
-                    name: 'account'
-                }, // 科目
-                {
-                    name: 'custcol_item_or_tax'
-                },
-                {
-                    name: 'custbody_relative_finanace_report'
-                },
-                {
-                    name: 'memo'
-                }
+            columns: [
+                { name: 'debitfxamount' }, // 借（外币
+                { name: 'creditfxamount' }, // 贷(外币
+                { name: 'account' }, // 科目
+                { name: 'custcol_item_or_tax' },
+                { name: 'custbody_relative_finanace_report' },
+                { name: 'memo' }
             ]
         }).run().each(function(jo) {
             // log.debug('查出的01类凭证' + jo.id, jo.getValue("custbody_relative_finanace_report"))

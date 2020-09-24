@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-15 12:05:49
- * @LastEditTime   : 2020-09-08 16:07:23
+ * @LastEditTime   : 2020-07-18 12:22:02
  * @LastEditors    : Li
- * @Description    :
+ * @Description    : 
  * @FilePath       : \Rantion\wms\rantion_wms_create_out_rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -99,7 +99,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
 
                         'custrecord_record_fulfill_xh_label_addr', // 面单路径URL
 
-                        'custrecord_dps_ship_samll_location', // 发运仓库
+                        'custrecord_dps_ship_samll_location', // 发运仓库	
                         {
                             name: 'custrecord_dps_wms_location',
                             join: 'custrecord_dps_ship_samll_location'
@@ -109,7 +109,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
                             join: 'custrecord_dps_ship_samll_location'
                         },
 
-                        'custrecord_dps_ship_order_number', //订单号
+                        'custrecord_dps_ship_order_number', //订单号	
                         'custrecord_dps_ship_platform_order_numbe', //平台订单号
                         'custrecord_dps_ship_small_logistics_orde', //物流运单号
                         'custrecord_dps_ship_small_trackingnumber', // 物流跟踪单号
@@ -141,7 +141,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
                         'custrecord_dps_carton_no', //箱号
                         'custrecord_dps_s_state', //收货人 - 州
                         'custrecord_dps_street1', //街道1
-                        'custrecord_dps_street2', //街道2
+                        'custrecord_dps_street2', //街道2 
                         'custrecord_dps_declared_value', //申报价值
                         'custrecord_dps_declare_currency', //申报币种
                         {
@@ -707,7 +707,7 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
 
     /**
      * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 true; 否则返回 false;
-     * @param {*} soId
+     * @param {*} soId 
      * @returns {Boolean} true || false
      */
     function qtyBackOrdered(soId) {
@@ -763,8 +763,8 @@ define(['N/search', 'N/http', 'N/record', '../Helper/config.js', ], function (se
 
     /**
      * 发送请求
-     * @param {*} token
-     * @param {*} data
+     * @param {*} token 
+     * @param {*} data 
      */
     function sendRequest(token, data) {
         var message = {};

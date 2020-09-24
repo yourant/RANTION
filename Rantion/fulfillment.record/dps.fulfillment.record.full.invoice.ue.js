@@ -17,7 +17,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
     'SuiteScripts/dps/logistics/yanwen/dps_yanwen_request.js',
     'SuiteScripts/dps/logistics/endicia/dps_endicia_request.js',
     'SuiteScripts/dps/logistics/common/Moment.min', 'N/http', 'N/file', "N/xml", 'N/runtime'
-], function (config, record, search, log, jetstar, openapi, yanwen, endicia, Moment, http, file, xml, runtime) {
+, 'N/https'], function (config, record, search, log, jetstar, openapi, yanwen, endicia, Moment, http, file, xml, runtime, https) {
 
     function beforeLoad(context) {
 
@@ -975,7 +975,7 @@ define(['../Helper/config.js', 'N/record', 'N/search', 'N/log',
                 }
                 break
             case "2":
-                openApi.init(http, search, record)
+                openApi.init(https, search, record)
                 var result = openApi.CreateOrders(rec, "small")
                 if (result.code == 200) {
                     var orderId = rec.getValue("custrecord_dps_ship_order_number")

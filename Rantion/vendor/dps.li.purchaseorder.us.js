@@ -208,11 +208,39 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
                         value: sign,
                         line: k
                     });
+                    var deliverydate;
+                    search.create({
+                        type: 'item',
+                        filters: [{
+                            name: 'internalid',
+                            operator: 'anyof',
+                            values: partNo
+                        }],
+                        columns: [
+                            'custitem_dps_deliverydate'
+                        ]
+                    }).run().each(function (r) {
+                        if (r.getValue('custitem_dps_deliverydate')) {
+                            deliverydate = Number(r.getValue('custitem_dps_deliverydate'));
+                        }
+                    });
+                    if (deliverydate) {
+                        var nowDate = new Date();
+                        var date2 = new Date(nowDate);
+                        date2.setDate(nowDate.getDate() + deliverydate);
+                        newRecord.setSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'expectedreceiptdate',
+                            value: date2,
+                            line: k
+                        });
+                    }
+
                 }
 
                 for (var i = 0, lineCount = newRecord.getLineCount({
-                        sublistId: 'item'
-                    }); i < lineCount; i++) {
+                    sublistId: 'item'
+                }); i < lineCount; i++) {
                     log.debug('i', i)
                     var lineNumber = newRecord.findSublistLineWithValue({
                         sublistId: 'item',
@@ -418,21 +446,21 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         });
 
         var columns = [{
-                name: 'custrecord_dps_vmph_cumulative_total',
-                sort: 'ASC'
-            },
-            {
-                // 累计开始时间
-                name: 'custrecord_dps_vmph_cumulative_time'
-            },
-            {
-                // 生效时间
-                name: 'custrecord_vmpd_effective_date'
-            },
-            {
-                // 失效时间
-                name: 'custrecord_vmpd_expiration_date'
-            }
+            name: 'custrecord_dps_vmph_cumulative_total',
+            sort: 'ASC'
+        },
+        {
+            // 累计开始时间
+            name: 'custrecord_dps_vmph_cumulative_time'
+        },
+        {
+            // 生效时间
+            name: 'custrecord_vmpd_effective_date'
+        },
+        {
+            // 失效时间
+            name: 'custrecord_vmpd_expiration_date'
+        }
         ];
 
         var resultArr = [];
@@ -467,41 +495,41 @@ define(['N/record', 'N/search', 'N/runtime', '../Helper/Moment.min'], function (
         search.create({
             type: 'purchaseorder',
             filters: [{
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: "trandate",
-                    operator: "onorafter",
-                    values: effectiveDate
-                },
-                {
-                    name: "subsidiary",
-                    operator: 'anyof',
-                    values: subsidiary
-                },
-                {
-                    name: 'currency',
-                    operator: 'anyof',
-                    values: currency
-                },
-                {
-                    name: "internalid",
-                    join: "vendor",
-                    operator: 'anyof',
-                    values: vendor
-                },
-                {
-                    name: "item",
-                    operator: 'anyof',
-                    values: itemId
-                }
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: "trandate",
+                operator: "onorafter",
+                values: effectiveDate
+            },
+            {
+                name: "subsidiary",
+                operator: 'anyof',
+                values: subsidiary
+            },
+            {
+                name: 'currency',
+                operator: 'anyof',
+                values: currency
+            },
+            {
+                name: "internalid",
+                join: "vendor",
+                operator: 'anyof',
+                values: vendor
+            },
+            {
+                name: "item",
+                operator: 'anyof',
+                values: itemId
+            }
             ],
             columns: [{
                 name: "quantity",

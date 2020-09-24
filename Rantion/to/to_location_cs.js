@@ -47,15 +47,15 @@ define(['N/search', 'N/ui/dialog'], function (search, dialog) {
                     search.create({
                         type: 'location',
                         filters: [{
-                                name: 'subsidiary',
-                                operator: 'anyof',
-                                values: subsidiary
-                            },
-                            {
-                                name: 'custrecord_dps_financia_warehous',
-                                operator: 'anyof',
-                                values: 5
-                            }
+                            name: 'subsidiary',
+                            operator: 'anyof',
+                            values: subsidiary
+                        },
+                        {
+                            name: 'custrecord_dps_financia_warehous',
+                            operator: 'anyof',
+                            values: 5
+                        }
                         ]
                     }).run().each(function (rec) {
                         to_location = rec.id;
@@ -75,23 +75,23 @@ define(['N/search', 'N/ui/dialog'], function (search, dialog) {
         }
 
         if (context.fieldId == "item") {
-            // console.log('context.fieldId', context.fieldId);
             var account = rec.getValue('custbody_order_locaiton'); //获取店铺的值
-            // console.log('account', account);
             if (account) { // 店铺存在
                 var itemId = rec.getCurrentSublistValue({
                     sublistId: 'item',
                     fieldId: 'item'
                 });
-
-                // console.log('itemId', itemId);
-
-                var seller_sku;
-
-                // 搜索映射关系表, 获取SellerSKU
-                search.create({
-                    type: 'customrecord_aio_amazon_seller_sku',
-                    filters: [{
+                var msku = rec.getCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_aio_amazon_msku'
+                });
+                if (itemId && !msku) {
+                    // console.log('itemId', itemId);
+                    var seller_sku;
+                    // 搜索映射关系表, 获取SellerSKU
+                    search.create({
+                        type: 'customrecord_aio_amazon_seller_sku',
+                        filters: [{
                             name: 'custrecord_ass_sku',
                             operator: 'anyof',
                             values: itemId
@@ -101,33 +101,93 @@ define(['N/search', 'N/ui/dialog'], function (search, dialog) {
                             operator: 'anyof',
                             values: account
                         }
-                    ],
-                    columns: [
-                        'name'
-                    ]
-                }).run().each(function (r) {
-                    seller_sku = r.getValue('name');
-                });
-                // console.log('seller_sku', seller_sku);
-                if (seller_sku) {
-                    rec.setCurrentSublistValue({
-                        sublistId: 'item',
-                        fieldId: 'custcol_aio_amazon_msku',
-                        value: seller_sku,
-                        ignoreFieldChange: true
+                        ],
+                        columns: [
+                            'name'
+                        ]
+                    }).run().each(function (r) {
+                        seller_sku = r.getValue('name');
                     });
-                } else {
-                    dialog.alert({
-                        title: '设置MSKU',
-                        message: '找不到相关的 MSKU'
-                    }).then(success).catch(failure);
+                    // console.log('seller_sku', seller_sku);
+                    if (seller_sku) {
+                        rec.setCurrentSublistValue({
+                            sublistId: 'item',
+                            fieldId: 'custcol_aio_amazon_msku',
+                            value: seller_sku,
+                            ignoreFieldChange: true
+                        });
+                    } else {
+                        dialog.alert({
+                            title: '设置MSKU',
+                            message: '找不到相关的 MSKU'
+                        }).then(success).catch(failure);
 
-                    function success(result) {
-                        // window.location.reload(true);
+                        function success(result) {
+                            // window.location.reload(true);
+                        }
+
+                        function failure(reason) {
+                            console.log('Failure: ' + reason)
+                        }
                     }
+                }
 
-                    function failure(reason) {
-                        console.log('Failure: ' + reason)
+            }
+        }
+
+        if (context.fieldId == "custcol_aio_amazon_msku") {
+            var account = rec.getValue('custbody_order_locaiton'); //获取店铺的值
+            if (account) { // 店铺存在
+                // console.log('account', account);
+                var itemId = rec.getCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'item'
+                });
+                var msku = rec.getCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_aio_amazon_msku'
+                });
+                if (msku && !itemId) {
+                    var sku;
+                    // 搜索映射关系表, 获取sku
+                    search.create({
+                        type: 'customrecord_aio_amazon_seller_sku',
+                        filters: [{
+                            name: 'name',
+                            operator: 'is',
+                            values: msku
+                        },
+                        {
+                            name: 'custrecord_ass_account',
+                            operator: 'anyof',
+                            values: account
+                        }
+                        ],
+                        columns: [
+                            'custrecord_ass_sku', 'name'
+                        ]
+                    }).run().each(function (r) {
+                        sku = r.getText('custrecord_ass_sku');
+                    });
+                    if (sku) {
+                        rec.setCurrentSublistText({
+                            sublistId: 'item',
+                            fieldId: 'item',
+                            text: sku
+                        });
+                    } else {
+                        dialog.alert({
+                            title: '设置SKU',
+                            message: '找不到相关的 SKU'
+                        }).then(success).catch(failure);
+
+                        function success(result) {
+                            // window.location.reload(true);
+                        }
+
+                        function failure(reason) {
+                            console.log('Failure: ' + reason)
+                        }
                     }
                 }
             }

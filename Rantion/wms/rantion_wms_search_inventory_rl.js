@@ -2,10 +2,10 @@
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
+define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
     function _get(context) {
-        
+
     }
 
     function _post(context) {
@@ -14,18 +14,46 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
         var pageSize = Number(context.pageSize ? context.pageSize : 50); // 每页数量
         pageSize = pageSize > 100 ? 100 : pageSize;
         var sku = context.sku;
+        var warehouseCode = context.warehouseCode;
         var comjson = getCompany();
         var filters = [];
-        filters.push({ name: 'isinactive', join: 'inventoryLocation', operator: 'is', values: 'F' });
-        filters.push({ name: 'custrecord_dps_financia_warehous', join: 'inventoryLocation', operator: 'anyof', values: ['2'] });
-        filters.push({ name: 'custrecord_wms_location_type', join: 'inventoryLocation', operator: 'anyof', values: ['1'] });
+        filters.push({
+            name: 'isinactive',
+            join: 'inventoryLocation',
+            operator: 'is',
+            values: 'F'
+        });
+        filters.push({
+            name: 'custrecord_dps_financia_warehous',
+            join: 'inventoryLocation',
+            operator: 'anyof',
+            values: ['2']
+        });
+        filters.push({
+            name: 'custrecord_wms_location_type',
+            join: 'inventoryLocation',
+            operator: 'anyof',
+            values: ['1']
+        });
         if (sku) {
-            filters.push({ name: 'name', operator: 'is', values: sku });
+            filters.push({
+                name: 'name',
+                operator: 'is',
+                values: sku
+            });
+        }
+        if (warehouseCode) {
+            filters.push({
+                name: 'custrecord_dps_wms_location',
+                join: 'inventorylocation',
+                operator: 'is',
+                values: warehouseCode
+            })
         }
         var mySearch = search.create({
             type: 'item',
             filters: filters,
-            columns: [ 'name' ]
+            columns: ['name']
         });
         var pageData = mySearch.runPaged({
             pageSize: pageSize
@@ -44,26 +72,71 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
             var skusjson = {};
             var skusis = [];
             var filters = [];
-            filters.push({ name: 'isinactive', join: 'inventoryLocation', operator: 'is', values: 'F' });
-            filters.push({ name: 'custrecord_dps_financia_warehous', join: 'inventoryLocation', operator: 'anyof', values: ['2'] });
-            filters.push({ name: 'custrecord_wms_location_type', join: 'inventoryLocation', operator: 'anyof', values: ['1'] });
-            filters.push({ name: 'internalid', operator: 'anyof', values: skuAAAAids });
+            filters.push({
+                name: 'isinactive',
+                join: 'inventoryLocation',
+                operator: 'is',
+                values: 'F'
+            });
+            filters.push({
+                name: 'custrecord_dps_financia_warehous',
+                join: 'inventoryLocation',
+                operator: 'anyof',
+                values: ['2']
+            });
+            filters.push({
+                name: 'custrecord_wms_location_type',
+                join: 'inventoryLocation',
+                operator: 'anyof',
+                values: ['1']
+            });
+            filters.push({
+                name: 'internalid',
+                operator: 'anyof',
+                values: skuAAAAids
+            });
+            if (warehouseCode) {
+                filters.push({
+                    name: 'custrecord_dps_wms_location',
+                    join: 'inventorylocation',
+                    operator: 'is',
+                    values: warehouseCode
+                })
+            }
             search.create({
                 type: 'item',
                 filters: filters,
                 columns: [
-                    'name', 'custitem_dps_skuchiense', 'locationquantityonhand', 
+                    'name', 'custitem_dps_skuchiense', 'locationquantityonhand',
                     'locationquantitycommitted', 'locationquantityavailable', 'custitem_dps_picture',
                     'isinactive', 'custitem_dps_ctype',
-                    { name: 'subsidiary', join: 'inventorylocation' },
-                    { name: 'internalid', join: 'inventorylocation' },
-                    { name: 'custrecord_dps_wms_location', join: 'inventorylocation' },
-                    { name: 'custrecord_dps_wms_location_name', join: 'inventorylocation' }
+                    {
+                        name: 'subsidiary',
+                        join: 'inventorylocation'
+                    },
+                    {
+                        name: 'internalid',
+                        join: 'inventorylocation'
+                    },
+                    {
+                        name: 'custrecord_dps_wms_location',
+                        join: 'inventorylocation'
+                    },
+                    {
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'inventorylocation'
+                    }
                 ]
             }).run().each(function (result) {
                 var sku = result.getValue('name');
-                var warehouseName = result.getValue({ name: 'custrecord_dps_wms_location_name', join: 'inventorylocation' });
-                var warehouseCode = result.getValue({ name: 'custrecord_dps_wms_location', join: 'inventorylocation' });
+                var warehouseName = result.getValue({
+                    name: 'custrecord_dps_wms_location_name',
+                    join: 'inventorylocation'
+                });
+                var warehouseCode = result.getValue({
+                    name: 'custrecord_dps_wms_location',
+                    join: 'inventorylocation'
+                });
                 var itemname = result.getValue('name');
                 var qty = Number(result.getValue('locationquantityonhand'));
                 var useQty = Number(result.getValue('locationquantityavailable'));
@@ -75,13 +148,22 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
                     sku.useQty = sku.useQty + useQty;
                     sku.lockQty = sku.lockQty + lockQty;
                 } else {
-                    var comid = comjson[result.getValue({ name: 'subsidiary', join: 'inventorylocation' })];
+                    var comid = comjson[result.getValue({
+                        name: 'subsidiary',
+                        join: 'inventorylocation'
+                    })];
                     var skujo = {};
-                    skujo.warehouseName = result.getValue({ name: 'custrecord_dps_wms_location_name', join: 'inventorylocation' }); // 仓库名称
-                    skujo.warehouseCode = result.getValue({ name: 'custrecord_dps_wms_location', join: 'inventorylocation' }); // 仓库编码
+                    skujo.warehouseName = result.getValue({
+                        name: 'custrecord_dps_wms_location_name',
+                        join: 'inventorylocation'
+                    }); // 仓库名称
+                    skujo.warehouseCode = result.getValue({
+                        name: 'custrecord_dps_wms_location',
+                        join: 'inventorylocation'
+                    }); // 仓库编码
                     skujo.sku = itemname; // SKU
                     skujo.productImageUrl = result.getValue('custitem_dps_picture'); // 图片
-                    skujo.productTitle = result.getValue('custitem_dps_picture'); // 产品名称
+                    skujo.productTitle = result.getValue('custitem_dps_skuchiense'); // 产品名称
                     skujo.qty = qty; // 库内总库存
                     skujo.useQty = useQty; // 可用库存（未被锁定库存）
                     skujo.lockQty = lockQty; // 预留库存（锁定库存）
@@ -256,11 +338,17 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
         var comjson = {};
         search.create({
             type: 'subsidiary',
-            filters: [
-                { name: 'iselimination', operator: 'is', values: ['F'] },
-                { name: 'parent', operator: 'isnotempty' }
+            filters: [{
+                    name: 'iselimination',
+                    operator: 'is',
+                    values: ['F']
+                },
+                {
+                    name: 'parent',
+                    operator: 'isnotempty'
+                }
             ],
-            columns: [ 'internalid', 'name' ]
+            columns: ['internalid', 'name']
         }).run().each(function (rec) {
             var namestr = rec.getValue('name').replace(/\s/g, '').split(':');
             comjson[namestr[namestr.length - 1]] = rec.getValue('internalid');
@@ -270,11 +358,11 @@ define(['N/search', 'N/http', 'N/record'], function(search, http, record) {
     }
 
     function _put(context) {
-        
+
     }
 
     function _delete(context) {
-        
+
     }
 
     return {

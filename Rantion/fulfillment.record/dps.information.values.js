@@ -2,8 +2,8 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-09 19:54:51
- * @LastEditTime   : 2020-07-31 17:06:11
- * @LastEditors    : Li
+ * @LastEditTime   : 2020-08-21 09:33:19
+ * @LastEditors    : Bong
  * @Description    : 创建报关资料
  * @FilePath       : \Rantion\fulfillment.record\dps.information.values.js
  * @可以输入预定的版权声明、个性签名、空行等
@@ -168,7 +168,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
      * @param {*} informaId 
      * @param {*} gross_margin 
      */
-    function createCusInv(itemInfo, informaId, gross_margin) {
+    function createCusInv(itemInfo, informaId, gross_margin, transferorderId) {
         var inv = record.create({
             type: 'customrecord_dps_customs_invoice'
         });
@@ -176,6 +176,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             fieldId: 'custrecord_dps_cus_inv_information',
             value: informaId
         });
+        if (transferorderId) {
+            inv.setValue({
+                fieldId: 'custrecord_dps_cus_inv_trans_order',
+                value: transferorderId
+            });
+        }
         var subId = 'recmachcustrecord_dps_c_i_item_link';
         var total_amount = 0; //报关发票总金额
         for (var i = 0, len = itemInfo.length; i < len; i++) {
@@ -198,6 +204,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 line: i,
                 value: temp.name
             });
+
 
             // 设置货品采购订单的
             inv.setSublistValue({
@@ -280,7 +287,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
      * @param {*} info 
      * @param {*} informaId 
      */
-    function createBoxRec(info, informaId) {
+    function createBoxRec(info, informaId, transferorderId) {
 
         log.debug('createBoxRec', informaId);
         var boxRec = record.create({
@@ -290,6 +297,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             fieldId: 'custrecord_dps_p_declaration_informa',
             value: informaId
         });
+        if (transferorderId) {
+            boxRec.setValue({
+                fieldId: 'custrecord_dps_p_d_trans_order',
+                value: transferorderId
+            })
+        }
 
         // {"itemId":"39115","rate":"55.00","qty":"10","declaration":"234","brand":"8","unit":"","declare":"321","code":"123"}
 
@@ -327,7 +340,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
      * @param {*} sub 
      * @param {*} legalname 
      */
-    function createContract(info, informId, sub, legalname, gross_margin) {
+    function createContract(info, informId, sub, legalname, gross_margin, transferorderId) {
         var con = record.create({
             type: 'customrecord_dps_customs_contract'
         });
@@ -339,6 +352,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             fieldId: 'custrecord_dps_c_c_information',
             value: informId
         });
+        if (transferorderId) {
+            con.setValue({
+                fieldId: 'custrecord_dps_c_c_trans_order',
+                value: transferorderId
+            });
+        }
         var subId = 'recmachcustrecord_dps_c_c_li_links';
         for (var i = 0, len = info.length; i < len; i++) {
             var temp = info[i];
@@ -402,7 +421,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
      * @param {*} gross_margin 
      * @param {*} legalname 
      */
-    function createDeclaration(info, informaId, gross_margin, legalname) {
+    function createDeclaration(info, informaId, gross_margin, legalname, transferorderId) {
         var dec = record.create({
             type: 'customrecord_dps_customs_declaration'
         });
@@ -410,6 +429,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             fieldId: 'custrecord_dps_cu_decl_infomation_link',
             value: informaId
         });
+        if (transferorderId) {
+            dec.setValue({
+                fieldId: 'custrecord_dps_cu_decl_pre_trans_order',
+                value: transferorderId
+            });
+        }
 
         // dec.setValue({
         //     fieldId: 'custrecord_dps_cu_decl_pre_entry_number',
@@ -486,12 +511,14 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
             //     // date: new Date('7/28/2015')
             // });
 
+            var num = 1;
             log.debug('cur_rate', cur_rate);
-            if (!gross_margin) {
-                gross_margin = 0.3;
+            if (gross_margin) {
+                // gross_margin = 0.3;
+                num = 1 + Number(gross_margin);
             }
 
-            var num = 1 + Number(gross_margin);
+            // var num = 1 + Number(gross_margin);
 
             log.debug('num', num);
 
@@ -524,7 +551,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
      * @param {*} info 
      * @param {*} informaId 
      */
-    function CreateElementsOfDeclaration(info, informaId) {
+    function CreateElementsOfDeclaration(info, informaId, transferorderId) {
         var recArr = [];
         for (var i = 0, len = info.length; i < len; i++) {
             var elem = record.create({
@@ -556,6 +583,12 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 fieldId: 'custrecord_dps_elem_dedecl_information',
                 value: informaId
             });
+            if (transferorderId) {
+                elem.setValue({
+                    fieldId: 'custrecord_dps_elem_dedecl_trans_order',
+                    value: transferorderId
+                });
+            }
             var elemId = elem.save();
             if (elemId) {
                 recArr.push(elemId);
@@ -570,7 +603,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
      * @param {*} informaId 
      * @param {*} batchNum 
      */
-    function createBillInformation(info, informaId, batchNum) {
+    function createBillInformation(info, informaId, batchNum, transferorderId) {
 
         log.debug('开票资料')
         var USBil = [];
@@ -580,12 +613,17 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
                 type: 'customrecord_dps_us_billing_information'
             });
 
-
             usbil.setValue({
                 fieldId: 'custrecord_dps_us_b_i_transfer_batch_num',
                 value: batchNum
             }); // 调拨批次	custrecord_dps_us_b_i_transfer_batch_num
 
+            if (transferorderId) {
+                usbil.setValue({
+                    fieldId: 'custrecord_dps_us_b_i_trans_order',
+                    value: transferorderId
+                });
+            }
             usbil.setText({
                 fieldId: 'custrecord_dps_us_b_i_vendor',
                 text: temp.vendorId
@@ -902,6 +940,191 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
 
         return itemInfo.length > 0 ? itemInfo : false;
     }
+    /**
+     * 搜索关联的调拨单的 PO的货品信息
+     * @param {*} tranId 
+     */
+    function searchItemReceiptItem(tranId) {
+
+        var itemInfo = [],
+            transfer_head = [],
+            IRArr = [],
+            limit1 = 3999,
+            limit2 = 3999;
+
+        search.create({
+            type: 'customrecord_realted_transfer_head',
+            filters: [{
+                name: "custrecord_transfer_code",
+                join: "custrecord__realted_transfer_head",
+                operator: 'anyof',
+                values: tranId,
+            }],
+            columns: [{
+                    name: 'custrecord_transfer_quantity',
+                    join: 'custrecord__realted_transfer_head'
+                }, // 数量
+            ]
+        }).run().each(function (rec) {
+
+            log.debug('rec id', rec.id);
+
+            var qty = rec.getValue({
+                name: 'custrecord_transfer_quantity',
+                join: 'custrecord__realted_transfer_head'
+            });
+
+            var it = {
+                qty: qty,
+                toHId: rec.id
+            };
+
+            IRArr.push(it);
+
+            transfer_head.push(rec.id);
+
+            flag = true;
+            return --limit1 > 0;
+
+        });
+
+        log.debug('transfer_head  length: ' + transfer_head.length, transfer_head);
+        if (transfer_head.length > 0) {
+            search.create({
+                type: 'itemreceipt',
+                filters: [{
+                        name: 'mainline',
+                        operator: 'is',
+                        values: false
+                    },
+                    {
+                        name: 'taxline',
+                        operator: 'is',
+                        values: false
+                    },
+                    {
+                        name: 'custcol_realted_transfer_detail',
+                        operator: 'anyof',
+                        values: transfer_head
+                    }
+                ],
+                columns: [ // taxamount 总量 = 数量 X 单价 X 税率
+                    'rate', 'item', 'quantity', "taxamount", "custcol_realted_transfer_detail", 'entity',
+                    {
+                        name: 'custitem_dps_declaration_cn',
+                        join: 'item'
+                    },
+                    {
+                        name: 'custitem_dps_brand',
+                        join: 'item'
+                    },
+                    {
+                        name: 'custitem_dps_unit',
+                        join: 'item'
+                    },
+                    {
+                        name: 'custitem_dps_declare',
+                        join: 'item'
+                    },
+                    {
+                        name: 'custitem_dps_customs_code',
+                        join: 'item'
+                    },
+                    {
+                        name: 'custentity_dps_placeofsupply',
+                        join: 'vendor'
+                    }, // 供应商 货源地
+                    {
+                        name: "custentity_vendor_code",
+                        join: 'vendor'
+                    }, // 供应商编码
+                    {
+                        name: "entityid",
+                        join: 'vendor'
+                    }, // 供应商名称
+                    {
+                        name: 'custentity_dps_buyer',
+                        join: 'vendor'
+                    }, // 供应商 采购员
+                ]
+            }).run().each(function (rec) {
+
+                log.debug('货品收据 Id', rec.id);
+
+                var transfer_detail = rec.getValue('custcol_realted_transfer_detail');
+                var qty = 1;
+                for (var i = 0, len = IRArr.length; i < len; i++) {
+                    var temp = IRArr[i];
+                    if (temp.toHId == transfer_detail) {
+                        qty = temp.qty;
+                        break;
+                    }
+                }
+
+                var temp_taxAmt = rec.getValue('taxamount');
+                var tem_tax = 0;
+                if (temp_taxAmt) { // 获取到的 taxamount 为负, 取绝对值, 且为总和, 需要除以数量
+                    tem_tax = Math.abs(temp_taxAmt / rec.getValue('quantity'))
+                }
+
+                var it = {
+                    id: rec.id,
+                    name: rec.getValue({
+                        name: 'custitem_dps_declaration_cn',
+                        join: 'item'
+                    }),
+                    taxamount: tem_tax,
+                    buyer: rec.getValue({
+                        name: 'custentity_dps_buyer',
+                        join: 'vendor'
+                    }),
+                    vendorId: rec.getValue({
+                        name: "entityid",
+                        join: 'vendor'
+                    }),
+                    vendorCode: rec.getValue({
+                        name: "custentity_vendor_code",
+                        join: 'vendor'
+                    }),
+                    placeofsupply: rec.getValue({
+                        name: 'custentity_dps_placeofsupply',
+                        join: 'vendor'
+                    }),
+                    itemId: rec.getValue('item'),
+                    rate: rec.getValue('rate'),
+                    qty: qty,
+                    declaration: rec.getValue({
+                        name: 'custitem_dps_declaration_cn',
+                        join: 'item'
+                    }),
+                    brand: rec.getText({
+                        name: 'custitem_dps_brand',
+                        join: 'item'
+                    }),
+                    unit: rec.getValue({
+                        name: 'custitem_dps_unit',
+                        join: 'item'
+                    }),
+                    declare: rec.getValue({
+                        name: 'custitem_dps_declare',
+                        join: 'item'
+                    }),
+                    code: rec.getValue({
+                        name: 'custitem_dps_customs_code',
+                        join: 'item'
+                    })
+                };
+
+                itemInfo.push(it);
+
+                return --limit2 > 0;
+            });
+        }
+
+
+        log.debug('itemInfo', itemInfo);
+        return itemInfo.length > 0 ? itemInfo : false;
+    }
 
     return {
         searchItemInfo: searchItemInfo,
@@ -912,6 +1135,7 @@ define(['N/search', 'N/record', 'N/log', 'N/currency'], function (search, record
         CreateElementsOfDeclaration: CreateElementsOfDeclaration,
         createBillInformation: createBillInformation,
         createInformation: createInformation,
-        searchPOItem: searchPOItem
+        searchPOItem: searchPOItem,
+        searchItemReceiptItem: searchItemReceiptItem
     }
 });

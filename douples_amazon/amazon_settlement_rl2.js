@@ -1,3 +1,13 @@
+/*
+ * @Author         : Li
+ * @Version        : 1.0
+ * @Date           : 2020-08-26 10:19:59
+ * @LastEditTime   : 2020-09-17 21:37:14
+ * @LastEditors    : Li
+ * @Description    :
+ * @FilePath       : \douples_amazon\amazon_settlement_rl2.js
+ * @可以输入预定的版权声明、个性签名、空行等
+ */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
@@ -528,8 +538,9 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                     // fils.push({ name: 'custrecord_is_generate_voucher', operator: 'isnot', values: 'T' })
                     fils.push({ name: 'custrecord_is_generate_voucher', operator: 'is', values: 'F' })
                     if (acc_group) { // 根据拉单分组去履行
-                        core.amazon.getReportAccountList(3).map(function(acount) { acc_arrys.push(acount.id) })
-                        core.amazon.getReportAccountList(4).map(function(acount) { acc_arrys.push(acount.id) })
+                        core.amazon.getReportAccountList(acc_group).map(function(acount) { acc_arrys.push(acount.id) })
+                        core.amazon.getReportAccountList(1).map(function(acount) { acc_arrys.push(acount.id) })
+                        core.amazon.getReportAccountList(8).map(function(acount) { acc_arrys.push(acount.id) })
                         fils.push({ name: 'custrecord_fin_to_amazon_account', operator: 'anyof', values: acc_arrys })
                     }
                     if (acc) {

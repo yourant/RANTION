@@ -1,7 +1,7 @@
 /*
  * @Author         : Li
  * @Date           : 2020-05-15 20:32:05
- * @LastEditTime   : 2020-08-07 11:47:30
+ * @LastEditTime   : 2020-08-07 11:23:10
  * @LastEditors    : Li
  * @Description    : 
  * @FilePath       : \Rantion\vendor\dps.li.purchaseorder.cs.js
@@ -35,8 +35,8 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
     }
 
     function validateField(context) {
-        // console.log('validateField', context.fieldId);
         var rec = context.currentRecord;
+        // console.log('rec:', JSON.stringify(rec));
 
         var price_type = rec.getValue('custbody_vendor_price_type');
 
@@ -50,7 +50,6 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             sublistId: 'item',
             fieldId: 'quantity'
         });
-
         if (context.fieldId == 'matchbilltoreceipt' || context.fieldId == 'quantity' || context.fieldId == 'item') {
             var supplier = rec.getValue('entity');
             // console.log('supplier', supplier);
@@ -65,6 +64,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
             if (!supplier || !partNo || !currency) {
                 return true;
             }
+
 
             if (!quantity) {
                 quantity = 1;
@@ -151,7 +151,8 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                     fieldId: 'taxcode',
                     value: curTaxCode
                 });
-              if (rec.type == 'purchaseorder') {
+
+                if (rec.type == 'purchaseorder') {
                     var taxrate1 = rec.getCurrentSublistValue({
                         sublistId: 'item',
                         fieldId: 'taxrate1'
@@ -171,7 +172,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
 
             }
         }
-		if (rec.type == 'purchaseorder' && context.fieldId == 'custcol_purchase_tax_price') {
+        if (rec.type == 'purchaseorder' && context.fieldId == 'custcol_purchase_tax_price') {
             var taxrate1 = rec.getCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'taxrate1'
@@ -191,9 +192,42 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
 
     function validateLine(context) {
 
-
-        /*
         var rec = context.currentRecord;
+
+        // var partNo = rec.getCurrentSublistValue({
+        //     sublistId: 'item',
+        //     fieldId: 'item'
+        // });
+        // console.log('partNo', partNo);
+        // var deliverydate;
+        // search.create({
+        //     type: 'item',
+        //     filters: [{
+        //         name: 'internalid',
+        //         operator: 'anyof',
+        //         values: partNo
+        //     }],
+        //     columns: [
+        //         'custitem_dps_deliverydate'
+        //     ]
+        // }).run().each(function (r) {
+        //     if (r.getValue('custitem_dps_deliverydate')) {
+        //         deliverydate = Number(r.getValue('custitem_dps_deliverydate'));
+        //     }
+        //     console.log('deliverydate:', deliverydate);
+        // });
+        // if (deliverydate) {
+        //     var nowDate = new Date();
+        //     var date2 = new Date(nowDate);
+        //     date2.setDate(nowDate.getDate() + deliverydate);
+        //     // console.log(date2)
+        //     rec.setCurrentSublistValue({
+        //         sublistId: 'item',
+        //         fieldId: 'expectedreceiptdate',
+        //         value: date2
+        //     });
+        // }
+
 
         var price_type = rec.getValue('custbody_vendor_price_type');
 
@@ -294,8 +328,6 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                 });
             }
         }
-
-        */
         return true;
     }
 
@@ -472,21 +504,21 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
         });
 
         var columns = [{
-                name: 'custrecord_dps_vmph_cumulative_total',
-                sort: 'ASC'
-            },
-            {
-                // 累计开始时间
-                name: 'custrecord_dps_vmph_cumulative_time'
-            },
-            {
-                // 生效时间
-                name: 'custrecord_vmpd_effective_date'
-            },
-            {
-                // 失效时间
-                name: 'custrecord_vmpd_expiration_date'
-            }
+            name: 'custrecord_dps_vmph_cumulative_total',
+            sort: 'ASC'
+        },
+        {
+            // 累计开始时间
+            name: 'custrecord_dps_vmph_cumulative_time'
+        },
+        {
+            // 生效时间
+            name: 'custrecord_vmpd_effective_date'
+        },
+        {
+            // 失效时间
+            name: 'custrecord_vmpd_expiration_date'
+        }
         ];
 
         var resultArr = [];
@@ -521,41 +553,41 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
         search.create({
             type: 'purchaseorder',
             filters: [{
-                    name: 'mainline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: 'taxline',
-                    operator: 'is',
-                    values: false
-                },
-                {
-                    name: "trandate",
-                    operator: "onorafter",
-                    values: effectiveDate
-                },
-                {
-                    name: "subsidiary",
-                    operator: 'anyof',
-                    values: subsidiary
-                },
-                {
-                    name: 'currency',
-                    operator: 'anyof',
-                    values: currency
-                },
-                {
-                    name: "internalid",
-                    join: "vendor",
-                    operator: 'anyof',
-                    values: vendor
-                },
-                {
-                    name: "item",
-                    operator: 'anyof',
-                    values: itemId
-                }
+                name: 'mainline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: 'taxline',
+                operator: 'is',
+                values: false
+            },
+            {
+                name: "trandate",
+                operator: "onorafter",
+                values: effectiveDate
+            },
+            {
+                name: "subsidiary",
+                operator: 'anyof',
+                values: subsidiary
+            },
+            {
+                name: 'currency',
+                operator: 'anyof',
+                values: currency
+            },
+            {
+                name: "internalid",
+                join: "vendor",
+                operator: 'anyof',
+                values: vendor
+            },
+            {
+                name: "item",
+                operator: 'anyof',
+                values: itemId
+            }
             ],
             columns: [{
                 name: "quantity",

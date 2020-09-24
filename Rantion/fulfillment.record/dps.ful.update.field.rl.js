@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-02 14:27:52
- * @LastEditTime   : 2020-08-28 15:55:55
+ * @LastEditTime   : 2020-09-23 10:39:09
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.ful.update.field.rl.js
@@ -171,9 +171,12 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
 
                 var sublistId = "recmachcustrecord_dps_ship_box_fa_record_link"
 
-                var box_no = 1;
+                var box_no = 1, err_message = [];
                 getArr.map(function(arr) {
                     var boxArr = arr.boxArr;
+                    if(boxArr.length == 0){
+                        err_message.push('货品为：' + arr.itemName + '档案中的每箱数量（MPQ）为0<br>')
+                    }
                     boxArr.map(function(b) {
 
                         loadRec.selectNewLine({
@@ -262,6 +265,13 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                     })
                 });
 
+                if(err_message.length > 0){
+                    retObj.code = 6;
+                    retObj.data = null;
+                    retObj.msg = err_message;
+                    log.audit('录入装箱信息成功, 返回参数 retObj', retObj);
+                    return retObj;
+                }
 
 
                 loadRec.setValue({
@@ -273,6 +283,10 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                     value: true
                 }); // 已装箱
 
+                loadRec.setValue({
+                    fieldId: 'custrecord_dps_shipping_rec_status',
+                    value: 29
+                });//调拨单状态
                 // var userObj = runtime.getCurrentUser();
                 var loadRec_id = loadRec.save();
                 // if(userObj.id == 911){
@@ -297,6 +311,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
                 var userObj = runtime.getCurrentUser();
 
                 if (userObj.role == 3) {
+                    log.audit("删除关联的发运记录ID", recId);
                     var boxLine = tool.deleteBoxInfo(recId);
 
 
@@ -327,7 +342,7 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
             log.error('处理数据出错了', error);
             retObj.code = 5;
             retObj.data = null;
-            retObj.msg = "系统错误, 请稍后重试。"+error.message;
+            retObj.msg = "系统错误, 请稍后重试。" + error.message;
             log.audit('处理数据出错了, 返回参数 retObj', retObj);
             return retObj;
         }
@@ -367,9 +382,9 @@ define(['N/http', 'N/search', 'N/record', 'N/log', 'N/runtime', '../Helper/tool.
         // var to_qty = qtyBackOrdered(toId);
         var to_qty = arrBackOrder(toId);
 
-        if (to_qty && to_qty.length  > 0) {
+        if (to_qty && to_qty.length > 0) {
             message.code = 3;
-            message.msg = "库存不足: "+JSON.stringify(to_qty);
+            message.msg = "库存不足: " + JSON.stringify(to_qty);
             message.data = null;
 
             return message;

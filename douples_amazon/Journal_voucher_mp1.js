@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-15 15:56:17
+ * @LastEditTime   : 2020-09-23 21:50:12
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \douples_amazon\Journal_voucher_mp1.js
@@ -239,6 +239,8 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 fils.push('and')
                 fils.push(['custrecord_aio_sett_merchant_order_id', 'is', merchant_order_id])
             }
+
+            log.debug("结算报告过滤", fils);
             var amount_all = 0,
                 settlement_idArrs = [],
                 principals = []
@@ -634,8 +636,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
             log.audit('entity :' + entity + ',currency: ' + currency, 'orderid:' + orderid + '，店铺：' + pr_store)
             for (var key in settlmentID) {
-                if (interfun.CheckJO(orderid, key, settlement_idObj[key], '结算', search_accObj.acc_search, merchant_order_id)
-                || transaction_type != "Refund" || transaction_type != "Order") {
+                if (interfun.CheckJO(orderid, key, settlement_idObj[key], '结算', search_accObj.acc_search, merchant_order_id) || transaction_type != "Refund" || transaction_type != "Order") {
                     context.write({
                         key: key.split('-')[0] + '.' + orderid + '.' + key.split('-')[1], // 按settlment ID +orderid + post date 的月份分组
                         value: {

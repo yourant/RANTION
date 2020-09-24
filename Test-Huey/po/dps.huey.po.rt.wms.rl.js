@@ -5,7 +5,6 @@
 define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function (record, log, search, url, https) {
 
     function _post(context) {
-
         var v_record = record.load({
             id: context.id,
             type: "vendorreturnauthorization"
@@ -20,7 +19,9 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function (record, 
         var locations = [];
 
         var OutDetailCreateRequestDtos = [];
-        var item_count = v_record.getLineCount({ sublistId: 'item' });
+        var item_count = v_record.getLineCount({
+            sublistId: 'item'
+        });
         var all_qty = [];
         var location = '';
         var wms_location_names = [];
@@ -94,7 +95,10 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function (record, 
             var wms_location = v_location.getValue('custrecord_dps_wms_location');
             var wms_location_name = v_location.getValue('custrecord_dps_wms_location_name');
 
-            var wms_location_o = { wms_location: wms_location, wms_location_name: wms_location_name };
+            var wms_location_o = {
+                wms_location: wms_location,
+                wms_location_name: wms_location_name
+            };
 
             if (locations.indexOf(wms_location) < 0) {
                 locations.push(wms_location);
@@ -159,7 +163,7 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function (record, 
 
 
         //获取备注信息
-        var sourceNo = v_record.id;
+        var sourceNo = v_record.getValue('tranid');
         var remark = v_record.getValue('memo');
 
         var customrecord_logistics_service_id;
@@ -201,7 +205,7 @@ define(['N/record', 'N/log', 'N/search', 'N/url', 'N/https'], function (record, 
                 logisticsProviderCode: customrecord_logistics_company_id, //'物流渠道商编号', //(string)
                 logisticsProviderName: '货拉拉', //'物流渠道商名称', //(string)
 
-                sourceNo: sourceNo + '-' + location, //'来源单号', //(string)
+                sourceNo: sourceNo, //'来源单号', //(string)
                 remark: remark, //'备注', //(string, optional)
 
                 warehouseCode: location, //'仓库编号', //(string)

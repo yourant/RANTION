@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-27 10:39:05
- * @LastEditTime   : 2020-08-29 06:57:47
+ * @LastEditTime   : 2020-09-22 21:15:31
  * @LastEditors    : Li
  * @Description    : 定时查询处理状态, 自动切换执行的脚本
  * @FilePath       : \dps.li.auto.execute.map.js
@@ -215,6 +215,17 @@ define(['N/search', 'N/task', 'N/log', 'N/record', 'N/email'], function(search, 
     }
 
 
+    function test() {
+        var limit = 10,
+            testArr = [];
+        for (var i = 0; i < limit; i++) {
+            testArr.push(i)
+        };
+
+        log.debug('数据长度', testArr.length);
+        return testArr
+    }
+
     function submitMapReduceDeployment(mapReduceScriptId, mapReduceDeploymentId, recId, param) {
 
         // Store the script ID of the script to submit.
@@ -279,11 +290,9 @@ define(['N/search', 'N/task', 'N/log', 'N/record', 'N/email'], function(search, 
     }
 
 
-    function map(context) {
-
-    }
-
     function reduce(context) {
+
+        log.debug("context", context);
 
     }
 
@@ -292,8 +301,7 @@ define(['N/search', 'N/task', 'N/log', 'N/record', 'N/email'], function(search, 
     }
 
     return {
-        getInputData: getInputData,
-        map: map,
+        getInputData: test,
         reduce: reduce,
         summarize: summarize
     }

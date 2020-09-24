@@ -11,6 +11,7 @@ define(['N/search', 'N/record'], function (search, record) {
     function beforeSubmit(context) {
         var newRec = context.newRecord;
         var type = context.type;
+        log.debug('po_itemr_ue', JSON.stringify(context));
         if (type == 'create') {
             var recordType;
             var po_id = newRec.getValue('createdfrom');
@@ -44,25 +45,30 @@ define(['N/search', 'N/record'], function (search, record) {
         var newRec = context.newRecord;
         var type = context.type;
         if (type == 'create') {
-            var recordType, po_type;
-            var po_id = newRec.getValue('createdfrom');
-            search.create({
-                type: 'purchaseorder',
-                filters: [
-                    { name: 'internalId', operator: 'is', values: po_id },
-                ],
-                columns: [ 'recordType', 'custbody_dps_type' ]
-            }).run().each(function (rec) {
-                recordType = rec.getValue(rec.columns[0]);
-                po_type = rec.getValue(rec.columns[1]);
-                return false;
-            });
-            if (recordType == 'purchaseorder') {
-                var po_record = record.load({ type: 'purchaseorder', id: po_id });
+            // var recordType, po_type;
+            // var po_id = newRec.getValue('createdfrom');
+            // search.create({
+            //     type: 'purchaseorder',
+            //     filters: [
+            //         { name: 'internalId', operator: 'is', values: po_id },
+            //     ],
+            //     columns: [ 'recordType', 'custbody_dps_type' ]
+            // }).run().each(function (rec) {
+            //     recordType = rec.getValue(rec.columns[0]);
+            //     po_type = rec.getValue(rec.columns[1]);
+            //     return false;
+            // });
+            // if (recordType == 'purchaseorder') {
+            //     var po_record = record.load({ type: 'purchaseorder', id: po_id });
               
-                //保存PO收货单，开始查找可以占用的TO单
-                occPoItemreceiptbyTo(po_record, newRec, po_type);
-            }
+            //     //保存PO收货单，开始查找可以占用的TO单
+            //     try {
+            //         occPoItemreceiptbyTo(po_record, newRec, po_type);
+            //     } catch (error) {
+            //         log.debug('occPoItemreceiptbyTo', JSON.stringify(error));
+            //     }
+                
+            // }
         }
     }
 

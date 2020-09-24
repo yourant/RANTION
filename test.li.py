@@ -2,93 +2,42 @@
 Author         : Li
 Version        : 1.0
 Date           : 2020-07-07 21:43:50
-LastEditTime   : 2020-08-31 20:10:57
+LastEditTime   : 2020-09-22 17:12:37
 LastEditors    : Li
 Description    :
 FilePath       : \test.li.py
 可以输入预定的版权声明、个性签名、空行等
 '''
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-import time
-import requests
-import json
-import threading
+def success(msg):
+    print (msg)
 
+def debug(msg):
+    print (msg)
 
-def task(arg1, arg2):
-    print(arg1, arg2)
-    time.sleep(1)
+def error(msg):
+    print (msg)
 
+def warning(msg):
+    print (msg)
 
-# pool = ProcessPoolExecutor(10)
-pool = ThreadPoolExecutor(4)  # 线程数
+def other(msg):
+    print (msg)
 
+def notify_result(num, msg):
+    numbers = {
+        0 : success,
+        1 : debug,
+        2 : warning,
+        3 : error
+    }
 
-def Getorders(acc):
-
-    email = "licanlin@douples.com"
-    account = "6188472"
-    # account = "6188472_SB1"
-    signature = "@LiCanLin1907"
-    headers = {
-        "Authorization": "NLAuth nlauth_account=" + account + ", nlauth_email=" + email + ", nlauth_signature= " + signature + ", nlauth_role=3",
-        "Content-Type": "application/json"}
-    link = "https://6188472.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=472&deploy=1"
-    r1 = requests.get(url=link, params={'op': 'create_fin_DealData', "objs": acc,
-                                        "last_updated_after": "2020-05-31T00:00:00.000Z", "last_updated_before": "2020-07-30T00:00:00.000Z"}, headers=headers)
-    print(r1.text)
-
-
-def GetAcc(acc_group):
-
-    print('开始处理数据',"开始处理数据")
-    email = "licanlin@douples.com"
-    account = "6188472"
-    # account = "6188472_SB1"
-    signature = "@LiCanLin1907"
-    headers = {
-        "Authorization": "NLAuth nlauth_account=" + account + ", nlauth_email=" + email + ", nlauth_signature= " + signature + ", nlauth_role=3",
-        "Content-Type": "application/json"}
-    link = "https://6188472.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=472&deploy=1"
-    r1 = requests.get(url=link, params={'op': 'create_fin_getData', "acc": acc_group, "bj": "F",
-                                        "last_updated_after": "2020-05-31T00:00:00.000Z", "last_updated_before": "2020-07-30T00:00:00.000Z"}, headers=headers)
-    new_lis = r1.text
-    # new_lis = new_lis.split(",")
-    # print(new_lis)
-    json_obj = json.loads(new_lis)
-    for iac in json_obj:
-        # Getorders(json.dumps(iac))
-        try:
-            pool.submit(Getorders,  json.dumps(iac))
-        except ZeroDivisionError as err:
-            print('Handling run-time error:', err)
-
-
-class Person(object):
-
-    def __init__(self):
-        print("init")
-
-    def speak(self):
-        GetAcc(5)
-
+    method = numbers.get(num, other)
+    if method:
+        method(msg)
 
 if __name__ == "__main__":
-    # p = Person()
-    # while True:
-    #     timer = threading.Timer(18, p.speak)
-    #     timer.start()
-    #     timer.join()
-    # num = 0
-    # while True:
-    #     num = num+1
-    #     print("执行第"+str(num) + "次")
-    #     GetAcc("")
-    #     time.sleep(8010)
-    GetAcc(19)
-
-
-# 19          GONEX.US      14741 条                发货未完成          跑第 1 次
-# 102        MAGICFLY.US   28091 条
-# 31       KEEDOX.US                 12871   条
-# 21       DONNERDIRECT.US           39252  条
+    notify_result(0, "success")
+    notify_result(1, "debug")
+    notify_result(2, "warning")
+    notify_result(3, "error")
+    notify_result(4, "other")

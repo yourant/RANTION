@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-09-16 10:12:35
- * @LastEditTime   : 2020-09-16 22:36:50
+ * @LastEditTime   : 2020-09-22 17:09:39
  * @LastEditors    : Li
  * @Description    : 外部程序调用, 触发定时任务
  * @FilePath       : \douples_amazon\dps.li.auto.task.rl.js
@@ -68,37 +68,11 @@ define(['N/task', 'N/search', 'N/record', 'N/log'], function(task, search, recor
         } // 结算报告 冲销凭证
     };
 
-    function _get(context) {
-
-        try {
-
-            var action = context.action;
-
-
-            if (action) {
-                return executeTaskByAccount(context);
-
-            } else {
-                var it = {
-                    code: 5,
-                    msg: '请选择执行的动作'
-                }
-                return it
-            }
-        } catch (error) {
-            log.error("启动任务出错了", error);
-            return {
-                code: 5,
-                msg: '启动任务失败了'
-            }
-        }
-
-
-    }
-
-    function _post(context) {
+    function execute (context) {
 
         var action = context.action;
+
+        return action;
 
         try {
             if (action) {
@@ -164,7 +138,7 @@ define(['N/task', 'N/search', 'N/record', 'N/log'], function(task, search, recor
                 // runPage     custscript_dps_li_sett_jour_s_runpage
 
                 runParam = {
-                    custscript_dps_li_sett_jour_s_account: ship_get.accountId, // 店铺分组
+                    custscript_dps_li_sett_jour_s_account: ship_get.accountId, // 店铺
                 }
             }
 
@@ -229,7 +203,7 @@ define(['N/task', 'N/search', 'N/record', 'N/log'], function(task, search, recor
             type: 'customrecord_dps_li_automatically_execut',
             filters: filter,
             columns: [
-                { name: 'internalid', sort: search.Sort.ASC },
+                // { name: 'internalid', sort: search.Sort.ASC },
                 "custrecord_dps_auto_execute_account", // 	店铺
                 "custrecord_dps_li_submit_id", // 	提交ID
                 "custrecord_dps_li_shipment_report", // 	发货报告
@@ -240,7 +214,7 @@ define(['N/task', 'N/search', 'N/record', 'N/log'], function(task, search, recor
                 "custrecord_dps_li_credit_memo", //	贷项通知单
                 "custrecord_dps_li_refund_settlement_cert", //	退款结算凭证
                 "custrecord_dps_li_all_processed", //	全部处理完成
-                "custrecord_dps_li_account_group", //	 店铺分组
+                {name: "custrecord_dps_li_account_group", sort: search.Sort.ASC}, //	 店铺分组
             ]
         }).run().each(function(_rec) {
             getResult.name = _rec.getText("custrecord_dps_auto_execute_account");
@@ -301,7 +275,7 @@ define(['N/task', 'N/search', 'N/record', 'N/log'], function(task, search, recor
     }
 
     return {
-        get: _get,
-        post: _post,
+        get: execute,
+        post: execute,
     }
 });

@@ -137,7 +137,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 filters.push({
                     name: 'custrecord_trandate_amazonorder',
                     operator: 'within',
-                    values: [_li_dateFormat(_start_date, format),_li_dateFormat(_end_date, format)]
+                    values: [_li_dateFormat(_start_date, format), _li_dateFormat(_end_date, format)]
                 })
             }
             if (_start_date && !_end_date) {

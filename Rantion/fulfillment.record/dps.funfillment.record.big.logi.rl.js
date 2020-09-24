@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-08-17 10:08:04
- * @LastEditors    : Li
- * @Description    : 
+ * @LastEditTime   : 2020-08-21 09:33:23
+ * @LastEditors    : Bong
+ * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.big.logi.rl.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -94,7 +94,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                             join: 'custrecord_dps_recipient_country_dh'
                         });
                         //直接取MSKU
-                        // 直接获取发运记录货品行的 SellerSKU 
+                        // 直接获取发运记录货品行的 SellerSKU
                         var SellerSKU = rec.getValue({
                             name: "custrecord_dps_ship_record_sku_item",
                             join: "custrecord_dps_shipping_record_parentrec"
@@ -481,6 +481,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                     gross_margin = gross_margin / 100;
                     log.audit('毛利率  已处理', gross_margin);
                     var info = informationValue.searchPOItem(order_num);
+                    // var info = informationValue.searchItemReceiptItem(order_num);
                     if (info && info.length > 0) {
                         log.debug('存在对应的货品', info.length);
                         // 创建报关资料
@@ -488,22 +489,22 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                         log.debug('informaId', informaId);
                         if (informaId) {
                             // 创建报关发票
-                            var invId = informationValue.createCusInv(info, informaId, gross_margin);
+                            var invId = informationValue.createCusInv(info, informaId, gross_margin, order_num);
                             log.debug('invId', invId);
                             // 创建报关装箱
-                            var boxId = informationValue.createBoxRec(info, informaId);
+                            var boxId = informationValue.createBoxRec(info, informaId, order_num);
                             log.debug('boxId', boxId);
                             // 创建报关合同
-                            var conId = informationValue.createContract(info, informaId, subId);
+                            var conId = informationValue.createContract(info, informaId, subId, '', '', order_num);
                             log.debug('conId', conId);
                             // 创建报关单
-                            var decId = informationValue.createDeclaration(info, informaId, gross_margin, legalname);
+                            var decId = informationValue.createDeclaration(info, informaId, gross_margin, legalname, order_num);
                             log.debug('decId', decId);
                             // 创建报关要素
-                            var eleArr = informationValue.CreateElementsOfDeclaration(info, informaId);
+                            var eleArr = informationValue.CreateElementsOfDeclaration(info, informaId, order_num);
                             log.debug('eleArr', eleArr);
                             // 创建 开票资料
-                            var usbArr = informationValue.createBillInformation(info, informaId, ship_tran_abno);
+                            var usbArr = informationValue.createBillInformation(info, informaId, ship_tran_abno, order_num);
                             log.debug('usbArr', usbArr);
                             // 关联报关资料, 需要全部报关资料产生之后再关联
                             record.submitFields({
@@ -987,7 +988,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 获取装箱信息处理情况, 若处理成功, 则推送标签文件给 WMS
-     * @param {Number} recordID 
+     * @param {Number} recordID
      */
     function amazonFeedStatus(recordID) {
 
@@ -1005,7 +1006,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 {
                     name: 'custrecord_aio_feed_submission_id',
                     join: 'custrecord_dps_upload_packing_rec'
-                }, // feed ID 
+                }, // feed ID
                 "custrecord_dps_shipment_info", // amazon 装运信息
             ]
         }).run().each(function (rec) {
@@ -1128,7 +1129,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 if (add && add.length > 0) {
                     recValue.custrecord_dps_recpir_flag = add ? add : '';
                     var addLen = add.length;
-                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人 
+                    recValue.custrecord_dps_ship_small_recipient_dh = add[0]; // 收件人
                     recValue.custrecord_dps_street1_dh = add[1]; // 街道1
                     if (addLen > 6) {
                         recValue.custrecord_dps_street2_dh = add[2]; // 街道2
@@ -1209,7 +1210,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 重新上传装箱信息, 若已完成, 且无报错信息, 则获取标签文件并推送 WMS
-     * @param {Number} recId 
+     * @param {Number} recId
      */
     function amazonBoxInfo(recId) {
 
@@ -1224,7 +1225,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             }],
             columns: [
                 "custrecord_dps_shipping_rec_account", // 账号
-                "custrecord_dps_shipping_rec_shipmentsid", // shipmentId 
+                "custrecord_dps_shipping_rec_shipmentsid", // shipmentId
             ]
         }).run().each(function (rec) {
             rec_account = rec.getValue('custrecord_dps_shipping_rec_account');
@@ -1278,8 +1279,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 发送请求
-     * @param {*} token 
-     * @param {*} data 
+     * @param {*} token
+     * @param {*} data
      */
     function sendRequest(token, data) {
 
@@ -1367,7 +1368,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 标签文件推送 WMS
-     * @param {Object} af_rec 
+     * @param {Object} af_rec
      */
     function labelToWMS(af_rec) {
 

@@ -280,30 +280,30 @@ define(['N/http', 'N/https', 'N/log', 'N/record', 'N/search',
                         }
                     }
                     break
-                // case "燕文物流":
-                //     yanwenApi.init(http, xml, file, search)
-                //     var shipdate = rec.getValue("custrecord_dps_ship_small_shipping_date")
-                //     var now
-                //     //发运时间  工具类不方便处理 所以在这里
-                //     if (shipdate) now = Moment(shipdate).toSimpleISOString()
-                //     var result = yanwenApi.Create(rec, now)
-                //     log.audit('result', result);
-                //     if (result.code == 200) {
-                //         var shipment_id = result.data.Epcode
-                //         log.audit('shipment_id', shipment_id,YanwenNumber);
-                //         submitIdAndTackingNumber(rec.id, shipment_id)
-                //     } else {
-                //         record.submitFields({
-                //             type: 'customrecord_dps_shipping_small_record',
-                //             id: rec.id,
-                //             values: {
-                //                 custrecord_dps_ship_small_status: 4,
-                //                 custrecord_dps_push_state_xh: "失败",
-                //                 custrecord_dps_push_result_xh: result.msg
-                //             }
-                //         });
-                //     }
-                //     break
+                 case "5":
+                    yanwenApi.init(http, xml, file, search)
+                    var shipdate = rec.getValue("custrecord_dps_ship_small_shipping_date")
+                    var now
+                    //发运时间  工具类不方便处理 所以在这里
+                    if (shipdate) now = Moment(shipdate).toSimpleISOString()
+                    var result = yanwenApi.Create(rec, now)
+                    log.audit('result', result);
+                    if (result.code == 200) {
+                        var shipment_id = result.data.Epcode
+                        log.audit('shipment_id', shipment_id);
+                        submitIdAndTackingNumber(rec.id, shipment_id, shipment_id)
+                    } else {
+                        record.submitFields({
+                            type: 'customrecord_dps_shipping_small_record',
+                            id: rec.id,
+                            values: {
+                                custrecord_dps_ship_small_status: 4,
+                                custrecord_dps_push_state_xh: "失败",
+                                custrecord_dps_push_result_xh: result.msg
+                            }
+                        });
+                    }
+                    break
             }
             if (!result) result = { code: 500, msg: "未知错误" }
             return result

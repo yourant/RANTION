@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 11:34:43
- * @LastEditTime   : 2020-09-17 11:05:46
+ * @LastEditTime   : 2020-09-17 11:43:54
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.sl.js
@@ -16,130 +16,130 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
 
     function onRequest(context) {
 
-        var userObj = runtime.getCurrentUser();
+        // var userObj = runtime.getCurrentUser();
 
-        if (userObj.id == 911) {
-            try {
-                var request = context.request;
-                var response = context.response;
-                var parameters = request.parameters;
-                var form = initUI();
+        // if (userObj.id == 911) {
+        try {
+            var request = context.request;
+            var response = context.response;
+            var parameters = request.parameters;
+            var form = initUI();
 
-                var param = getParams(parameters, form);
+            var param = getParams(parameters, form);
 
-                var subShowId = form.getSublist({
-                    id: 'sublist_show_id'
-                });
-                var lineNumber = parameters.custpage_li_per_page;
-                log.audit('lineNumber', lineNumber);
+            var subShowId = form.getSublist({
+                id: 'sublist_show_id'
+            });
+            var lineNumber = parameters.custpage_li_per_page;
+            log.audit('lineNumber', lineNumber);
 
-                if (!lineNumber) {
-                    lineNumber = 50;
+            if (!lineNumber) {
+                lineNumber = 50;
+            }
+
+            log.audit('lineNumber', lineNumber);
+
+            var nowPage = parameters.custpage_li_pages;
+            var resArr = searchResult(param, lineNumber, nowPage);
+
+            var resultArr = resArr.result,
+                totalCount = resArr.totalCount,
+                pageCount = resArr.pageCount,
+                filter = resArr.filter;
+
+            log.audit('数据长度 resultArr', resultArr.length);
+
+            log.audit("总数量 totalCount", totalCount);
+            log.audit("总页数 pageCount", pageCount);
+
+            var selectpages = form.addField({
+                id: 'custpage_li_pages',
+                type: serverWidget.FieldType.SELECT,
+                label: '选择页数',
+                container: 'fieldgroupid'
+            });
+
+            var pages = form.addField({
+                id: 'custpage_li_per_page',
+                type: serverWidget.FieldType.SELECT,
+                label: '每页数量',
+                container: 'fieldgroupid'
+            });
+
+            var pagesObj = {
+                20: 20,
+                50: 50,
+                100: 100,
+                500: 500
+            }
+
+            if (pageCount) {
+                for (var i = 0, z = i + 1; i < pageCount; i++, z = i + 1) {
+                    var temp = selectpages.addSelectOption({
+                        value: z,
+                        text: z + "/" + pageCount
+                    });
                 }
 
-                log.audit('lineNumber', lineNumber);
-
-                var nowPage = parameters.custpage_li_pages;
-                var resArr = searchResult(param, lineNumber, nowPage);
-
-                var resultArr = resArr.result,
-                    totalCount = resArr.totalCount,
-                    pageCount = resArr.pageCount,
-                    filter = resArr.filter;
-
-                log.audit('数据长度 resultArr', resultArr.length);
-
-                log.audit("总数量 totalCount", totalCount);
-                log.audit("总页数 pageCount", pageCount);
-
-                var selectpages = form.addField({
-                    id: 'custpage_li_pages',
-                    type: serverWidget.FieldType.SELECT,
-                    label: '选择页数',
-                    container: 'fieldgroupid'
-                });
-
-                var pages = form.addField({
-                    id: 'custpage_li_per_page',
-                    type: serverWidget.FieldType.SELECT,
-                    label: '每页数量',
-                    container: 'fieldgroupid'
-                });
-
-                var pagesObj = {
-                    20: 20,
-                    50: 50,
-                    100: 100,
-                    500: 500
-                }
-
-                if (pageCount) {
-                    for (var i = 0, z = i + 1; i < pageCount; i++, z = i + 1) {
-                        var temp = selectpages.addSelectOption({
-                            value: z,
-                            text: z + "/" + pageCount
+                for (var i in pagesObj) {
+                    if (i == lineNumber) {
+                        pages.addSelectOption({
+                            value: i,
+                            text: pagesObj[i],
+                            isSelected: true
+                        });
+                    } else {
+                        pages.addSelectOption({
+                            value: i,
+                            text: pagesObj[i]
                         });
                     }
-
-                    for (var i in pagesObj) {
-                        if (i == lineNumber) {
-                            pages.addSelectOption({
-                                value: i,
-                                text: pagesObj[i],
-                                isSelected: true
-                            });
-                        } else {
-                            pages.addSelectOption({
-                                value: i,
-                                text: pagesObj[i]
-                            });
-                        }
-                    }
-                } else {
-                    selectpages.addSelectOption({
-                        value: '',
-                        text: ''
-                    });
-                    // pages.addSelectOption({
-                    //     value: "",
-                    //     text: ""
-                    // });
                 }
-
-                var temp = {
-                    custpage_li_total: totalCount,
-                    custpage_li_pages: nowPage,
-                }
-                form.updateDefaultValues(temp);
-
-                var _resultArr = resultArr.slice(0, lineNumber)
-                log.debug('截取数据长度', _resultArr.length)
-
-                var curr_qty = form.addField({
-                    id: 'custpage_li_currentquantity',
-                    type: serverWidget.FieldType.INTEGER,
-                    label: '本页数量',
-                    container: 'fieldgroupid'
+            } else {
+                selectpages.addSelectOption({
+                    value: '',
+                    text: ''
                 });
-                curr_qty.defaultValue = _resultArr.length;
-
-                curr_qty.updateDisplayType({
-                    displayType: serverWidget.FieldDisplayType.DISABLED
-                });
-
-                setSublistValue(subShowId, _resultArr);
-
-                context.response.writePage({
-                    pageObject: form
-                });
-
-            } catch (error) {
-                log.error('出错了', error);
-                context.response.writeLine("出错了\n\n" + JSON.stringify(error))
+                // pages.addSelectOption({
+                //     value: "",
+                //     text: ""
+                // });
             }
-        } else {
-            context.response.writeLine("开发中...")
+
+            var temp = {
+                custpage_li_total: totalCount,
+                custpage_li_pages: nowPage,
+            }
+            form.updateDefaultValues(temp);
+
+            var _resultArr = resultArr.slice(0, lineNumber)
+            log.debug('截取数据长度', _resultArr.length)
+
+            var curr_qty = form.addField({
+                id: 'custpage_li_currentquantity',
+                type: serverWidget.FieldType.INTEGER,
+                label: '本页数量',
+                container: 'fieldgroupid'
+            });
+            curr_qty.defaultValue = _resultArr.length;
+
+            curr_qty.updateDisplayType({
+                displayType: serverWidget.FieldDisplayType.DISABLED
+            });
+
+            setSublistValue(subShowId, _resultArr);
+
+            context.response.writePage({
+                pageObject: form
+            });
+
+        } catch (error) {
+            log.error('出错了', error);
+            context.response.writeLine("出错了\n\n" + JSON.stringify(error))
         }
+        // } else {
+        //     context.response.writeLine("开发中...")
+        // }
 
     }
 
@@ -280,7 +280,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             type: serverWidget.FieldType.TEXT,
             label: 'MSKU'
         }).updateDisplayType({
-            displayType: serverWidget.FieldDisplayType.INLINE
+            displayType: serverWidget.FieldDisplayType.HIDDEN
         });
 
         sublist.addField({
@@ -288,7 +288,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             type: serverWidget.FieldType.TEXT,
             label: 'FNSKU'
         }).updateDisplayType({
-            displayType: serverWidget.FieldDisplayType.INLINE
+            displayType: serverWidget.FieldDisplayType.HIDDEN
         });
         sublist.addField({
             id: 'custpage_label_deparment',
@@ -340,6 +340,9 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             id: 'custpage_label_inv_recid_arr',
             type: serverWidget.FieldType.TEXTAREA,
             label: '对应的记录 Info'
+        }).updateDisplayType({
+            // displayType: serverWidget.FieldDisplayType.DISABLED
+            displayType: serverWidget.FieldDisplayType.HIDDEN
         });
         return form;
     }

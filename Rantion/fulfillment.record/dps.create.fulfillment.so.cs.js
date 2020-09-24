@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-06-12 19:56:55
- * @LastEditTime   : 2020-08-26 14:10:26
+ * @LastEditTime   : 2020-06-15 15:52:23
  * @LastEditors    : Li
- * @Description    :
+ * @Description    : 
  * @FilePath       : \Rantion\fulfillment.record\dps.create.fulfillment.so.cs.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -13,7 +13,7 @@
  * @NScriptType ClientScript
  * @NModuleScope SameAccount
  */
-define(['N/search', 'N/url', 'N/ui/dialog', 'N/log', 'N/https', '../Helper/commonTool.js'], function (search, url, dialog, log, https, commonTool) {
+define(['N/search', 'N/url', 'N/ui/dialog', 'N/log', 'N/https', '../Helper/sweetalert2.all.js'], function (search, url, dialog, log, https, Swal) {
 
     function pageInit(scriptContext) {
 
@@ -77,77 +77,35 @@ define(['N/search', 'N/url', 'N/ui/dialog', 'N/log', 'N/https', '../Helper/commo
         log.debug('url1', url1);
         var response;
 
-        // Swal.fire({
-        //     onBeforeOpen: Swal.showLoading,
-        //     onOpen: function () {
-        //         https.post.promise({
-        //             url: url1,
-        //             body: body1,
-        //             headers: header
-        //         }).then(function (response) {
-        //             Swal.close();
-        //             var body = JSON.parse(response.body);
-        //             log.debug('typeof body', typeof (body))
-        //             if (body == null || body == '') {
-        //                 dialog.alert({
-        //                     title: '提示',
-        //                     message: '小货发运记录生成失败'
-        //                 });
-        //             } else {
-        //                 dialog.alert({
-        //                     title: '提示',
-        //                     message: body.msg
-        //                 });
-        //             }
-        //             window.location.reload(true);
-        //         });
-        //     },
-        //     allowOutsideClick: false,
-        //     allowEscapeKey: true,
-        //     text: "小货发运记录生成中"
-        // });
-
-
-        commonTool.startMask('正在删除装箱信息,请耐心等待...');
-
-        var url1 = url.resolveScript({
-            scriptId: 'customscript_dps_ful_update_field_rl',
-            deploymentId: 'customdeploy_dps_ful_update_field_rl',
-            returnExternalUrl: false
-        });
-
-        https.post.promise({
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8',
-                'Accept': 'application/json'
+        Swal.fire({
+            onBeforeOpen: Swal.showLoading,
+            onOpen: function () {
+                https.post.promise({
+                    url: url1,
+                    body: body1,
+                    headers: header
+                }).then(function (response) {
+                    Swal.close();
+                    var body = JSON.parse(response.body);
+                    log.debug('typeof body', typeof (body))
+                    if (body == null || body == '') {
+                        dialog.alert({
+                            title: '提示',
+                            message: '小货发运记录生成失败'
+                        });
+                    } else {
+                        dialog.alert({
+                            title: '提示',
+                            message: body.msg
+                        });
+                    }
+                    window.location.reload(true);
+                });
             },
-            url: url1,
-            body: body1
-        }).then(function (response) {
-
-            var body = JSON.parse(response.body);
-            log.debug('typeof body', typeof (body))
-            if (body == null || body == '') {
-                dialog.alert({
-                    title: '提示',
-                    message: '小货发运记录生成失败'
-                });
-            } else {
-                dialog.alert({
-                    title: '提示',
-                    message: body.msg
-                });
-            }
-            window.location.reload(true);
-        }).catch(function onRejected(reason) {
-            dialog.alert({
-                title: '提示',
-                message: reason
-            }).then(function () {
-                window.location.reload();
-            });
+            allowOutsideClick: false,
+            allowEscapeKey: true,
+            text: "小货发运记录生成中"
         });
-
 
     }
 

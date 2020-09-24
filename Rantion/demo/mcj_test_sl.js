@@ -7,16 +7,30 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
 
     function onRequest(context) {
         var response = context.response;
-        // var soid = '448138';
-        // var idid = '3';
-        // createLogisticsStrategy(soid, idid);
-
-        // log.debug('runtime', JSON.stringify(runtime));
-
-        // var exchangerate = currency.exchangeRate({ source: 'USD', target: 'CNY', date: new Date() });
-        // log.debug('exchangerate', exchangerate);
-
         
+
+
+
+        try {
+        //     var getFilter = [];
+        //     // getFilter.push([[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]);
+        //     // getFilter.push([ 'custrecord_lmr_destination', 'isempty', [] ]);
+        //     // getFilter.push([ 'custrecord_lmr_destination.custrecord_cc_country_code', 'contains', 'US' ]);
+        //     getFilter.push([ 'custrecord_lmr_sku', 'anyof', ['12449'] ]);
+        //     log.debug('getFilter', JSON.stringify(getFilter));
+        //     var searchRe = getRecBySearch(getFilter);
+        //     log.debug('searchRe', JSON.stringify(searchRe));
+
+
+            var soid = '89362';
+            var idid = '1';
+            createLogisticsStrategy(soid, idid);
+        } catch (error) {
+            log.debug('error', JSON.stringify(error));
+        }
+
+
+
 
         // try {
         //     var id;
@@ -318,49 +332,7 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         // } catch (error) {
         //     log.debug('error', JSON.stringify(error));
         // }
-        var ir_ids = ['2083155', '2083156'];
-        var poNeedCount = [];
-        var poRecInfo = {};
-        poRecInfo['2083155'] = {
-            'item': '12757',
-            'line': '0'
-        };
-        poRecInfo['2083156'] = {
-            'item': '12757',
-            'line': '0'
-        };
-        search.create({
-            type: 'purchaseorder',
-            filters: [
-                { name: 'mainline', operator: 'is', values: ['F'] },
-                { name: 'taxline', operator: 'is', values: ['F'] },
-                { name: 'internalid', operator: 'anyof', values: ['2083153', '2083149'] },
-                { name: 'item', operator: 'anyof', values: ['12757'] }
-            ],
-            columns: [
-                { name: 'line', label: '行Id', type: 'integer' }, // 0
-                { name: 'item', label: '货品名称', type: 'select' }, // 1
-                { name: 'custcoltransferable_quantity', label: '可调拨数量', type: 'float' }, // 2
-            ]
-        }).run().each(function (rec) {
-            for (var index = 0; index < ir_ids.length; index++) {
-                var ir_id = ir_ids[index];
-                var rr = poRecInfo[ir_id];
-                for (var i in rr) {
-                    var poData = poRecInfo[ir_id][i];
-                    if (poData.item == rec.getValue(rec.columns[1])) {
-                        poData.line = rec.getValue(rec.columns[0]);
-                    }
-                }
-            }
-            var poid = rec.id;
-            var item = rec.getValue(rec.columns[1]);
-            var key = poid + '-' + item;
-            poNeedCount[key] = rec.getValue(rec.columns[2]);
-            return true;
-        });
-        log.debug('poRecInfo', JSON.stringify(poRecInfo));
-        log.debug('poNeedCount', JSON.stringify(poNeedCount));
+
     }
 
     function internalcompany() {
@@ -619,261 +591,132 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
                 order.high = high;
             }
             var weight = Number(result.getValue({ name: 'custitem_dps_heavy2', join: 'item' }));
-            log.debug('weight:', jsonstr.skuid + ' = ' + weight);
             order.weight = order.weight + weight;
             SKUs.push(jsonstr.skuid);
             return true;
         });
         order.lwh = order.long + order.wide + order.high;
 
-        // var getFsilter = [];
-        // // s
-        // // 重量范围
-        // getFilter.push('and');
-        // if (order.weight > 0) {
-        //     getFilter.push([[ 'custrecord_lmr_weight_start', 'lessthanorequalto', order.weight ], 'and', [ 'custrecord_lmr_weight_end', 'greaterthanorequalto', order.weight ]]);
-        // } else {
-        //     getFilter.push([[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]);
-        // }
-        // // 长度范围
-        // getFilter.push('and');
-        // if (order.long > 0) {
-        //     getFilter.push([[ 'custrecord_lmr_length_start', 'lessthanorequalto', order.long ], 'and', [ 'custrecord_lmr_length_end', 'greaterthanorequalto', order.long ]]);
-        // } else {
-        //     getFilter.push([[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]]);
-        // }
-        // // 宽度范围
-        // getFilter.push('and');
-        // if (order.wide > 0) {
-        //     getFilter.push([[ 'custrecord_lmr_width_start', 'lessthanorequalto', order.wide ], 'and', [ 'custrecord_lmr_width_end', 'greaterthanorequalto', order.wide ]]);
-        // } else {
-        //     getFilter.push([[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]]);
-        // }
-        // // 高度范围
-        // getFilter.push('and');
-        // if (order.high > 0) {
-        //     getFilter.push([[ 'custrecord_lmr_height_start', 'lessthanorequalto', order.high ], 'and', [ 'custrecord_lmr_height_end', 'greaterthanorequalto', order.high ]]);
-        // } else {
-        //     getFilter.push([[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]]);
-        // }
-        // // 长宽高范围
-        // getFilter.push('and');
-        // if (order.lwh > 0) {
-        //     getFilter.push([[ 'custrecord_lmr_lwh_start', 'lessthanorequalto', order.lwh ], 'and', [ 'custrecord_lmr_lwh_end', 'greaterthanorequalto', order.lwh ]]);
-        // } else {
-        //     getFilter.push([[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]]);
-        // }
-        // log.debug('getFilter', JSON.stringify(getFilter));
-        // var searchRe = getRecBySearch(getFilter);
-        // log.debug('searchRe', JSON.stringify(searchRe));
         var getFilter = [];
-        var searchRe = [];
-        var searchARe = [];
-        var searchVRe = [];
-        var searchZRe = [];
         // 站点
         if (order.siteid) {
-            getFilter.push({ name: 'custrecord_lmr_site', operator: 'anyof', values: order.siteid });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_site', 'anyof', order.siteid ], 'or', [ 'custrecord_lmr_site', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_site', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_site', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        // log.debug('站点', searchRe);
-
         // 账号
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.accountid) {
-            getFilter.push({ name: 'custrecord_lmr_account', operator: 'anyof', values: order.accountid });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_account', 'anyof', order.accountid ], 'or', [ 'custrecord_lmr_account', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_account', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_account', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('账号', searchRe);
-
         // 仓库
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.locationid) {
-            getFilter.push({ name: 'custrecord_lmr_location', operator: 'anyof', values: order.locationid });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_location', 'anyof', order.locationid ], 'or', [ 'custrecord_lmr_location', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_location', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_location', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('仓库', searchRe);
-
         // 目的地
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.country) {
-            getFilter.push({ name: 'custrecord_cc_country_code', join: 'custrecord_lmr_destination', operator: 'contains', values: order.country });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_destination.custrecord_cc_country_code', 'contains', order.country ], 'or', [ 'custrecord_lmr_destination', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_destination', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_cc_country_code', join: 'custrecord_lmr_destination', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('目的地', searchRe);
-
         // 产品
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (SKUs.length > 0) {
-            getFilter.push({ name: 'internalid', join: 'custrecord_lmr_sku', operator: 'anyof', values: SKUs });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_sku', 'anyof', SKUs ], 'or', [ 'custrecord_lmr_sku', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_sku', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'internalid', join: 'custrecord_lmr_sku',  operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('产品', searchRe);
-
         // 物流分组
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.group) {
-            getFilter.push({ name: 'custrecord_lmr_logistics_group', operator: 'anyof', values: order.group });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([[ 'custrecord_lmr_logistics_group', 'anyof', order.group ], 'or', [ 'custrecord_lmr_logistics_group', 'isempty', [] ]]);
+        } else {
+            getFilter.push([ 'custrecord_lmr_logistics_group', 'isempty', [] ]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_logistics_group', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('物流分组', searchRe);
-
         // 金额范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.amount > 0) {
-            getFilter.push({ name: 'custrecord_lmr_weight_start', operator: 'lessthanorequalto', values: order.amount });
-            getFilter.push({ name: 'custrecord_lmr_weight_end', operator: 'greaterthanorequalto', values: order.amount });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_amount_start', 'lessthanorequalto', order.amount ], 'and', [ 'custrecord_lmr_amount_end', 'greaterthanorequalto', order.amount ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'lessthanorequalto', order.amount ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'greaterthanorequalto', order.amount ]], 'or',
+                [[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_amount_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_amount_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_weight_start', operator: 'isempty' });
-        getFilter.push({ name: 'custrecord_lmr_weight_end', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('重量范围', searchRe);
-
         // 重量范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.weight > 0) {
-            getFilter.push({ name: 'custrecord_lmr_weight_start', operator: 'lessthanorequalto', values: order.weight });
-            getFilter.push({ name: 'custrecord_lmr_weight_end', operator: 'greaterthanorequalto', values: order.weight });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_weight_start', 'lessthanorequalto', order.weight ], 'and', [ 'custrecord_lmr_weight_end', 'greaterthanorequalto', order.weight ]],'or',
+                [[ 'custrecord_lmr_weight_start', 'lessthanorequalto', order.weight ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'greaterthanorequalto', order.weight ]], 'or',
+                [[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_weight_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_weight_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_weight_start', operator: 'isempty' });
-        getFilter.push({ name: 'custrecord_lmr_weight_end', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('重量范围', searchRe);
-
         // 长度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.long > 0) {
-            getFilter.push({ name: 'custrecord_lmr_length_start', operator: 'lessthanorequalto', values: order.long });
-            getFilter.push({ name: 'custrecord_lmr_length_end', operator: 'greaterthanorequalto', values: order.long });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_length_start', 'lessthanorequalto', order.long ], 'and', [ 'custrecord_lmr_length_end', 'greaterthanorequalto', order.long ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'lessthanorequalto', order.long ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'greaterthanorequalto', order.long ]], 'or',
+                [[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_length_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_length_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_length_start', operator: 'isempty' });
-        getFilter.push({ name: 'custrecord_lmr_length_end', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('长度范围', searchRe);
-
         // 宽度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.wide > 0) {
-            getFilter.push({ name: 'custrecord_lmr_width_start', operator: 'lessthanorequalto', values: order.wide });
-            getFilter.push({ name: 'custrecord_lmr_width_end', operator: 'greaterthanorequalto', values: order.wide });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_width_start', 'lessthanorequalto', order.wide ], 'and', [ 'custrecord_lmr_width_end', 'greaterthanorequalto', order.wide ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'lessthanorequalto', order.wide ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'greaterthanorequalto', order.wide ]], 'or',
+                [[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_width_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_width_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_width_start', operator: 'isempty' });
-        getFilter.push({ name: 'custrecord_lmr_width_end', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('宽度范围', searchRe);
-
         // 高度范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.high > 0) {
-            getFilter.push({ name: 'custrecord_lmr_height_start', operator: 'lessthanorequalto', values: order.high });
-            getFilter.push({ name: 'custrecord_lmr_height_end', operator: 'greaterthanorequalto', values: order.high });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_height_start', 'lessthanorequalto', order.high ], 'and', [ 'custrecord_lmr_height_end', 'greaterthanorequalto', order.high ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'lessthanorequalto', order.high ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'greaterthanorequalto', order.high ]], 'or',
+                [[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_height_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_height_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_height_start', operator: 'isempty' });
-        getFilter.push({ name: 'custrecord_lmr_height_end', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('高度范围', searchRe);
-
         // 长宽高范围
-        getFilter = [];
-        searchARe = [];
-        searchVRe = [];
-        searchZRe = [];
+        getFilter.push('and');
         if (order.lwh > 0) {
-            getFilter.push({ name: 'custrecord_lmr_lwh_start', operator: 'lessthanorequalto', values: order.lwh });
-            getFilter.push({ name: 'custrecord_lmr_lwh_end', operator: 'greaterthanorequalto', values: order.lwh });
-            searchARe = getRecBySearch(getFilter);
+            getFilter.push([
+                [[ 'custrecord_lmr_lwh_start', 'lessthanorequalto', order.lwh ], 'and', [ 'custrecord_lmr_lwh_end', 'greaterthanorequalto', order.lwh ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'lessthanorequalto', order.lwh ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'greaterthanorequalto', order.lwh ]], 'or',
+                [[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]]
+            ]);
+        } else {
+            getFilter.push([[ 'custrecord_lmr_lwh_start', 'isempty', [] ], 'and', [ 'custrecord_lmr_lwh_end', 'isempty', [] ]]);
         }
-        getFilter = [];
-        getFilter.push({ name: 'custrecord_lmr_lwh_start', operator: 'isempty' });
-        getFilter.push({ name: 'custrecord_lmr_lwh_end', operator: 'isempty' });
-        searchVRe = getRecBySearch(getFilter);
-        searchZRe = searchARe.concat(searchVRe.filter(function (val) { return !(searchARe.indexOf(val) > -1) }));
-        searchRe = searchRe.filter(function (val) { return searchZRe.indexOf(val) > -1 });
-        // log.debug('长宽高范围', searchRe);
-        
-        log.debug('searchRe', JSON.stringify(searchRe) + JSON.stringify(order));
+        log.debug('getFilter', JSON.stringify(getFilter));
+        var searchRe = getRecBySearch(getFilter);
+        log.debug('searchRe', JSON.stringify(searchRe));
+
         // 计算预估运费
         var resultJSON = costCal.calculationByRule(searchRe, order.country, order.zip, order.weight, order.long, order.wide, order.high);
-
         log.debug('cost', JSON.stringify(resultJSON));
         var resultObj = JSON.parse(resultJSON);
         var ful = record.load({ type: 'customrecord_dps_shipping_small_record', id: fulid, isDynamic: true });
@@ -896,7 +739,6 @@ function (search, record, http, url, https, costCal, loactionPre, moment, format
         }
         ful.setValue({ fieldId: 'custrecord_dps_ship_samll_location', value: order.locationid }); // 发货仓库
         ful.save();
-        log.debug('sssdddd');
 
         log.debug('fullfillment end, 总共耗时：', new Date().getTime() - startTime);
     }

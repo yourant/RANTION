@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 19:08:37
- * @LastEditTime   : 2020-09-17 11:04:01
+ * @LastEditTime   : 2020-09-17 11:14:14
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.rl.js
@@ -20,22 +20,12 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
 
     function _post(context) {
 
-
-        // 一次性限制于 350
-        // log.audit('context', context.data[0]);
-
-        // log.debug('typeof ', typeof(context));
-        // log.debug('typeof ', typeof(context.data));
-
-
         var temp_arr = [];
         var dealDate = context.data.slice(0, 100); // 限制于 100 条数据
         log.audit('dealDate 第一个数据', dealDate[0]);
         try {
 
-
             dealDate.map(function(info) {
-
                 var temp_inadju = inventoryAdjustment(info);
                 if (temp_inadju) {
                     temp_arr.push(temp_arr)
@@ -49,7 +39,6 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
             msg: ' 处理完成',
             data: "总共处理数据量： " + dealDate.length + ", 处理成功数量： " + temp_arr.length
         }
-
     }
 
 
@@ -123,6 +112,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
 
         var invAdj_id = invAdj.save();
         log.debug('库存调整单', invAdj_id);
+
 
 
         if (invAdj_id) {
@@ -211,7 +201,7 @@ define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
                 return true;
             })
 
-            log.debug('searchArr  ' + searchArr.length, searchArr)
+            log.debug('searchArr  ' + searchArr.length, searchArr);
         }
         return invAdj_id;
 

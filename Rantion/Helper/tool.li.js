@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-09-08 10:58:05
+ * @LastEditTime   : 2020-08-24 14:42:02
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\Helper\tool.li.js
@@ -2231,7 +2231,8 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
                 type: "customrecord_dps_shipping_record",
                 id: recId,
                 values: {
-                    custrecord_dps_box_return_flag: false
+                    custrecord_dps_box_return_flag: false,
+                    custrecord_dps_shipping_rec_status: 27
                 }
             })
             log.audit('提交字段 End ', runtime.getCurrentScript().getRemainingUsage());
@@ -2756,14 +2757,14 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
     function dateFormat(date, fmt) {
         var o = {
             "M+": date.getMonth() + 1,
-            "D+": date.getDate(),
+            "d+": date.getDate(),
             "h+": date.getHours(),
             "m+": date.getMinutes(),
             "s+": date.getSeconds(),
             "q+": Math.floor((date.getMonth() + 3) / 3),
             "S": date.getMilliseconds()
         }
-        if (/(Y+)/.test(fmt)) {
+        if (/(y+)/.test(fmt)) {
             fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
         }
         for (var k in o) {
@@ -2994,136 +2995,6 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
         return form;
 
     }
-
-
-    var DATEFORMAT = {
-        "M/D/YYYY": "M/D/YYYY",
-        "D/M/YYYY": "D/M/YYYY",
-        "D-Mon-YYYY": "",
-        "D.M.YYYY": "D.M.YYYY",
-        "D-MONTH-YYYY": "",
-        "D MONTH, YYYY": "",
-        "YYYY/M/D": "YYYY/M/D",
-        "YYYY-M-D": "YYYY-M-D",
-        "DD/MM/YYYY": "DD/MM/YYYY",
-        "DD-Mon-YYYY": "",
-        "DD.MM.YYYY": "DD.MM.YYYY",
-        "DD-MONTH-YYYY": "",
-        "DD MONTH, YYYY": "",
-        "MM/DD/YYYY": "MM/DD/YYYY",
-        "YYYY/MM/DD": "YYYY/MM/DD",
-        "YYYY-MM-DD": "YYYY-MM-DD"
-    }
-
-
-
-    var dateFormat = function () {
-        var token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LloSZ]|"[^"]*"|'[^']*'/g,
-            timezone = /\b(?:[PMCEA][SDP]T|(?:Pacific|Mountain|Central|Eastern|Atlantic) (?:Standard|Daylight|Prevailing) Time|(?:GMT|UTC)(?:[-+]\d{4})?)\b/g,
-            timezoneClip = /[^-+\dA-Z]/g,
-            pad = function (val, len) {
-                val = String(val);
-                len = len || 2;
-                while (val.length < len) val = "0" + val;
-                return val;
-            };
-
-        // Regexes and supporting functions are cached through closure
-        return function (date, mask, utc) {
-            var dF = dateFormat;
-
-            // You can't provide utc if you skip other args (use the "UTC:" mask prefix)
-            if (arguments.length == 1 && Object.prototype.toString.call(date) == "[object String]" && !/\d/.test(date)) {
-                mask = date;
-                date = undefined;
-            }
-
-            // Passing date through Date applies Date.parse, if necessary
-            date = date ? new Date(date) : new Date;
-            if (isNaN(date)) throw SyntaxError("invalid date");
-
-            mask = String(dF.masks[mask] || mask || dF.masks["default"]);
-
-            // Allow setting the utc argument via the mask
-            if (mask.slice(0, 4) == "UTC:") {
-                mask = mask.slice(4);
-                utc = true;
-            }
-
-            var _ = utc ? "getUTC" : "get",
-                d = date[_ + "Date"](),
-                D = date[_ + "Day"](),
-                m = date[_ + "Month"](),
-                y = date[_ + "FullYear"](),
-                H = date[_ + "Hours"](),
-                M = date[_ + "Minutes"](),
-                s = date[_ + "Seconds"](),
-                L = date[_ + "Milliseconds"](),
-                o = utc ? 0 : date.getTimezoneOffset(),
-                flags = {
-                    d: d,  // day
-                    dd: pad(d),
-                    ddd: dF.i18n.dayNames[D],
-                    dddd: dF.i18n.dayNames[D + 7],
-                    m: m + 1, // Month
-                    mm: pad(m + 1),
-                    mmm: dF.i18n.monthNames[m],
-                    mmmm: dF.i18n.monthNames[m + 12],
-                    yy: String(y).slice(2),  // year
-                    yyyy: y,
-                    h: H % 12 || 12,
-                    hh: pad(H % 12 || 12),
-                    H: H, // 24 Hour
-                    HH: pad(H),
-                    M: M, // Minute
-                    MM: pad(M),
-                    s: s,
-                    ss: pad(s),
-                    l: pad(L, 3), // millisecond
-                    L: pad(L > 99 ? Math.round(L / 10) : L), //  Milliseconds are displayed as a percentage
-                    t: H < 12 ? "a" : "p",
-                    tt: H < 12 ? "am" : "pm",
-                    T: H < 12 ? "A" : "P",
-                    TT: H < 12 ? "AM" : "PM",
-                    Z: utc ? "UTC" : (String(date).match(timezone) || [""]).pop().replace(timezoneClip, ""), // set timezone
-                    o: (o > 0 ? "-" : "+") + pad(Math.floor(Math.abs(o) / 60) * 100 + Math.abs(o) % 60, 4), // set timezone
-                    S: ["th", "st", "nd", "rd"][d % 10 > 3 ? 0 : (d % 100 - d % 10 != 10) * d % 10]
-                };
-
-            return mask.replace(token, function ($0) {
-                return $0 in flags ? flags[$0] : $0.slice(1, $0.length - 1);
-            });
-        };
-    }();
-
-    // Some common format strings
-    dateFormat.masks = {
-        "default": "ddd mmm dd yyyy HH:MM:ss",
-        shortDate: "m/d/yy",
-        mediumDate: "mmm d, yyyy",
-        longDate: "mmmm d, yyyy",
-        fullDate: "dddd, mmmm d, yyyy",
-        shortTime: "h:MM TT",
-        mediumTime: "h:MM:ss TT",
-        longTime: "h:MM:ss TT Z",
-        isoDate: "yyyy-mm-dd",
-        isoTime: "HH:MM:ss",
-        isoDateTime: "yyyy-mm-dd'T'HH:MM:ss",
-        isoUtcDateTime: "UTC:yyyy-mm-dd'T'HH:MM:ss'Z'",
-    };
-
-    // Internationalization strings
-    dateFormat.i18n = {
-        dayNames: [
-            "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
-            "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-        ],
-        monthNames: [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-            "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
-        ]
-    };
-
 
     return {
         SummaryBinBox: SummaryBinBox,

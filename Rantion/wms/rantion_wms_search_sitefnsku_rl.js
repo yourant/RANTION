@@ -4,9 +4,7 @@
  */
 define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
 
-    function _get(context) {
-        return _post(context);
-    }
+    function _get(context) {}
 
     function _post(context) {
         var fnskus = [];
@@ -18,7 +16,6 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
         var filters = [];
         var siteFilters = [];
         var sku;
-        log.debug("account", account);
         filters.push({
             name: 'custrecord_ass_sku',
             operator: 'noneof',
@@ -36,17 +33,29 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
             filters: filters,
             columns: [
                 'custrecord_ass_account', 'custrecord_ass_fnsku', 'custrecord_ass_asin',
-                'custrecord_ass_sku', 'name',
+                'custrecord_ass_sku', 'name', 'isinactive',
                 {
                     join: 'custrecord_ass_sellersku_site',
                     name: 'custrecord_aio_amazon_marketplace'
+                },
+                {
+                    join: 'custrecord_ass_sku',
+                    name: 'custitem_dps_skuchiense'
+                },
+                {
+                    join: 'custrecord_ass_sku',
+                    name: 'custitem_dps_spuenglishnames'
+                },
+                {
+                    join: 'custrecord_ass_sku',
+                    name: 'custitem_dps_skuenglish'
                 }
             ]
         });
 
         if (account) {
             mySearch.run().each(function (rec) {
-                siteSku = rec.getText('custrecord_ass_sku');
+                sku = rec.getText('custrecord_ass_sku');
                 log.debug('rec', rec);
             });
             //第一次查询fnsku出对应的Sku,第二次用该Sku和site查询对应的fnsku
@@ -65,14 +74,14 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 name: 'itemid',
                 join: 'custrecord_ass_sku',
                 operator: 'is',
-                values: siteSku
+                values: sku
             });
             mySearch = search.create({
                 type: 'customrecord_aio_amazon_seller_sku',
                 filters: siteFilters,
                 columns: [
-                    'custrecord_ass_account', 'custrecord_ass_fnsku',
-                    'custrecord_ass_asin', 'custrecord_ass_sku', 'name',
+                    'custrecord_ass_account', 'custrecord_ass_fnsku', 'custrecord_ass_asin',
+                    'custrecord_ass_sku', 'name', 'isinactive',
                     {
                         join: 'custrecord_ass_sellersku_site',
                         name: 'custrecord_aio_amazon_marketplace'
@@ -80,6 +89,14 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                     {
                         join: 'custrecord_ass_sku',
                         name: 'custitem_dps_skuchiense'
+                    },
+                    {
+                        join: 'custrecord_ass_sku',
+                        name: 'custitem_dps_spuenglishnames'
+                    },
+                    {
+                        join: 'custrecord_ass_sku',
+                        name: 'custitem_dps_skuenglish'
                     }
                 ]
             });
@@ -95,21 +112,34 @@ define(['N/search', 'N/http', 'N/record'], function (search, http, record) {
                 index: Number(nowPage - 1)
             }).data.forEach(function (result) {
                 log.debug("result", result);
-                fnskus.push({
-                    'seller_sku': result.getValue('name'),
-                    'sku': result.getText('custrecord_ass_sku'),
-                    'fnsku': result.getValue('custrecord_ass_fnsku'),
-                    'asin': result.getValue('custrecord_ass_asin'),
-                    'account': result.getText('custrecord_ass_account'),
-                    'site': result.getValue({
-                        join: 'custrecord_ass_sellersku_site',
-                        name: 'custrecord_aio_amazon_marketplace'
-                    }),
-                    'skuName': result.getValue({
+                if (!result.getValue('isinactive')) {
+                    var englishName = result.getValue({
                         join: 'custrecord_ass_sku',
-                        name: 'custitem_dps_skuchiense'
-                    })
-                });
+                        name: 'custitem_dps_spuenglishnames'
+                    });
+                    if (!englishName) {
+                        var englishName = result.getValue({
+                            join: 'custrecord_ass_sku',
+                            name: 'custitem_dps_skuenglish'
+                        });
+                    }
+                    fnskus.push({
+                        'seller_sku': result.getValue('name'),
+                        'sku': result.getText('custrecord_ass_sku'),
+                        'fnsku': result.getValue('custrecord_ass_fnsku'),
+                        'asin': result.getValue('custrecord_ass_asin'),
+                        'account': result.getText('custrecord_ass_account'),
+                        'site': result.getValue({
+                            join: 'custrecord_ass_sellersku_site',
+                            name: 'custrecord_aio_amazon_marketplace'
+                        }),
+                        'skuName': result.getValue({
+                            join: 'custrecord_ass_sku',
+                            name: 'custitem_dps_skuchiense'
+                        }),
+                        'englishName': englishName
+                    });
+                }
             });
         }
         retjson.code = 0;

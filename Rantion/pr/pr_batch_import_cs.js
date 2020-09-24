@@ -11,8 +11,8 @@ function(currentRecord,record,dialog,https,url,Swal) {
     var synPredictionSuiteletUrl=null;
     function pageInit(context) {
         synPredictionSuiteletUrl = url.resolveScript({
-            scriptId: 'customscript_batch_import_transform_pr',
-            deploymentId: 'customdeploy_batch_import_transform_pr'
+            scriptId: 'customscript_batch_generate_requisition',// customscript_batch_import_transform_pr
+            deploymentId: 'customdeploy_batch_generate_requisition' //customdeploy_batch_import_transform_pr
         }); //要跳转的接口处理SL路径  pr_batch_import_sl.js
         currentRec=context.currentRecord;
     }

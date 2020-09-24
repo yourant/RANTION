@@ -3,8 +3,8 @@
  * @NScriptType ClientScript
  */
 define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
-    'N/currentRecord', 'N/http', 'N/url', 'N/ui/dialog', '../common/request_record'], function (
-        cryptoJS, search, log, record, currentRecord, http, url, dialog, requestRecord) {
+    'N/currentRecord', 'N/http', 'N/url', 'N/ui/dialog', '../common/request_record', '../../douples_amazon/Helper/moment-timezone'], function (
+        cryptoJS, search, log, record, currentRecord, http, url, dialog, requestRecord, moment) {
 
     String.prototype.format = function () {
         if (arguments.length == 0) {
@@ -43,16 +43,12 @@ define(['../Helper/CryptoJS.min', 'N/search', 'N/log', 'N/record',
     function pageInit(scriptContext) {
 
         console.log('record_type:' + scriptContext.currentRecord.type);
-        console.log('record_type:' + scriptContext.currentRecord.id);
-      		record.submitFields({
-            type: 'customrecord_product',
-            id: 2189,
-            ignoreMandatoryFields: true,
-            values: {
-                custrecord_product_department:3
-            }
+        console.log('record_type:' + moment('2020-05-31T07:00:44+0700').tz('Japan').format());
+        var t = record.load({
+            type: 'customrecord_dps_customs_contract',
+            id: 1
         })
-        console.log('end-test');
+        console.log(JSON.stringify(t));
 
     }
 

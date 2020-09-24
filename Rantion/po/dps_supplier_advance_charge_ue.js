@@ -6,7 +6,7 @@ define(['N/url', 'N/record', 'N/search'], function(url, record, search) {
 
     function beforeLoad(context) {
         var newRecord = context.newRecord;
-        if (context.type == 'view') {// && newRecord.getValue('orderstatus') == 'B'
+        if (context.type == 'view' && newRecord.getValue('orderstatus') != 'A') {// && newRecord.getValue('orderstatus') == 'B'
             var output = url.resolveRecord({
                 recordType: 'customrecord_supplier_advance_charge',
                 recordId: 6,

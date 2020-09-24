@@ -17,15 +17,15 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
             url = url + '?' +
                 'processCodeList=PROC-EF6YCS6WO2-5NM7Y2MXPFWDA00LGYVX1-M4IP76KI-CD1,PROC-AKGK7QZV-IVMTO4NVOXRZB4PMOV5X1-TMIAF0FJ-6,PROC-JFYJVERV-E272C7P4XCJNF0L298HP2-Y558Y5RJ-R' +
                 //'processCodeList=PROC-7EB449A0-A953-4DF1-9203-D5429FEE2AFF,PROC-1092FF21-2C38-4CC3-97F4-3A5F91D0DE8E,PROC-ACB6A139-97C2-4A85-ACDB-14DF102BBED8' +//测试用
-                '&status=COMPLETED&result=agree&eventType=bpms_instance_change' +
-                '&beginCreateTime='
+                '&status=COMPLETED&result=agree&eventType=bpms_instance_change'
+                + '&beginCreateTime='
                 + beginDate.format("yyyy-MM-dd 00:00:00")
                 //+ beginDate.format("2020-07-30 00:00:00")
                 + '&endCreateTime='
                 + endDate.format("yyyy-MM-dd 23:59:59")
                 //+ endDate.format("2020-08-30 23:59:59")
 				     //+ '&processInstanceId='
-                //+ 'ac7ea6f9-19bd-4f96-ade6-baf915b5742c'
+                //+ 'e56b5158-85cc-4a27-afdb-15cb9cdbab3e'
           			;
             message = sendRequest(url, token);
             message = JSON.parse(JSON.parse(message.data))
@@ -833,7 +833,7 @@ define(['N/search', 'N/log', 'N/record', 'N/http', '../Helper/config.js'], funct
         //设置日记账分录的日期
         new_ns_record.setValue({
             fieldId: 'trandate',
-            value: create_time
+            value: paydate
         });
 
         //费用报销编码

@@ -12,11 +12,11 @@
  * @NScriptType ClientScript
  * @NModuleScope SameAccount
  */
-define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
+define(['N/search', 'N/https', 'N/url', 'N/ui/dialog', '../Helper/commonTool.js'],
     /**
      * @param {search} search
      */
-    function (search, https, url, dialog) {
+    function (search, https, url, dialog, commonTool) {
 
         /**
          * Function to be executed after page is initialized.
@@ -188,25 +188,30 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
             var response;
 
             var options = {
-                title: "重新获取物流运单号",
-                message: "重新获取物流运单号?"
+                title: "重新获取物流渠道",
+                message: "重新获取物流渠道?"
             };
 
             function success(result) {
                 if (result) {
-                    response = https.post({
+                    commonTool.startMask('获取物流渠道中，请耐心等待');
+                    https.post.promise({
                         url: url1,
                         body: body1,
                         headers: header
-                    });
-                    log.audit('respone', response.body);
-                    var body = JSON.parse(response.body)
-                    if (body.code == 500) {
-                        alert('重新获取物流运单号失败：' + body.msg)
+                    }).then(function (resp) {
+                        resp = JSON.parse(resp.body);
+                        commonTool.endMask();
+                      if (resp.code == 500) {
+                        dialog.alert({ title: '提示', message: '重新获取物流渠道失败：' + resp.msg }).then(function () {
+                            window.location.reload();
+                        });
                     } else {
-                        alert('重新获取物流运单号成功');
-                        window.location.reload(true);
+                      dialog.alert({ title: '提示', message: '重新获取物流渠道成功' }).then(function () {
+                            window.location.reload();
+                        });
                     }
+                    });
                 }
             }
 
@@ -242,26 +247,30 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
             var response;
 
             var options = {
-                title: "重新获取物流运单号",
-                message: "重新获取物流运单号?"
+                title: "重新获取物流跟踪号",
+                message: "重新获取物流跟踪号?"
             };
 
             function success(result) {
                 if (result) {
-                    response = https.post({
+                  commonTool.startMask('获取物流跟踪号中，请耐心等待');
+                    https.post.promise({
                         url: url1,
                         body: body1,
                         headers: header
-                    });
-                    log.audit('respone', response.body);
-                    var body = JSON.parse(response.body)
-                    if (body.code == 500) {
-                        alert('重新获取物流跟踪号失败：' + body.msg)
-                        window.location.reload(true);
+                    }).then(function (resp) {
+                        resp = JSON.parse(resp.body);
+                        commonTool.endMask();
+                      if (resp.code == 500) {
+                        dialog.alert({ title: '提示', message: '重新获取物流跟踪号失败：' + resp.msg }).then(function () {
+                            window.location.reload();
+                        });
                     } else {
-                        alert('重新获取物流跟踪号成功');
-                        window.location.reload(true);
+                      dialog.alert({ title: '提示', message: '重新获取物流跟踪号成功' }).then(function () {
+                            window.location.reload();
+                        });
                     }
+                    });
                 }
             }
 
@@ -369,20 +378,24 @@ define(['N/search', 'N/https', 'N/url', 'N/ui/dialog'],
 
             function success(result) {
                 if (result) {
-                    response = https.post({
+                  commonTool.startMask('获取物流面单中，请耐心等待');
+                    https.post.promise({
                         url: url1,
                         body: body1,
                         headers: header
-                    });
-                    log.audit('respone', response.body);
-                    var body = JSON.parse(response.body)
-                    if (body.code == 500) {
-                        alert('重新获取物流面单失败：' + body.msg)
-                        window.location.reload(true);
+                    }).then(function (resp) {
+                        resp = JSON.parse(resp.body);
+                        commonTool.endMask();
+                      if (resp.code == 500) {
+                        dialog.alert({ title: '提示', message: '重新获取物流面单失败：' + resp.msg }).then(function () {
+                            window.location.reload();
+                        });
                     } else {
-                        alert('重新获取物流面单成功');
-                        window.location.reload(true);
+                      dialog.alert({ title: '提示', message: '重新获取物流面单成功' }).then(function () {
+                            window.location.reload();
+                        });
                     }
+                    });
                 }
             }
 

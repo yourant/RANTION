@@ -41,7 +41,21 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', '../Helper/Moment.min', 'N/
           data = JSON.parse(data)
           var err = []
           try {
-            var itemResultArr = searchAllChoosedItem(data)
+            var itemResultArr = searchAllChoosedItem(data);
+            log.debug('itemResultArr',itemResultArr);
+            // if(itemResultArr.length > 0){
+            //   var err_sku = [], msgStr;
+            //   for(var i = 0; i < itemResultArr.length; i++){
+            //     if(!itemResultArr[i].getValue('vendor')){
+            //       err_sku.push(itemResultArr[i].getValue('itemid'))
+            //     }
+            //   }
+            //   if(err_sku.length > 0){
+            //     msgStr = 'sku为：' + err_sku + '没有默认供应商';
+            //     response.write({output: msgStr});
+            //     return;
+            //   }
+            // }
             var resStr = ''
             for (var z = 0;z < data.length;z++) {
               var loadId = Number(data[z])
@@ -56,7 +70,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', '../Helper/Moment.min', 'N/
                 resStr = resStr + '内部标识为 ' + loadId + ' 的记录转换失败'
                 log.error({
                   title: '报错信息',
-                  details: JSON.stringify(e)
+                  details: JSON.stringify(error)
                 })
               }
             }
@@ -331,31 +345,31 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', '../Helper/Moment.min', 'N/
           //     line: i,
           //     value: unchangedPrArr[i].getValue('custrecord_pr_batch_import_batch_id')
           // })
-          sublist.setSublistValue({ // 内部标识
+          unchangedPrArr[i].getValue('internalid') ? sublist.setSublistValue({ // 内部标识
             id: 'custpage_batch_import_id',
             line: i,
             value: unchangedPrArr[i].getValue('internalid')
-          })
-          sublist.setSublistValue({ // 请求者
+          }) : '';
+          unchangedPrArr[i].getValue('custrecord_pr_batch_import_entity') ? sublist.setSublistValue({ // 请求者
             id: 'custpage_batch_import_request_body',
             line: i,
             value: unchangedPrArr[i].getValue('custrecord_pr_batch_import_entity')
-          })
-          sublist.setSublistValue({ // 创建日期
+          }) : '';
+          unchangedPrArr[i].getValue('custrecord_pr_batch_import_trandate') ? sublist.setSublistValue({ // 创建日期
             id: 'custpage_batch_import_create_date',
             line: i,
             value: unchangedPrArr[i].getValue('custrecord_pr_batch_import_trandate')
-          })
-          sublist.setSublistValue({ // 请购单类型
+          }) : '';
+          unchangedPrArr[i].getValue('custrecord_pr_batch_import_type') ? sublist.setSublistValue({ // 请购单类型
             id: 'custpage_batch_import_purchase_type',
             line: i,
             value: unchangedPrArr[i].getValue('custrecord_pr_batch_import_type')
-          }); // 请购单类型
-          sublist.setSublistValue({ // 子公司
+          }) : ''; // 请购单类型
+          unchangedPrArr[i].getValue('custrecord_pr_batch_import_subsidiary') ? sublist.setSublistValue({ // 子公司
             id: 'custpage_batch_import_sublist_subdiary',
             line: i,
             value: unchangedPrArr[i].getValue('custrecord_pr_batch_import_subsidiary')
-          })
+          }) : '';
           // var location= unchangedPrArr[i].getValue('custrecord_pr_batch_import_location')
           // if(location!=null&&location.length>0){
           //     sublist.setSublistValue({//地点
@@ -745,7 +759,7 @@ define(['N/ui/serverWidget', 'N/search', 'N/record', '../Helper/Moment.min', 'N/
         batchImportItemArr.push(item)
         return true
       })
-      var itemColumns = ['description', 'custitem_dps_skuchiense', 'internalid']
+      var itemColumns = ['description', 'custitem_dps_skuchiense', 'internalid', 'vendor', {join:'preferredVendor', name: 'subsidiary'}, 'itemid']
       var itemFilters = []
       itemFilters.push(search.createFilter({
         name: 'internalid',

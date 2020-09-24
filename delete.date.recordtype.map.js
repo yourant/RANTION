@@ -1,8 +1,8 @@
 /*
  * @Date           : 2020-03-30 10:32:17
  * @LastEditors    : Li
- * @LastEditTime   : 2020-08-18 11:31:23
- * @Description    : 
+ * @LastEditTime   : 2020-09-21 20:02:14
+ * @Description    :
  * @FilePath       : \delete.date.recordtype.map.js
  * @Author         : Li
  * @可以输入预定的版权声明、个性签名、空行等
@@ -14,12 +14,15 @@
 define(['N/record', 'N/search', 'N/log', 'N/runtime'], function (record, search, log, runtime) {
 
     function getInputData() {
+
+
+        /*
         var order = [],
             limit = 3999;
 
         // var userObj = runtime.getCurrentUser();
 
-        log.debug('userObj', userObj);
+        // log.debug('userObj', userObj);
 
         var record_type = runtime.getCurrentScript().getParameter({
             name: 'custscript_dps_delete_recordtype'
@@ -28,6 +31,7 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function (record, search,
             name: 'custscript_dps_li_run_action'
         })
         log.debug('record_type', record_type)
+
 
         if (record_type) {
             log.audit('需要删除记录的ID', record_type)
@@ -75,6 +79,22 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function (record, search,
             log.audit('请输入需要删除记录的ID', '请输入需要删除记录的ID')
         }
 
+        */
+
+
+        var limit = 3999;
+        var mySearch = search.load({ id: 648 });
+
+        var delArr = [];
+
+        mySearch.run().each(function (rec) {
+
+            delArr.push(rec.id);
+
+            return --limit > 0;
+
+        })
+
         // return order;
     }
 
@@ -84,6 +104,8 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function (record, search,
             var record_type = runtime.getCurrentScript().getParameter({
                 name: 'custscript_dps_delete_recordtype'
             })
+
+            record_type = "customrecord_amazon_fulfill_invtory_rep";
             var deleid = record.delete({
                 type: record_type,
                 id: context.value

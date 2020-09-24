@@ -203,6 +203,21 @@ define(['N/search', 'N/record'],
                             fieldId: 'custrecord_product_sku_image_url',
                             line: index
                         })
+                        , custrecord_product_sku_box_long: rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_sku_product_code',
+                            fieldId: 'custrecord_product_sku_box_long',
+                            line: index
+                        })
+                        , custrecord_product_sku_box_width: rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_sku_product_code',
+                            fieldId: 'custrecord_product_sku_box_width',
+                            line: index
+                        })
+                        , custrecord_product_sku_box_height: rec.getSublistValue({
+                            sublistId: 'recmachcustrecord_sku_product_code',
+                            fieldId: 'custrecord_product_sku_box_height',
+                            line: index
+                        })
                         , custrecord_product_code: rec.getValue("custrecord_product_code")
                         , custrecord_product_name_cn: rec.getValue("custrecord_product_name_cn")
                         , custrecord_product_name_en: rec.getValue("custrecord_product_name_en")
@@ -428,7 +443,7 @@ define(['N/search', 'N/record'],
                     value: body.custrecord_product_sku_name
                 })
                 inventoryitem.setValue({
-                    fieldId: 'custitem_dps_spuenglishnames',
+                    fieldId: 'custitem_dps_skuenglish',
                     value: body.custrecord_product_sku_name_en
                 })
                 inventoryitem.setValue({
@@ -504,6 +519,18 @@ define(['N/search', 'N/record'],
                     fieldId: 'custitem_dps_picture',
                     value: body.custrecord_product_sku_image_url
                 })
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_box_long',
+                    value: body.custrecord_product_sku_box_long
+                })
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_box_wide',
+                    value: body.custrecord_product_sku_box_width
+                })
+                inventoryitem.setValue({
+                    fieldId: 'custitem_dps_box_high',
+                    value: body.custrecord_product_sku_box_height
+                })
 
                 if (body.custrecord_product_sku_default_vendor) {
                     inventoryitem.setSublistValue({
@@ -531,7 +558,7 @@ define(['N/search', 'N/record'],
                         customform: -200,
                         includechildren: true,
                         custitem_dps_skuchiense: body.custrecord_product_sku_name,
-                        custitem_dps_spuenglishnames: body.custrecord_product_sku_name_en,
+                        custitem_dps_skuenglish: body.custrecord_product_sku_name_en,
                         custitem_dps_skureferred: body.custrecord_product_sku_abbr,
                         custitem_dps_deliverydate: body.custrecord_product_delivery_date,
                         custitem_dps_describe: body.custrecord_product_sku_describe,
@@ -550,6 +577,9 @@ define(['N/search', 'N/record'],
                         custitem_product_grading: body.custrecord_product_sku_grading,
                         custitemf_product_grading: body.custrecord_product_init_grading,
                         custitem_dps_picture: body.custrecord_product_sku_image_url,
+                        custitem_dps_box_long: body.custrecord_product_sku_box_long,
+                        custitem_dps_box_wide: body.custrecord_product_sku_box_width,
+                        custitem_dps_box_high: body.custrecord_product_sku_box_height,
                         //SPU
                         displayname: body.custrecord_product_name_cn,
                         custitem_dps_spuenglishnames: body.custrecord_product_name_en,

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-16 22:21:02
+ * @LastEditTime   : 2020-09-17 17:59:39
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \douples_amazon\dps_amzon_so_fulfill_mp.js
@@ -14,7 +14,7 @@
  */
 define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', './Helper/Moment.min.js',
     './Helper/interfunction.min', './Helper/core.min.js', 'N/xml'
-], function(fields, format, runtime, search, record, moment, interfun, core, xml) {
+], function (fields, format, runtime, search, record, moment, interfun, core, xml) {
     // 单价的计算逻辑
     const price_conf = {
         'SKU售价': 'item_price',
@@ -75,7 +75,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         }
         var acc_arrys = []
         if (group_req) { // 根据拉单分组去履行
-            core.amazon.getReportAccountList(group_req).map(function(acount) {
+            core.amazon.getReportAccountList(group_req).map(function (acount) {
                 acc_arrys.push(acount.id)
             })
             // if (group_req == '1' || group_req == '3' || group_req == '8' || group_req == '5' || group_req == '6') {
@@ -123,7 +123,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                 for (var i = 0; i < pageCount; i++) {
                     pageData.fetch({
                         index: i
-                    }).data.forEach(function(e) {
+                    }).data.forEach(function (e) {
                         orders.push({
                             'reporid': e.id,
                             'report_acc': e.getValue('custrecord_shipment_account'),
@@ -147,7 +147,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             }
 
         } else {
-            mySearch.run().each(function(e) {
+            mySearch.run().each(function (e) {
                 orders.push({
                     'reporid': e.id,
                     'report_acc': e.getValue('custrecord_shipment_account'),
@@ -229,13 +229,14 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             var ord_status
             log.debug('order_id', order_id)
             var so_obj = interfun.SearchSO(order_id, merchant_order_id, rs.acc_search)
+            log.debug('订单查询：', so_obj);
             so_id = so_obj.so_id
             acc = so_obj.acc
             ord_status = so_obj.ord_status
             var acc_loca = so_obj.acc_loca
             var ord_loca = so_obj.ord_loca
-            log.debug('ord_status: ' + ord_status, 'so_obj: ' + JSON.stringify(so_obj))
-            if (so_id) {
+            if (so_id && JSON.stringify(so_obj) != '{}') {
+                log.debug('ord_status: ' + ord_status, 'so_obj: ' + JSON.stringify(so_obj))
                 if (ord_status == 'pendingApproval') { // 待批准
                     record.submitFields({
                         type: record.Type.SALES_ORDER,
@@ -271,7 +272,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         { name: 'custbody_shipment_report_rel', operator: 'anyof', values: repid },
                         { name: 'mainline', operator: 'is', values: true }
                     ]
-                }).run().each(function(rec) {
+                }).run().each(function (rec) {
                     inv_id.push(rec.id);
                     return true;
                 })
@@ -282,7 +283,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         { name: 'custbody_shipment_report_rel', operator: 'anyof', values: repid },
                         { name: 'mainline', operator: 'is', values: true }
                     ]
-                }).run().each(function(rec) {
+                }).run().each(function (rec) {
                     fulfill_id.push(rec.id)
                     return true
                 })
@@ -300,7 +301,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     })
                     return
                 } else if (inv_id.length == 0 && fulfill_id.length > 0) {
-                    fulfill_id.map(function(dls) {
+                    fulfill_id.map(function (dls) {
                         // 如果是已发货，但是没开票，考虑到要保持一个发货一份发票，所以要把这个发货单删除，重新发货开票
                         var de = record.delete({ type: 'itemfulfillment', id: dls })
                         log.debug('已删除发货单，重新发货发票', de)
@@ -360,7 +361,8 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     })
                 }
             } else {
-                if (order_id.indexOf('S') == -1) {
+                log.debug('else', 'else ' + order_id.indexOf('S'))
+                if (order_id.indexOf('S') == 0) {
                     var cach
                     var T_acc = interfun.GetstoreInEU(report_acc, market, report_acc_txt).acc
                     log.audit(' 找不到订单 T_acc' + T_acc, 'order_id: ' + order_id)
@@ -371,7 +373,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     search.create({
                         type: 'customrecord_aio_order_import_cache',
                         filters: fil
-                    }).run().each(function(e) {
+                    }).run().each(function (e) {
                         cach = e.id
                     })
                     if (!cach) {
@@ -451,7 +453,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         var orders = [],
             orderid
         try {
-            core.amazon.getAccountList().map(function(account) {
+            core.amazon.getAccountList().map(function (account) {
                 if (account.id == acc) {
                     var filters = [{
                         name: 'custrecord_aio_cache_status',
@@ -481,27 +483,27 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         type: 'customrecord_aio_order_import_cache',
                         filters: filters,
                         columns: [{
-                                name: 'created',
-                                sort: search.Sort.DESC
-                            },
-                            {
-                                name: 'custrecord_aio_cache_acc_id'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_body'
-                            },
-                            {
-                                name: 'custrecord_amazonorder_iteminfo'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_version',
-                                sort: 'ASC'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_order_id'
-                            }
+                            name: 'created',
+                            sort: search.Sort.DESC
+                        },
+                        {
+                            name: 'custrecord_aio_cache_acc_id'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_body'
+                        },
+                        {
+                            name: 'custrecord_amazonorder_iteminfo'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_version',
+                            sort: 'ASC'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_order_id'
+                        }
                         ]
-                    }).run().each(function(rec) {
+                    }).run().each(function (rec) {
                         orderid = rec.getValue('custrecord_aio_cache_order_id')
                         orders.push({
                             rec_id: rec.id,
@@ -535,7 +537,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             return '店铺 :' + acc + 'order:' + orders.length
         try {
             var skck = false
-            orders.map(function(obj) {
+            orders.map(function (obj) {
                 log.audit('obj', obj)
                 var amazon_account_id = obj.id
                 var o = obj.order
@@ -587,7 +589,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         operator: 'is',
                         values: o.order_total.currency_code
                     }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     currency_id = e.id
                     return true
                 })
@@ -602,7 +604,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     //         return mark_resolved(amazon_account_id, o.amazon_order_id)
                     // }
                     log.debug(externalid, externalid + ' | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  111 ' + order_type)
-                    var so_i = interfun.SearchSO(o.amazon_order_id, '', amazon_account_id)
+                    var so_i = interfun.SearchSO(o.amazon_order_id, '', amazon_account_id, '', 'order')
                     if (so_i.so_id)
                         ord = record.load({
                             type: order_type,
@@ -698,7 +700,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                             fieldId: 'custbody_order_type',
                             value: ord_type[o.fulfillment_channel]
                         })
-                        log.debug('5currency：' + typeof(currency_id), currency_id)
+                        log.debug('5currency：' + typeof (currency_id), currency_id)
                         ord.setValue({
                             fieldId: 'currency',
                             value: Number(currency_id)
@@ -755,7 +757,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                                         value: i.subsidiary
                                     })
                                 log.debug('i.subsidiary', i.subsidiary)
-                                var names = o.buyer_email.split(' ').filter(function(n) {
+                                var names = o.buyer_email.split(' ').filter(function (n) {
                                     return n != ''
                                 })
                                 c.setValue({
@@ -936,7 +938,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
 
                     log.debug('2 fla ', fla)
 
-                    line_items.map(function(line) {
+                    line_items.map(function (line) {
                         log.debug('line', line)
                         log.debug('amazon_account_id', amazon_account_id)
                         itemAry.push(line.seller_sku)
@@ -983,7 +985,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                             value: line.seller_sku
                         })
 
-                        log.debug('14quantity:' + typeof(line.qty), line.qty)
+                        log.debug('14quantity:' + typeof (line.qty), line.qty)
                         ord.setCurrentSublistValue({
                             sublistId: 'item',
                             fieldId: 'quantity',
@@ -1031,7 +1033,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         log.audit('tax_item_amount::', line.item_tax + ',' + line.shipping_tax)
                         /** 设置订单含税 */
                         if (p.salesorder_if_taxed && i.tax_item && line.item_tax) {
-                            log.debug('18item taxcode:' + typeof(i.tax_item), i.tax_item)
+                            log.debug('18item taxcode:' + typeof (i.tax_item), i.tax_item)
                             ord.setCurrentSublistValue({
                                 sublistId: 'item',
                                 fieldId: 'taxcode',
@@ -1078,7 +1080,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         }
                     })
 
-                    log.debug('o.order_total.amount:' + typeof(o.order_total.amount), o.order_total.amount)
+                    log.debug('o.order_total.amount:' + typeof (o.order_total.amount), o.order_total.amount)
                     ord.setValue({
                         fieldId: 'amount',
                         value: o.order_total.amount
@@ -1105,7 +1107,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         fieldId: 'custbody_aio_marketplaceid',
                         value: 1 /* amazon */
                     })
-                    log.debug('30 amazon_account_id:' + typeof(amazon_account_id), amazon_account_id)
+                    log.debug('30 amazon_account_id:' + typeof (amazon_account_id), amazon_account_id)
                     ord.setValue({
                         fieldId: 'custbody_aio_account',
                         value: Number(amazon_account_id)
@@ -1255,7 +1257,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                                     operator: 'is',
                                     values: externalid
                                 }]
-                            }).run().each(function(rec) {
+                            }).run().each(function (rec) {
                                 record.submitFields({
                                     type: 'customrecord_aio_connector_missing_order',
                                     id: rec.id,
@@ -1319,17 +1321,17 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         if (o.shipping_address && o.buyer_email) {
             var names
             if (o.shipping_address.name) {
-                names = o.shipping_address.name.split(' ').filter(function(n) {
+                names = o.shipping_address.name.split(' ').filter(function (n) {
                     return n != ''
                 })
             }
 
             if (o.buyer_name) {
-                names = o.buyer_name.split(' ').filter(function(n) {
+                names = o.buyer_name.split(' ').filter(function (n) {
                     return n != ''
                 })
             } else {
-                names = o.buyer_email.split(' ').filter(function(n) {
+                names = o.buyer_email.split(' ').filter(function (n) {
                     return n != ''
                 })
             }
@@ -1365,7 +1367,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     filters: [
                         { name: 'custrecord_cc_country_code', operator: 'is', values: o.shipping_address.country_code }
                     ]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     c.setValue({
                         fieldId: 'custrecord_dps_cc_country',
                         value: e.id
@@ -1408,7 +1410,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         return c_id
     }
 
-    var mark_missing_order = function(externalid, account_id, order_id, reason, purchase_date) {
+    var mark_missing_order = function (externalid, account_id, order_id, reason, purchase_date) {
         var mo
         search.create({
             type: 'customrecord_aio_connector_missing_order',
@@ -1417,7 +1419,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                 operator: 'is',
                 values: externalid
             }]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             mo = record.load({
                 type: 'customrecord_aio_connector_missing_order',
                 id: rec.id
@@ -1465,23 +1467,23 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         return mo.save()
     }
 
-    var mark_resolved = function(amazon_account_id, amazon_order_id) {
+    var mark_resolved = function (amazon_account_id, amazon_order_id) {
         log.debug('mark_resolved', 'mark_resolved')
         search.create({
             type: 'customrecord_aio_order_import_cache',
             filters: [{
-                    name: 'custrecord_aio_cache_acc_id',
-                    operator: search.Operator.ANYOF,
-                    values: amazon_account_id
-                },
-                {
-                    name: 'custrecord_aio_cache_order_id',
-                    operator: search.Operator.IS,
-                    values: amazon_order_id
-                }
+                name: 'custrecord_aio_cache_acc_id',
+                operator: search.Operator.ANYOF,
+                values: amazon_account_id
+            },
+            {
+                name: 'custrecord_aio_cache_order_id',
+                operator: search.Operator.IS,
+                values: amazon_order_id
+            }
             ],
             columns: ['custrecord_aio_cache_version']
-        }).run().each(function(r) {
+        }).run().each(function (r) {
             var ver = r.getValue('custrecord_aio_cache_version')
             record.submitFields({
                 type: 'customrecord_aio_order_import_cache',
@@ -1526,7 +1528,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                 { name: 'custrecord_fulfillment', operator: 'is', values: msku },
                 { name: 'custrecord_fulfillment_newsku', operator: 'is', values: newsku }
             ]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             recs = record.load({ type: 'customrecord_fuifillment_itemrec', id: rec.id })
         })
         if (!recs) {
@@ -1554,7 +1556,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         search.create({
             type: 'customrecord_dps_transform_mo',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             record.submitFields({
                 type: 'customrecord_dps_transform_mo',
                 id: rec.id,
@@ -1589,7 +1591,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         search.create({
             type: 'customrecord_dps_transform_mo',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             mo = record.load({
                 type: 'customrecord_dps_transform_mo',
                 id: rec.id
@@ -1653,7 +1655,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         search.create({
             type: 'customrecord_missing_report',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             var de = record.delete({ type: 'customrecord_missing_report', id: rec.id })
         })
     }
@@ -1733,7 +1735,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             }
         }
         // 不用发货
-        unrec.map(function(l) {
+        unrec.map(function (l) {
             f.setSublistValue({ sublistId: 'item', fieldId: 'itemreceive', value: false, line: l })
         })
 
@@ -1765,7 +1767,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                 { name: 'internalId' },
                 { name: 'itemid' }
             ]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             itemN = rec.getValue('itemid')
         })
         return itemN
@@ -1789,7 +1791,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             var len = inv.getLineCount({ sublistId: 'item' }),
                 ck = true,
                 seted = 0
-            fulfill_items.map(function(fs) {
+            fulfill_items.map(function (fs) {
                 ck = true
 
                 for (var i = seted; i < len; i++) {
@@ -1818,7 +1820,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             log.debug('发票要删除的行：', remocl)
             remocl.sort()
             var num = 0
-            remocl.map(function(ds) {
+            remocl.map(function (ds) {
                 ds = ds - num
                 inv.removeLine({ sublistId: 'item', line: ds })
                 num++
@@ -1871,329 +1873,329 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                 .getElementsByTagName({
                     tagName: 'Order'
                 })
-                .map(function(node) {
+                .map(function (node) {
                     orders.push({
                         AccID: acc,
                         latest_delivery_date: node.getElementsByTagName({
-                                tagName: 'LatestDeliveryDate'
-                            }).length ?
+                            tagName: 'LatestDeliveryDate'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'LatestDeliveryDate'
                             })[0].textContent : '',
                         latest_ship_date: node.getElementsByTagName({
-                                tagName: 'LatestShipDate'
-                            }).length ?
+                            tagName: 'LatestShipDate'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'LatestShipDate'
                             })[0].textContent : '',
                         order_type: node.getElementsByTagName({
-                                tagName: 'OrderType'
-                            }).length ?
+                            tagName: 'OrderType'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'OrderType'
                             })[0].textContent : '',
                         purchase_date: node.getElementsByTagName({
-                                tagName: 'PurchaseDate'
-                            }).length ?
+                            tagName: 'PurchaseDate'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'PurchaseDate'
                             })[0].textContent : '',
                         is_replacement_order: node.getElementsByTagName({
-                                tagName: 'IsReplacementOrder'
-                            }).length ?
+                            tagName: 'IsReplacementOrder'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'IsReplacementOrder'
                             })[0].textContent == 'true' : false,
                         last_update_date: node.getElementsByTagName({
-                                tagName: 'LastUpdateDate'
-                            }).length ?
+                            tagName: 'LastUpdateDate'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'LastUpdateDate'
                             })[0].textContent : '',
                         buyer_email: node.getElementsByTagName({
-                                tagName: 'BuyerEmail'
-                            }).length ?
+                            tagName: 'BuyerEmail'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'BuyerEmail'
                             })[0].textContent : '',
                         amazon_order_id: node.getElementsByTagName({
-                                tagName: 'AmazonOrderId'
-                            }).length ?
+                            tagName: 'AmazonOrderId'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'AmazonOrderId'
                             })[0].textContent : '',
                         number_of_items_shipped: node.getElementsByTagName({
-                                tagName: 'NumberOfItemsShipped'
-                            }).length ?
+                            tagName: 'NumberOfItemsShipped'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'NumberOfItemsShipped'
                             })[0].textContent : '',
                         ship_service_level: node.getElementsByTagName({
-                                tagName: 'ShipServiceLevel'
-                            }).length ?
+                            tagName: 'ShipServiceLevel'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'ShipServiceLevel'
                             })[0].textContent : '',
                         order_status: node.getElementsByTagName({
-                                tagName: 'OrderStatus'
-                            }).length ?
+                            tagName: 'OrderStatus'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'OrderStatus'
                             })[0].textContent : '',
                         sales_channel: node.getElementsByTagName({
-                                tagName: 'SalesChannel'
-                            }).length ?
+                            tagName: 'SalesChannel'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'SalesChannel'
                             })[0].textContent : '',
                         is_business_order: node.getElementsByTagName({
-                                tagName: 'IsBusinessOrder'
-                            }).length ?
+                            tagName: 'IsBusinessOrder'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'IsBusinessOrder'
                             })[0].textContent == 'true' : false,
                         number_of_items_unshipped: node.getElementsByTagName({
-                                tagName: 'NumberOfItemsUnshipped'
-                            }).length ?
+                            tagName: 'NumberOfItemsUnshipped'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'NumberOfItemsUnshipped'
                             })[0].textContent : '',
                         buyer_name: node.getElementsByTagName({
-                                tagName: 'BuyerName'
-                            }).length ?
+                            tagName: 'BuyerName'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'BuyerName'
                             })[0].textContent : '',
                         is_premium_order: node.getElementsByTagName({
-                                tagName: 'IsPremiumOrder'
-                            }).length ?
+                            tagName: 'IsPremiumOrder'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'IsPremiumOrder'
                             })[0].textContent == 'true' : false,
                         earliest_delivery_date: node.getElementsByTagName({
-                                tagName: 'EarliestDeliveryDate'
-                            }).length ?
+                            tagName: 'EarliestDeliveryDate'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'EarliestDeliveryDate'
                             })[0].textContent : '',
                         earliest_ship_date: node.getElementsByTagName({
-                                tagName: 'EarliestShipDate'
-                            }).length ?
+                            tagName: 'EarliestShipDate'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'EarliestShipDate'
                             })[0].textContent : '',
                         marketplace_id: node.getElementsByTagName({
-                                tagName: 'MarketplaceId'
-                            }).length ?
+                            tagName: 'MarketplaceId'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'MarketplaceId'
                             })[0].textContent : '',
                         fulfillment_channel: node.getElementsByTagName({
-                                tagName: 'FulfillmentChannel'
-                            }).length ?
+                            tagName: 'FulfillmentChannel'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'FulfillmentChannel'
                             })[0].textContent : '',
                         payment_method: node.getElementsByTagName({
-                                tagName: 'PaymentMethod'
-                            }).length ?
+                            tagName: 'PaymentMethod'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'PaymentMethod'
                             })[0].textContent : '',
                         is_prime: node.getElementsByTagName({
-                                tagName: 'IsPrime'
-                            }).length ?
+                            tagName: 'IsPrime'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'IsPrime'
                             })[0].textContent == 'true' : false,
                         shipment_service_level_category: node.getElementsByTagName({
-                                tagName: 'ShipmentServiceLevelCategory'
-                            }).length ?
+                            tagName: 'ShipmentServiceLevelCategory'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'ShipmentServiceLevelCategory'
                             })[0].textContent : '',
                         seller_order_id: node.getElementsByTagName({
-                                tagName: 'SellerOrderId'
-                            }).length ?
+                            tagName: 'SellerOrderId'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'SellerOrderId'
                             })[0].textContent : '',
                         shipped_byamazont_fm: node.getElementsByTagName({
-                                tagName: 'ShippedByAmazonTFM'
-                            }).length ?
+                            tagName: 'ShippedByAmazonTFM'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'ShippedByAmazonTFM'
                             })[0].textContent == 'true' : false,
                         tfm_shipment_status: node.getElementsByTagName({
-                                tagName: 'TFMShipmentStatus'
-                            }).length ?
+                            tagName: 'TFMShipmentStatus'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'TFMShipmentStatus'
                             })[0].textContent : '',
                         promise_response_due_date: node.getElementsByTagName({
-                                tagName: 'PromiseResponseDueDate'
-                            }).length ?
+                            tagName: 'PromiseResponseDueDate'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'PromiseResponseDueDate'
                             })[0].textContent : '',
                         is_estimated_ship_date_set: node.getElementsByTagName({
-                                tagName: 'IsEstimatedShipDateSet'
-                            }).length ?
+                            tagName: 'IsEstimatedShipDateSet'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'IsEstimatedShipDateSet'
                             })[0].textContent == 'true' : false,
                         // 娉ㄦ剰锛岃繖閲岀洿鎺ュ彇鐨勪笅涓�灞傦紝鎵�浠ュ彧浼氬彇涓�涓�
                         payment_method_detail: node.getElementsByTagName({
-                                tagName: 'PaymentMethodDetail'
-                            }).length ?
+                            tagName: 'PaymentMethodDetail'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'PaymentMethodDetail'
                             })[0].textContent : '',
                         payment_execution_detail: node.getElementsByTagName({
-                                tagName: 'PaymentExecutionDetail'
-                            }).length ?
+                            tagName: 'PaymentExecutionDetail'
+                        }).length ?
                             node.getElementsByTagName({
                                 tagName: 'PaymentExecutionDetail'
                             })[0].textContent : '',
                         order_total: node.getElementsByTagName({
                             tagName: 'OrderTotal'
                         }).length ? {
-                            currency_code: node
-                                .getElementsByTagName({
-                                    tagName: 'OrderTotal'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'CurrencyCode'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'OrderTotal'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'CurrencyCode'
-                                })[0].textContent : '',
-                            amount: node
-                                .getElementsByTagName({
-                                    tagName: 'OrderTotal'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'Amount'
-                                }).length ?
-                                Number(
+                                currency_code: node
+                                    .getElementsByTagName({
+                                        tagName: 'OrderTotal'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'CurrencyCode'
+                                    }).length ?
                                     node
+                                        .getElementsByTagName({
+                                            tagName: 'OrderTotal'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'CurrencyCode'
+                                        })[0].textContent : '',
+                                amount: node
                                     .getElementsByTagName({
                                         tagName: 'OrderTotal'
                                     })[0]
                                     .getElementsByTagName({
                                         tagName: 'Amount'
-                                    })[0].textContent
-                                ) : 0
-                        } : {
-                            currency_code: '_UNKNOW_',
-                            amount: 0
-                        },
+                                    }).length ?
+                                    Number(
+                                        node
+                                            .getElementsByTagName({
+                                                tagName: 'OrderTotal'
+                                            })[0]
+                                            .getElementsByTagName({
+                                                tagName: 'Amount'
+                                            })[0].textContent
+                                    ) : 0
+                            } : {
+                                currency_code: '_UNKNOW_',
+                                amount: 0
+                            },
                         shipping_address: node.getElementsByTagName({
                             tagName: 'ShippingAddress'
                         }).length ? {
-                            city: node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'City'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'City'
-                                })[0].textContent : '',
-                            postal_code: node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'PostalCode'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'PostalCode'
-                                })[0].textContent : '',
-                            state_or_oegion: node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'StateOrRegion'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'StateOrRegion'
-                                })[0].textContent : '',
-                            country_code: node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'CountryCode'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'CountryCode'
-                                })[0].textContent : '',
-                            name: node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'Name'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'Name'
-                                })[0].textContent : '',
-                            address_line1: node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'AddressLine1'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'AddressLine1'
-                                })[0].textContent : '',
-                            address_line2: node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'AddressLine2'
-                                }).length ?
-                                node
-                                .getElementsByTagName({
-                                    tagName: 'ShippingAddress'
-                                })[0]
-                                .getElementsByTagName({
-                                    tagName: 'AddressLine2'
-                                })[0].textContent : ''
-                        } : null
+                                city: node
+                                    .getElementsByTagName({
+                                        tagName: 'ShippingAddress'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'City'
+                                    }).length ?
+                                    node
+                                        .getElementsByTagName({
+                                            tagName: 'ShippingAddress'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'City'
+                                        })[0].textContent : '',
+                                postal_code: node
+                                    .getElementsByTagName({
+                                        tagName: 'ShippingAddress'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'PostalCode'
+                                    }).length ?
+                                    node
+                                        .getElementsByTagName({
+                                            tagName: 'ShippingAddress'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'PostalCode'
+                                        })[0].textContent : '',
+                                state_or_oegion: node
+                                    .getElementsByTagName({
+                                        tagName: 'ShippingAddress'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'StateOrRegion'
+                                    }).length ?
+                                    node
+                                        .getElementsByTagName({
+                                            tagName: 'ShippingAddress'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'StateOrRegion'
+                                        })[0].textContent : '',
+                                country_code: node
+                                    .getElementsByTagName({
+                                        tagName: 'ShippingAddress'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'CountryCode'
+                                    }).length ?
+                                    node
+                                        .getElementsByTagName({
+                                            tagName: 'ShippingAddress'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'CountryCode'
+                                        })[0].textContent : '',
+                                name: node
+                                    .getElementsByTagName({
+                                        tagName: 'ShippingAddress'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'Name'
+                                    }).length ?
+                                    node
+                                        .getElementsByTagName({
+                                            tagName: 'ShippingAddress'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'Name'
+                                        })[0].textContent : '',
+                                address_line1: node
+                                    .getElementsByTagName({
+                                        tagName: 'ShippingAddress'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'AddressLine1'
+                                    }).length ?
+                                    node
+                                        .getElementsByTagName({
+                                            tagName: 'ShippingAddress'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'AddressLine1'
+                                        })[0].textContent : '',
+                                address_line2: node
+                                    .getElementsByTagName({
+                                        tagName: 'ShippingAddress'
+                                    })[0]
+                                    .getElementsByTagName({
+                                        tagName: 'AddressLine2'
+                                    }).length ?
+                                    node
+                                        .getElementsByTagName({
+                                            tagName: 'ShippingAddress'
+                                        })[0]
+                                        .getElementsByTagName({
+                                            tagName: 'AddressLine2'
+                                        })[0].textContent : ''
+                            } : null
                     })
                 })
         } else {
@@ -2214,19 +2216,19 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     .create({
                         type: 'customrecord_aio_order_import_cache',
                         filters: [{
-                                name: 'custrecord_aio_cache_acc_id',
-                                operator: search.Operator.ANYOF,
-                                values: order.AccID
-                            },
-                            {
-                                name: 'custrecord_aio_cache_order_id',
-                                operator: search.Operator.IS,
-                                values: order.amazon_order_id
-                            }
+                            name: 'custrecord_aio_cache_acc_id',
+                            operator: search.Operator.ANYOF,
+                            values: order.AccID
+                        },
+                        {
+                            name: 'custrecord_aio_cache_order_id',
+                            operator: search.Operator.IS,
+                            values: order.amazon_order_id
+                        }
                         ]
                     })
                     .run()
-                    .each(function(rec) {
+                    .each(function (rec) {
                         r = record.load({
                             type: 'customrecord_aio_order_import_cache',
                             id: rec.id
@@ -2311,7 +2313,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         return ss
     }
 
-    function reduce(context) {}
+    function reduce(context) { }
 
     function summarize(summary) {
 
@@ -2328,7 +2330,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                         { name: 'isinactive', operator: 'is', values: false },
                         { name: 'custrecord_dps_auto_execute_account', operator: 'anyof', values: acc }
                     ]
-                }).run().each(function(_l) {
+                }).run().each(function (_l) {
                     record.submitFields({
                         type: 'customrecord_dps_li_automatically_execut',
                         id: _l.id,

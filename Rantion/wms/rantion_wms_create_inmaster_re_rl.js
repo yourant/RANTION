@@ -967,8 +967,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
      * @param {Object} body
      */
     function logisticsReturnTransfer(body) {
-
-        var limit = 3999,
+			var limit = 3999,
             shipping_id, to_id, from_location, to_location, subsidiary, retObj = {},
             sourceNo = body.sourceNo,
             bill_id;
@@ -1039,41 +1038,91 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                     return retjson;
                 }
 
-                var transferorder = record.copy({
-                    type: record.Type.TRANSFER_ORDER,
-                    id: shipping_id,
-                    isDynamic: true
-                }); // 复制调拨单
-
-                var custbody_dps_start_location = transferorder.getValue("custbody_dps_start_location");
-                var custbody_actual_target_warehouse = transferorder.getValue("custbody_actual_target_warehouse");
-                var transferlocation = transferorder.getValue("transferlocation");
-                var location = transferorder.getValue("location");
+                var old_transferorder = record.load({type: 'transferorder', id: bill_id});
+                var transferorder = record.create({type: 'transferorder', isDynamic: true});
                 transferorder.setValue({
-                    fieldId: custbody_dps_start_location,
-                    value: custbody_actual_target_warehouse
+                    fieldId: 'customform',
+                    value: old_transferorder.getValue("customform")
                 });
                 transferorder.setValue({
-                    fieldId: custbody_actual_target_warehouse,
-                    value: custbody_dps_start_location
+                    fieldId: 'subsidiary',
+                    value: old_transferorder.getValue("subsidiary")
                 });
                 transferorder.setValue({
-                    fieldId: transferlocation,
-                    value: location
+                    fieldId: 'custbody_dps_transferor_type',
+                    value: old_transferorder.getValue("custbody_dps_transferor_type")
                 });
                 transferorder.setValue({
-                    fieldId: location,
-                    value: transferlocation
+                    fieldId: 'employee',
+                    value: old_transferorder.getValue("employee")
                 });
-
+                transferorder.setValue({
+                    fieldId: 'custbody_dps_transferor_channel_dealer',
+                    value: old_transferorder.getValue("custbody_dps_transferor_channel_dealer")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbody_dps_transferor_channelservice',
+                    value: old_transferorder.getValue("custbody_dps_transferor_channelservice")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbodyexpected_arrival_time',
+                    value: old_transferorder.getValue("custbodyexpected_arrival_time")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbody_shipment_id',
+                    value: old_transferorder.getValue("custbody_shipment_id")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbody_shipment_method',
+                    value: old_transferorder.getValue("custbody_shipment_method")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbody_products_total_weight',
+                    value: old_transferorder.getValue("custbody_products_total_weight")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbody_products_total_volume',
+                    value: old_transferorder.getValue("custbody_products_total_volume")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbody_dps_start_location',
+                    value: old_transferorder.getValue("custbody_actual_target_warehouse")
+                });
+                transferorder.setValue({
+                    fieldId: 'custbody_actual_target_warehouse',
+                    value: old_transferorder.getValue("custbody_dps_start_location")
+                });
+                transferorder.setValue({
+                    fieldId: 'transferlocation',
+                    value: old_transferorder.getValue("location")
+                });
+                transferorder.setValue({
+                    fieldId: 'location',
+                    value: old_transferorder.getValue("transferlocation")
+                });
+                transferorder.setValue({ fieldId: 'orderstatus', value: 'B' });
+                for(var i = 0; i < old_transferorder.getLineCount({ sublistId: 'item' }); i++){
+                    var item_id = old_transferorder.getSublistValue({ sublistId: 'item', fieldId: 'item',line: i });
+                    var quantity = old_transferorder.getSublistValue({ sublistId: 'item', fieldId: 'quantity',line: i });
+                    var rate = old_transferorder.getSublistValue({ sublistId: 'item', fieldId: 'rate',line: i });
+                    var product_weight = old_transferorder.getSublistValue({ sublistId: 'item', fieldId: 'custcol_item_product_weight',line: i });
+                    var product_volume = old_transferorder.getSublistValue({ sublistId: 'item', fieldId: 'custcol_item_product_volume',line: i });
+                    transferorder.selectNewLine({ sublistId: 'item' });
+                    transferorder.setCurrentSublistValue({ sublistId: 'item', fieldId: 'item', value: item_id });
+                    transferorder.setCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity', value: quantity });
+                    transferorder.setCurrentSublistValue({ sublistId: 'item', fieldId: 'rate', value: rate });
+                    transferorder.setCurrentSublistValue({ sublistId: 'item', fieldId: 'custcol_item_product_weight', value: product_weight });
+                    transferorder.setCurrentSublistValue({ sublistId: 'item', fieldId: 'custcol_item_product_volume', value: product_volume });
+                    transferorder.commitLine({ sublistId: 'item' });
+                }
                 var transferorderId = transferorder.save();
-
+                log.debug('transferorderId', transferorderId);
                 var itemfulfillment = record.transform({
                     fromType: record.Type.TRANSFER_ORDER,
                     toType: "itemfulfillment",
                     fromId: transferorderId,
                 }); // 直接货品履行, 不需要考虑库位箱号
-
+                itemfulfillment.setValue({ fieldId: 'shipstatus', value: 'C' });
                 var itemfulfillment_id = itemfulfillment.save();
 
                 log.debug('itemfulfillment_id', itemfulfillment_id);
@@ -1093,7 +1142,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
                 log.debug('库位 BinObjKey', BinObjKey);
                 log.debug('箱号 BoxObjKey', BoxObjKey);
-
+                var fItemArr = tool.searchTransactionItemInfo("transferorder", transferorderId);
                 if (BoxObjKey && BoxObjKey.length > 0) { // 按箱号收货
 
                     var irObj = record.transform({
@@ -1121,12 +1170,12 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
                                 log.debug('货品行号', lineNumber);
 
-                                irObj.setSublistValue({
-                                    sublistId: 'item',
-                                    fieldId: 'location',
-                                    value: location,
-                                    line: lineNumber
-                                }); // 设置地点
+                                // irObj.setSublistValue({
+                                //     sublistId: 'item',
+                                //     fieldId: 'location',
+                                //     value: location,
+                                //     line: lineNumber
+                                // }); // 设置地点
 
                                 if (dl_sku.sku == fi_temp.itemName) {
                                     var getLoca = irObj.getSublistValue({
@@ -1211,12 +1260,12 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
                                 log.debug('货品行号', lineNumber);
                                 if (lineNumber > -1) {
-                                    irObj.setSublistValue({
-                                        sublistId: 'item',
-                                        fieldId: 'location',
-                                        value: location,
-                                        line: lineNumber
-                                    }); // 设置地点
+                                    // irObj.setSublistValue({
+                                    //     sublistId: 'item',
+                                    //     fieldId: 'location',
+                                    //     value: location,
+                                    //     line: lineNumber
+                                    // }); // 设置地点
 
                                     if (dl_sku.sku == fi_temp.itemName) {
                                         var getLoca = irObj.getSublistValue({
@@ -1266,7 +1315,7 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
                 retObj.code = 0;
                 retObj.data = null;
                 retObj.msg = 'NS 处理成功';
-
+                return retObj
             } else {
                 retObj.code = 3;
                 retObj.data = null;
@@ -1283,7 +1332,6 @@ define(['../Helper/config.js', 'N/search', 'N/record', 'N/log', '../common/reque
 
             return retObj || false
         }
-
     }
 
     /**

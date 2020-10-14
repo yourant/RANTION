@@ -14,7 +14,7 @@
  */
 define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/log', 'N/search',
     'N/record', 'N/transaction', '../Rantion/Helper/location_preferred.js', './Helper/interfunction.min', './Helper/fields.min'
-], function(format, runtime, core, moment, log, search, record, transaction, loactionPre, interfun, fields) {
+], function (format, runtime, core, moment, log, search, record, transaction, loactionPre, interfun, fields) {
 
     // 单价的计算逻辑
     const price_conf = {
@@ -119,11 +119,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         { name: 'custbody_order_locaiton', operator: 'anyof', values: [acc] }
                     ],
                     columns: [{ name: 'custrecord_division', join: 'custbody_order_locaiton' }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     so_ids.push({ so_id: e.id, dept: e.getValue(e.columns[0]) })
                     return --limt > 0
                 })
-                so_ids.map(function(dsa) {
+                so_ids.map(function (dsa) {
                     record.submitFields({
                         type: 'salesorder',
                         id: dsa.so_id,
@@ -137,7 +137,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 var acc = context.acc
                 var group = context.acc_group
                 var ff = []
-                core.amazon.getAccountList(group).map(function(acc) {
+                core.amazon.getAccountList(group).map(function (acc) {
                     ff.push(acc.id)
                 })
                 log.debug('rs:', ff)
@@ -181,10 +181,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 var oid = context.oid
                 var cachid = context.cachid;
                 return orderupRl(oid, cachid, acc);
-                // return dealWithOrder(oid, cachid, acc);
+            // return dealWithOrder(oid, cachid, acc);
             case "LI_serachDate":
                 var acc = context.acc
-                return LI_serachDate("", acc, "");
+                var order = context.order
+                return LI_serachDate(order, acc, "");
             default:
                 return context.op
                 break
@@ -210,11 +211,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         { name: 'custbody_order_locaiton', operator: 'anyof', values: [acc] }
                     ],
                     columns: [{ name: 'custrecord_division', join: 'custbody_order_locaiton' }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     so_ids.push({ so_id: e.id, dept: e.getValue(e.columns[0]) })
                     return --limt > 0
                 })
-                so_ids.map(function(dsa) {
+                so_ids.map(function (dsa) {
                     record.submitFields({
                         type: 'salesorder',
                         id: dsa.so_id,
@@ -228,7 +229,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 var acc = context.acc
                 var group = context.acc_group
                 var ff = []
-                core.amazon.getAccountList(group).map(function(acc) {
+                core.amazon.getAccountList(group).map(function (acc) {
                     ff.push(acc.id)
                 })
                 log.debug('rs:', ff)
@@ -270,9 +271,9 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         }
     }
 
-    function _put(context) {}
+    function _put(context) { }
 
-    function _delete(context) {}
+    function _delete(context) { }
 
     function FinMap(acc, type_fin) {
         var fid, h, PostedAfter, PostedBefore, PBefore, PEndDate, end_dateTime
@@ -284,28 +285,28 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
             search.create({
                 type: 'customrecord_amazon_finances_status',
                 filters: [{
-                        name: 'custrecord_finances_status_acc',
-                        operator: search.Operator.IS,
-                        values: acc
-                    },
-                    {
-                        name: 'custrecord_financetype_status',
-                        operator: search.Operator.IS,
-                        values: type_fin
-                    },
+                    name: 'custrecord_finances_status_acc',
+                    operator: search.Operator.IS,
+                    values: acc
+                },
+                {
+                    name: 'custrecord_financetype_status',
+                    operator: search.Operator.IS,
+                    values: type_fin
+                },
                     // { name: "custrecord_amazon_finances_index", operator: search.Operator.IS, values: dateId }
                 ],
                 columns: [{
-                        name: 'custrecord_finances_postedafter'
-                    }, // POSTEDAFTER  上次请求的开始时间
-                    {
-                        name: 'custrecord_finances_postedbefore'
-                    }, // POSTEDBEFORE 上次请求的结束时间
-                    {
-                        name: 'custrecord_dps_amazon_finaces_end_date'
-                    }
+                    name: 'custrecord_finances_postedafter'
+                }, // POSTEDAFTER  上次请求的开始时间
+                {
+                    name: 'custrecord_finances_postedbefore'
+                }, // POSTEDBEFORE 上次请求的结束时间
+                {
+                    name: 'custrecord_dps_amazon_finaces_end_date'
+                }
                 ]
-            }).run().each(function(rec) {
+            }).run().each(function (rec) {
                 fid = rec.id
                 h = record.load({
                     type: 'customrecord_amazon_finances_status',
@@ -453,7 +454,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 if (type_fin == 'orders') enventlists = content.shipment_event_list
                 if (type_fin == 'refunds') enventlists = content.refund_event_list
                 log.audit('enventlists length', enventlists.length)
-                enventlists.map(function(l) {
+                enventlists.map(function (l) {
                     var ctx = {
                         'acc': acc,
                         'posta': posta,
@@ -508,7 +509,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
             log.debug('vl:' + Object.prototype.toString.call(l), JSON.stringify(l) + '，type_fin：' + type_fin)
             if (Object.prototype.toString.call(l) == '[object Array]') {
                 log.debug('[object Array]', Object.prototype.toString.call(l))
-                l.map(function(sl) {
+                l.map(function (sl) {
                     log.debug('[object Array].map', Object.prototype.toString.call(sl))
                     createRec(sl, acc, type_fin)
                 })
@@ -547,27 +548,27 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         search.create({ // 去重
             type: 'customrecord_amazon_finances_cahce',
             filters: [{
-                    name: 'custrecord_amazon_finances_account',
-                    operator: 'is',
-                    values: acc
-                },
-                {
-                    name: 'custrecord_finance_type',
-                    operator: 'is',
-                    values: type_fin
-                }, // 类型
-                {
-                    name: 'custrecord_amazon_finances_orderid',
-                    operator: 'is',
-                    values: l.amazon_order_id
-                },
-                {
-                    name: 'custrecord_amazon_ginances_postdate_txt',
-                    operator: 'is',
-                    values: l.posted_date
-                }
+                name: 'custrecord_amazon_finances_account',
+                operator: 'is',
+                values: acc
+            },
+            {
+                name: 'custrecord_finance_type',
+                operator: 'is',
+                values: type_fin
+            }, // 类型
+            {
+                name: 'custrecord_amazon_finances_orderid',
+                operator: 'is',
+                values: l.amazon_order_id
+            },
+            {
+                name: 'custrecord_amazon_ginances_postdate_txt',
+                operator: 'is',
+                values: l.posted_date
+            }
             ]
-        }).run().each(function(e) {
+        }).run().each(function (e) {
             log.error('you', e.id)
             ship_rec = record.load({
                 type: 'customrecord_amazon_finances_cahce',
@@ -622,7 +623,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         log.debug('Object.prototype:', Object.prototype.toString.call(ord))
         try {
             if (Object.prototype.toString.call(ord) == '[object Array]') {
-                ord.map(function(o) {
+                ord.map(function (o) {
                     createRecFin(o, acc, cache_id, t, postdate)
                 })
             } else {
@@ -1129,7 +1130,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
             columns: [
                 { name: 'custbody_aio_account' }
             ]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             orders.push({
                 so_id: rec.id,
                 acc: rec.getValue('custbody_aio_account')
@@ -1137,7 +1138,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
             return --limit > 0
         })
         log.debug('orders', orders.length)
-        orders.map(function(e) {
+        orders.map(function (e) {
             record.submitFields({
                 type: record.Type.SALES_ORDER,
                 id: e.so_id,
@@ -1152,11 +1153,11 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
     function settlementDe() {
         var orders = [],
             limit = 1000
-        search.load({ id: 'customsearch152' }).run().each(function(e) {
+        search.load({ id: 'customsearch152' }).run().each(function (e) {
             orders.push(e.id)
             return --limit > 0
         })
-        orders.map(function(dd) {
+        orders.map(function (dd) {
             var de = record.delete({ type: 'customrecord_aio_amazon_settlement', id: dd })
             log.debug('de:' + de)
         })
@@ -1169,23 +1170,23 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         var orders = [],
             orderid
         try {
-            core.amazon.getAccountList().map(function(account) {
+            core.amazon.getAccountList().map(function (account) {
                 if (account.id == acc) {
                     var filters = [{
-                            name: 'custrecord_aio_cache_resolved',
-                            operator: search.Operator.IS,
-                            values: false
-                        },
-                        {
-                            name: 'custrecord_aio_cache_status',
-                            operator: 'isnot',
-                            values: 'Pending'
-                        },
-                        {
-                            name: 'custrecord_aio_memo',
-                            operator: 'isnot',
-                            values: '找不到SKU'
-                        }
+                        name: 'custrecord_aio_cache_resolved',
+                        operator: search.Operator.IS,
+                        values: false
+                    },
+                    {
+                        name: 'custrecord_aio_cache_status',
+                        operator: 'isnot',
+                        values: 'Pending'
+                    },
+                    {
+                        name: 'custrecord_aio_memo',
+                        operator: 'isnot',
+                        values: '找不到SKU'
+                    }
                     ]
                     if (oid) {
                         filters.push({
@@ -1217,27 +1218,27 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         type: 'customrecord_aio_order_import_cache',
                         filters: filters,
                         columns: [{
-                                name: 'created',
-                                sort: search.Sort.DESC
-                            },
-                            {
-                                name: 'custrecord_aio_cache_acc_id'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_body'
-                            },
-                            {
-                                name: 'custrecord_amazonorder_iteminfo'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_version',
-                                sort: 'ASC'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_order_id'
-                            }
+                            name: 'created',
+                            sort: search.Sort.DESC
+                        },
+                        {
+                            name: 'custrecord_aio_cache_acc_id'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_body'
+                        },
+                        {
+                            name: 'custrecord_amazonorder_iteminfo'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_version',
+                            sort: 'ASC'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_order_id'
+                        }
                         ]
-                    }).run().each(function(rec) {
+                    }).run().each(function (rec) {
                         orderid = rec.getValue('custrecord_aio_cache_order_id')
                         orders.push({
                             rec_id: rec.id,
@@ -1273,7 +1274,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
         log.error("orders[0]", orders[0])
         try {
-            orders.map(function(obj) {
+            orders.map(function (obj) {
                 log.audit('obj', obj)
                 var amazon_account_id = obj.id
                 var o = obj.order
@@ -1326,7 +1327,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         operator: 'is',
                         values: o.order_total.currency_code
                     }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     currency_id = e.id
                     return true
                 })
@@ -1431,7 +1432,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                             fieldId: 'custbody_order_type',
                             value: ord_type[o.fulfillment_channel]
                         })
-                        log.debug('5currency：' + typeof(currency_id), currency_id)
+                        log.debug('5currency：' + typeof (currency_id), currency_id)
                         ord.setValue({
                             fieldId: 'currency',
                             value: Number(currency_id)
@@ -1477,7 +1478,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                                         value: i.subsidiary
                                     })
                                 log.debug('i.subsidiary', i.subsidiary)
-                                var names = o.buyer_email.split(' ').filter(function(n) {
+                                var names = o.buyer_email.split(' ').filter(function (n) {
                                     return n != ''
                                 })
                                 c.setValue({
@@ -1657,7 +1658,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
                     log.debug('2 fla ', fla)
 
-                    line_items.map(function(line) {
+                    line_items.map(function (line) {
                         log.debug('line', line)
                         log.debug('amazon_account_id', amazon_account_id)
                         itemAry.push(line.seller_sku)
@@ -1717,7 +1718,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                             value: line.seller_sku
                         })
 
-                        log.debug('14quantity:' + typeof(line.qty), line.qty)
+                        log.debug('14quantity:' + typeof (line.qty), line.qty)
                         ord.setCurrentSublistValue({
                             sublistId: 'item',
                             fieldId: 'quantity',
@@ -1765,7 +1766,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         log.audit('tax_item_amount::', line.item_tax + ',' + line.shipping_tax)
                         /** 设置订单含税 */
                         if (p.salesorder_if_taxed && i.tax_item && line.item_tax) {
-                            log.debug('18item taxcode:' + typeof(i.tax_item), i.tax_item)
+                            log.debug('18item taxcode:' + typeof (i.tax_item), i.tax_item)
                             ord.setCurrentSublistValue({
                                 sublistId: 'item',
                                 fieldId: 'taxcode',
@@ -1814,7 +1815,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         }
                     })
 
-                    log.debug('o.order_total.amount:' + typeof(o.order_total.amount), o.order_total.amount)
+                    log.debug('o.order_total.amount:' + typeof (o.order_total.amount), o.order_total.amount)
                     ord.setValue({
                         fieldId: 'amount',
                         value: o.order_total.amount
@@ -1841,7 +1842,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         fieldId: 'custbody_aio_marketplaceid',
                         value: 1 /* amazon */
                     })
-                    log.debug('30 amazon_account_id:' + typeof(amazon_account_id), amazon_account_id)
+                    log.debug('30 amazon_account_id:' + typeof (amazon_account_id), amazon_account_id)
                     ord.setValue({
                         fieldId: 'custbody_aio_account',
                         value: Number(amazon_account_id)
@@ -1991,7 +1992,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                                     operator: 'is',
                                     values: externalid
                                 }]
-                            }).run().each(function(rec) {
+                            }).run().each(function (rec) {
                                 record.submitFields({
                                     type: 'customrecord_aio_connector_missing_order',
                                     id: rec.id,
@@ -2051,20 +2052,20 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         var orders = [],
             orderid
         try {
-            core.amazon.getAccountList().map(function(account) {
+            core.amazon.getAccountList().map(function (account) {
                 if (account.id == acc) {
 
                     log.error('account', account)
                     var filters = [{
-                            name: 'custrecord_aio_cache_resolved',
-                            operator: search.Operator.IS,
-                            values: false
-                        },
-                        {
-                            name: 'custrecord_aio_cache_status',
-                            operator: 'isnot',
-                            values: 'Pending'
-                        }
+                        name: 'custrecord_aio_cache_resolved',
+                        operator: search.Operator.IS,
+                        values: false
+                    },
+                    {
+                        name: 'custrecord_aio_cache_status',
+                        operator: 'isnot',
+                        values: 'Pending'
+                    }
                     ]
                     if (oid) {
                         filters.push({
@@ -2089,27 +2090,27 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         type: 'customrecord_aio_order_import_cache',
                         filters: filters,
                         columns: [{
-                                name: 'created',
-                                sort: search.Sort.DESC
-                            },
-                            {
-                                name: 'custrecord_aio_cache_acc_id'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_body'
-                            },
-                            {
-                                name: 'custrecord_amazonorder_iteminfo'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_version',
-                                sort: 'ASC'
-                            },
-                            {
-                                name: 'custrecord_aio_cache_order_id'
-                            }
+                            name: 'created',
+                            sort: search.Sort.DESC
+                        },
+                        {
+                            name: 'custrecord_aio_cache_acc_id'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_body'
+                        },
+                        {
+                            name: 'custrecord_amazonorder_iteminfo'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_version',
+                            sort: 'ASC'
+                        },
+                        {
+                            name: 'custrecord_aio_cache_order_id'
+                        }
                         ]
-                    }).run().each(function(rec) {
+                    }).run().each(function (rec) {
                         orderid = rec.getValue('custrecord_aio_cache_order_id')
                         orders.push({
                             rec_id: rec.id,
@@ -2145,7 +2146,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
         // log.error("orders[0]", orders[0])
         try {
-            orders.map(function(obj) {
+            orders.map(function (obj) {
                 log.audit('obj', obj)
                 var amazon_account_id = obj.id
                 var o = obj.order
@@ -2198,7 +2199,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         operator: 'is',
                         values: o.order_total.currency_code
                     }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     currency_id = e.id
                     return true
                 })
@@ -2308,7 +2309,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                             fieldId: 'custbody_order_type',
                             value: ord_type[o.fulfillment_channel]
                         })
-                        log.debug('5currency：' + typeof(currency_id), currency_id)
+                        log.debug('5currency：' + typeof (currency_id), currency_id)
                         ord.setValue({
                             fieldId: 'currency',
                             value: Number(currency_id)
@@ -2363,7 +2364,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                                         value: i.subsidiary
                                     })
                                 log.debug('i.subsidiary', i.subsidiary)
-                                var names = o.buyer_email.split(' ').filter(function(n) {
+                                var names = o.buyer_email.split(' ').filter(function (n) {
                                     return n != ''
                                 })
                                 c.setValue({
@@ -2586,7 +2587,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
                     log.debug('2 fla ', fla)
 
-                    line_items.map(function(line) {
+                    line_items.map(function (line) {
                         log.debug('line', line)
                         log.debug('amazon_account_id', amazon_account_id)
                         itemAry.push(line.seller_sku)
@@ -2633,7 +2634,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                             value: line.seller_sku
                         })
 
-                        log.debug('14quantity:' + typeof(line.qty), line.qty)
+                        log.debug('14quantity:' + typeof (line.qty), line.qty)
                         ord.setCurrentSublistValue({
                             sublistId: 'item',
                             fieldId: 'quantity',
@@ -2691,7 +2692,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         log.audit('tax_item_amount::', line.item_tax + ',' + line.shipping_tax)
                         /** 设置订单含税 */
                         if (p.salesorder_if_taxed && i.tax_item && line.item_tax) {
-                            log.debug('18item taxcode:' + typeof(i.tax_item), i.tax_item)
+                            log.debug('18item taxcode:' + typeof (i.tax_item), i.tax_item)
                             ord.setCurrentSublistValue({
                                 sublistId: 'item',
                                 fieldId: 'taxcode',
@@ -2740,7 +2741,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         }
                     })
 
-                    log.debug('o.order_total.amount:' + typeof(o.order_total.amount), o.order_total.amount)
+                    log.debug('o.order_total.amount:' + typeof (o.order_total.amount), o.order_total.amount)
                     ord.setValue({
                         fieldId: 'amount',
                         value: o.order_total.amount
@@ -2767,7 +2768,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         fieldId: 'custbody_aio_marketplaceid',
                         value: 1 /* amazon */
                     })
-                    log.debug('30 amazon_account_id:' + typeof(amazon_account_id), amazon_account_id)
+                    log.debug('30 amazon_account_id:' + typeof (amazon_account_id), amazon_account_id)
                     ord.setValue({
                         fieldId: 'custbody_aio_account',
                         value: Number(amazon_account_id)
@@ -2917,7 +2918,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                                     operator: 'is',
                                     values: externalid
                                 }]
-                            }).run().each(function(rec) {
+                            }).run().each(function (rec) {
                                 record.submitFields({
                                     type: 'customrecord_aio_connector_missing_order',
                                     id: rec.id,
@@ -2976,15 +2977,15 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         try {
 
             var filters = [{
-                    name: 'custrecord_aio_cache_resolved',
-                    operator: search.Operator.IS,
-                    values: false
-                },
-                {
-                    name: 'custrecord_aio_cache_status',
-                    operator: 'isnot',
-                    values: 'Pending'
-                }
+                name: 'custrecord_aio_cache_resolved',
+                operator: search.Operator.IS,
+                values: false
+            },
+            {
+                name: 'custrecord_aio_cache_status',
+                operator: 'isnot',
+                values: 'Pending'
+            }
             ]
             if (oid) {
                 filters.push({
@@ -3009,27 +3010,27 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 type: 'customrecord_aio_order_import_cache',
                 filters: filters,
                 columns: [{
-                        name: 'created',
-                        sort: search.Sort.DESC
-                    },
-                    {
-                        name: 'custrecord_aio_cache_acc_id'
-                    },
-                    {
-                        name: 'custrecord_aio_cache_body'
-                    },
-                    {
-                        name: 'custrecord_amazonorder_iteminfo'
-                    },
-                    {
-                        name: 'custrecord_aio_cache_version',
-                        sort: 'ASC'
-                    },
-                    {
-                        name: 'custrecord_aio_cache_order_id'
-                    }
+                    name: 'created',
+                    sort: search.Sort.DESC
+                },
+                {
+                    name: 'custrecord_aio_cache_acc_id'
+                },
+                {
+                    name: 'custrecord_aio_cache_body'
+                },
+                {
+                    name: 'custrecord_amazonorder_iteminfo'
+                },
+                {
+                    name: 'custrecord_aio_cache_version',
+                    sort: 'ASC'
+                },
+                {
+                    name: 'custrecord_aio_cache_order_id'
+                }
                 ]
-            }).run().each(function(rec) {
+            }).run().each(function (rec) {
                 orderid = rec.getValue('custrecord_aio_cache_order_id')
                 orders.push({
                     rec_id: rec.id,
@@ -3064,7 +3065,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
 
         try {
-            orders.map(function(obj) {
+            orders.map(function (obj) {
                 log.audit('obj', obj)
                 var amazon_account_id = obj.id
                 var o = obj.order
@@ -3117,7 +3118,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         operator: 'is',
                         values: o.order_total.currency_code
                     }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     currency_id = e.id
                     return true
                 })
@@ -3227,7 +3228,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                             fieldId: 'custbody_order_type',
                             value: ord_type[o.fulfillment_channel]
                         })
-                        log.debug('5currency：' + typeof(currency_id), currency_id)
+                        log.debug('5currency：' + typeof (currency_id), currency_id)
                         ord.setValue({
                             fieldId: 'currency',
                             value: Number(currency_id)
@@ -3282,7 +3283,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                                         value: i.subsidiary
                                     })
                                 log.debug('i.subsidiary', i.subsidiary)
-                                var names = o.buyer_email.split(' ').filter(function(n) {
+                                var names = o.buyer_email.split(' ').filter(function (n) {
                                     return n != ''
                                 })
                                 c.setValue({
@@ -3505,7 +3506,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
 
                     log.debug('2 fla ', fla)
 
-                    line_items.map(function(line) {
+                    line_items.map(function (line) {
                         log.debug('line', line)
                         log.debug('amazon_account_id', amazon_account_id)
                         itemAry.push(line.seller_sku)
@@ -3552,7 +3553,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                             value: line.seller_sku
                         })
 
-                        log.debug('14quantity:' + typeof(line.qty), line.qty)
+                        log.debug('14quantity:' + typeof (line.qty), line.qty)
                         ord.setCurrentSublistValue({
                             sublistId: 'item',
                             fieldId: 'quantity',
@@ -3610,7 +3611,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         log.audit('tax_item_amount::', line.item_tax + ',' + line.shipping_tax)
                         /** 设置订单含税 */
                         if (p.salesorder_if_taxed && i.tax_item && line.item_tax) {
-                            log.debug('18item taxcode:' + typeof(i.tax_item), i.tax_item)
+                            log.debug('18item taxcode:' + typeof (i.tax_item), i.tax_item)
                             ord.setCurrentSublistValue({
                                 sublistId: 'item',
                                 fieldId: 'taxcode',
@@ -3659,7 +3660,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         }
                     })
 
-                    log.debug('o.order_total.amount:' + typeof(o.order_total.amount), o.order_total.amount)
+                    log.debug('o.order_total.amount:' + typeof (o.order_total.amount), o.order_total.amount)
                     ord.setValue({
                         fieldId: 'amount',
                         value: o.order_total.amount
@@ -3686,7 +3687,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         fieldId: 'custbody_aio_marketplaceid',
                         value: 1 /* amazon */
                     })
-                    log.debug('30 amazon_account_id:' + typeof(amazon_account_id), amazon_account_id)
+                    log.debug('30 amazon_account_id:' + typeof (amazon_account_id), amazon_account_id)
                     ord.setValue({
                         fieldId: 'custbody_aio_account',
                         value: Number(amazon_account_id)
@@ -3836,7 +3837,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                                     operator: 'is',
                                     values: externalid
                                 }]
-                            }).run().each(function(rec) {
+                            }).run().each(function (rec) {
                                 record.submitFields({
                                     type: 'customrecord_aio_connector_missing_order',
                                     id: rec.id,
@@ -3893,26 +3894,26 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         var limit = 450,
             getOrder = [];
         var filters = [{
-                name: 'custrecord_aio_cache_resolved',
-                operator: search.Operator.IS,
-                values: false
-            },
-            {
-                name: 'custrecord_aio_cache_status',
-                operator: 'isnot',
-                values: 'Pending'
-            },
-            {
-                name: 'custrecord_text_trandate',
-                operator: 'startswith',
-                values: "2020-07-"
-            }
+            name: 'custrecord_aio_cache_resolved',
+            operator: search.Operator.IS,
+            values: false
+        },
+        {
+            name: 'custrecord_aio_cache_status',
+            operator: 'isnot',
+            values: 'Pending'
+        },
+        {
+            name: 'custrecord_text_trandate',
+            operator: 'startswith',
+            values: "2020-07-"
+        }
         ]
         if (orderId) {
             filters.push({
                 name: 'custrecord_aio_cache_order_id',
                 operator: 'is',
-                values: oid
+                values: orderId
             })
         }
         if (idForm) {
@@ -3932,27 +3933,27 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
             type: 'customrecord_aio_order_import_cache',
             filters: filters,
             columns: [{
-                    name: 'created',
-                    sort: search.Sort.DESC
-                },
-                {
-                    name: 'custrecord_aio_cache_acc_id'
-                },
-                {
-                    name: 'custrecord_aio_cache_body'
-                },
-                {
-                    name: 'custrecord_amazonorder_iteminfo'
-                },
-                {
-                    name: 'custrecord_aio_cache_version',
-                    sort: 'ASC'
-                },
-                {
-                    name: 'custrecord_aio_cache_order_id'
-                }
+                name: 'created',
+                sort: search.Sort.DESC
+            },
+            {
+                name: 'custrecord_aio_cache_acc_id'
+            },
+            {
+                name: 'custrecord_aio_cache_body'
+            },
+            {
+                name: 'custrecord_amazonorder_iteminfo'
+            },
+            {
+                name: 'custrecord_aio_cache_version',
+                sort: 'ASC'
+            },
+            {
+                name: 'custrecord_aio_cache_order_id'
+            }
             ]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             var it = {};
 
             it[rec.id] = rec.getValue("custrecord_aio_cache_acc_id");
@@ -3965,31 +3966,32 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
     }
     function LI_serachDate(orderId, account, idForm) {
 
-        var temp_acc = [111, 97, 104, 57, 31, 48, 9, 24, 1, 130];
+        // var temp_acc = [111, 97, 104, 57, 31, 48, 9, 24, 1, 130];
+        var temp_acc = account
 
         var limit = 450,
             getOrder = [];
         var filters = [{
-                name: 'custrecord_aio_cache_resolved',
-                operator: search.Operator.IS,
-                values: false
-            },
-            {
-                name: 'custrecord_aio_cache_status',
-                operator: 'isnot',
-                values: 'Pending'
-            },
-            {
-                name: 'custrecord_text_trandate',
-                operator: 'startswith',
-                values: "2020-07-"
-            }
+            name: 'custrecord_aio_cache_resolved',
+            operator: search.Operator.IS,
+            values: false
+        },
+        {
+            name: 'custrecord_aio_cache_status',
+            operator: 'isnot',
+            values: 'Pending'
+        },
+        {
+            name: 'custrecord_text_trandate',
+            operator: 'startswith',
+            values: "2020-08-"
+        }
         ]
         if (orderId) {
             filters.push({
                 name: 'custrecord_aio_cache_order_id',
                 operator: 'is',
-                values: oid
+                values: orderId
             })
         }
         if (idForm) {
@@ -3999,39 +4001,41 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 values: idForm
             })
         }
-        filters.push({
-            name: 'custrecord_aio_cache_acc_id',
-            operator: search.Operator.ANYOF,
-            values: temp_acc
-            // values: account
-        })
+        if (temp_acc) {
+            filters.push({
+                name: 'custrecord_aio_cache_acc_id',
+                operator: search.Operator.ANYOF,
+                values: temp_acc
+                // values: account
+            })
+        }
         search.create({
             type: 'customrecord_aio_order_import_cache',
             filters: filters,
             columns: [{
-                    name: 'created',
-                    sort: search.Sort.DESC
-                },
-                {
-                    name: 'custrecord_aio_cache_acc_id'
-                },
-                {
-                    name: 'custrecord_aio_cache_body'
-                },
-                {
-                    name: 'custrecord_amazonorder_iteminfo'
-                },
-                {
-                    name: 'custrecord_aio_cache_version',
-                    sort: 'ASC'
-                },
-                {
-                    name: 'custrecord_aio_cache_order_id'
-                }
+                name: 'created',
+                sort: search.Sort.DESC
+            },
+            {
+                name: 'custrecord_aio_cache_acc_id'
+            },
+            {
+                name: 'custrecord_aio_cache_body'
+            },
+            {
+                name: 'custrecord_amazonorder_iteminfo'
+            },
+            {
+                name: 'custrecord_aio_cache_version',
+                sort: 'ASC'
+            },
+            {
+                name: 'custrecord_aio_cache_order_id'
+            }
             ]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             var it = {
-                recId:rec.id,
+                recId: rec.id,
                 recAcc: rec.getValue('custrecord_aio_cache_acc_id')
             };
 
@@ -4058,17 +4062,17 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         if (o.shipping_address && o.buyer_email) {
             var names
             if (o.shipping_address.name) {
-                names = o.shipping_address.name.split(' ').filter(function(n) {
+                names = o.shipping_address.name.split(' ').filter(function (n) {
                     return n != ''
                 })
 
             }
             if (o.buyer_name) {
-                names = o.buyer_name.split(' ').filter(function(n) {
+                names = o.buyer_name.split(' ').filter(function (n) {
                     return n != ''
                 })
             } else {
-                names = o.buyer_email.split(' ').filter(function(n) {
+                names = o.buyer_email.split(' ').filter(function (n) {
                     return n != ''
                 })
             }
@@ -4104,7 +4108,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                     filters: [
                         { name: 'custrecord_cc_country_code', operator: 'is', values: o.shipping_address.country_code }
                     ]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     c.setValue({
                         fieldId: 'custrecord_dps_cc_country',
                         value: e.id
@@ -4147,7 +4151,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         return c_id
     }
 
-    var mark_missing_order = function(externalid, account_id, order_id, reason, purchase_date) {
+    var mark_missing_order = function (externalid, account_id, order_id, reason, purchase_date) {
         var mo
         search.create({
             type: 'customrecord_aio_connector_missing_order',
@@ -4156,7 +4160,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                 operator: 'is',
                 values: externalid
             }]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             mo = record.load({
                 type: 'customrecord_aio_connector_missing_order',
                 id: rec.id
@@ -4204,23 +4208,23 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
         return mo.save()
     }
 
-    var mark_resolved = function(amazon_account_id, amazon_order_id) {
+    var mark_resolved = function (amazon_account_id, amazon_order_id) {
         log.debug('mark_resolved', 'mark_resolved')
         search.create({
             type: 'customrecord_aio_order_import_cache',
             filters: [{
-                    name: 'custrecord_aio_cache_acc_id',
-                    operator: search.Operator.ANYOF,
-                    values: amazon_account_id
-                },
-                {
-                    name: 'custrecord_aio_cache_order_id',
-                    operator: search.Operator.IS,
-                    values: amazon_order_id
-                }
+                name: 'custrecord_aio_cache_acc_id',
+                operator: search.Operator.ANYOF,
+                values: amazon_account_id
+            },
+            {
+                name: 'custrecord_aio_cache_order_id',
+                operator: search.Operator.IS,
+                values: amazon_order_id
+            }
             ],
             columns: ['custrecord_aio_cache_version']
-        }).run().each(function(r) {
+        }).run().each(function (r) {
             var ver = r.getValue('custrecord_aio_cache_version')
             record.submitFields({
                 type: 'customrecord_aio_order_import_cache',

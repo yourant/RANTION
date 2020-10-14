@@ -162,6 +162,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                     operator: search.Operator.ANYOF,
                     values: account.id
                 })
+                log.debug('filters:', filters);
                 search.create({
                     type: 'customrecord_aio_order_import_cache',
                     filters: filters,
@@ -964,7 +965,7 @@ define(['N/format', 'N/runtime', './Helper/core.min', './Helper/Moment.min', 'N/
                         return true
                     })
                 } catch (err) {
-                    log.error('SO Error: ', err)
+                    log.error('SO Error: ' + o.amazon_order_id, err)
                     var mid = mark_missing_order(externalid, amazon_account_id, o.amazon_order_id, 'SO Error: ' + err, order_trandate)
 
                     log.debug(externalid, externalid + ' | \u8BA2\u5355\u4FDD\u5B58\u5931\u8D25\uFF0C\u8BA2\u5355\u63A8\u81F3MISSING ORDER! #' + mid + ' order: ' + JSON.stringify(o, null, 2))

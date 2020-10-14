@@ -44,7 +44,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
         var curTaxCode = 0;
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
         var today = moment(new Date().getTime()).format(dateFormat);
-        // console.log('today', today);
+        console.log('today', today);
 
         var quantity = rec.getCurrentSublistValue({
             sublistId: 'item',
@@ -109,7 +109,7 @@ define(['../Helper/Moment.min', 'N/search', 'N/runtime'], function (moment, sear
                 }
 
             }
-            // console.log('resultArr', resultArr);
+            console.log('resultArr', resultArr);
             if (resultArr && resultArr.length > 0) {
                 if (price_type == 1) {
                     for (j = 0; j < resultArr.length; j++) {

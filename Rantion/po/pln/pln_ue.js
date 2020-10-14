@@ -34,7 +34,7 @@ define(['../../Helper/config.js', 'N/search', 'N/record', 'N/runtime', 'N/url', 
                         functionName: 'addRefreshButton()'
                     });
                     var poIds = request.parameters.poids.split('|');
-                    // log.debug("poIds", poIds);
+                    log.error("poIds", poIds);
                     if (poIds.length > 0) {
                         var arri = 0;
                         var slid = 'recmachcustrecord_pln_management_id';
@@ -333,6 +333,7 @@ define(['../../Helper/config.js', 'N/search', 'N/record', 'N/runtime', 'N/url', 
                 var response = deliveryOrders(key, pos[key], pln_json);
                 response.id = key;
                 scResult.push(response);
+                log.error('lnNumber',response.lnNumber);
                 log.error("response", response);
                 if (response.status == 'success') {
                     var poRec = record.load({
@@ -653,6 +654,7 @@ define(['../../Helper/config.js', 'N/search', 'N/record', 'N/runtime', 'N/url', 
             fieldId: 'custrecord_pln_no',
             value: pln_id
         });
+        log.error('pln_id',pln_id);
         var flag = false;
         var totalAmount = 0;
         //产品

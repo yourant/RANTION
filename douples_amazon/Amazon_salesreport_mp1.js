@@ -15,12 +15,12 @@
  */
 define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/search', 'N/xml', './Helper/Moment.min', 'N/runtime',
     './Helper/interfunction.min'
-], function(require, exports, core, log, record, search, xml, moment, runtime, interfun) {
+], function (require, exports, core, log, record, search, xml, moment, runtime, interfun) {
     Object.defineProperty(exports, '__esModule', {
         value: true
     })
 
-    exports.getInputData = function() {
+    exports.getInputData = function () {
         var orderJson = [],
             total = 0
         var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_fin_store' })
@@ -40,10 +40,10 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
             type: 'customrecord_aio_account',
             filters: fils,
             columns: [{
-                    name: 'custrecord_aio_enabled_sites'
-                } // 站点信息
+                name: 'custrecord_aio_enabled_sites'
+            } // 站点信息
             ]
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             // var sites = rec.getText('custrecord_aio_enabled_sites')
             // orderJson[sites] = rec.id
             orderJson.push(rec.id)
@@ -55,7 +55,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
         return orderJson
     }
 
-    exports.map = function(ctx) {
+    exports.map = function (ctx) {
         var acc = ctx.value,
             fid, h, PostedAfter, PostedBefore, PBefore, PEndDate, end_dateTime
         var type_fin = runtime.getCurrentScript().getParameter({
@@ -72,28 +72,28 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
             search.create({
                 type: 'customrecord_amazon_finances_status',
                 filters: [{
-                        name: 'custrecord_finances_status_acc',
-                        operator: search.Operator.IS,
-                        values: acc
-                    },
-                    {
-                        name: 'custrecord_financetype_status',
-                        operator: search.Operator.IS,
-                        values: type_fin
-                    },
+                    name: 'custrecord_finances_status_acc',
+                    operator: search.Operator.IS,
+                    values: acc
+                },
+                {
+                    name: 'custrecord_financetype_status',
+                    operator: search.Operator.IS,
+                    values: type_fin
+                },
                     // { name: "custrecord_amazon_finances_index", operator: search.Operator.IS, values: dateId }
                 ],
                 columns: [{
-                        name: 'custrecord_finances_postedafter'
-                    }, // POSTEDAFTER  上次请求的开始时间
-                    {
-                        name: 'custrecord_finances_postedbefore'
-                    }, // POSTEDBEFORE 上次请求的结束时间
-                    {
-                        name: 'custrecord_dps_amazon_finaces_end_date'
-                    }, // 终止时间
+                    name: 'custrecord_finances_postedafter'
+                }, // POSTEDAFTER  上次请求的开始时间
+                {
+                    name: 'custrecord_finances_postedbefore'
+                }, // POSTEDBEFORE 上次请求的结束时间
+                {
+                    name: 'custrecord_dps_amazon_finaces_end_date'
+                }, // 终止时间
                 ]
-            }).run().each(function(rec) {
+            }).run().each(function (rec) {
                 fid = rec.id
                 h = record.load({
                     type: 'customrecord_amazon_finances_status',
@@ -101,7 +101,8 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
                 })
                 PostedAfter = rec.getValue(rec.columns[0])
                 PBefore = rec.getValue(rec.columns[1])
-                PEndDate = rec.getValue(rec.columns[2])
+                // PEndDate = rec.getValue(rec.columns[2])
+                PEndDate = moment.utc().subtract(1, 'days').endOf('day').toISOString();
                 return false
             })
 
@@ -113,13 +114,17 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
             // 用于比较请求的结束时间与终止时间, 若请求的结束时间大于终止时间, 则用终止时间作为请求的结束时间
             if (PBefore && PEndDate) {
                 var bfDateTime = new Date(PBefore),
-                    endDateTime = new Date()
+                    endDateTime = new Date(PEndDate),
+                    nowDateTime = new Date()
 
-                log.debug('bfDateTime - endDateTime', bfDateTime + ' ; ' + endDateTime)
+                log.debug('bfDateTime - endDateTime - nowDateTime', bfDateTime + ' ; ' + endDateTime + ' ; ' + + nowDateTime)
 
+                if ((bfDateTime - nowDateTime >= 0) && bfDateTime && nowDateTime) {
+                    log.debug('请求财务报告的时间 PostedBefore', '大于当前时间: ' + (bfDateTime - nowDateTime))
+                    flag = true
+                }
                 if ((bfDateTime - endDateTime >= 0) && bfDateTime && endDateTime) {
-                    log.debug('请求财务报告的时间 PostedBefore', '大于当前时间: ' + (bfDateTime - endDateTime))
-                    end_dateTime = PEndDate
+                    log.debug('请求财务报告的时间 PostedBefore', '大于终止时间: ' + (bfDateTime - endDateTime))
                     flag = true
                 }
             }
@@ -131,7 +136,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
 
             // 若请求的结束时间与终止时间相同, 则退出
             if ((PBefore == PEndDate) && PBefore && PEndDate) {
-                log.debug('PBefore == PEndDate',PBefore +"=="+ PEndDate)
+                log.debug('PBefore == PEndDate', PBefore + "==" + PEndDate)
                 return
             }
 
@@ -248,7 +253,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
                 // 设置请求报告的结束时间
                 h.setValue({
                     fieldId: 'custrecord_dps_amazon_finaces_end_date',
-                    // value: '2020-08-05T00:00:00.000Z'
+                    // value: '2020-10-06T00:00:00.000Z'
                     value: moment.utc().subtract(1, 'days').endOf('day').toISOString()
                 })
 
@@ -258,7 +263,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
                 if (type_fin == 'orders') enventlists = content.shipment_event_list
                 if (type_fin == 'refunds') enventlists = content.refund_event_list
                 log.audit('enventlists length', enventlists.length)
-                enventlists.map(function(l) {
+                enventlists.map(function (l) {
                     ctx.write({
                         key: acc + '.' + l.amazon_order_id,
                         value: {
@@ -302,13 +307,13 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
             log.error('error:', e)
         }
     }
-    exports.reduce = function(ctx) {
+    exports.reduce = function (ctx) {
         try {
             var posta, postb, acc, type_fin
             var v = ctx.values
             log.error('0000v.length', v.length)
             var totalStartT = new Date().getTime()
-            v.map(function(vl) {
+            v.map(function (vl) {
                 var l = JSON.parse(vl).ship_l,
                     acc = JSON.parse(vl).acc
                 postb = JSON.parse(vl).postb
@@ -317,7 +322,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
                 log.debug('vl:' + Object.prototype.toString.call(l), JSON.stringify(l) + '，type_fin：' + type_fin)
                 if (Object.prototype.toString.call(l) == '[object Array]') {
                     log.debug('[object Array]', Object.prototype.toString.call(l))
-                    l.map(function(sl) {
+                    l.map(function (sl) {
                         log.debug('[object Array].map', Object.prototype.toString.call(sl))
                         createRec(sl, acc, type_fin)
                     })
@@ -359,27 +364,27 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
         search.create({ // 去重
             type: 'customrecord_amazon_finances_cahce',
             filters: [{
-                    name: 'custrecord_amazon_finances_account',
-                    operator: 'anyof',
-                    values: acc
-                },
-                {
-                    name: 'custrecord_finance_type',
-                    operator: 'is',
-                    values: type_fin
-                }, // 类型
-                {
-                    name: 'custrecord_amazon_finances_orderid',
-                    operator: 'is',
-                    values: l.amazon_order_id
-                },
-                {
-                    name: 'custrecord_amazon_ginances_postdate_txt',
-                    operator: 'is',
-                    values: l.posted_date
-                }
+                name: 'custrecord_amazon_finances_account',
+                operator: 'anyof',
+                values: acc
+            },
+            {
+                name: 'custrecord_finance_type',
+                operator: 'is',
+                values: type_fin
+            }, // 类型
+            {
+                name: 'custrecord_amazon_finances_orderid',
+                operator: 'is',
+                values: l.amazon_order_id
+            },
+            {
+                name: 'custrecord_amazon_ginances_postdate_txt',
+                operator: 'is',
+                values: l.posted_date
+            }
             ]
-        }).run().each(function(e) {
+        }).run().each(function (e) {
             log.error('you', e.id)
             ship_rec = record.load({
                 type: 'customrecord_amazon_finances_cahce',
@@ -421,7 +426,7 @@ define(['require', 'exports', './Helper/core.min', 'N/log', 'N/record', 'N/searc
         var cache_id = ship_rec.save()
         log.audit('lie.map OK:', cache_id)
     }
-    exports.summarize = function(ctx) {
+    exports.summarize = function (ctx) {
         log.audit('处理完成')
     }
 })

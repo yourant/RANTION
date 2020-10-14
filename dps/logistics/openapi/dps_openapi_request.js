@@ -107,7 +107,8 @@ var openApi = {
     //创建直发订单 如果packageId存在则视为【修改】操作
     CreateOrders: function (rec) {
         //生成请求参数
-        var result = this.GetCreateParam(rec)
+        try{
+          var result = this.GetCreateParam(rec)
         log.audit('result', result);
         if (result.code == 200) {
             var reqparam = result.data
@@ -131,6 +132,10 @@ var openApi = {
             }
         }
         return result;
+        }catch(e){
+          return Result.error(e.message)
+        }
+        
     },
     // 获取订单列表信息
     // FromDate	string	时间格式: 2015-11-04T15:00:00Z	必须	开始时间	2015-11-04T15:00:00Z

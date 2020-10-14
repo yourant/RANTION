@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 11:34:43
- * @LastEditTime   : 2020-10-13 15:46:46
+ * @LastEditTime   : 2020-10-13 15:32:59
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.sl.js
@@ -910,6 +910,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
      */
     function searchResult_LI(param, _sizePage, _nowPage) {
 
+
         var rsJson = []; //结果
 
         if (!_nowPage) {
@@ -932,6 +933,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             "and",
             ["location.name", "contains", ["FBA"]]
         );
+
 
         ["custpage_li_location", "custpage_li_sku", "custpage_li_start_date", "custpage_li_end_date", "custpage_li_pages", "custpage_li_per_page"];
         if (param.custpage_li_sku) {
@@ -975,6 +977,8 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
 
         log.audit('获取 NS 结余数量 总数 ns_totalCount', ns_totalCount);
         log.audit('获取 NS 结余数量 页数 ns_pageCount', ns_pageCount);
+
+
 
         var itemArr = [],
             itemObj = {};

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-10-13 18:05:52
+ * @LastEditTime   : 2020-09-30 16:31:38
  * @LastEditors    : Li
  * @Description    : 生成结算凭证
  * @FilePath       : \douples_amazon\Journal_voucher_Settlement_mp.js
@@ -14,7 +14,7 @@
  */
 define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
     './Helper/interfunction.min', './Helper/core.min', 'N/task', 'N/email'
-], function(search, record, moment, format, runtime, interfun, core, task, email) {
+], function (search, record, moment, format, runtime, interfun, core, task, email) {
     const MissingReportType = 3 // Missing report 结算报告Settlement report - Order
     const dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT');
     const date = format.parse({
@@ -49,6 +49,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         var limit = 4000,
             orders = [],
             settl_id = [];
+
 
         // 店铺分组	custscript_dps_li_sett_jour_s_acc_group	List/Record	拉单分组
         // 店铺	custscript_dps_li_sett_jour_s_account	List/Record	DPS | Connector Account
@@ -138,7 +139,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 for (var i = 0; i < pageCount; i++) {
                     pageData.fetch({ // 只跑一页数据
                         index: i
-                    }).data.forEach(function(e) {
+                    }).data.forEach(function (e) {
                         get_result.push({
                             'settle_id': e.getValue(e.columns[0]) + '',
                             'reportId': e.getValue(e.columns[2]),
@@ -158,7 +159,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             if (data_length && data_length <= 4000) {
                 limit = data_length;
             }
-            mySearch.run().each(function(e) {
+            mySearch.run().each(function (e) {
                 orders.push({
                     'settle_id': e.getValue(e.columns[0]) + '',
                     'reportId': e.getValue(e.columns[2]),
@@ -245,10 +246,6 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 transaction_type = ''
             }
 
-            if (transaction_type) {
-                fils.push(['custrecord_aio_sett_tran_type', 'is', transaction_type])
-            }
-
             var amount_all = 0,
                 settlement_idArrs = [],
                 principals = []
@@ -280,7 +277,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     { name: 'custrecord_aio_sett_quantity_purchased' }, // { name: 'custrecord_aio_sett_shipment_id' },   //shipment id 可以用于查找对应记有shipment id的发票 ()
                     { name: 'internalid', sort: "ASC" }
                 ]
-            }).run().each(function(rec) {
+            }).run().each(function (rec) {
 
                 log.debug("记录 ID", rec.id);
                 currency_txt = rec.getValue('custrecord_aio_sett_currency')
@@ -310,7 +307,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
                             ],
                             columns: [{ name: 'custrecord_aio_sett_marketplace_name' }]
-                        }).run().each(function(e) {
+                        }).run().each(function (e) {
                             markt = e.getValue('custrecord_aio_sett_marketplace_name')
                         })
                     }
@@ -457,7 +454,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             var n = 0,
                 amos = [],
                 fls = {}
-            principals.map(function(dsf) {
+            principals.map(function (dsf) {
                 fls = {}
                 if ((dsf.Tranction_type == 'Order' && dsf.Amount_type == 'ItemPrice' && dsf.Amount_desc == 'Principal') || (n == 0)) {
                     n++
@@ -468,7 +465,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     amos[n - 1][dsf.item_code + '.' + dsf.qty] += dsf.amount
                 }
             })
-            manual.map(function(mnu) {
+            manual.map(function (mnu) {
                 record.submitFields({
                     type: 'customrecord_aio_amazon_settlement',
                     id: mnu,
@@ -478,7 +475,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 })
             })
 
-            PT_Arrys.map(function(pt) {
+            PT_Arrys.map(function (pt) {
                 record.submitFields({
                     type: 'customrecord_aio_amazon_settlement',
                     id: pt,
@@ -496,7 +493,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                         operator: 'is',
                         values: currency_txt
                     }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     currency = e.id
                 })
 
@@ -511,55 +508,55 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     { name: 'name' },
                     { name: 'custrecord_division' }, // object
                 ]
-            }).run().each(function(e) {
-                seller_id = e.getValue(e.columns[0]);
-                report_subsidiary = e.getValue(e.columns[1]);
-                report_customer = e.getValue(e.columns[2]);
-                report_site = e.getText(e.columns[3]);
-                report_siteId = e.getValue(e.columns[3]);
-                report_acc = settlement_acc;
-                acc_text = e.getValue(e.columns[4]);
-                dept = e.getValue(e.columns[5]);
+            }).run().each(function (e) {
+                seller_id = e.getValue(e.columns[0])
+                report_subsidiary = e.getValue(e.columns[1])
+                report_customer = e.getValue(e.columns[2])
+                report_site = e.getText(e.columns[3])
+                report_siteId = e.getValue(e.columns[3])
+                report_acc = settlement_acc
+                acc_text = e.getValue(e.columns[4])
+                dept = e.getValue(e.columns[5])
             })
-            search_accObj = interfun.getSearchAccount(seller_id);
-            var so_obj = interfun.SearchSO(orderid, merchant_order_id, search_accObj.acc_search, cl_date.date, 'order');
+            search_accObj = interfun.getSearchAccount(seller_id)
+            var so_obj = interfun.SearchSO(orderid, merchant_order_id, search_accObj.acc_search, cl_date.date, 'order')
 
-            so_id = so_obj.so_id;
+            so_id = so_obj.so_id
             if (!so_id) {
                 if (orderid) { // 订单号存在
                     if (orderid.length == 19 && orderid.split('-')[0].length == 3) {
-                        var cl_date_M = cl_date.Month;
-                        var postdate_M = interfun.getFormatedDate('', '', postDate).Month;
+                        var cl_date_M = cl_date.Month
+                        var postdate_M = interfun.getFormatedDate('', '', postDate).Month
                         if (cl_date_M != postdate_M || Tranction_type != 'Order') {
-                            pr_store = report_acc;
-                            acc_text = acc_text;
-                            entity = report_customer;
-                            subsidiary = report_subsidiary;
+                            pr_store = report_acc
+                            acc_text = acc_text
+                            entity = report_customer
+                            subsidiary = report_subsidiary
                         } else {
-                            log.audit('正常订单，但是找不到销售订单', 'orderid: ' + orderid);
-                            pr_store = report_acc;
-                            acc_text = acc_text;
-                            entity = report_customer;
-                            subsidiary = report_subsidiary;
+                            log.audit('正常订单，但是找不到销售订单', 'orderid: ' + orderid)
+                            pr_store = report_acc
+                            acc_text = acc_text
+                            entity = report_customer
+                            subsidiary = report_subsidiary
                         }
                     } else {
-                        pr_store = report_acc;
-                        acc_text = acc_text;
-                        entity = report_customer;
-                        subsidiary = report_subsidiary;
+                        pr_store = report_acc
+                        acc_text = acc_text
+                        entity = report_customer
+                        subsidiary = report_subsidiary
                     }
                 } else { // 订单号不存在
-                    pr_store = report_acc;
-                    acc_text = acc_text;
-                    entity = report_customer;
-                    subsidiary = report_subsidiary;
+                    pr_store = report_acc
+                    acc_text = acc_text
+                    entity = report_customer
+                    subsidiary = report_subsidiary
                 }
             } else {
-                pr_store = so_obj.acc;
-                acc_text = so_obj.acc_text;
-                entity = so_obj.entity;
-                subsidiary = so_obj.subsidiary;
-                fulfill_channel = so_obj.fulfill_channel;
+                pr_store = so_obj.acc
+                acc_text = so_obj.acc_text
+                entity = so_obj.entity
+                subsidiary = so_obj.subsidiary
+                fulfill_channel = so_obj.fulfill_channel
 
                 if (orderid.indexOf("S" > -1)) {
                     orderid = orderid;
@@ -569,7 +566,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                         type: "customrecord_aio_account",
                         filters: [{ name: "internalid", operator: "anyof", values: report_acc }],
                         columns: ["custrecord_aio_customer"]
-                    }).run().each(function(rec) {
+                    }).run().each(function (rec) {
                         entity = rec.getValue("custrecord_aio_customer");
                     });
 
@@ -591,7 +588,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     cust_depo.setText({ fieldId: 'payment', text: amount_all })
                     var ss = cust_depo.save();
                     log.debug('未发货先结算，创建客户存款成功', ss)
-                    settlement_idArrs.map(function(set_id) {
+                    settlement_idArrs.map(function (set_id) {
                         record.submitFields({
                             type: 'customrecord_aio_amazon_settlement',
                             id: set_id,
@@ -624,7 +621,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             log.audit('entity :' + entity + ',currency: ' + currency, 'orderid:' + orderid + '，店铺：' + pr_store)
             for (var key in settlmentID) {
                 if ((interfun.CheckJO(orderid, key, settlement_idObj[key], '结算', search_accObj.acc_search, merchant_order_id) &&
-                        (transaction_type == "Refund" || transaction_type == "Order")) ||
+                    (transaction_type == "Refund" || transaction_type == "Order")) ||
                     (transaction_type != "Refund" || transaction_type != "Order")) {
 
                     log.error("开始 reduce ", key.split('-')[0] + '.' + orderid + '.' + key.split('-')[1])
@@ -692,7 +689,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         var v = context.values
         var key = context.key.split('.')[0] + '-' + context.key.split('.')[2] // setllment ID + month
         // 找到 shipment id 对应的发票，打上备注，计入款型记录
-        v.map(function(obj) {
+        v.map(function (obj) {
             // 款型记录，备注：店铺名前两位+后两位+年月日
             try {
                 var jo_3
@@ -775,7 +772,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 var temp_transaction_type = [];
 
                 for (var ke in shipments) {
-                    shipments[ke].map(function(obj) {
+                    shipments[ke].map(function (obj) {
 
                         temp_transaction_type.push(obj.Tranction_type)
                         depositDate = obj.depositDate
@@ -836,12 +833,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 // if (orderid  && obj.Tranction_type == "Order") {  //  order类型的需要关联发票, 其他类型不需要
                 if (orderid && temp_flag > -1) { //  order类型的需要关联发票, 其他类型不需要
                     var fils_inv = [
-                            ['mainline', 'is', false],
-                            'and',
-                            ['taxline', 'is', false],
-                            'and',
-                            ['custbody_aio_account', 'anyof', search_acc]
-                        ],
+                        ['mainline', 'is', false],
+                        'and',
+                        ['taxline', 'is', false],
+                        'and',
+                        ['custbody_aio_account', 'anyof', search_acc]
+                    ],
                         fls = []
 
                     if (order_id.charAt(0) == 'S') {
@@ -853,7 +850,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     }
                     var len_itco = item_codes.length,
                         l_num = 0
-                    item_codes.map(function(ic) {
+                    item_codes.map(function (ic) {
                         if (ic)
                             fls.push(['custbody_shipment_report_rel.custrecord_amazon_order_item_id', 'is', ic])
                         else
@@ -879,9 +876,9 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                             { name: 'custrecord_amazon_order_item_id', join: 'custbody_shipment_report_rel', summary: 'group' },
                             { name: 'quantity', summary: 'SUM' }
                         ]
-                    }).run().each(function(e) {
+                    }).run().each(function (e) {
                         ck = true
-                        amos.map(function(kl) {
+                        amos.map(function (kl) {
                             if (!ck) return
                             if (kl['ck'] && kl[e.getValue(e.columns[1]) + '.' + e.getValue(e.columns[2])]) {
                                 orders.push({
@@ -922,15 +919,15 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
             var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_li_sett_jour_s_account' });
             var runPaged = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_li_sett_jour_s_runpage' });
-
-            if (runPaged) { // 跑完之后, 直接更改对应的记录
+            log.audit('summarize:acc', acc);
+            if (runPaged && acc) { // 跑完之后, 直接更改对应的记录
                 search.create({
                     type: 'customrecord_dps_li_automatically_execut',
                     filters: [
                         { name: 'isinactive', operator: 'is', values: false },
-                        { name: 'custrecord_dps_auto_execute_account', operator: 'anyof', values: acc }
+                        { name: 'custrecord_dps_auto_execute_account', operator: 'is', values: acc }
                     ]
-                }).run().each(function(_l) {
+                }).run().each(function (_l) {
                     record.submitFields({
                         type: 'customrecord_dps_li_automatically_execut',
                         id: _l.id,
@@ -967,7 +964,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             fin_ids = []
         var len = item_codes.length,
             l = 0
-        item_codes.map(function(item_code) {
+        item_codes.map(function (item_code) {
             if (item_code) {
                 fil.push(['custbody_relative_finanace_report.custrecord_orderitemid', 'is', item_code])
                 fil2.push(['custrecord_orderitemid', 'is', item_code])
@@ -994,25 +991,25 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             type: 'journalentry',
             filters: fils_fee,
             columns: [{
-                    name: 'debitfxamount'
-                }, // 借（外币
-                {
-                    name: 'creditfxamount'
-                }, // 贷(外币
-                {
-                    name: 'account'
-                }, // 科目
-                {
-                    name: 'custcol_item_or_tax'
-                },
-                {
-                    name: 'custbody_relative_finanace_report'
-                },
-                {
-                    name: 'memo'
-                }
+                name: 'debitfxamount'
+            }, // 借（外币
+            {
+                name: 'creditfxamount'
+            }, // 贷(外币
+            {
+                name: 'account'
+            }, // 科目
+            {
+                name: 'custcol_item_or_tax'
+            },
+            {
+                name: 'custbody_relative_finanace_report'
+            },
+            {
+                name: 'memo'
+            }
             ]
-        }).run().each(function(jo) {
+        }).run().each(function (jo) {
             // log.debug('查出的01类凭证' + jo.id, jo.getValue("custbody_relative_finanace_report"))
             if (JSON.stringify(jo1_id).indexOf(jo.id) == -1) {
                 jo1_id.push(jo.id)
@@ -1035,7 +1032,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_amazon_listfinancialevents',
             filters: fin_fils
-        }).run().each(function(e) {
+        }).run().each(function (e) {
             fin_ids.push(e.id)
             return true
         })
@@ -1081,7 +1078,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_missing_report',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             var de = record.delete({
                 type: 'customrecord_missing_report',
                 id: rec.id
@@ -1114,7 +1111,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_dps_transform_mo',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             record.submitFields({
                 type: 'customrecord_dps_transform_mo',
                 id: rec.id,
@@ -1142,27 +1139,27 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({ // 去重
             type: 'customrecord_amazon_finances_cahce',
             filters: [{
-                    name: 'custrecord_amazon_finances_account',
-                    operator: 'is',
-                    values: acc
-                },
-                {
-                    name: 'custrecord_finance_type',
-                    operator: 'is',
-                    values: type_fin
-                }, // 类型
-                {
-                    name: 'custrecord_amazon_finances_orderid',
-                    operator: 'is',
-                    values: l.amazon_order_id
-                },
-                {
-                    name: 'custrecord_amazon_ginances_postdate_txt',
-                    operator: 'is',
-                    values: l.posted_date
-                }
+                name: 'custrecord_amazon_finances_account',
+                operator: 'is',
+                values: acc
+            },
+            {
+                name: 'custrecord_finance_type',
+                operator: 'is',
+                values: type_fin
+            }, // 类型
+            {
+                name: 'custrecord_amazon_finances_orderid',
+                operator: 'is',
+                values: l.amazon_order_id
+            },
+            {
+                name: 'custrecord_amazon_ginances_postdate_txt',
+                operator: 'is',
+                values: l.posted_date
+            }
             ]
-        }).run().each(function(e) {
+        }).run().each(function (e) {
             log.error('you', e.id)
             ship_rec = record.load({
                 type: 'customrecord_amazon_finances_cahce',
@@ -1235,7 +1232,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_dps_transform_mo',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             mo = record.load({
                 type: 'customrecord_dps_transform_mo',
                 id: rec.id

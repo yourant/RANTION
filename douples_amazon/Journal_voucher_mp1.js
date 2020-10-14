@@ -14,7 +14,7 @@
  */
 define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
     './Helper/interfunction.min', './Helper/core.min', 'N/task', 'N/email'
-], function(search, record, moment, format, runtime, interfun, core, task, email) {
+], function (search, record, moment, format, runtime, interfun, core, task, email) {
     const MissingReportType = 3 // Missing report 结算报告Settlement report - Order
     const dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
     const date = format.parse({
@@ -104,11 +104,11 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             type: 'customrecord_aio_amazon_settlement',
             filters: fils,
             columns: [{ name: 'custrecord_aio_sett_id', summary: 'GROUP' }, // 按 settlement id和单号分组
-                { name: 'custrecord_aio_sett_order_id', summary: 'GROUP' },
-                { name: 'custrecord_aio_sett_report_id', summary: 'GROUP' },
-                { name: 'custrecord_aio_sett_merchant_order_id', summary: 'GROUP' },
-                { name: 'custrecord_settlement_acc', summary: 'GROUP' }, // 实际店铺
-                { name: 'custrecord_aio_sett_tran_type', summary: 'GROUP' }, // TRANSACTION TYPE
+            { name: 'custrecord_aio_sett_order_id', summary: 'GROUP' },
+            { name: 'custrecord_aio_sett_report_id', summary: 'GROUP' },
+            { name: 'custrecord_aio_sett_merchant_order_id', summary: 'GROUP' },
+            { name: 'custrecord_settlement_acc', summary: 'GROUP' }, // 实际店铺
+            { name: 'custrecord_aio_sett_tran_type', summary: 'GROUP' }, // TRANSACTION TYPE
             ]
         })
 
@@ -131,7 +131,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 for (var i = 0; i < pageCount; i++) {
                     pageData.fetch({ // 只跑一页数据
                         index: i
-                    }).data.forEach(function(e) {
+                    }).data.forEach(function (e) {
                         get_result.push({
                             'settle_id': e.getValue(e.columns[0]) + '',
                             'reportId': e.getValue(e.columns[2]),
@@ -149,7 +149,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             return get_result
         }
 
-        mySearch.run().each(function(e) {
+        mySearch.run().each(function (e) {
             orders.push({
                 'settle_id': e.getValue(e.columns[0]) + '',
                 'reportId': e.getValue(e.columns[2]),
@@ -167,7 +167,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
     function map(context) {
 
-        // return
+        return
 
         // var runPaged = runtime.getCurrentScript().getParameter({
         //     name: 'custscript_dps_li_settlement_runpaged'
@@ -272,7 +272,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     { name: 'custrecord_aio_sett_quantity_purchased' }, // { name: 'custrecord_aio_sett_shipment_id' },   //shipment id 可以用于查找对应记有shipment id的发票 ()
 
                 ]
-            }).run().each(function(rec) {
+            }).run().each(function (rec) {
                 currency_txt = rec.getValue('custrecord_aio_sett_currency')
                 // log.debug("00 計數：" + num++, settle_id)
                 if (!endDate) {
@@ -285,10 +285,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                         search.create({
                             type: 'customrecord_aio_amazon_settlement',
                             filters: [{ name: 'custrecord_aio_sett_id', operator: 'is', values: rec.getValue('custrecord_aio_sett_id') + '' },
-                                { name: 'custrecord_aio_sett_marketplace_name', operator: 'contains', values: 'Amazon.' }
+                            { name: 'custrecord_aio_sett_marketplace_name', operator: 'contains', values: 'Amazon.' }
                             ],
                             columns: [{ name: 'custrecord_aio_sett_marketplace_name' }]
-                        }).run().each(function(e) {
+                        }).run().each(function (e) {
                             markt = e.getValue('custrecord_aio_sett_marketplace_name')
                         })
                     } else if (JSON.stringify(rec.getValue('custrecord_aio_sett_marketplace_name')).indexOf('Amazon.') > -1) {
@@ -422,7 +422,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             var n = 0,
                 amos = [],
                 fls = {}
-            principals.map(function(dsf) {
+            principals.map(function (dsf) {
                 fls = {}
                 if ((dsf.Tranction_type == 'Order' && dsf.Amount_type == 'ItemPrice' && dsf.Amount_desc == 'Principal') || (n == 0)) {
                     n++
@@ -433,7 +433,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     amos[n - 1][dsf.item_code + '.' + dsf.qty] += dsf.amount
                 }
             })
-            manual.map(function(mnu) {
+            manual.map(function (mnu) {
                 record.submitFields({
                     type: 'customrecord_aio_amazon_settlement',
                     id: mnu,
@@ -443,7 +443,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 })
             })
 
-            PT_Arrys.map(function(pt) {
+            PT_Arrys.map(function (pt) {
                 record.submitFields({
                     type: 'customrecord_aio_amazon_settlement',
                     id: pt,
@@ -461,7 +461,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                         operator: 'is',
                         values: currency_txt
                     }]
-                }).run().each(function(e) {
+                }).run().each(function (e) {
                     currency = e.id
                 })
             search.create({
@@ -472,25 +472,25 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     values: settlement_acc
                 }],
                 columns: [{
-                        name: 'custrecord_aio_seller_id'
-                    },
-                    {
-                        name: 'custrecord_aio_subsidiary'
-                    },
-                    {
-                        name: 'custrecord_aio_customer'
-                    },
-                    {
-                        name: 'custrecord_aio_enabled_sites'
-                    },
-                    {
-                        name: 'name'
-                    },
-                    {
-                        name: 'custrecord_division'
-                    }, // object
+                    name: 'custrecord_aio_seller_id'
+                },
+                {
+                    name: 'custrecord_aio_subsidiary'
+                },
+                {
+                    name: 'custrecord_aio_customer'
+                },
+                {
+                    name: 'custrecord_aio_enabled_sites'
+                },
+                {
+                    name: 'name'
+                },
+                {
+                    name: 'custrecord_division'
+                }, // object
                 ]
-            }).run().each(function(e) {
+            }).run().each(function (e) {
                 seller_id = e.getValue(e.columns[0])
                 report_subsidiary = e.getValue(e.columns[1])
                 report_customer = e.getValue(e.columns[2])
@@ -591,7 +591,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     })
                     var ss = cust_depo.save()
                     log.debug('未发货先结算，创建客户存款成功', ss)
-                    settlement_idArrs.map(function(set_id) {
+                    settlement_idArrs.map(function (set_id) {
                         record.submitFields({
                             type: 'customrecord_aio_amazon_settlement',
                             id: set_id,
@@ -691,12 +691,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
 
     function reduce(context) {
 
-        // return;
+        return;
         log.debug(' reduce context', JSON.stringify(context))
         var v = context.values
         var key = context.key.split('.')[0] + '-' + context.key.split('.')[2] // setllment ID + month
         // 找到 shipment id 对应的发票，打上备注，计入款型记录
-        v.map(function(obj) {
+        v.map(function (obj) {
             // 款型记录，备注：店铺名前两位+后两位+年月日
             try {
                 var jo_2
@@ -738,20 +738,20 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                             search.create({
                                 type: 'customrecord_amazon_order_relation',
                                 filters: [{
-                                        name: 'custrecord_amazon_order_s',
-                                        operator: 'is',
-                                        values: order_id
-                                    },
-                                    {
-                                        name: 'custrecord_amazon_order_a',
-                                        operator: 'is',
-                                        values: merchant_order_id
-                                    }
+                                    name: 'custrecord_amazon_order_s',
+                                    operator: 'is',
+                                    values: order_id
+                                },
+                                {
+                                    name: 'custrecord_amazon_order_a',
+                                    operator: 'is',
+                                    values: merchant_order_id
+                                }
                                 ],
                                 columns: [{
                                     name: 'name'
                                 }]
-                            }).run().each(function(e) {
+                            }).run().each(function (e) {
                                 orderid = e.getValue('name')
                             })
                         }
@@ -821,17 +821,17 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                         search.create({
                             type: 'customrecord_amazon_sales_report',
                             filters: [{
-                                    name: 'custrecord_amazon_order_id',
-                                    operator: 'is',
-                                    values: order_id
-                                },
-                                {
-                                    name: 'custrecord_shipment_account',
-                                    operator: 'anyof',
-                                    values: search_acc
-                                }
+                                name: 'custrecord_amazon_order_id',
+                                operator: 'is',
+                                values: order_id
+                            },
+                            {
+                                name: 'custrecord_shipment_account',
+                                operator: 'anyof',
+                                values: search_acc
+                            }
                             ]
-                        }).run().each(function(e) {
+                        }).run().each(function (e) {
                             shipId = e.id
                         })
 
@@ -941,7 +941,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 log.debug('成  结 shipments:', shipments)
 
                 for (var ke in shipments) {
-                    shipments[ke].map(function(obj) {
+                    shipments[ke].map(function (obj) {
                         depositDate = obj.depositDate
                         var x = Math.round(parseFloat(obj.amount) * 100) / 100
                         // log.debug('obj.amount',obj.amount)
@@ -1055,10 +1055,10 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                 var orders = []
                 if (orderid) {
                     var fils_inv = [
-                            ['mainline', 'is', false], 'and',
-                            ['taxline', 'is', false], 'and',
-                            ['custbody_aio_account', 'anyof', search_acc]
-                        ],
+                        ['mainline', 'is', false], 'and',
+                        ['taxline', 'is', false], 'and',
+                        ['custbody_aio_account', 'anyof', search_acc]
+                    ],
                         fls = []
 
                     if (order_id.charAt(0) == 'S') {
@@ -1070,7 +1070,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                     }
                     var len_itco = item_codes.length,
                         l_num = 0
-                    item_codes.map(function(ic) {
+                    item_codes.map(function (ic) {
                         if (ic)
                             fls.push(
                                 ['custbody_shipment_report_rel.custrecord_amazon_order_item_id', 'is', ic]
@@ -1096,12 +1096,12 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
                         type: 'invoice',
                         filters: fils_inv,
                         columns: [{ name: 'internalid', summary: 'group' },
-                            { name: 'custrecord_amazon_order_item_id', join: 'custbody_shipment_report_rel', summary: 'group' },
-                            { name: 'quantity', summary: 'SUM' }
+                        { name: 'custrecord_amazon_order_item_id', join: 'custbody_shipment_report_rel', summary: 'group' },
+                        { name: 'quantity', summary: 'SUM' }
                         ]
-                    }).run().each(function(e) {
+                    }).run().each(function (e) {
                         ck = true
-                        amos.map(function(kl) {
+                        amos.map(function (kl) {
                             if (!ck) return
                             if (kl['ck'] && kl[e.getValue(e.columns[1]) + '.' + e.getValue(e.columns[2])]) {
                                 orders.push({
@@ -1209,7 +1209,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             fin_ids = []
         var len = item_codes.length,
             l = 0
-        item_codes.map(function(item_code) {
+        item_codes.map(function (item_code) {
             if (item_code) {
                 fil.push(['custbody_relative_finanace_report.custrecord_orderitemid', 'is', item_code])
                 fil2.push(['custrecord_orderitemid', 'is', item_code])
@@ -1236,25 +1236,25 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
             type: 'journalentry',
             filters: fils_fee,
             columns: [{
-                    name: 'debitfxamount'
-                }, // 借（外币
-                {
-                    name: 'creditfxamount'
-                }, // 贷(外币
-                {
-                    name: 'account'
-                }, // 科目
-                {
-                    name: 'custcol_item_or_tax'
-                },
-                {
-                    name: 'custbody_relative_finanace_report'
-                },
-                {
-                    name: 'memo'
-                }
+                name: 'debitfxamount'
+            }, // 借（外币
+            {
+                name: 'creditfxamount'
+            }, // 贷(外币
+            {
+                name: 'account'
+            }, // 科目
+            {
+                name: 'custcol_item_or_tax'
+            },
+            {
+                name: 'custbody_relative_finanace_report'
+            },
+            {
+                name: 'memo'
+            }
             ]
-        }).run().each(function(jo) {
+        }).run().each(function (jo) {
             // log.debug('查出的01类凭证' + jo.id, jo.getValue("custbody_relative_finanace_report"))
             if (JSON.stringify(jo1_id).indexOf(jo.id) == -1) {
                 jo1_id.push(jo.id)
@@ -1277,7 +1277,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_amazon_listfinancialevents',
             filters: fin_fils
-        }).run().each(function(e) {
+        }).run().each(function (e) {
             fin_ids.push(e.id)
             return true
         })
@@ -1323,7 +1323,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_missing_report',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             var de = record.delete({
                 type: 'customrecord_missing_report',
                 id: rec.id
@@ -1356,7 +1356,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_dps_transform_mo',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             record.submitFields({
                 type: 'customrecord_dps_transform_mo',
                 id: rec.id,
@@ -1384,27 +1384,27 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({ // 去重
             type: 'customrecord_amazon_finances_cahce',
             filters: [{
-                    name: 'custrecord_amazon_finances_account',
-                    operator: 'is',
-                    values: acc
-                },
-                {
-                    name: 'custrecord_finance_type',
-                    operator: 'is',
-                    values: type_fin
-                }, // 类型
-                {
-                    name: 'custrecord_amazon_finances_orderid',
-                    operator: 'is',
-                    values: l.amazon_order_id
-                },
-                {
-                    name: 'custrecord_amazon_ginances_postdate_txt',
-                    operator: 'is',
-                    values: l.posted_date
-                }
+                name: 'custrecord_amazon_finances_account',
+                operator: 'is',
+                values: acc
+            },
+            {
+                name: 'custrecord_finance_type',
+                operator: 'is',
+                values: type_fin
+            }, // 类型
+            {
+                name: 'custrecord_amazon_finances_orderid',
+                operator: 'is',
+                values: l.amazon_order_id
+            },
+            {
+                name: 'custrecord_amazon_ginances_postdate_txt',
+                operator: 'is',
+                values: l.posted_date
+            }
             ]
-        }).run().each(function(e) {
+        }).run().each(function (e) {
             log.error('you', e.id)
             ship_rec = record.load({
                 type: 'customrecord_amazon_finances_cahce',
@@ -1477,7 +1477,7 @@ define(['N/search', 'N/record', './Helper/Moment.min', 'N/format', 'N/runtime',
         search.create({
             type: 'customrecord_dps_transform_mo',
             filters: fils
-        }).run().each(function(rec) {
+        }).run().each(function (rec) {
             mo = record.load({
                 type: 'customrecord_dps_transform_mo',
                 id: rec.id

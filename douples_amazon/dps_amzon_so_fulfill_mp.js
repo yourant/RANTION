@@ -176,13 +176,12 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
 
     function map(context) {
 
-
         // var fulf_runpage = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_li__ama_so_fulf_runpage' });
 
         // if (fulf_runpage) {
         //     return
         // }
-
+        log.error('map context:', context)
         var startT = new Date().getTime();
         var dateFormat = runtime.getCurrentUser().getPreference('DATEFORMAT')
         var date = format.parse({
@@ -204,6 +203,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             merchant_order_id = obj.merchant_order_id,
             market = obj.market, // marketplaceName
             repid = obj.reporid;
+        log.debug('merchant_order_id:', merchant_order_id);
 
         var _date_conver_text;
         try {
@@ -605,6 +605,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     // }
                     log.debug(externalid, externalid + ' | \u5F00\u59CB\u5904\u7406\u8BA2\u5355!  111 ' + order_type)
                     var so_i = interfun.SearchSO(o.amazon_order_id, '', amazon_account_id, '', 'order')
+                    log.debug('订单查询：', so_i);
                     if (so_i.so_id)
                         ord = record.load({
                             type: order_type,
@@ -615,6 +616,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
                     if (ord && o.order_status == 'Pending') {
                         return mark_resolved(amazon_account_id, o.amazon_order_id)
                     }
+                    log.debug('ord:', ord);
                     if (!ord) {
                         var cid = customer
 
@@ -1678,6 +1680,7 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
         const lc = f.getLineCount({ sublistId: 'item' })
         var ful, unrec = [],
             fulfill_line, fulfill_qty
+        log.debug('SALES_ORDER：', f);
         for (var ln = 0; ln < lc; ln++) {
             var n = 0
             var onhand = f.getSublistValue({ sublistId: 'item', fieldId: 'onhand', line: ln }) // 可用
@@ -1775,7 +1778,6 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
 
     function createInvioce(soid, shipdate, acc, rei, fulfill_items, ship_sku, dept, shipdateText) {
         log.audit('fulfill_items:', fulfill_items) // 本次发货的货品和数量 [ { qty: , }]
-        var remocl = []
         try {
             var inv = record.transform({
                 fromType: record.Type.SALES_ORDER,
@@ -1789,42 +1791,55 @@ define(['./Helper/fields.min', 'N/format', 'N/runtime', 'N/search', 'N/record', 
             inv.setText({ fieldId: 'trandate', text: shipdate })
             inv.setValue({ fieldId: 'custbody_shipment_report_rel', value: rei })
             var len = inv.getLineCount({ sublistId: 'item' }),
-                ck = true,
-                seted = 0
-            fulfill_items.map(function (fs) {
                 ck = true
-
-                for (var i = seted; i < len; i++) {
-                    //
+            fulfill_items.map(function (fs) {
+                for (var i = 0; i < len;) {
                     inv.selectLine({ sublistId: 'item', line: i })
                     var itds = inv.getCurrentSublistValue({ sublistId: 'item', fieldId: 'item' })
-                    var qty = inv.getCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity' })
-                    if (fs.skuid == itds && fs.qty <= qty && ck) {
-                        seted = i + 1
+                    if (fs.skuid == itds && ck) {
                         ck = false
                         inv.setCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity', value: fs.qty })
                         inv.setCurrentSublistValue({ sublistId: 'item', fieldId: 'custcol_aio_amazon_msku', value: ship_sku })
-                        var index = remocl.indexOf(i)
-                        log.debug('要删除的index: ' + index, i)
-                        remocl.splice(index, 1)
                         inv.commitLine({ sublistId: 'item' })
+                        i++;
                     } else {
-                        if (remocl.indexOf(i) == -1) {
-                            remocl.push(i)
-                        }
+                        inv.removeLine({ sublistId: 'item', line: i })
+                        len--;
                     }
+
                 }
-                log.debug('seted: ' + seted, remocl)
+                // for (var i = seted; i < len; i++) {
+                //     //
+                //     inv.selectLine({ sublistId: 'item', line: i })
+                //     var itds = inv.getCurrentSublistValue({ sublistId: 'item', fieldId: 'item' })
+                //     var qty = inv.getCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity' })
+                //     if (fs.skuid == itds && fs.qty <= qty && ck) {
+                //         seted = i + 1
+                //         ck = false
+                //         inv.setCurrentSublistValue({ sublistId: 'item', fieldId: 'quantity', value: fs.qty })
+                //         inv.setCurrentSublistValue({ sublistId: 'item', fieldId: 'custcol_aio_amazon_msku', value: ship_sku })
+                //         var index = remocl.indexOf(i)
+                //         log.debug('要删除的index: ' + index, i)
+                //         remocl.splice(index, 1)
+                //         inv.commitLine({ sublistId: 'item' })
+                //     } else {
+                //         if (remocl.indexOf(i) == -1) {
+                //             remocl.push(i)
+                //         }
+                //     }
+                // }
+                // log.debug('seted: ' + seted, remocl)
             })
 
-            log.debug('发票要删除的行：', remocl)
-            remocl.sort()
-            var num = 0
-            remocl.map(function (ds) {
-                ds = ds - num
-                inv.removeLine({ sublistId: 'item', line: ds })
-                num++
-            })
+            // log.debug('发票要删除的行：', remocl)
+            // remocl.sort()
+            // var num = 0
+            // remocl.map(function (ds) {
+            //     ds = ds - num
+
+            //     inv
+            //     num++
+            // })
 
             var first_save = inv.save()
             log.debug('保存成功“', first_save)

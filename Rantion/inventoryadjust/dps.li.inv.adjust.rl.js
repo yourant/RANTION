@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 19:08:37
- * @LastEditTime   : 2020-10-14 10:07:25
+ * @LastEditTime   : 2020-10-13 15:09:40
  * @LastEditors    : Li
  * @Description    : 根据月度库存差异报表生成库存调整单
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.rl.js
@@ -13,6 +13,7 @@
  *@NScriptType Restlet
  */
 define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, log, runtime) {
+
 
     const _invAdjAccount = 526; // 库存调整的科目
     const _subsidiary = 5; // 蓝深贸易有限公司
@@ -79,12 +80,8 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
 
 
     /**
-     *
-     * 生成库存调整单, 子公司 和 盘盈盘亏 归总
-     * @param {Object} info  货品信息
-     * @param {Object} inventory_snapshot  记录对象
-     * @param {string} sublist_id  子列表ID
-     * @returns {number} invAdj_id  调整单内部ID
+     * 生成库存调整单, 子公司 和 盘盈盘亏 状态归总
+     * @param {Object} info
      */
     function inventoryAdjustment(info, inventory_snapshot, sublist_id) {
 

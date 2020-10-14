@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-15 10:09:56
- * @LastEditTime   : 2020-09-08 17:26:55
+ * @LastEditTime   : 2020-09-24 15:24:03
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \LI.tools\tool.li.js
@@ -3123,6 +3123,33 @@ define(['N/search', 'N/record', 'N/log', "N/http", 'N/runtime', 'N/util'], funct
             "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
         ]
     };
+
+
+    /**
+     * 处理 JP/AU 的时区问题
+     * @param {*} dateText  text格式的时间
+     * @param {*} accountName  店铺名称
+     */
+    function dealWithDate(dateText, accountName) {
+
+        if (accountName.indexOf(".JP") > -1) {
+            var temp_time = moment(dateText).toISOString();
+            var time_jp_add = 9
+            var temp_z_jp_add = new Date(new Date(temp_time).getTime() + time_jp_add * 60 * 60 * 1000).toISOString();
+            var re_tiem_jp = temp_z_jp_add.replace(".000Z", "+09:00");
+            return re_tiem_jp;
+        } else if (accountName.indexOf(".AU") > -1) {
+            var temp_time = moment(dateText).toISOString();
+            var time_au_add = 10;
+            var temp_z_au_add = new Date(new Date(temp_time).getTime() + time_au_add * 60 * 60 * 1000).toISOString();
+            var re_tiem_au = temp_z_au_add.replace(".000Z", "+10:00");
+            return re_tiem_au;
+        } else {
+            var temp_date = moment(dateText).toISOString();
+            var re_tiem_au = temp_date.replace(".000Z", "+00:00");
+            return re_tiem_au;
+        }
+    }
 
 
 

@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 11:34:43
- * @LastEditTime   : 2020-09-17 11:43:54
+ * @LastEditTime   : 2020-10-13 15:46:46
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.sl.js
@@ -16,7 +16,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
 
     function onRequest(context) {
 
-        // var userObj = runtime.getCurrentUser();
+        var userObj = runtime.getCurrentUser();
 
         // if (userObj.id == 911) {
         try {
@@ -40,7 +40,10 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             log.audit('lineNumber', lineNumber);
 
             var nowPage = parameters.custpage_li_pages;
-            var resArr = searchResult(param, lineNumber, nowPage);
+
+            var resArr;
+            resArr = searchResult(param, lineNumber, nowPage);
+
 
             var resultArr = resArr.result,
                 totalCount = resArr.totalCount,
@@ -137,9 +140,6 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             log.error('出错了', error);
             context.response.writeLine("出错了\n\n" + JSON.stringify(error))
         }
-        // } else {
-        //     context.response.writeLine("开发中...")
-        // }
 
     }
 
@@ -507,35 +507,46 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             _nowPage = 1;
         }
 
-        var filter = [];
-        filter.push({
-            name: 'custrecord_moninv_adjustment_order',
-            operator: 'is',
-            values: false
-        });
-        filter.push({
-            name: "custrecord_moninv_end_quantity",
-            operator: "notequalto",
-            rightparens: 0,
-            values: ["0"]
-        })
+        var filter_amazon = [];
+
+        filter_amazon.push(['custrecord_moninv_adjustment_order', 'is', false]);
+        filter_amazon.push('and', ['custrecord_moninv_end_quantity', 'notequalto', ['0']]);
+
+        // filter.push({
+        //     name: 'custrecord_moninv_adjustment_order',
+        //     operator: 'is',
+        //     values: false
+        // });
+        // filter.push({
+        //     name: "custrecord_moninv_end_quantity",
+        //     operator: "notequalto",
+        //     rightparens: 0,
+        //     values: ["0"]
+        // })
 
         if (param.custpage_li_start_date && param.custpage_li_end_date) {
-            filter.push({ name: "custrecord_moninv_month", operator: "within", values: [param.custpage_li_start_date, param.custpage_li_end_date] });
+            filter_amazon.push('and', ['custrecord_moninv_month', 'within', [param.custpage_li_start_date, param.custpage_li_end_date]])
+            // filter.push({ name: "custrecord_moninv_month", operator: "within", values: [param.custpage_li_start_date, param.custpage_li_end_date] });
         } else if (param.custpage_li_start_date && !param.custpage_li_end_date) {
-            filter.push({ name: "custrecord_moninv_month", operator: "onorafter", values: [param.custpage_li_start_date] });
+            filter_amazon.push('and', ['custrecord_moninv_month', "onorafter", [param.custpage_li_start_date]])
+            // filter.push({ name: "custrecord_moninv_month", operator: "onorafter", values: [param.custpage_li_start_date] });
         } else if (!param.custpage_li_start_date && param.custpage_li_end_date) {
-            filter.push({ name: "custrecord_moninv_month", operator: "onorbefore", values: [param.custpage_li_end_date] });
+            filter_amazon.push('and', ['custrecord_moninv_month', 'onorbefore', [param.custpage_li_end_date]])
+            // filter.push({ name: "custrecord_moninv_month", operator: "onorbefore", values: [param.custpage_li_end_date] });
         }
 
-        log.audit('月度库存 过滤器', filter);
+        if (param.custpage_li_location) {
+            filter_amazon.push('and', ['CUSTRECORD_MONINV_ACCOUNT.custrecord_aio_fbaorder_location', "anyof", param.custpage_li_location])
+        }
+
+        log.audit('月度库存 过滤器', filter_amazon);
         var amazonSearch = search.create({
             type: "customrecord_amazon_monthinventory_rep",
-            filters: filter,
+            filters: filter_amazon,
             columns: [
                 // { name: "custrecord_aio_seller_id", join: "CUSTRECORD_MONINV_ACCOUNT", summary: "GROUP" }, // MWS Seller ID  0
                 { name: "custrecord_aio_fbaorder_location", join: "CUSTRECORD_MONINV_ACCOUNT", summary: "GROUP" }, // 店铺仓库  1
-                { name: "custrecord_moninv_month", summary: "GROUP" }, // 日期  2
+                { name: "custrecord_moninv_month", summary: "GROUP", sort: "DESC" }, // 日期  2
                 { name: "custrecord_moninv_fnsku", summary: "GROUP" }, // FNSKU  3
                 { name: "custrecord_moninv_sku", summary: "GROUP" }, // MSKU  4
                 { name: "custrecord_moninv_end_quantity", summary: "SUM" }, // Amazon 月末结余  5
@@ -543,14 +554,15 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
         });
 
         var pageSize = _sizePage; //每页条数
+        pageSize = 1000; //每页条数
         var ama_pageData = amazonSearch.runPaged({
             pageSize: pageSize
         });
         var ama_totalCount = ama_pageData.count; //总数
         var ama_pageCount = ama_pageData.pageRanges.length; //页数
 
-        log.audit('关联第一个表 ama_totalCount', ama_totalCount);
-        log.audit('关联第一个表 ama_pageCount', ama_pageCount);
+        log.audit('搜索 月度库存报表 ama_totalCount', ama_totalCount);
+        log.audit('搜索 月度库存报表 ama_pageCount', ama_pageCount);
 
         var amazon_result = new Array(); //结果
 
@@ -573,8 +585,8 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             });
         }
 
-        log.debug('amazon_result length', amazon_result.length)
-        log.debug('amazon_result length', amazon_result[0])
+        log.debug('amazon_result length', amazon_result.length);
+        log.debug('amazon_result length', amazon_result[0]);
         var mapping_filter = [];
 
         var temp_map_filter = [];
@@ -655,7 +667,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                     return a1.msku == msku && a1.location == fba_location
                 });
 
-                // log.debug('temp_element', temp_element);
+                log.debug('temp_element', temp_element);
                 temp_element.map(function(ele) {
                     var it = {
                         msku: msku,
@@ -729,10 +741,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
 
         })
 
-
         log.debug("new_map_arr", new_map_arr[0]);
-
-
 
         var ns_filters = [];
         ns_filters.push(
@@ -749,26 +758,26 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
 
 
         ["custpage_li_location", "custpage_li_sku", "custpage_li_start_date", "custpage_li_end_date", "custpage_li_pages", "custpage_li_per_page"];
-        if (param.custpage_li_sku) {
-            ns_filters.push("and",
-                ["item", "anyof", param.custpage_li_sku]
-            )
-        }
-        if (param.custpage_li_location) {
-            ns_filters.push("and",
-                ["location", "anyof", param.custpage_li_location])
-        }
-        if (param.custpage_li_start_date && param.custpage_li_end_date) {
-            ns_filters.push("and", ["trandate", "within", [param.custpage_li_start_date, param.custpage_li_end_date]]);
-        } else if (param.custpage_li_start_date && !param.custpage_li_end_date) {
-            ns_filters.push("and", ["trandate", "onorafter", [param.custpage_li_start_date]]);
-        } else if (!param.custpage_li_start_date && param.custpage_li_end_date) {
+
+        // if (param.custpage_li_sku) {
+        //     ns_filters.push("and",
+        //         ["item", "anyof", param.custpage_li_sku]
+        //     )
+        // }
+        // if (param.custpage_li_location) {
+        //     ns_filters.push("and",
+        //         ["location", "anyof", param.custpage_li_location])
+        // }
+
+        if (param.custpage_li_end_date) {
             ns_filters.push("and", ["trandate", "onorbefore", [param.custpage_li_end_date]]);
         }
+
         var temp_ns_filter = [];
 
+        log.debug("NS  条件", new_map_arr);
+
         new_map_arr.map(function(map, key) {
-            // map_result.map(function(map, key) {
             if (map.fba_location && map.itemId) {
 
                 if (key == 0) {
@@ -792,11 +801,15 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             }
         });
 
-        if (temp_ns_filter && temp_ns_filter.length > 0) {
+        // 过滤器中存在不存在货品 或者 地点
+        // if (!param.custpage_li_sku && !param.custpage_li_location) {
+        // }
+
+        if (temp_ns_filter.length) {
             ns_filters.push("and", temp_ns_filter);
         }
 
-
+        log.audit("NS 结余过滤器", ns_filters);
         var ns_mySearch = search.create({
             type: "transaction",
             filters: ns_filters,
@@ -805,7 +818,7 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                 { name: "item", summary: "GROUP", label: "SKU" }, // 1
                 { name: "department", join: "item", summary: "MAX", type: "select", label: "部门" }, // 2
                 { name: "quantity", summary: "SUM", type: "float", label: "结余数量" }, // 3
-                { name: "locationaveragecost", join: "item", summary: "MAX", label: "Location Average Cost" }, // 4
+                // { name: "locationaveragecost", join: "item", summary: "MAX", label: "Location Average Cost" }, // 4
                 // { name: "averagecost", join: "item", summary: "AVG", label: "Average Cost" }
             ]
         });
@@ -833,14 +846,15 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
                 var ns_itemId = rs.getValue(rs.columns[1]),
                     fba_location = rs.getValue(rs.columns[0]),
                     ns_quantity = rs.getValue(rs.columns[3]),
-                    ns_locationaveragecost = rs.getValue(rs.columns[4]),
+                    ns_locationaveragecost = 0,
+                    // ns_locationaveragecost = rs.getValue(rs.columns[4]),
                     ns_deparment = rs.getValue(rs.columns[2])
                 // ns_subsidiary = rs.getValue(rs.columns[6])
 
-                log.debug('ns_itemId: ' + ns_itemId, "fba_location: " + fba_location)
+                log.debug('ns_itemId: ' + ns_itemId, "fba_location: " + fba_location + ',   ns_quantity: ' + ns_quantity);
 
                 var temp_element = new_map_arr.filter(function(a1) {
-                    log.debug('a1.fba_location: ' + a1.itemId, "a1.fba_location: " + a1.fba_location)
+                    // log.debug('a1.fba_location: ' + a1.itemId, "a1.fba_location: " + a1.fba_location)
                     return a1.itemId == ns_itemId && a1.fba_location == fba_location
                 });
 
@@ -867,10 +881,17 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
             });
         }
 
+        var temp_result_arr = temp_result.filter(function(a1) {
+            return a1.custpage_label_inv_diff_qty != 0
+        });
+
+
         log.debug('temp_result 长度', temp_result[0]);
         log.debug('temp_result 长度', temp_result.length);
 
-        rsJson.result = temp_result;
+        log.debug('temp_result_arr 长度', temp_result_arr.length);
+
+        rsJson.result = temp_result_arr;
         rsJson.totalCount = ns_totalCount;
         rsJson.totalCount = ama_totalCount;
         rsJson.pageCount = ns_pageCount;
@@ -879,6 +900,329 @@ define(['N/record', 'N/search', 'N/log', 'N/ui/serverWidget', 'N/runtime'], func
         return rsJson;
 
     }
+
+
+    /**
+     *
+     * @param {Object} param
+     * @param {number} _sizePage
+     * @param {number} _nowPage
+     */
+    function searchResult_LI(param, _sizePage, _nowPage) {
+
+        var rsJson = []; //结果
+
+        if (!_nowPage) {
+            _nowPage = 1;
+        }
+
+        // 先获取对应货品在 NS 的结余量
+
+        var filter_1 = [];
+
+        var ns_filters_1 = [];
+        ns_filters_1.push(
+            ["mainline", "is", false],
+            "and",
+            ["type", "anyof", ["ItemRcpt", "ItemShip", "InvAdjst"]],
+            "and",
+            ["account", "anyof", ["214"]],
+            "and",
+            ["createdfrom.intercotransaction", "anyof", ["@NONE@"]],
+            "and",
+            ["location.name", "contains", ["FBA"]]
+        );
+
+        ["custpage_li_location", "custpage_li_sku", "custpage_li_start_date", "custpage_li_end_date", "custpage_li_pages", "custpage_li_per_page"];
+        if (param.custpage_li_sku) {
+            ns_filters_1.push("and",
+                ["item", "anyof", param.custpage_li_sku]
+            )
+        }
+        if (param.custpage_li_location) {
+            ns_filters_1.push("and",
+                ["location", "anyof", param.custpage_li_location])
+        }
+        if (param.custpage_li_start_date && param.custpage_li_end_date) {
+            ns_filters_1.push("and", ["trandate", "within", [param.custpage_li_start_date, param.custpage_li_end_date]]);
+        } else if (param.custpage_li_start_date && !param.custpage_li_end_date) {
+            ns_filters_1.push("and", ["trandate", "onorafter", [param.custpage_li_start_date]]);
+        } else if (!param.custpage_li_start_date && param.custpage_li_end_date) {
+            ns_filters_1.push("and", ["trandate", "onorbefore", [param.custpage_li_end_date]]);
+        }
+
+
+        log.audit("NS 结余 过滤器", ns_filters_1)
+
+        var ns_mySearch = search.create({
+            type: "transaction",
+            filters: ns_filters_1,
+            columns: [
+                { name: "location", summary: "GROUP", type: "select", label: "仓库" }, // 0
+                { name: "item", summary: "GROUP", label: "SKU" }, // 1
+                { name: "department", join: "item", summary: "MAX", type: "select", label: "部门" }, // 2
+                { name: "quantity", summary: "SUM", type: "float", label: "结余数量" }, // 3
+                { name: "locationaveragecost", join: "item", summary: "MAX", label: "Location Average Cost" }, // 4
+                // { name: "averagecost", join: "item", summary: "AVG", label: "Average Cost" }
+            ]
+        });
+
+        var pageData = ns_mySearch.runPaged({
+            pageSize: pageSize
+        });
+        var ns_totalCount = pageData.count; //总数
+        var ns_pageCount = pageData.pageRanges.length; //页数
+
+        log.audit('获取 NS 结余数量 总数 ns_totalCount', ns_totalCount);
+        log.audit('获取 NS 结余数量 页数 ns_pageCount', ns_pageCount);
+
+        var itemArr = [],
+            itemObj = {};
+        var temp_result = [];
+        if (ns_totalCount > 0) {
+            pageData.fetch({
+                index: 0
+                // index: Number(_nowPage - 1)
+            }).data.forEach(function(rs) {
+
+                var ns_itemId = rs.getValue(rs.columns[1]),
+                    fba_location = rs.getValue(rs.columns[0]),
+                    ns_quantity = rs.getValue(rs.columns[3]),
+                    ns_locationaveragecost = rs.getValue(rs.columns[4]),
+                    ns_deparment = rs.getValue(rs.columns[2])
+                // ns_subsidiary = rs.getValue(rs.columns[6])
+
+
+                var it = {
+                    custpage_label_location: fba_location, // 仓库
+                    custpage_label_sku: ns_itemId, // 货品
+                    custpage_label_ns_qty: ns_quantity, // NS 数量
+                    // custpage_label_amazon_qty: ele.end_qty, // Amazon 数量
+                    // custpage_label_msku: ele.msku, // MSKU
+                    // custpage_label_inv_diff_qty: Number(ele.end_qty) - Number(ns_quantity), // NS - Amazon 差异数量
+                    // custpage_label_inv_moninv_month: ele.custpage_label_inv_moninv_month, // 月度库存时间
+                    custpage_label_inv_locationaveragecost: ns_locationaveragecost, // 平均成本
+                    // custpage_label_fnsku: ele.custpage_label_fnsku,
+                    custpage_label_deparment: ns_deparment,
+                    // custpage_label_inv_recid_arr: JSON.stringify(ele.info)
+                };
+
+                temp_result.push(it);
+
+            });
+        }
+
+        log.debug("获取数据 temp_result: " + temp_result.length, temp_result[0]);
+
+
+        // 开始获取所有映射关系的 msku
+
+        var mapping_filter = [];
+
+        var ns_filters_2 = [];
+
+        if (param.custpage_li_sku) {
+            ns_filters_2.push(["custrecord_ass_sku", "anyof", [param.custpage_li_sku]]);
+        } else {
+            ns_filters_2.push(["custrecord_ass_sku", "noneof", ["@NONE@"]]);
+        }
+
+        temp_result.forEach(function(res, key) {
+            if (key == 0) {
+                mapping_filter.push([
+                    ["custrecord_ass_account.custrecord_aio_fbaorder_location", "anyof", [res.custpage_label_location]],
+                    "and",
+                    ['custrecord_ass_sku', "anyof", [res.custpage_label_sku]]
+                ]);
+            } else {
+                mapping_filter.push("or", [
+                    ["custrecord_ass_account.custrecord_aio_fbaorder_location", "anyof", [res.custpage_label_location]],
+                    "and",
+                    ['custrecord_ass_sku', "anyof", [res.custpage_label_sku]]
+                ])
+            }
+        });
+
+        if (mapping_filter && mapping_filter.length > 0) {
+            ns_filters_2.push("and", mapping_filter)
+        }
+
+        var map_result = search.create({
+            type: "customrecord_aio_amazon_seller_sku",
+            filters: ns_filters_2,
+            columns: [
+                { name: "custrecord_ass_sku", summary: "GROUP" }, // 货品,  0
+                { name: "name", summary: "GROUP" }, // msku  1
+                { name: "custrecord_ass_fnsku", summary: "GROUP" }, // fnku   2
+                { name: "custrecord_aio_fbaorder_location", join: "custrecord_ass_account", summary: "GROUP" }, //FBA 仓库  3
+            ]
+        });
+
+        var map_pageData = map_result.runPaged({
+            pageSize: pageSize
+        });
+
+        // log.debug('map_pageData', map_pageData);
+        var map_totalCount = map_pageData.count; //总数
+        var map_pageCount = map_pageData.pageRanges.length; //页数
+        log.audit('查找映射关系 map_totalCount', map_totalCount);
+        log.audit('查找映射关系 map_pageCount', map_pageCount);
+
+        var map_result = []; //结果
+
+        var _temp_arr = new Array();
+
+        var counter = 0;
+
+        if (map_totalCount > 0) {
+            map_pageData.fetch({
+                index: 0
+            }).data.forEach(function(map) {
+                counter++;
+
+                var itemId = map.getValue(map.columns[0]),
+                    msku = map.getValue(map.columns[1]),
+                    fnsku = map.getValue(map.columns[2]),
+                    fba_location = map.getValue(map.columns[3]);
+
+                var temp_element = temp_result.filter(function(a1) {
+                    return a1.custpage_label_sku == itemId && a1.custpage_label_location == fba_location
+                });
+
+
+                temp_element.map(function(ele) {
+                    var it = {
+                        msku: msku,
+                        itemId: itemId,
+                        // end_qty: ele.end_qty,
+                        fba_location: fba_location,
+                        custpage_label_msku: msku,
+                        custpage_label_sku: itemId,
+                        custpage_label_fnsku: fnsku,
+                        custpage_label_location: fba_location, // 仓库
+                        custpage_label_ns_qty: ele.custpage_label_ns_qty, // NS 数量
+                        // custpage_label_amazon_qty: ele.end_qty, // Amazon 数量
+                        // custpage_label_inv_diff_qty: Number(ele.end_qty) - Number(ns_quantity), // NS - Amazon 差异数量
+                        // custpage_label_inv_moninv_month: ele.custpage_label_inv_moninv_month, // 月度库存时间
+                        custpage_label_inv_locationaveragecost: ele.custpage_label_inv_locationaveragecost, // 平均成本
+                        custpage_label_deparment: ele.custpage_label_deparment,
+                        // custpage_label_inv_recid_arr: JSON.stringify(ele.info)
+                    }
+                    map_result.push(it);
+
+                })
+
+            });
+        }
+
+        log.audit('counter', counter);
+
+        log.debug('map_result length ', map_result.length);
+        log.debug('映射关系 数据 1 ', map_result[0]);
+
+
+
+        // 开始获获取月度库存数据
+
+        var ns_filters_3 = [];
+        ns_filters_3.push({
+            name: 'custrecord_moninv_adjustment_order',
+            operator: 'is',
+            values: false
+        });
+        ns_filters_3.push({
+            name: "custrecord_moninv_end_quantity",
+            operator: "notequalto",
+            rightparens: 0,
+            values: ["0"]
+        })
+
+        if (param.custpage_li_start_date && param.custpage_li_end_date) {
+            ns_filters_3.push({ name: "custrecord_moninv_month", operator: "within", values: [param.custpage_li_start_date, param.custpage_li_end_date] });
+        } else if (param.custpage_li_start_date && !param.custpage_li_end_date) {
+            ns_filters_3.push({ name: "custrecord_moninv_month", operator: "onorafter", values: [param.custpage_li_start_date] });
+        } else if (!param.custpage_li_start_date && param.custpage_li_end_date) {
+            ns_filters_3.push({ name: "custrecord_moninv_month", operator: "onorbefore", values: [param.custpage_li_end_date] });
+        }
+
+        log.audit('NS 库存结余 过滤器', ns_filters_3);
+        var amazonSearch = search.create({
+            type: "customrecord_amazon_monthinventory_rep",
+            filters: ns_filters_3,
+            columns: [
+                // { name: "custrecord_aio_seller_id", join: "CUSTRECORD_MONINV_ACCOUNT", summary: "GROUP" }, // MWS Seller ID  0
+                { name: "custrecord_aio_fbaorder_location", join: "CUSTRECORD_MONINV_ACCOUNT", summary: "GROUP" }, // 店铺仓库  1
+                { name: "custrecord_moninv_month", summary: "GROUP", sort: "DESC" }, // 日期  2
+                { name: "custrecord_moninv_fnsku", summary: "GROUP" }, // FNSKU  3
+                { name: "custrecord_moninv_sku", summary: "GROUP" }, // MSKU  4
+                { name: "custrecord_moninv_end_quantity", summary: "SUM" }, // Amazon 月末结余  5
+            ]
+        });
+
+        var pageSize = _sizePage; //每页条数
+        var ama_pageData = amazonSearch.runPaged({
+            pageSize: pageSize
+        });
+        var ama_totalCount = ama_pageData.count; //总数
+        var ama_pageCount = ama_pageData.pageRanges.length; //页数
+
+        log.audit('关联第一个表 ama_totalCount', ama_totalCount);
+        log.audit('关联第一个表 ama_pageCount', ama_pageCount);
+
+        var amazon_result = new Array(); //结果
+
+        var itemArr = [],
+            rsJson = {};
+
+        if (ama_totalCount > 0) {
+            ama_pageData.fetch({
+                index: Number(_nowPage - 1)
+            }).data.forEach(function(ama) {
+
+                var month_msku = ama.getValue(ama.columns[3]),
+                    month_location = ama.getValue(ama.columns[0]),
+                    month_ama = ama.getValue(ama.columns[1]),
+                    end_qty = ama.getValue(ama.columns[4]),
+                    month_rec_id = ama.id;
+
+
+                var temp_element = map_result.filter(function(a1) {
+                    return a1.custpage_label_msku == month_msku && a1.custpage_label_location == month_location
+                });
+
+                temp_element.map(function(mon) {
+                    var it = {
+                        month_rec_id: month_rec_id,
+                        amazon_end_qty: end_qty,
+                        custpage_label_msku: mon.custpage_label_msku,
+                        custpage_label_sku: mon.custpage_label_sku,
+                        custpage_label_fnsku: mon.custpage_label_fnsku,
+                        custpage_label_location: mon.custpage_label_location, // 仓库
+                        custpage_label_ns_qty: mon.custpage_label_ns_qty, // NS 数量
+                        // custpage_label_inv_diff_qty: Number(ele.end_qty) - Number(ns_quantity), // NS - Amazon 差异数量
+                        custpage_label_inv_moninv_month: month_ama, // 月度库存时间
+                        custpage_label_inv_locationaveragecost: mon.custpage_label_inv_locationaveragecost, // 平均成本
+                        custpage_label_deparment: mon.custpage_label_deparment,
+                        // custpage_label_inv_recid_arr: JSON.stringify(ele.info)
+                    }
+                    amazon_result.push(it);
+                })
+
+            });
+        }
+
+        log.debug('amazon_result length', amazon_result.length)
+        log.debug('amazon_result length', amazon_result[0])
+
+
+        rsJson.result = amazon_result;
+        rsJson.totalCount = ama_totalCount;
+        rsJson.pageCount = ama_pageCount;
+
+        return rsJson;
+
+    }
+
 
     function _li_dateFormat(date, fmt) {
         var o = {

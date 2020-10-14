@@ -2,17 +2,18 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 19:08:37
- * @LastEditTime   : 2020-10-14 10:07:25
+ * @LastEditTime   : 2020-10-13 13:43:22
  * @LastEditors    : Li
- * @Description    : 根据月度库存差异报表生成库存调整单
- * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.rl.js
+ * @Description    :
+ * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.rl copy.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
 /**
  *@NApiVersion 2.x
  *@NScriptType Restlet
  */
-define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, log, runtime) {
+define(['N/record', 'N/search', 'N/log'], function(record, search, log) {
+
 
     const _invAdjAccount = 526; // 库存调整的科目
     const _subsidiary = 5; // 蓝深贸易有限公司
@@ -23,11 +24,10 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
         var dealDate = context.data.slice(0, 100); // 限制于 100 条数据
         log.audit('dealDate 第一个数据', dealDate[0]);
         var inventory_snapshot_id;
-
         try {
             //生成快照
-            var inventory_snapshot = record.create({ type: 'customrecord_amazom_inventory_snapshot', isDynamic: true });
-            inventory_snapshot.setValue({ fieldId: 'owner', value: runtime.getCurrentUser().id });
+            var inventory_snapshot = record.create({ type: 'customrecord_amazom_inventory_snapshot', isDynamic: true});
+            inventory_snapshot.setValue({fieldId: 'owner', value: runtime.getCurrentUser().id});
             var sublist_id = 'recmachcustrecord_amazom_inv_snap_id';
             dealDate.map(function(info) {
                 var temp_inadju = inventoryAdjustment(info, inventory_snapshot, sublist_id);
@@ -35,27 +35,23 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
                     temp_arr.push(temp_arr)
                 }
             });
-
-            if (temp_arr.length) {
-                inventory_snapshot_id = inventory_snapshot.save();
-                log.debug("快照 ID", inventory_snapshot_id)
-            }
+            inventory_snapshot_id = inventory_snapshot.save();
         } catch (error) {
             log.error('生成库存调整单出错了', error);
-            if (inventory_snapshot_id) {
+            if(inventory_snapshot_id){
                 //删除创建了的快照明细
                 var err_ids = [];
                 search.create({
-                    type: 'customrecord_amazom_inventory_snap_line',
+                    type: 'customrecord_amazom_inventory_snap_line	',
                     filters: [
                         { name: 'custrecord_amazom_inv_snap_id', operator: 'anyof', values: inventory_snapshot_id },
                     ]
-                }).run().each(function(rec) {
+                }).run().each(function (rec) {
                     err_ids.push(rec.id);
                     return true;
                 });
-                if (err_ids.length > 0) {
-                    err_ids.map(function(line) {
+                if(err_ids.length > 0){
+                    err_ids.map(function(line){
                         record.delete({
                             type: 'customrecord_amazom_inventory_snap_line',
                             id: line
@@ -77,20 +73,14 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
     }
 
 
-
     /**
-     *
-     * 生成库存调整单, 子公司 和 盘盈盘亏 归总
-     * @param {Object} info  货品信息
-     * @param {Object} inventory_snapshot  记录对象
-     * @param {string} sublist_id  子列表ID
-     * @returns {number} invAdj_id  调整单内部ID
+     * 生成库存调整单, 子公司 和 盘盈盘亏 状态归总
+     * @param {Object} info
      */
     function inventoryAdjustment(info, inventory_snapshot, sublist_id) {
 
         var invAdj = record.create({
             type: 'inventoryadjustment',
-            isDynamic: true
         });
         invAdj.setValue({
             fieldId: 'subsidiary',
@@ -126,58 +116,81 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
             text: info.custpage_label_deparment
         });
 
-        invAdj.selectNewLine({ sublistId: 'inventory' });
-
-        invAdj.setCurrentSublistValue({
+        invAdj.setSublistValue({
             sublistId: 'inventory',
             fieldId: 'item',
             value: info.custpage_label_sku,
+            line: 0
         });
-        invAdj.setCurrentSublistValue({
+        invAdj.setSublistValue({
             sublistId: 'inventory',
             fieldId: 'location',
             value: info.custpage_label_location,
+            line: 0
         });
-
-        if (info.custpage_label_inv_diff_qty > 0) { // 若属于盘盈入库, 则先设置未 盘亏出库, 获取当前的库存成本, 在设置回正确的值
-            invAdj.setCurrentSublistValue({
-                sublistId: 'inventory',
-                fieldId: 'adjustqtyby',
-                value: -info.custpage_label_inv_diff_qty,
-            });
-
-        }
-        invAdj.setCurrentSublistValue({
+        invAdj.setSublistValue({
             sublistId: 'inventory',
             fieldId: 'adjustqtyby',
             value: info.custpage_label_inv_diff_qty,
+            line: 0
+        });
+        invAdj.setSublistValue({
+            sublistId: 'inventory',
+            fieldId: 'unitcost',
+            value: info.custpage_label_inv_locationaveragecost,
+            line: 0
         });
 
-        // invAdj.setCurrentSublistValue({
-        //     sublistId: 'inventory',
-        //     fieldId: 'unitcost',
-        //     value: info.custpage_label_inv_locationaveragecost,
-        // });
-
-        invAdj.commitLine({ sublistId: 'inventory' });
-        // var invAdj_id;
-        var invAdj_id = invAdj.save({
-            ignoreMandatoryFields: true
-        });
+        var invAdj_id = invAdj.save();
         log.debug('库存调整单', invAdj_id);
 
 
+
         if (invAdj_id) {
-            // if (1) {
+
+            // {
+            //     "custpage_label_location":"57",
+            //     "custpage_label_sku":"3937",
+            //     "custpage_label_inv_diff_qty":-3580,
+            //     "custpage_label_msku":"HP115-UK-GM-FBA",
+            //     "custpage_label_fnsku":"",
+            //     "custpage_label_inv_moninv_month":"2020-6-30",
+            //     "custpage_label_deparment":"LR事业部",
+            //     "custpage_label_inv_locationaveragecost":"29.66",
+            //     "custpage_label_inv_recid_arr":[
+            //         {
+            //             "msku":"HP115-AD-FR-FBA",
+            //             "itemId":"3937",
+            //             "end_qty":"70",
+            //             "fba_location":"57",
+            //             "custpage_label_amazon_qty":"70",
+            //             "custpage_label_msku":"HP115-AD-FR-FBA",
+            //             "custpage_label_sku":"3937",
+            //             "custpage_label_inv_moninv_month":"2020-6-30",
+            //             "custpage_label_fnsku":"X000UJO20N"
+            //         },
+            //         {
+            //             "msku":"HP115-UK-GM-FBA",
+            //             "itemId":"3937",
+            //             "end_qty":"16",
+            //             "fba_location":"57",
+            //             "custpage_label_amazon_qty":"16",
+            //             "custpage_label_msku":"HP115-UK-GM-FBA",
+            //             "custpage_label_sku":"3937",
+            //             "custpage_label_inv_moninv_month":"2020-6-30",
+            //             "custpage_label_fnsku":"X000UB3CDJ"
+            //         }
+            //     ]
+            // }
+
 
             var invFilter = [];
             var recInfo = info.custpage_label_inv_recid_arr;
-            invFilter.push(['custrecord_moninv_end_quantity', 'notequalto', ['0']]);
 
             recInfo.map(function(_info, _key) {
 
                 if (_key == 0) {
-                    invFilter.push('and',
+                    invFilter.push(
                         [
                             ['custrecord_moninv_month', 'on', _info.custpage_label_inv_moninv_month],
                             "and",
@@ -207,7 +220,6 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
                 filters: invFilter
             }).run().each(function(rec) {
                 searchArr.push(rec.id);
-
                 record.submitFields({
                     type: 'customrecord_amazon_monthinventory_rep',
                     id: rec.id,
@@ -220,16 +232,15 @@ define(['N/record', 'N/search', 'N/log', 'N/runtime'], function(record, search, 
                 return true;
             })
 
-            log.debug('searchArr  月度库存标记 内部ID  ' + searchArr.length, searchArr);
-
+            log.debug('searchArr  ' + searchArr.length, searchArr);
             //生成快照明细
             inventory_snapshot.selectNewLine({ sublistId: sublist_id });
-            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_warehouse', value: info.custpage_label_location }); //仓库
-            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_sku', value: info.custpage_label_sku }); //SKU
-            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_aquantity', value: info.custpage_label_amazon_qty }); //Amazon结余量
-            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_nquantity', value: info.custpage_label_ns_qty }); //NS结余量
-            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_diffquantity', value: info.custpage_label_inv_diff_qty }); //库存差异
-            inventory_snapshot.setCurrentSublistText({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_date', text: info.custpage_label_inv_moninv_month }); //时间
+            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_warehouse', value: '' });//仓库
+            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_sku', value: '' });//SKU
+            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_aquantity', value: '' });//Amazon结余量
+            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_nquantity', value: '' });//NS结余量
+            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_diffquantity', value: '' });//库存差异
+            inventory_snapshot.setCurrentSublistValue({ sublistId: sublist_id, fieldId: 'custrecord_amazom_inv_snap_date', value: '' });//时间
             inventory_snapshot.commitLine({ sublistId: sublist_id });
 
         }

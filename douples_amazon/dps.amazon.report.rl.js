@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-09-21 14:31:56
- * @LastEditTime   : 2020-09-23 22:36:27
+ * @LastEditTime   : 2020-09-29 21:54:19
  * @LastEditors    : Li
  * @Description    : 获取报告数据, 并保存  RL
  * @FilePath       : \douples_amazon\dps.amazon.report.rl.js
@@ -17,20 +17,12 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
 ], function(format, core, log, record, runtime, moment, search, interfun) {
 
 
-    accArr = [1, 3, 5, 12, 14, 16, 17, 19, 21, 23, 24, 31, 33, 35, 40, 41, 43,
-        48, 49, 54, 56, 57, 67, 69, 72, 77, 78, 83, 86, 91, 92, 97, 102, 104, 106,
-        111, 113, 115, 117, 118, 120, 122, 127, 129, 134, 136, 138, 143, 145, 148,
-        149, 154, 156, 158, 163, 164, 166, 171, 172, 174, 179, 184, 186, 187, 189,
-        194, 196, 201, 203, 204, 206, 211, 213, 218, 220, 221, 222, 227, 237, 313,
-        314, 315, 321, 323, 324, 341, 415, 618
-    ]
-
-
     function _post(context) {
 
         try {
             var report_type = context.reporttype,
                 acc = context.acc,
+                group = context.group,
                 action = context.action,
                 value = context.value;
 
@@ -47,12 +39,18 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                         { name: 'isinactive', operator: 'is', values: false },
                         { name: "custrecord_dps_li_get_report", operator: 'is', values: false }
                     ],
-                    columns: [
-                        "custrecord_dps_auto_execute_account"
+                    columns: ["custrecord_dps_auto_execute_account",
+                        { name: 'internalid', sort: "ASC" }
                     ]
-                }).run().each(function (rec) {
-                    acc = rec.getValue("custrecord_dps_auto_execute_account")
-                })
+                }).run().each(function(rec) {
+                    acc = rec.getValue("custrecord_dps_auto_execute_account");
+                });
+
+                log.error("拉取店铺", acc);
+
+
+                // acc = context.acc;
+
                 var results = getInputData(report_type, acc, "");
 
                 log.debug("获取数据长度   " + results.length, results);
@@ -105,39 +103,14 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
         var deal_with_arr = [];
         search.create({
             type: "customrecord_aio_amazon_report",
-            filters: [{
-                    name: "custrecord_aio_origin_account",
-                    operator: 'is',
-                    values: acc
-                },
-                {
-                    name: "custrecord_aio_origin_report_type",
-                    operator: 'is',
-                    values: type
-                },
-                {
-                    name: "custrecord_aio_origin_report_id",
-                    operator: 'isempty'
-                },
-                {
-                    name: "custrecord_aio_origin_report_request_id",
-                    operator: 'isnotempty'
-                },
-                {
-                    name: "custrecord_aio_origin_report_status",
-                    operator: 'isnot',
-                    values: '_DONE_'
-                },
-                {
-                    name: "custrecord_aio_origin_report_status",
-                    operator: 'isnot',
-                    values: '_DONE_NO_DATA_'
-                },
-                {
-                    name: "custrecord_aio_origin_report_status",
-                    operator: 'isnot',
-                    values: '_CANCELLED_'
-                }
+            filters: [
+                { name: "custrecord_aio_origin_account", operator: 'is', values: acc },
+                { name: "custrecord_aio_origin_report_type", operator: 'is', values: type },
+                { name: "custrecord_aio_origin_report_id", operator: 'isempty' },
+                { name: "custrecord_aio_origin_report_request_id", operator: 'isnotempty' },
+                { name: "custrecord_aio_origin_report_status", operator: 'isnot', values: '_DONE_' },
+                { name: "custrecord_aio_origin_report_status", operator: 'isnot', values: '_DONE_NO_DATA_' },
+                { name: "custrecord_aio_origin_report_status", operator: 'isnot', values: '_CANCELLED_' }
             ]
         }).run().each(function(rec) {
             deal_with_arr.push(rec.id)
@@ -196,8 +169,8 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                         'custrecord_amazon_report_counts': rLines.length // 本次拉取总数
                     }
                 })
-                log.error('origion * id： ' + core.ns.amazon_report._name, r)
-                log.error('rid+店铺+FBA仓库+数量', rid + '-' + account.id + '-' + account.extra_info.fbaorder_location + '-' + rLines.length)
+                log.audit('origion * id： ' + core.ns.amazon_report._name, r)
+                log.audit('rid+店铺+FBA仓库+数量', rid + '-' + account.id + '-' + account.extra_info.fbaorder_location + '-' + rLines.length)
                 if (report_type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_ && rLines.length > 0) {
                     if (account.extra_info.fbaorder_location) {
                         reportFlag = true
@@ -219,32 +192,14 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                         })
                         var updateInventoryRecord
                         if (!updateId) {
-                            updateInventoryRecord = record.create({
-                                type: 'customrecord_fba_update_inventory',
-                                isDynamic: true
-                            })
+                            updateInventoryRecord = record.create({ type: 'customrecord_fba_update_inventory', isDynamic: true })
                         } else {
-                            updateInventoryRecord = record.load({
-                                type: 'customrecord_fba_update_inventory',
-                                id: updateId
-                            })
+                            updateInventoryRecord = record.load({ type: 'customrecord_fba_update_inventory', id: updateId })
                         }
-                        updateInventoryRecord.setValue({
-                            fieldId: 'custrecord_fba_update_inventory_account',
-                            value: account.id
-                        })
-                        updateInventoryRecord.setValue({
-                            fieldId: 'custrecord_salesorder_location',
-                            value: account.extra_info.fbaorder_location
-                        })
-                        updateInventoryRecord.setValue({
-                            fieldId: 'custrecord_fba_update_inventory_rid',
-                            value: rid
-                        })
-                        updateInventoryRecord.setValue({
-                            fieldId: 'custrecord_fba_update_status',
-                            value: 2
-                        })
+                        updateInventoryRecord.setValue({ fieldId: 'custrecord_fba_update_inventory_account', value: account.id })
+                        updateInventoryRecord.setValue({ fieldId: 'custrecord_salesorder_location', value: account.extra_info.fbaorder_location })
+                        updateInventoryRecord.setValue({ fieldId: 'custrecord_fba_update_inventory_rid', value: rid })
+                        updateInventoryRecord.setValue({ fieldId: 'custrecord_fba_update_status', value: 2 })
                         updateInventoryRecord.save()
                     }
                 }
@@ -314,7 +269,7 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                     line['receipt_date'] = moment.utc(dateDeal(firstLine['deposit-date'])).toDate()
                 }
                 var mapping = core.consts.fieldsMapping[core.enums.report_type[type]]
-                log.error('type :' + type, mapping)
+                log.audit('type :' + type, mapping)
                 var date_key = mapping.date_key
                 // log.debug('line[date_key:',line[date_key])
                 line[date_key + '-txt'] = line[date_key]
@@ -328,61 +283,18 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                     // Amazon 发货报告    customrecord_amazon_sales_report        _GET_AMAZON_FULFILLED_SHIPMENTS_DATA_
                     search.create({
                         type: 'customrecord_amazon_sales_report',
-                        filters: [{
-                                name: 'custrecord_shipment_item_id',
-                                operator: 'is',
-                                values: line['shipment-item-id']
-                            }, // SHIPMENT-ITEM-ID
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_shipment_item_id}, '" + line['shipment-item-id'] + "')"
-                            },
-                            {
-                                name: 'custrecord_amazon_order_item_id',
-                                operator: 'is',
-                                values: line['amazon-order-item-id']
-                            }, // AMAZON-ORDER-ITEM-ID
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_amazon_order_item_id}, '" + line['amazon-order-item-id'] + "')"
-                            },
-                            {
-                                name: 'custrecord_amazon_order_id',
-                                operator: 'is',
-                                values: line['amazon-order-id']
-                            }, // Order ID
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_amazon_order_id}, '" + line['amazon-order-id'] + "')"
-                            },
-                            {
-                                name: 'custrecord_shipment_account',
-                                operator: 'anyof',
-                                values: [line['account']]
-                            }, // account
-                            {
-                                name: 'custrecord_sku',
-                                operator: 'is',
-                                values: line['sku']
-                            }, // sku
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_sku}, '" + line['sku'] + "')"
-                            },
+                        filters: [
+                            { name: 'custrecord_shipment_item_id', operator: 'is', values: line['shipment-item-id'] }, // SHIPMENT-ITEM-ID
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_shipment_item_id}, '" + line['shipment-item-id'] + "')" },
+                            { name: 'custrecord_amazon_order_item_id', operator: 'is', values: line['amazon-order-item-id'] }, // AMAZON-ORDER-ITEM-ID
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_amazon_order_item_id}, '" + line['amazon-order-item-id'] + "')" },
+                            { name: 'custrecord_amazon_order_id', operator: 'is', values: line['amazon-order-id'] }, // Order ID
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_amazon_order_id}, '" + line['amazon-order-id'] + "')" },
+                            { name: 'custrecord_shipment_account', operator: 'anyof', values: [line['account']] }, // account
+                            { name: 'custrecord_sku', operator: 'is', values: line['sku'] }, // sku
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_sku}, '" + line['sku'] + "')" },
                             // { name: "custrecord_item_price", operator: "is", values: line['item-price'] },                         // ITEM-PRICE
-                            {
-                                name: 'custrecord_quantity_shipped',
-                                operator: 'is',
-                                values: line['quantity-shipped']
-                            }, // QUANTITY-SHIPPED
+                            { name: 'custrecord_quantity_shipped', operator: 'is', values: line['quantity-shipped'] }, // QUANTITY-SHIPPED
                         ]
                     }).run().each(function(e) {
                         check_rec_id = e.id
@@ -390,65 +302,18 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                 } else if (mapping.record_type_id == 'customrecord_aio_amazon_customer_return') {
                     search.create({
                         type: 'customrecord_aio_amazon_customer_return',
-                        filters: [{
-                                name: 'custrecord_aio_b2c_return_lcn',
-                                operator: 'is',
-                                values: line['license-plate-number']
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2c_return_lcn}, '" + line['license-plate-number'] + "')"
-                            },
-                            {
-                                name: 'custrecord_aio_b2c_return_order_id',
-                                operator: 'is',
-                                values: line['order-id']
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2c_return_order_id}, '" + line['order-id'] + "')"
-                            },
-                            // {
-                            //   name: 'custrecord_amazon_returndate_text',
-                            //   operator: 'is',
-                            //   values: line['return-date']
-                            // },
-                            {
-                                name: 'custrecord_aio_b2_creturn_sku',
-                                operator: 'is',
-                                values: line['sku']
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2_creturn_sku}, '" + line['sku'] + "')"
-                            },
-                            {
-                                name: 'custrecord_aio_b2c_return_reason',
-                                operator: 'is',
-                                values: line['reason']
-                            },
-                            {
-                                name: 'formulanumeric',
-                                operator: 'equalto',
-                                values: '1',
-                                formula: "INSTR({custrecord_aio_b2c_return_reason}, '" + line['reason'] + "')"
-                            },
-                            {
-                                name: 'custrecord_aio_b2c_return_aio_account',
-                                operator: 'anyof',
-                                values: line['account']
-                            },
-                            {
-                                name: 'custrecord_aio_b2c_return_quantity',
-                                operator: 'is',
-                                values: line['quantity']
-                            }
+                        filters: [
+                            { name: 'custrecord_aio_b2c_return_lcn', operator: 'is', values: line['license-plate-number'] },
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_aio_b2c_return_lcn}, '" + line['license-plate-number'] + "')" },
+                            { name: 'custrecord_aio_b2c_return_order_id', operator: 'is', values: line['order-id'] },
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_aio_b2c_return_order_id}, '" + line['order-id'] + "')" },
+                            // { name: 'custrecord_amazon_returndate_text', operator: 'is', values: line['return-date'] },
+                            { name: 'custrecord_aio_b2_creturn_sku', operator: 'is', values: line['sku'] },
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_aio_b2_creturn_sku}, '" + line['sku'] + "')" },
+                            { name: 'custrecord_aio_b2c_return_reason', operator: 'is', values: line['reason'] },
+                            { name: 'formulanumeric', operator: 'equalto', values: '1', formula: "INSTR({custrecord_aio_b2c_return_reason}, '" + line['reason'] + "')" },
+                            { name: 'custrecord_aio_b2c_return_aio_account', operator: 'anyof', values: line['account'] },
+                            { name: 'custrecord_aio_b2c_return_quantity', operator: 'is', values: line['quantity'] }
 
                         ]
                     }).run().each(function(e) {
@@ -458,42 +323,15 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                     // 报告为 Amazon Received 报告,增加去重机制
                     search.create({
                         type: mapping.record_type_id,
-                        filters: [{
-                                name: 'custrecord_dps_fba_received_inven_fnsku',
-                                operator: 'is',
-                                values: line['fnsku']
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_inve_account',
-                                operator: 'is',
-                                values: line['account']
-                            },
+                        filters: [
+                            { name: 'custrecord_dps_fba_received_inven_fnsku', operator: 'is', values: line['fnsku'] },
+                            { name: 'custrecord_dps_fba_received_inve_account', operator: 'is', values: line['account'] },
                             // { name: 'custrecord_dps_fba_received_inv_req_id',operator: 'is',values: line["report-id"]},
-                            {
-                                name: 'custrecord_dps_fba_received_receiveddate',
-                                operator: 'is',
-                                values: line['received-date']
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_inven_sku',
-                                operator: 'is',
-                                values: line['sku']
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_inv_quantity',
-                                operator: 'is',
-                                values: line['quantity']
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_shipment_id',
-                                operator: 'is',
-                                values: line['fba-shipment-id']
-                            },
-                            {
-                                name: 'custrecord_dps_fba_received_ful_centerid',
-                                operator: 'is',
-                                values: line['fulfillment-center-id']
-                            }
+                            { name: 'custrecord_dps_fba_received_receiveddate', operator: 'is', values: line['received-date'] },
+                            { name: 'custrecord_dps_fba_received_inven_sku', operator: 'is', values: line['sku'] },
+                            { name: 'custrecord_dps_fba_received_inv_quantity', operator: 'is', values: line['quantity'] },
+                            { name: 'custrecord_dps_fba_received_shipment_id', operator: 'is', values: line['fba-shipment-id'] },
+                            { name: 'custrecord_dps_fba_received_ful_centerid', operator: 'is', values: line['fulfillment-center-id'] }
                         ]
                     }).run().each(function(e) {
                         check_rec_id = e.id
@@ -502,27 +340,12 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                     // 报告为 Amazon Listing 报告 , 增加去重机制
                     search.create({
                         type: mapping.record_type_id,
-                        filters: [{
-                                name: 'custrecord_aio_mfn_l_listing_id',
-                                operator: 'is',
-                                values: line['listing-id']
-                            },
-                            {
-                                name: 'custrecord_aio_mfn_l_seller_sku',
-                                operator: 'is',
-                                values: line['seller-sku']
-                            },
+                        filters: [
+                            { name: 'custrecord_aio_mfn_l_listing_id', operator: 'is', values: line['listing-id'] },
+                            { name: 'custrecord_aio_mfn_l_seller_sku', operator: 'is', values: line['seller-sku'] },
                             // { name: 'custrecord_dps_fba_received_inv_req_id',operator: 'is',values: line["report-id"]},
-                            {
-                                name: 'custrecord_aio_mfn_l_asin1',
-                                operator: 'is',
-                                values: line['asin1']
-                            },
-                            {
-                                name: 'custrecord_aio_mfn_l_product_id',
-                                operator: 'is',
-                                values: line['product-id']
-                            }
+                            { name: 'custrecord_aio_mfn_l_asin1', operator: 'is', values: line['asin1'] },
+                            { name: 'custrecord_aio_mfn_l_product_id', operator: 'is', values: line['product-id'] }
                         ]
                     }).run().each(function(e) {
                         check_rec_id = e.id
@@ -533,31 +356,12 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                     log.debug('line sjAcc ', line['sjAcc'])
                     search.create({
                         type: mapping.record_type_id,
-                        filters: [{
-                                name: 'custrecord_aio_removal_account',
-                                operator: 'is',
-                                values: line['account']
-                            },
-                            {
-                                name: 'custrecord_aio_removal_order_id',
-                                operator: 'is',
-                                values: line['order-id']
-                            },
-                            {
-                                name: 'custrecord_aio_removal_sku',
-                                operator: 'is',
-                                values: line['sku']
-                            },
-                            {
-                                name: 'custrecord_aio_removal_disposition',
-                                operator: 'is',
-                                values: line['disposition']
-                            },
-                            {
-                                name: 'custrecord_aio_removal_order_type',
-                                operator: 'is',
-                                values: line['order-type']
-                            }
+                        filters: [
+                            { name: 'custrecord_aio_removal_account', operator: 'is', values: line['account'] },
+                            { name: 'custrecord_aio_removal_order_id', operator: 'is', values: line['order-id'] },
+                            { name: 'custrecord_aio_removal_sku', operator: 'is', values: line['sku'] },
+                            { name: 'custrecord_aio_removal_disposition', operator: 'is', values: line['disposition'] },
+                            { name: 'custrecord_aio_removal_order_type', operator: 'is', values: line['order-type'] }
                         ]
                     }).run().each(function(e) {
                         check_rec_id = e.id
@@ -662,39 +466,21 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                     var values = line[mapping.mapping[field_id]]
                     if (values && JSON.stringify(values).length < 300) {
                         if (mapping.mapping[field_id] == date_key) {
-                            rec.setText({
-                                fieldId: field_id,
-                                text: values
-                            })
+                            rec.setText({ fieldId: field_id, text: values })
                         } else {
-                            rec.setValue({
-                                fieldId: field_id,
-                                value: values
-                            })
+                            rec.setValue({ fieldId: field_id, value: values })
                         }
                     } else if (values && JSON.stringify(values).length >= 300) {
-                        log.error('else if values', values)
-                        rec.setValue({
-                            fieldId: field_id,
-                            value: values.substring(0, 299)
-                        })
+                        log.audit('else if values', values)
+                        rec.setValue({ fieldId: field_id, value: values.substring(0, 299) })
                     }
                 })
 
                 if (type == core.enums.report_type._GET_FBA_MYI_ALL_INVENTORY_DATA_) {
                     log.debug('库存报告的sku：' + line.sku, acc_id)
-                    rec.setValue({
-                        fieldId: 'custrecord_fba_inventory_rid',
-                        value: Number(v.rid)
-                    })
-                    rec.setValue({
-                        fieldId: 'custrecord_fba_account',
-                        value: acc_id
-                    })
-                    rec.setValue({
-                        fieldId: 'custrecord_all_salesorder_location',
-                        value: Number(v.salesorder_location)
-                    })
+                    rec.setValue({ fieldId: 'custrecord_fba_inventory_rid', value: Number(v.rid) })
+                    rec.setValue({ fieldId: 'custrecord_fba_account', value: acc_id })
+                    rec.setValue({ fieldId: 'custrecord_all_salesorder_location', value: Number(v.salesorder_location) })
                     // sku对应关系，fnsku取库存报告
                     var sku_corr = '',
                         acc_search = interfun.getSearchAccount(seller_id).acc_search
@@ -713,21 +499,12 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                     })
                 }
                 if (type == core.enums.report_type._GET_V2_SETTLEMENT_REPORT_DATA_FLAT_FILE_V2_) {
-                    rec.setText({
-                        fieldId: 'custrecord_settlement_start',
-                        text: interfun.getFormatedDate('', '', line['settlement-start-date']).date
-                    })
-                    rec.setText({
-                        fieldId: 'custrecord_settlement_enddate',
-                        text: interfun.getFormatedDate('', '', line['settlement-end-date']).date
-                    })
+                    rec.setText({ fieldId: 'custrecord_settlement_start', text: interfun.getFormatedDate('', '', line['settlement-start-date']).date })
+                    rec.setText({ fieldId: 'custrecord_settlement_enddate', text: interfun.getFormatedDate('', '', line['settlement-end-date']).date })
                 }
                 if (type == core.enums.report_type._GET_MERCHANT_LISTINGS_ALL_DATA_) {
                     log.debug('listing 报告的sku：' + line['seller-sku'], acc_id)
-                    rec.setValue({
-                        fieldId: 'custrecord_aio_mfn_l_listing_acc_id',
-                        value: acc_id
-                    })
+                    rec.setValue({ fieldId: 'custrecord_aio_mfn_l_listing_acc_id', value: acc_id })
                     // sku对应关系，asin sellersku 店铺 站点
                     var sku_corr = ''
                     search.create({
@@ -805,9 +582,9 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
     function createMissingReport(repoty, repo_id, reason, acc, ck) {
         var mo
         var fils = []
-        repoty ? fils.push({ name: 'custrecord_amazon_missing_rep', operator: 'anyof', values: repoty }) : ''
-        repo_id ? fils.push({ name: 'custrecord_amazon_missing_reportid', operator: 'anyof', values: repo_id }) : ''
-        acc ? fils.push({ name: 'custrecord_amazon_missing_account', operator: 'anyof', values: acc }) : ''
+        repoty ? fils.push({ name: 'custrecord_amazon_missing_rep', operator: 'anyof', values: repoty }) : '';
+        repo_id ? fils.push({ name: 'custrecord_amazon_missing_reportid', operator: 'anyof', values: repo_id }) : '';
+        acc ? fils.push({ name: 'custrecord_amazon_missing_account', operator: 'anyof', values: acc }) : '';
         search.create({
             type: 'customrecord_amazon_missing_report',
             filters: fils
@@ -824,26 +601,10 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
                 isDynamic: true
             })
         }
-        repoty ?
-            mo.setValue({
-                fieldId: 'custrecord_amazon_missing_rep',
-                value: repoty
-            }) : ''; // 类型
-        acc ?
-            mo.setValue({
-                fieldId: 'custrecord_amazon_missing_account',
-                value: acc
-            }) : ''
-        repo_id ?
-            mo.setValue({
-                fieldId: 'custrecord_amazon_missing_reportid',
-                value: repo_id
-            }) : ''
-        reason ?
-            mo.setValue({
-                fieldId: 'custrecord_amazon_missing_reason',
-                value: JSON.stringify(reason)
-            }) : ''
+        repoty ? mo.setValue({ fieldId: 'custrecord_amazon_missing_rep', value: repoty }) : ''; // 类型
+        acc ? mo.setValue({ fieldId: 'custrecord_amazon_missing_account', value: acc }) : '';
+        repo_id ? mo.setValue({ fieldId: 'custrecord_amazon_missing_reportid', value: repo_id }) : '';
+        reason ? mo.setValue({ fieldId: 'custrecord_amazon_missing_reason', value: JSON.stringify(reason) }) : '';
         // 设置为false，重新拉一次
 
         if (ck)
@@ -856,6 +617,7 @@ define(['N/format', './Helper/core.min', 'N/log', 'N/record', 'N/runtime', './He
             })
         return mo.save()
     }
+
 
     return {
         get: _post,

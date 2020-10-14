@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-09-24 11:37:46
+ * @LastEditTime   : 2020-10-14 10:27:38
  * @LastEditors    : Li
  * @Description    : refund 结算报告 生成退货授权、贷项通知单 或 日记账
  * @FilePath       : \douples_amazon\amazon.order.paymentthorization.mp.min1.js
@@ -16,11 +16,10 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
     'N/search', 'N/record', './Helper/fields.min', 'N/task', 'N/email'
 ], function(interfun, runtime, format, moment, core, log, search, record, fiedls, task, email) {
     // 结算报告退款 欧洲可以根据 marcktplace Name区分国家
-    const fba_return_location = 2502
-    const fmt = "yyyy-M-d"
+    const fba_return_location = 2502;
+    const fmt = "yyyy-M-d";
 
     const debit_account = 622; // 借
-    // const debit_account = 1363; // 借
     const credit_account = 125; // 贷
     const JP_currency = 8;
     const transactionType = 'Payment_return';
@@ -28,6 +27,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
     function getInputData() {
 
         try {
+
             var acc = runtime.getCurrentScript().getParameter({ name: 'custscript_refund_acc' });
             log.debug('店铺', acc);
             var group = runtime.getCurrentScript().getParameter({ name: 'custscript_refund_accgroup' });
@@ -38,15 +38,18 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             var _end_date = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_end_date' }); //  结束时间
             var _order_id = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_order_id' }); //订单号
 
+            var _data_length = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_data_length' }); // 数据长度
+
             var fils = [
                 { name: 'custrecord_aio_sett_tran_type', operator: 'contains', values: 'Refund' },
                 { name: 'custrecord_aio_sett_credit_memo', operator: 'isnot', values: 'T' },
                 { name: 'custrecord_february_undeal', operator: 'isnot', values: 'F' },
                 { name: "custrecord_dps_aio_jour", operator: "anyof", values: ["@NONE@"] }, // 退款日记账 为空
+                { name: "custrecord_is_itemprice_taxfee", operator: "is", values: false }, // 不属于费用
             ]
 
             if (_order_id) {
-                fils.push({ name: 'custrecord_aio_sett_order_id', operator: 'startswith', values: _order_id })
+                fils.push({ name: 'custrecord_aio_sett_order_id', operator: 'startswith', values: _order_id.trim() })
             }
 
             if (_start_date && _end_date) {
@@ -73,12 +76,19 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                 { name: "custrecord_aio_account_2", summary: "GROUP" }, // 1
                 { name: "custrecord_aio_sett_order_id", summary: "GROUP" }, //  2
                 { name: "custrecord_aio_sett_sku", summary: "GROUP" }, // 3
+                { name: "custrecord_settlement_enddate", summary: "GROUP" }, //  4
                 // { name: "custrecord_aio_sett_id", summary: "GROUP" }, //  4
-                { name: "custrecord_aio_sett_adjust_item_id", summary: "GROUP" }, // 5
+                // { name: "custrecord_aio_sett_adjust_item_id", summary: "GROUP" }, // 5
             ]
 
             var limit = 3999,
                 groupArr = [];
+
+            if (_data_length && _data_length < 3999) {
+                limit = _data_length;
+            }
+
+            log.debug('limit', limit);
             search.create({
                 type: 'customrecord_aio_amazon_settlement',
                 filters: fils,
@@ -88,7 +98,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                     acc: rec.getValue(rec.columns[1]),
                     order_id: rec.getValue(rec.columns[2]),
                     sku: rec.getValue(rec.columns[3]),
-                    adjust_item_id: rec.getValue(rec.columns[4]),
+                    settlement_enddate: rec.getValue(rec.columns[4]),
                     count: rec.getValue(rec.columns[0]),
                     start_date: _start_date,
                     end_date: _end_date
@@ -107,20 +117,26 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
 
     function reduce(context) {
 
-        log.audit("  reduce(context)  ", context);
+        // return;
 
+        log.audit("reduce(context)  ", context);
+
+        var refund_return_reduce = runtime.getCurrentScript().getParameter({ name: 'custscript_dps_refund_return_reduce' }); // 数据长度
+
+        if (refund_return_reduce) {
+
+            log.audit("阶段 reduce", "结束");
+        }
         try {
 
             var red_value = (context.values)[0];
 
-            log.debug("typeof", typeof(red_value))
+            log.debug("typeof", typeof(red_value));
             red_value = JSON.parse(red_value);
-            log.debug("typeof", typeof(red_value))
-            log.debug("传入的参数", red_value)
+            log.debug("typeof", typeof(red_value));
+            log.debug("传入的参数", red_value);
 
-
-            log.debug("red_value.acc", red_value.acc)
-
+            log.debug("red_value.acc", red_value.acc);
 
             var temp_ids = [];
             var fils_gol = [];
@@ -129,6 +145,13 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             fils_gol.push({ name: 'custrecord_aio_sett_order_id', operator: 'is', values: red_value.order_id });
             fils_gol.push({ name: 'custrecord_aio_sett_sku', operator: 'is', values: red_value.sku });
             fils_gol.push({ name: 'custrecord_aio_sett_tran_type', operator: 'contains', values: 'Refund' });
+
+            fils_gol.push({ name: 'custrecord_aio_sett_credit_memo', operator: 'isnot', values: 'T' });
+            fils_gol.push({ name: 'custrecord_february_undeal', operator: 'isnot', values: 'F' });
+
+            fils_gol.push({ name: 'custrecord_dps_aio_jour', operator: 'anyof', values: ["@NONE@"] });
+            fils_gol.push({ name: 'custrecord_settlement_enddate', operator: "on", values: red_value.settlement_enddate });
+
 
             log.audit("fils_gol", fils_gol);
 
@@ -184,119 +207,125 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
 
                 if (item_ful_id) { // 存在对应的货品实施, 创建或搜索对应的退货授权
 
-                    var ret_aut_id, status; // 退货订单状态
-                    // 去重 搜索退货授权单
-
-                    // try {
-                    search.create({
-                        type: record.Type.RETURN_AUTHORIZATION,
-                        filters: [
-                            { name: 'custbody_origin_settlement', operator: 'anyof', values: temp_ids }, // 查看对应的结算报告是否存在退货授权
-                            { name: 'item', operator: 'anyof', values: order_item },
-                        ],
-                        columns: [{ name: 'status' }]
-                    }).run().each(function(rec) {
-                        log.debug('找到重复的了 ' + rec.id, rec.getValue('status'))
-                        status = rec.getValue('status');
-                        ret_aut_id = rec.id;
-                    });
-
-                    log.debug('status:' + status, 'ret_aut_id:' + ret_aut_id)
-
                     var info = getInfo(fils_gol);
 
-                    if (!ret_aut_id) { // 找不到对应的退货授权
-                        log.audit("找不到对应的退货授权", "找不到对应的退货授权");
-                        var currency
-                        if (fils_gol.curency_txt)
-                            search.create({
-                                type: 'currency',
-                                filters: [{ name: 'symbol', operator: 'is', values: fils_gol.curency_txt }]
-                            }).run().each(function(e) {
-                                currency = e.id;
-                            });
-
-                        // 如果没有对应的退货授权就create ，然后生成贷项通知单
-                        createAuthorationFromPayment(temp_ids, red_value.acc, info, red_value.order_id, "", currency, order_item, "dept")
-                    } else if (status == 'pendingReceipt' || status == 'pendingApproval') {
-                        log.audit("找到对应的退货授权, 对应的状态", status);
-                        if (status == 'pendingApproval')
-                            record.submitFields({
-                                type: 'returnauthorization',
-                                id: ret_aut_id,
-                                values: {
-                                    orderstatus: 'B',
-                                    status: 'pendingReceipt'
-                                }
-                            })
-                        var cm
+                    var currency
+                    if (info.currency) {
                         search.create({
-                            type: record.Type.CREDIT_MEMO,
-                            filters: [{ name: 'createdfrom', operator: 'anyof', values: ret_aut_id }],
-                            columns: [{ name: 'status' }] // applied 已核销
-                        }).run().each(function(rec) {
-                            log.debug('找到来源相同的贷项通知单  ' + rec.id, rec.getValue('status'))
-                            cm = rec.id
-                        })
-                        // 如果没有对应的贷项通知单就transform
-                        if (!cm) {
-                            var credit_memo
-                            log.audit('\u5f00\u59cb\u751f\u6210\u8d37\u9879\u901a\u77e5\u5355')
-                            // 创建贷项通知单
-                            credit_memo = record.transform({
-                                fromType: record.Type.RETURN_AUTHORIZATION,
-                                toType: record.Type.CREDIT_MEMO,
-                                fromId: Number(ret_aut_id)
-                            });
-                            credit_memo.setText({ fieldId: 'trandate', text: endDate.date });
-                            credit_memo.setValue({ fieldId: 'custbody_order_locaiton', value: acc });
-                            credit_memo.setValue({ fieldId: 'custbody_aio_marketplaceid', value: 1 });
-
-                            var cre = credit_memo.save({
-                                ignoreMandatoryFields: true
-                            })
-                            log.audit('\u751f\u6210\u8d37\u9879\u901a\u77e5\u5355\u6210\u529f', cre)
-
-                            log.debug('OK')
-                        }
-                        log.debug('temp_ids :' + temp_ids);
-                        temp_ids.map(function(id) {
-                            record.submitFields({
-                                type: 'customrecord_aio_amazon_settlement',
-                                id: id,
-                                values: {
-                                    custrecord_aio_sett_credit_memo: 'T',
-                                    custrecord_aio_sett_authorization: 'T',
-                                    custrecord_dps_aio_retrun_authon: ret_aut_id
-                                }
-                            });
+                            type: 'currency',
+                            filters: [{ name: 'symbol', operator: 'is', values: info.currency }]
+                        }).run().each(function(e) {
+                            currency = e.id;
                         });
                     }
 
-                    // } catch (e) {
-                    //     log.error('error!' + red_value.order_id, e)
-                    //     // err.push(e)
-                    // }
+                    log.debug("typeof(info.link_id)", typeof(info.link_id))
+
+                    var re_acc;
+                    if (info.marketplace_name) {
+                        re_acc = interfun.GetstoreInEU(red_value.acc, info.marketplace_name, info.acc_text);
+                    } else if (info.marketplace_name == "Amazon.com") {
+                        var temp_re_acc = interfun.GetstoreofCurrency(info.currency, red_value.acc);
+                        re_acc = {
+                            acc_text: temp_re_acc,
+                            acc: temp_re_acc
+                        }
+                    }
+
+                    log.debug("re_acc", JSON.stringify(re_acc));
+                    if (re_acc.acc_text) {
+                        // 如果没有对应的退货授权就create ，然后生成贷项通知单
+
+                        if (info.link_id.length) {
+                            createAuthorationFromPayment(info.link_id, re_acc.acc, info, red_value.order_id, "", currency, order_item, "dept", temp_ids, order_soId)
+                        } else { // 属于费用类 或者 不需要处理
+                            var diff_arr = diffArrary(temp_ids, info.link_id);
+                            diff_arr.map(function(sd) {
+                                record.submitFields({
+                                    type: 'customrecord_aio_amazon_settlement',
+                                    id: sd,
+                                    values: {
+                                        custrecord_is_itemprice_taxfee: true
+                                    }
+                                })
+                            });
+                        }
+
+                    }
 
                 } else { // 不存在 直接创建对应的日记账
 
-                    var account = getAcc(red_value.acc);
-
                     var info = getInfo(fils_gol);
 
-                    createJour(info.amount, account.info.subsidiary, account.info.dept, info.currency, red_value.acc,
-                        red_value.order_id, info.merchant_order_id, "", info.sett_id, temp_ids, account.customer, info.end_date)
+                    var re_acc;
+                    if (info.marketplace_name) {
+                        re_acc = interfun.GetstoreInEU(red_value.acc, info.marketplace_name, info.acc_text);
+                    } else if (info.marketplace_name == "Amazon.com") {
 
+                        var temp_re_acc = interfun.GetstoreofCurrency(info.currency, red_value.acc);
+
+                        re_acc = {
+                            acc_text: temp_re_acc,
+                            acc: temp_re_acc
+                        }
+                    }
+                    if (re_acc.acc_text) {
+
+                        var account = getAcc(re_acc.acc);
+
+                        if (info.link_id && info.link_id.length > 0) {
+                            createJour(info.amount, account.info.subsidiary, account.info.dept, info.currency, account.id,
+                                red_value.order_id, info.merchant_order_id, "", info.sett_id, info.link_id, account.customer, info.end_date, temp_ids)
+                        } else { // 属于费用类 或者 不需要处理
+                            var diff_arr = diffArrary(temp_ids, info.link_id);
+                            diff_arr.map(function(sd) {
+                                record.submitFields({
+                                    type: 'customrecord_aio_amazon_settlement',
+                                    id: sd,
+                                    values: {
+                                        custrecord_is_itemprice_taxfee: true
+                                    }
+                                })
+                            });
+                        }
+                    }
                 }
-
             } else { // 不存在对应的销售订单, 创建对应的日记账
                 log.debug("找不到对应的销售订单", "找不到对应的销售订单");
-                var account = getAcc(red_value.acc);
                 var info = getInfo(fils_gol);
 
-                createJour(info.amount, account.info.subsidiary, account.info.dept, info.currency, red_value.acc,
-                    red_value.order_id, info.merchant_order_id, "", info.sett_id, temp_ids, account.customer, info.end_date)
+                var re_acc = interfun.GetstoreInEU(red_value.acc, info.marketplace_name, info.acc_text);
+                if (info.marketplace_name) {
+                    re_acc = interfun.GetstoreInEU(red_value.acc, info.marketplace_name, info.acc_text);
+                } else if (info.marketplace_name == "Amazon.com") {
+                    var temp_re_acc = interfun.GetstoreofCurrency(info.currency, red_value.acc);
 
+                    re_acc = {
+                        acc_text: temp_re_acc,
+                        acc: temp_re_acc
+                    }
+                }
+
+                if (re_acc.acc_text) {
+
+                    var account = getAcc(re_acc.acc);
+
+                    if (info.link_id && info.link_id.length > 0) {
+                        createJour(info.amount, account.info.subsidiary, account.info.dept, info.currency, account.id,
+                            red_value.order_id, info.merchant_order_id, "", info.sett_id, info.link_id, account.customer, info.end_date, temp_ids)
+                    } else { // 属于费用类 或者 不需要处理
+                        var diff_arr = diffArrary(temp_ids, info.link_id);
+                        diff_arr.map(function(sd) {
+                            record.submitFields({
+                                type: 'customrecord_aio_amazon_settlement',
+                                id: sd,
+                                values: {
+                                    custrecord_is_itemprice_taxfee: true
+                                }
+                            })
+                        });
+                    }
+                }
             }
 
             makeresovle(transactionType, red_value.order_id, red_value.acc); // 标记已解决
@@ -529,9 +558,9 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
      * @param {*} skuid             货品
      * @param {*} dept              部门
      */
-    function createAuthorationFromPayment(settlerecord_ids, acc, infomation, order_id, merchant_order_id, currency, order_item, dept) {
+    function createAuthorationFromPayment(settlerecord_ids, acc, infomation, order_id, merchant_order_id, currency, order_item, dept, allArr, order_soId) {
 
-        log.debug("infomation.end_date", infomation.end_date);
+        log.audit("infomation.end_date", infomation.end_date);
         var account = getAcc(acc);
         var endDate = interfun.getFormatedDate('', '', infomation.end_date, '', true)
 
@@ -549,11 +578,28 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         cid = account.customer;
 
         log.debug('开始创建退货授权', "开始创建退货授权");
-        var rt = record.create({
-            type: record.Type.RETURN_AUTHORIZATION,
+        // var rt = record.create({
+        //     type: record.Type.RETURN_AUTHORIZATION,
+        //     isDynamic: true
+        // });
+
+        var rt = record.transform({
+            fromType: 'salesorder',
+            toType: record.Type.RETURN_AUTHORIZATION,
+            fromId: Number(order_soId),
             isDynamic: true
         });
-        rt.setValue({ fieldId: 'entity', value: cid });
+
+
+        var numLines = objRecord.getLineCount({ sublistId: 'item' });
+        log.debug("获取的总行数", numLines);
+
+        for (var i = numLines - 1; i > -1; i--) {
+            log.debug("移除当前行", i);
+            objRecord.removeLine({ sublistId: 'item', line: i, ignoreRecalc: true });
+        }
+
+        // rt.setValue({ fieldId: 'entity', value: cid });
         rt.setValue({ fieldId: 'location', value: loc });
         rt.setValue({ fieldId: 'currency', value: currency });
         if (merchant_order_id) {
@@ -561,6 +607,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         } else {
             rt.setValue({ fieldId: 'otherrefnum', value: order_id });
         }
+
         rt.setValue({ fieldId: 'department', value: dept });
         rt.setText({ fieldId: 'trandate', text: endDate.date });
         rt.setValue({ fieldId: 'custbody_order_locaiton', value: acc });
@@ -616,6 +663,18 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                 }
             })
         });
+
+
+        var diff_arr = diffArrary(allArr, settlerecord_ids);
+        diff_arr.map(function(sd) {
+            record.submitFields({
+                type: 'customrecord_aio_amazon_settlement',
+                id: sd,
+                values: {
+                    custrecord_is_itemprice_taxfee: true
+                }
+            })
+        });
         return rs
     }
 
@@ -632,7 +691,10 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             _end_date,
             _sett_id,
             _merchant_order_id,
+            _marketplace_name,
             limit = 3999,
+            link_id = [],
+            sett_info = [],
             _quantity = 1;
         var amount = 0;
         search.create({
@@ -649,10 +711,14 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                 { name: 'custrecord_aio_sett_end_date' }, // endDate
                 { name: 'custrecord_aio_sett_id' },
                 { name: 'custrecord_aio_sett_merchant_order_id' },
+                { name: 'custrecord_aio_sett_adjust_item_id' }, // MERCHANT ADJUSTMENT ITEM ID
+                { name: 'custrecord_aio_sett_marketplace_name' },
+                // { name: 'custrecord_aio_sett_marketplace_name',join: "custrecord_aio_account_2" },
 
             ]
         }).run().each(function(rec) {
 
+            _marketplace_name = rec.getValue("custrecord_aio_sett_marketplace_name");
             _sett_id = rec.getValue("custrecord_aio_sett_id");
             _end_date = rec.getValue("custrecord_aio_sett_end_date");
             _merchant_order_id = rec.getValue("custrecord_aio_sett_merchant_order_id");
@@ -670,22 +736,34 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             log.debug("ck", ck);
             if (ck == 1) {
                 log.debug('属于应收 金额 : ' + typeof(a), a)
-                amount = amount + Number(a)
-                log.debug('等于,', amount)
+                amount = amount + Number(a);
+                log.debug('等于,', amount);
+                link_id.push(rec.id);
+                sett_info.push({
+                    recId: rec.id,
+                    adjust_item_id: rec.getValue("custrecord_aio_sett_adjust_item_id")
+                })
             }
             return --limit > 0;
         });
 
         var temp_amount = amount ? amount : 0;
         retObj.currency = _currency_txt;
-        retObj.amount = Math.abs(temp_amount);
+        if (_currency_txt == "JPY") {
+            retObj.amount = Math.abs(temp_amount);
+        } else {
+            retObj.amount = Math.abs(temp_amount).toFixed(2);
+        }
         retObj.quantity = _quantity ? _quantity : 1;
         retObj.deposit_date = _deposit_date;
         retObj.end_date = _end_date;
         retObj.sett_id = _sett_id;
         retObj.merchant_order_id = _merchant_order_id;
+        retObj.link_id = link_id;
+        retObj.sett_info = sett_info;
+        retObj.marketplace_name = _marketplace_name;
 
-        log.debug("getInfo  信息", JSON.stringify(retObj))
+        log.audit("getInfo  信息", JSON.stringify(retObj));
         return retObj
     }
 
@@ -704,22 +782,27 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
      * @param {*} settlement_ids        结算报告Id
      * @param {*} entity                客户
      */
-    function createJour(amt, subsidiary, dept, currency, pr_store, orderid, merchant_order_id, so_id, key, settlement_ids, entity, end_date) {
+    function createJour(amt, subsidiary, dept, currency, pr_store, orderid, merchant_order_id, so_id, key, settlement_ids, entity, end_date, allArr) {
 
-        log.debug("开始生成日记账", "开始生成日记账");
+
+
+        log.audit("开始生成日记账", "开始生成日记账");
         log.debug("currency", currency);
+        log.debug("end_date", end_date);
         const j_memo = "结算退款-客户"
 
         var jour = record.create({ type: 'journalentry', isDynamic: true });
         var endDate = interfun.getFormatedDate('', '', end_date, '', true);
         log.debug("设置子公司", subsidiary);
 
+        log.debug("endDate", JSON.stringify(endDate))
+
         jour.setValue({ fieldId: 'subsidiary', value: subsidiary });
         jour.setText({ fieldId: 'currency', text: currency });
         // jour.setValue({ fieldId: 'currency', value: currency });
 
         jour.setText({ fieldId: 'trandate', text: endDate.date });
-        jour.setValue({ fieldId: 'memo', value: '结算' });
+        jour.setValue({ fieldId: 'memo', value: "退款结算" });
 
         jour.setValue({ fieldId: 'department', value: dept });
         jour.setValue({ fieldId: 'custbody_order_locaiton', value: pr_store });
@@ -735,7 +818,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         jour.selectNewLine({ sublistId: 'line' });
         jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'account', value: debit_account });
         if (currency == JP_currency) { amt = Math.round(amt); } // JP取整数
-        jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: j_memo });
+        jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: "未发货退款[Amazon]" });
 
         log.debug("设置客户", entity);
         jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'entity', value: entity });
@@ -745,7 +828,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
 
         jour.selectNewLine({ sublistId: 'line' });
         jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'account', value: credit_account });
-        jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: j_memo });
+        jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'memo', value: "未发货退款[Amazon]" });
         jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'credit', value: amt }); // 贷
         jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'entity', value: entity }); // 客户
         jour.setCurrentSublistValue({ sublistId: 'line', fieldId: 'department', value: dept }); // 部门
@@ -756,9 +839,9 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             // ignoreMandatoryFields: true
         });
 
-        log.debug("创建日记账成功", jour_id);
+        log.audit("创建日记账成功", jour_id);
 
-        log.debug("开始设置结算报告关联的日记账", "设置关联的日记账");
+        log.audit("开始设置结算报告关联的日记账", "设置关联的日记账");
         settlement_ids.map(function(id) {
             record.submitFields({
                 type: 'customrecord_aio_amazon_settlement',
@@ -767,6 +850,17 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                     custrecord_dps_aio_jour: jour_id
                 }
             });
+        });
+
+        var diff_arr = diffArrary(allArr, settlement_ids);
+        diff_arr.map(function(sd) {
+            record.submitFields({
+                type: 'customrecord_aio_amazon_settlement',
+                id: sd,
+                values: {
+                    custrecord_is_itemprice_taxfee: true
+                }
+            })
         });
 
     }
@@ -804,7 +898,7 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
                     (Tranction_type == 'Refund' && Amount_type == 'Promotion' && Amount_desc == 'GiftWrap') ||
                     (Tranction_type == 'Refund' && Amount_type == 'Promotion' && Amount_desc == 'Goodwill')
                 ) &&
-                (currency_txt == 'USD' || currency_txt == 'CAD' || currency_txt == 'MXD' || currency_txt == 'AUD' || currency_txt == 'SGD')
+                (currency_txt == 'USD' || currency_txt == 'CAD' || currency_txt == 'MXN' || currency_txt == 'AUD' || currency_txt == 'SGD')
             ) ||
 
             (
@@ -873,6 +967,21 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
             }
         }
         return fmt;
+    }
+
+
+    function diffArrary(arr1, arr2) {
+
+        var newArr = [];
+
+        arr1.map(function(x) {
+
+            if (arr2.indexOf(x) == -1) {
+                newArr.push(x)
+            }
+
+        });
+        return newArr;
     }
 
 

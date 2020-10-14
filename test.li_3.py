@@ -1,94 +1,78 @@
 '''
 Author         : Li
 Version        : 1.0
-Date           : 2020-07-07 21:43:50
-LastEditTime   : 2020-08-31 19:56:22
+Date           : 2020-09-21 10:41:49
+LastEditTime   : 2020-09-25 21:19:09
 LastEditors    : Li
 Description    :
-FilePath       : \test.li copy 2.py
+FilePath       : \test.li_3.py
 可以输入预定的版权声明、个性签名、空行等
 '''
+
+# -*- coding: UTF-8 -*-
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 import time
 import requests
 import json
 import threading
+import oauth2 as oauth
 
 
-def task(arg1, arg2):
-    print(arg1, arg2)
-    time.sleep(1)
+pool = ThreadPoolExecutor(24)
 
 
-# pool = ProcessPoolExecutor(10)
-pool = ThreadPoolExecutor(4)  # 线程数
+url = "https://6188472.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=588&deploy=1"
+
+token = oauth.Token(key="8fb97dc1bb1297658a87bb88497a39665c05790e4ae7e297d0072d624b23428b",
+                    secret="295345f7f36bcba3eb3658a8648cf3e70b5c1da4b5999208b5e53e3545b90db3")
+consumer = oauth.Consumer(key="82872acfebd26d19c55bd7bc5ddcd5f340af9be8c5b319ab2ace5b2a2dd710d8",
+                          secret="e2bb72e3b39d3d5b5b5973f21dca3254e4fc60de74487e2084fb400d415aaa61")
+
+http_method = "POST"
+realm = "6188472"
+
+params = {
+    'oauth_version': "1.0",
+    'oauth_nonce': oauth.generate_nonce(),
+    'oauth_timestamp': str(int(time.time())),
+    'oauth_token': token.key,
+    'oauth_consumer_key': consumer.key
+}
+
+req = oauth.Request(method=http_method, url=url, parameters=params)
+signature_method = oauth.SignatureMethod_HMAC_SHA1()
+req.sign_request(signature_method, consumer, token)
+header = req.to_header(realm)
+headery = header['Authorization'].encode('ascii', 'ignore')
+headerx = {"Authorization": headery, "Content-Type": "application/json"}
 
 
-def Getorders(acc):
+def createreportdate(value):
+    temp_value = json.loads(value)
+    print("开始处理报告数据")
 
-    email = "licanlin@douples.com"
-    account = "6188472"
-    # account = "6188472_SB1"
-    signature = "@LiCanLin1907"
-    headers = {
-        "Authorization": "NLAuth nlauth_account=" + account + ", nlauth_email=" + email + ", nlauth_signature= " + signature + ", nlauth_role=3",
-        "Content-Type": "application/json"}
-    link = "https://6188472.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=472&deploy=1"
-    r1 = requests.get(url=link, params={'op': 'create_fin_DealData', "objs": acc,
-                                        "last_updated_after": "2020-05-31T00:00:00.000Z", "last_updated_before": "2020-07-30T00:00:00.000Z"}, headers=headers)
-    print(r1.text)
+    params = {'action': 'create_report_date', "value": temp_value}
+    r1 = requests.post(url, data=json.dumps(params), headers=headerx)
+    print(r1.text, "\n")
+    print("结束时间", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
 
 
-def GetAcc(acc_group):
+def getreportdate(acc, reporttype):
+    print("开始获取报告数据数据")
 
-    print('开始处理数据',"开始处理数据")
-    email = "licanlin@douples.com"
-    account = "6188472"
-    # account = "6188472_SB1"
-    signature = "@LiCanLin1907"
-    headers = {
-        "Authorization": "NLAuth nlauth_account=" + account + ", nlauth_email=" + email + ", nlauth_signature= " + signature + ", nlauth_role=3",
-        "Content-Type": "application/json"}
-    link = "https://6188472.restlets.api.netsuite.com/app/site/hosting/restlet.nl?script=472&deploy=1"
-    r1 = requests.get(url=link, params={'op': 'create_fin_getData', "acc": acc_group, "bj": "F",
-                                        "last_updated_after": "2020-05-31T00:00:00.000Z", "last_updated_before": "2020-07-30T00:00:00.000Z"}, headers=headers)
+    params = {'action': 'get_report_date',
+              "acc": acc, "reporttype": reporttype, "group": 1}
+    r1 = requests.post(url, data=json.dumps(params), headers=headerx)
     new_lis = r1.text
-    # new_lis = new_lis.split(",")
-    # print(new_lis)
+
     json_obj = json.loads(new_lis)
+    accLength = len(json_obj)
+    print("数据长度", accLength)
+
     for iac in json_obj:
-        # Getorders(json.dumps(iac))
-        try:
-            pool.submit(Getorders,  json.dumps(iac))
-        except ZeroDivisionError as err:
-            print('Handling run-time error:', err)
-
-
-class Person(object):
-
-    def __init__(self):
-        print("init")
-
-    def speak(self):
-        GetAcc(5)
+        pool.submit(createreportdate, iac)
 
 
 if __name__ == "__main__":
-    # p = Person()
-    # while True:
-    #     timer = threading.Timer(18, p.speak)
-    #     timer.start()
-    #     timer.join()
-    # num = 0
-    # while True:
-    #     num = num+1
-    #     print("执行第"+str(num) + "次")
-    #     GetAcc("")
-    #     time.sleep(8010)
-    GetAcc(102)
-
-
-# 19          GONEX.US      14741 条
-# 102        MAGICFLY.US   28091 条
-# 31       KEEDOX.US                 12871   条
-# 21       DONNERDIRECT.US           39252  条
+    print("开始时间", time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+    getreportdate(1, 16)

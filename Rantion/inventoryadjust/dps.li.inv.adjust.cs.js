@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-08-24 11:47:18
- * @LastEditTime   : 2020-09-17 10:40:44
+ * @LastEditTime   : 2020-10-13 13:55:17
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \Rantion\inventoryadjust\dps.li.inv.adjust.cs.js
@@ -376,6 +376,16 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
                         fieldId: 'custpage_label_inv_recid_arr',
                         line: i
                     })),
+                    custpage_label_amazon_qty: curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_amazon_qty',
+                        line: i
+                    }),
+                    custpage_label_ns_qty: curr_rec.getSublistValue({
+                        sublistId: 'sublist_show_id',
+                        fieldId: 'custpage_label_ns_qty',
+                        line: i
+                    }),
                 };
 
                 new_sublist_value.push(it);
@@ -402,7 +412,7 @@ define(['N/url', 'N/runtime', 'N/ui/dialog', 'N/currentRecord',
 
 
         console.log('子列表记录', new_sublist_value)
-        if (new_sublist_value && new_sublist_value.length > 0) { // 选择了一行或者多行数据
+        if (new_sublist_value.length) { // 选择了一行或者多行数据
 
             var url1 = url.resolveScript({
                 scriptId: 'customscript_dps_li_inv_adjust_rl',

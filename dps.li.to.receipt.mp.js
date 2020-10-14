@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-09-10 15:57:07
- * @LastEditTime   : 2020-09-10 19:34:02
+ * @LastEditTime   : 2020-10-13 10:52:14
  * @LastEditors    : Li
  * @Description    :
  * @FilePath       : \dps.li.to.receipt.mp.js
@@ -69,7 +69,6 @@ define(['N/search', 'N/record', 'N/runtime'], function(search, record, runtime) 
         var _val = JSON.parse(context.value);
         log.debug('_val  ' + typeof(_val), _val);
         try {
-
 
             var _item_fulfillment = record.transform({
                 fromType: 'transferorder',

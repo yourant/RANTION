@@ -2,9 +2,9 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-05-12 14:14:35
- * @LastEditTime   : 2020-08-19 19:24:47
+ * @LastEditTime   : 2020-09-24 16:49:08
  * @LastEditors    : Li
- * @Description    : 
+ * @Description    :
  * @FilePath       : \Rantion\fulfillment.record\dps.funfillment.record.transferorder.ue.js
  * @可以输入预定的版权声明、个性签名、空行等
  */
@@ -227,7 +227,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 创建完发运记录, 根据类型,进行 shipmentID的申请 或者 推送 WMS
-     * @param {Object} context 
+     * @param {Object} context
      */
     function sub(context) {
 
@@ -886,7 +886,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
                 } else {
                     data["logisticsFlag"] = 0;
                 }
-                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是 
+                // logisticsFlag (integer): 是否需要物流面单 0:否 1:是
 
                 data["logisticsProviderName"] = rec.getText('custrecord_dps_shipping_r_channel_dealer'); // 渠道商名称
 
@@ -1148,7 +1148,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
             });
 
             log.debug('itemArr', itemArr);
-            // 2020/7/18 13：44 改动 
+            // 2020/7/18 13：44 改动
             var fils = [],
                 add_fils = []; //过滤
             var len = item_info.length,
@@ -1315,7 +1315,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 搜索当前记录是否关联有发运记录
-     * @param {Number} toId 
+     * @param {Number} toId
      */
     function searchFulRec(toId) {
         var fulId;
@@ -1936,7 +1936,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 false; 否则返回 true;
-     * @param {Number} toId 
+     * @param {Number} toId
      * @returns {Boolean} true || false
      */
     function qtyBackOrdered(toId) {
@@ -1972,8 +1972,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 获取当前订单的延交订单的货品数量, 若存在延交订单数量大于 0, 返回 false; 否则返回 true;
-     * @param {Number} toId 
-     * @returns {Array} 
+     * @param {Number} toId
+     * @returns {Array}
      */
     function arrBackOrder(toId) {
         var backOrder = 0;
@@ -2025,8 +2025,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
     // 获取订单对应的库存
     /**
      * 搜索单据的货品、地点、子公司
-     * @param {String} recType 
-     * @param {number} recId 
+     * @param {String} recType
+     * @param {number} recId
      * @returns {Object} {subsidiary: subs,itemArr: itemArr,location: loca,totalQty: totalQty};
      */
     function searchToLocationItem(recType, recId) {
@@ -2264,8 +2264,8 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 判断库存是否充足
-     * @param {String} recType 
-     * @param {Number} recId 
+     * @param {String} recType
+     * @param {Number} recId
      * @returns{Boolean} flag
      */
     function judgmentItemInventory(recType, recId) {
@@ -2312,7 +2312,7 @@ define(['N/record', 'N/search', '../../douples_amazon/Helper/core.min', 'N/log',
 
     /**
      * 计算预估运费
-     * @param {*} Rec 
+     * @param {*} Rec
      */
     function getCost(Rec) {
 

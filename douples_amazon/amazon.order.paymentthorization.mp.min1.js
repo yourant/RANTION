@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-07-10 11:37:16
- * @LastEditTime   : 2020-10-14 10:27:38
+ * @LastEditTime   : 2020-10-14 10:39:49
  * @LastEditors    : Li
  * @Description    : refund 结算报告 生成退货授权、贷项通知单 或 日记账
  * @FilePath       : \douples_amazon\amazon.order.paymentthorization.mp.min1.js
@@ -591,12 +591,12 @@ define(['./Helper/interfunction.min', 'N/runtime', 'N/format', './Helper/Moment.
         });
 
 
-        var numLines = objRecord.getLineCount({ sublistId: 'item' });
+        var numLines = rt.getLineCount({ sublistId: 'item' });
         log.debug("获取的总行数", numLines);
 
         for (var i = numLines - 1; i > -1; i--) {
             log.debug("移除当前行", i);
-            objRecord.removeLine({ sublistId: 'item', line: i, ignoreRecalc: true });
+            rt.removeLine({ sublistId: 'item', line: i, ignoreRecalc: true });
         }
 
         // rt.setValue({ fieldId: 'entity', value: cid });

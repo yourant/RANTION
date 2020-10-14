@@ -15,10 +15,7 @@
 define(['N/record', 'N/search', 'N/ui/dialog'],
     function (record, search, dialog) {
         function beforeLoad(context) {
-            log.debug(
-                "aaa",
-                "bbb"
-            )
+
         }
 
         function beforeSubmit(context) {
@@ -31,6 +28,7 @@ define(['N/record', 'N/search', 'N/ui/dialog'],
                 type: 'transferorder',
                 id: ToId
             });
+            log.audit("toRec",toRec);
             var line = toRec.getLineCount({
                 sublistId: 'item'
             });

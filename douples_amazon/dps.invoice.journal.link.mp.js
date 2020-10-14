@@ -2,7 +2,7 @@
  * @Author         : Li
  * @Version        : 1.0
  * @Date           : 2020-09-28 14:18:49
- * @LastEditTime   : 2020-10-13 09:01:02
+ * @LastEditTime   : 2020-10-14 11:58:07
  * @LastEditors    : Li
  * @Description    : 修复发票和日记账关联关系, 设置发票 ID 等相关字段
  * @FilePath       : \douples_amazon\dps.invoice.journal.link.mp.js
@@ -279,7 +279,7 @@ define(['N/search', 'N/record', 'N/log', './Helper/interfunction.min', 'N/runtim
             var invArr = [];
 
             var orders = [];
-            if (val.order_id) {
+            if (val.order_id) { // 存在订单号, 则直接搜索
                 var fils_inv = [
                         ['mainline', 'is', false],
                         'and',
@@ -299,10 +299,11 @@ define(['N/search', 'N/record', 'N/log', './Helper/interfunction.min', 'N/runtim
                 var len_itco = amaozn_order_iemc.length,
                     l_num = 0
                 amaozn_order_iemc.map(function(ic) {
-                    if (ic)
+                    if (ic) {
                         fls.push(['custbody_shipment_report_rel.custrecord_amazon_order_item_id', 'is', ic])
-                    else
+                    } else {
                         fls.push(['custbody_shipment_report_rel.custrecord_amazon_order_item_id', 'isempty', ''])
+                    }
                     l_num++
                     log.debug('l_num:' + l_num, 'len_itco: ' + len_itco)
                     if (l_num < len_itco)
@@ -338,12 +339,42 @@ define(['N/search', 'N/record', 'N/log', './Helper/interfunction.min', 'N/runtim
 
                     return true
                 })
+
+                if (!orders.length) { // 去除 item code 关联，直接搜索对应的发票
+                    var fils_inv_2 = [
+                        ['mainline', 'is', false],
+                        'and',
+                        ['taxline', 'is', false],
+                        'and',
+                        ['custbody_aio_account', 'anyof', search_accObj.acc_search],
+                        'and',
+                        ['otherrefnum', 'equalto', val.order_id]
+                    ]
+
+                    search.create({
+                        type: 'invoice',
+                        filters: fils_inv_2,
+                        columns: [
+                            { name: 'internalid', summary: 'group' },
+                            { name: 'custrecord_amazon_order_item_id', join: 'custbody_shipment_report_rel', summary: 'group' },
+                            { name: 'quantity', summary: 'SUM' }
+                        ]
+                    }).run().each(function(e) {
+
+                        orders.push({
+                            inv_id: e.getValue(e.columns[0]),
+                            end_date: _end_date.date,
+                            depAmaount: _amount
+                        })
+
+                        return true
+                    })
+                }
             }
 
             log.debug("orders", orders);
 
-            // return;
-            if (orders && orders.length > 0) {
+            if (orders.length) {
                 var re_jour = record.submitFields({
                     type: "journalentry",
                     id: val.journal_id,
@@ -355,9 +386,7 @@ define(['N/search', 'N/record', 'N/log', './Helper/interfunction.min', 'N/runtim
                 log.debug("更新日记账 发票ID", re_jour);
             }
         } catch (error) {
-
             log.error("处理出错了", error);
-
         }
 
 
@@ -367,7 +396,6 @@ define(['N/search', 'N/record', 'N/log', './Helper/interfunction.min', 'N/runtim
     function summarize(summary) {
 
     }
-
 
     function _dateFormat(date, fmt) {
         var o = {
